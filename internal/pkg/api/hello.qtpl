@@ -1,3 +1,0 @@
-{% func HTMLUser(user User) %}
-Hello, {%s user.Username %}!
-{% endfunc %}

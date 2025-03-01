@@ -3,8 +3,27 @@ info:
   title: User API
   version: 1.0.0
 paths:
+  /api/v1/login:
+    post:
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+      responses:
+        '204':
+          $ref: '#/components/responses/204NoContent'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   /api/v1/users:
     get:
+      tags: [users]
+      security:
+        - CookieAuth: []
       parameters:
         - $ref: "#/components/parameters/AcceptHeader"
       responses:
@@ -24,6 +43,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
     post:
+      tags: [users]
       security:
         - CookieAuth: []
       parameters:
@@ -47,6 +67,9 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
   /api/v1/users/{name}:
     get:
+      tags: [users]
+      security:
+        - CookieAuth: []
       parameters:
         - $ref: "#/components/parameters/AcceptHeader"
         - name: name
@@ -71,6 +94,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
     put:
+      tags: [users]
       security:
         - CookieAuth: []
       parameters:
@@ -115,6 +139,30 @@ components:
       required:
         - username
         - email
+    Login:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+    RFC9457ProblemDetail:
+      type: object
+      properties:
+        type:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+        instance:
+          type: string
+
   parameters:
     AcceptHeader:
       in: header
@@ -131,11 +179,46 @@ components:
       description: No content
     400BadRequest:
       description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RFC9457ProblemDetail'
+        text/html:
+          schema:
+            type: string
     401Unauthorized:
       description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RFC9457ProblemDetail'
+        text/html:
+          schema:
+            type: string
     404NotFound:
       description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RFC9457ProblemDetail'
+        text/html:
+          schema:
+            type: string
     409Conflict:
       description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RFC9457ProblemDetail'
+        text/html:
+          schema:
+            type: string
     500InternalServerError:
       description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RFC9457ProblemDetail'
+        text/html:
+          schema:
+            type: string

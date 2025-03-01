@@ -25,6 +25,8 @@ go tool sqlc vet
 - [ ] Logging for goose
 - [ ] Flag parsing, config, env vars
 - [ ] Clean up endpoints
+- [ ] Check in the generated files
+- [ ] Common API error response struct
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)
