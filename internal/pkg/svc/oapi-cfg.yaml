@@ -4,4 +4,4 @@ generate:
   chi-server: true
   strict-server: true
   models: true
-output: server.gen.go
+output: oapi.gen.go

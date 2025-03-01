@@ -10,8 +10,23 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	_ "modernc.org/sqlite"
 )
+
+func NewHandler(db *sql.DB) http.Handler {
+	mux := chi.NewRouter()
+	mux.Use(middleware.RequestID)
+	mux.Use(middleware.RealIP)
+	mux.Use(middleware.Logger)
+	mux.Use(middleware.Recoverer)
+	mux.Use(middleware.Timeout(60 * time.Second))
+
+	mux.Mount("/", svc.New(db))
+
+	return mux
+}
 
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
@@ -41,7 +56,7 @@ func main() {
 
 	s := &http.Server{
 		Addr:              os.Getenv("HTTP_LISTEN"),
-		Handler:           svc.New(d),
+		Handler:           NewHandler(d),
 		ReadHeaderTimeout: 20 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
