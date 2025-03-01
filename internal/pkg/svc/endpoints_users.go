@@ -12,6 +12,10 @@ import (
 	"github.com/oapi-codegen/runtime/types"
 )
 
+/*
+	curl 'http://127.0.0.1:8050/api/v1/users' \
+		-H 'Cookie: session="asdf"'
+*/
 func (s *Server) GetApiV1Users(ctx context.Context, request GetApiV1UsersRequestObject) (GetApiV1UsersResponseObject, error) {
 	users, err := db.New(s.db).GetUsers(ctx)
 	if err != nil {
@@ -31,11 +35,7 @@ func (s *Server) GetApiV1Users(ctx context.Context, request GetApiV1UsersRequest
 
 /*
 curl 'http://127.0.0.1:8050/api/v1/users/test' \
- -H 'Accept: application/json' \
- -H 'Cookie: session="asdf"'
-
-curl 'http://127.0.0.1:8050/api/v1/users/test' \
- -H 'Cookie: session="asdf"'
+	-H 'Cookie: session="asdf"'
 */
 
 func (s *Server) GetApiV1UsersName(ctx context.Context, request GetApiV1UsersNameRequestObject) (GetApiV1UsersNameResponseObject, error) {
@@ -45,15 +45,6 @@ func (s *Server) GetApiV1UsersName(ctx context.Context, request GetApiV1UsersNam
 	}
 	if err != nil {
 		return GetApiV1UsersName500JSONResponse{}, nil
-	}
-
-	retUser := User{
-		Username: user.Username,
-		Email:    types.Email(user.Email),
-	}
-	if WantsJSON(request.Params.Accept) {
-		ret := GetApiV1UsersName200JSONResponse(retUser)
-		return ret, nil
 	}
 
 	p := tpl.MainPage{

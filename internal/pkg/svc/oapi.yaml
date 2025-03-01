@@ -9,9 +9,6 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Login'
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Login'
@@ -27,8 +24,6 @@ paths:
       tags: [users]
       security:
         - CookieAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AcceptHeader"
       responses:
         '200':
           description: List of users
@@ -38,9 +33,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/User'
-            text/html:
-              schema:
-                type: string
         '401':
           $ref: '#/components/responses/401Unauthorized'
         '500':
@@ -54,7 +46,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/User'
       responses:
@@ -74,7 +66,6 @@ paths:
       security:
         - CookieAuth: []
       parameters:
-        - $ref: "#/components/parameters/AcceptHeader"
         - name: name
           in: path
           required: true
@@ -84,9 +75,6 @@ paths:
         '200':
           description: User
           content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
             text/html:
               schema:
                 type: string
@@ -101,7 +89,6 @@ paths:
       security:
         - CookieAuth: []
       parameters:
-        - $ref: "#/components/parameters/AcceptHeader"
         - name: name
           in: path
           required: true
@@ -110,7 +97,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/User'
       responses:

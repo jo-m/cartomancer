@@ -4,7 +4,7 @@ check:
 	mkdir -p data/
 	go tool goose up
 
-	# Clean up.
+	# Cleanup.
 	rm -f internal/pkg/db/{db,models}.go internal/pkg/db/*.sql.go
 	find . -name '*.qtpl.go' -delete
 
