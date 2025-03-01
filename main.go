@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"database/sql"
-	"goweb/internal/pkg/api"
 	"goweb/internal/pkg/db"
+	"goweb/internal/pkg/svc"
 	"log/slog"
 	"net/http"
 	"os"
@@ -41,7 +41,7 @@ func main() {
 
 	s := &http.Server{
 		Addr:              os.Getenv("HTTP_LISTEN"),
-		Handler:           api.New(d),
+		Handler:           svc.New(d),
 		ReadHeaderTimeout: 20 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,

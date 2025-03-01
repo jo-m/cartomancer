@@ -1,4 +1,4 @@
-package api
+package svc
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"goweb/internal/pkg/api/tpl"
 	"goweb/internal/pkg/db"
+	"goweb/internal/pkg/svc/tpl"
 	"io"
 	"net/http"
 	"strings"
