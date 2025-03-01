@@ -1,0 +1,20 @@
+{% code
+type MainPage struct {
+	BasePage
+	Username string
+}
+
+// Compile time interface check.
+var _ Page = (*MainPage)(nil)
+%}
+
+{% func (p *MainPage) Title() %}
+	This is the main title
+{% endfunc %}
+
+{% func (p *MainPage) Body() %}
+	<h1>{%s p.Title() %}</h1>
+	<div>
+		Username: {%s p.Username %}
+	</div>
+{% endfunc %}

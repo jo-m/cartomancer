@@ -1,0 +1,7 @@
+/data
+
+# Do not yet check in all the generated files.
+*.qtpl.go
+*.sql.go
+internal/pkg/db/db.go
+internal/pkg/db/models.go
