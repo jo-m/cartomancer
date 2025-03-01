@@ -3,9 +3,19 @@ info:
   title: User API
   version: 1.0.0
 paths:
-  /api/v1/login:
+  /api/v1/sessions/login:
+    get:
+      tags: [sessions]
+      responses:
+        '200':
+          # $ref: '#/components/responses/200Form'
+          description: User
+          content:
+            text/html:
+              schema:
+                type: string
     post:
-      tags: [users]
+      tags: [sessions]
       requestBody:
         required: true
         content:
@@ -19,6 +29,12 @@ paths:
           $ref: '#/components/responses/401Unauthorized'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /api/v1/sessions/logout:
+    post:
+      tags: [sessions]
+      responses:
+        '204':
+          $ref: '#/components/responses/204NoContent'
   /api/v1/users:
     get:
       tags: [users]
@@ -60,17 +76,18 @@ paths:
           $ref: '#/components/responses/409Conflict'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/v1/users/{name}:
+  /api/v1/users/{id}:
     get:
       tags: [users]
       security:
         - CookieAuth: []
       parameters:
-        - name: name
+        - name: id
           in: path
           required: true
           schema:
-            type: string
+            type: integer
+            format: int64
       responses:
         '200':
           description: User
@@ -89,11 +106,12 @@ paths:
       security:
         - CookieAuth: []
       parameters:
-        - name: name
+        - name: id
           in: path
           required: true
           schema:
-            type: string
+            type: integer
+            format: int64
       requestBody:
         required: true
         content:
@@ -121,23 +139,23 @@ components:
     User:
       type: object
       properties:
-        username:
-          type: string
         email:
           type: string
           format: email
+        name:
+          type: string
       required:
-        - username
         - email
+        - name
     Login:
       type: object
       properties:
-        username:
+        email:
           type: string
         password:
           type: string
       required:
-        - username
+        - email
         - password
     RFC9457ProblemDetail:
       type: object
@@ -163,6 +181,12 @@ components:
   responses:
     200OK:
       description: OK
+    200Form:
+      description: HTML Form
+      content:
+        text/html:
+          schema:
+            type: string
     201Created:
       description: Created
     204NoContent:

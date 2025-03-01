@@ -13,8 +13,8 @@ import (
 )
 
 /*
-	curl 'http://127.0.0.1:8050/api/v1/users' \
-		-H 'Cookie: session="asdf"'
+	curl -v 'http://127.0.0.1:8050/api/v1/users' \
+		--cookie-jar cookies.txt
 */
 func (s *Server) GetApiV1Users(ctx context.Context, request GetApiV1UsersRequestObject) (GetApiV1UsersResponseObject, error) {
 	users, err := db.New(s.db).GetUsers(ctx)
@@ -25,8 +25,7 @@ func (s *Server) GetApiV1Users(ctx context.Context, request GetApiV1UsersRequest
 	ret := GetApiV1Users200JSONResponse{}
 	for _, u := range users {
 		ret = append(ret, User{
-			Username: u.Username,
-			Email:    types.Email(u.Email),
+			Email: types.Email(u.Email),
 		})
 	}
 
@@ -38,26 +37,26 @@ curl 'http://127.0.0.1:8050/api/v1/users/test' \
 	-H 'Cookie: session="asdf"'
 */
 
-func (s *Server) GetApiV1UsersName(ctx context.Context, request GetApiV1UsersNameRequestObject) (GetApiV1UsersNameResponseObject, error) {
-	user, err := db.New(s.db).GetUserByName(ctx, request.Name)
+func (s *Server) GetApiV1UsersId(ctx context.Context, request GetApiV1UsersIdRequestObject) (GetApiV1UsersIdResponseObject, error) {
+	user, err := db.New(s.db).GetUser(ctx, request.Id)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return GetApiV1UsersName404JSONResponse{}, nil
+		return GetApiV1UsersId404JSONResponse{}, nil
 	}
 	if err != nil {
-		return GetApiV1UsersName500JSONResponse{}, nil
+		return GetApiV1UsersId500JSONResponse{}, nil
 	}
 
 	p := tpl.MainPage{
-		Username: user.Username,
+		Email: user.Email,
 	}
 
-	return GetApiV1UsersName200TexthtmlResponse{Body: Body(func(w io.Writer) { tpl.WritePageTemplate(w, &p) })}, nil
+	return GetApiV1UsersId200TexthtmlResponse{Body: Body(func(w io.Writer) { tpl.WritePageTemplate(w, &p) })}, nil
 }
 
 func (s *Server) PostApiV1Users(ctx context.Context, request PostApiV1UsersRequestObject) (PostApiV1UsersResponseObject, error) {
 	panic("unimplemented")
 }
 
-func (s *Server) PutApiV1UsersName(ctx context.Context, request PutApiV1UsersNameRequestObject) (PutApiV1UsersNameResponseObject, error) {
+func (s *Server) PutApiV1UsersId(ctx context.Context, request PutApiV1UsersIdRequestObject) (PutApiV1UsersIdResponseObject, error) {
 	panic("unimplemented")
 }

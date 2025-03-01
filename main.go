@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"goweb/internal/pkg/db"
+	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/svc"
 	"log/slog"
 	"net/http"
@@ -45,9 +46,9 @@ func main() {
 	_, err = q.CreateUser(ctx, db.CreateUserParams{
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
-		Username:     "test",
 		Email:        "test@example.org",
-		PasswordHash: "test",
+		Name:         "test",
+		PasswordHash: password.Hashed("asdf"),
 		Biography:    sql.NullString{},
 	})
 	if err != nil {

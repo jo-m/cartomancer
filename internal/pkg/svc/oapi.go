@@ -2,11 +2,16 @@ package svc
 
 import (
 	"context"
+	"crypto/subtle"
 	"database/sql"
 	_ "embed"
 	"errors"
-	"fmt"
+	"goweb/internal/pkg/db"
+	"log/slog"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -32,25 +37,48 @@ type Server struct {
 	db *sql.DB
 }
 
+func (s *Server) DB() *db.Queries {
+	return db.New(s.db)
+}
+
 // Compile time interface check.
 var _ StrictServerInterface = (*Server)(nil)
 
-func authenticationFunc(ctx context.Context, a *openapi3filter.AuthenticationInput) error {
-	// TODO: proper implementation and error handling
+// TODO:: move to middleware
+func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.AuthenticationInput) error {
+	// TODO: proper error handling
 	if a.SecuritySchemeName != "CookieAuth" {
 		panic("unknown security scheme")
 	}
 
 	cookie, err := a.RequestValidationInput.Request.Cookie(sessionCookieName)
 	if err != nil {
-		return errors.New("no session")
+		return errors.New("no session id")
 	}
 
-	if cookie.Value != "asdf" {
-		return errors.New("unknown session")
+	parts := strings.SplitN(cookie.Value, ":", 2)
+	if len(parts) != 2 {
+		return errors.New("invalid session string")
+	}
+	id, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return errors.New("invalid session id")
 	}
 
-	fmt.Println("authenticated")
+	session, err := s.DB().GetUserSession(ctx, id)
+	if err != nil {
+		return errors.New("no such session")
+	}
+
+	if time.Since(session.CreatedAt) > time.Minute*30 {
+		return errors.New("session expired")
+	}
+
+	if subtle.ConstantTimeCompare([]byte(parts[1]), []byte(session.Secret)) != 1 {
+		return errors.New("invalid secret")
+	}
+
+	slog.Info("Authenticated", "session_id", session.ID, "user_id", session.UserID)
 
 	return nil
 }
@@ -60,8 +88,10 @@ func customSchemaErrorFunc(err *openapi3.SchemaError) string {
 }
 
 func New(db *sql.DB) http.Handler {
+	sv := Server{db: db}
+
 	filterOptions := openapi3filter.Options{
-		AuthenticationFunc:    authenticationFunc,
+		AuthenticationFunc:    sv.authenticationFunc,
 		ExcludeRequestBody:    false,
 		ExcludeResponseBody:   false,
 		IncludeResponseStatus: true,
@@ -77,7 +107,6 @@ func New(db *sql.DB) http.Handler {
 	mux := chi.NewRouter()
 	mux.Use(middleware)
 
-	sv := Server{db: db}
 	h := HandlerFromMux(NewStrictHandler(&sv, nil), mux)
 
 	return h

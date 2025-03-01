@@ -1,19 +1,15 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE users (
+CREATE TABLE user_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-
     created_at DATETIME NOT NULL,
-    updated_at DATETIME NOT NULL,
-    last_seen_at DATETIME,
-
-    email TEXT NOT NULL UNIQUE,
-    name TEXT NOT NULL,
-    password_hash TEXT NOT NULL
+    secret TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE users;
+DROP TABLE user_sessions;
 -- +goose StatementEnd

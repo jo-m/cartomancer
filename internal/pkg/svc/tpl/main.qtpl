@@ -1,7 +1,7 @@
 {% code
 type MainPage struct {
 	BasePage
-	Username string
+	Email string
 }
 
 // Compile time interface check.
@@ -15,6 +15,6 @@ var _ Page = (*MainPage)(nil)
 {% func (p *MainPage) Body() %}
 	<h1>{%s p.Title() %}</h1>
 	<div>
-		Username: {%s p.Username %}
+		User email: {%s p.Email %}
 	</div>
 {% endfunc %}

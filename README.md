@@ -23,10 +23,13 @@ go tool sqlc vet
 - [ ] https://phiresky.github.io/blog/2020/sqlite-performance-tuning/
 - [ ] https://developer.android.com/topic/performance/sqlite-performance-best-practices
 - [ ] Logging for goose
+- [ ] Unified error handling and rendering
 - [ ] Flag parsing, config, env vars
 - [ ] Clean up endpoints
 - [ ] Check in the generated files
-- [ ] Common API error response struct
+- [x] Common API error response struct
+- [x] Ensure fks are enforced in db
+- [ ] Code TODOs
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)

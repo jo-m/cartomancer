@@ -1,0 +1,27 @@
+{% code
+type LoginPage struct {
+	BasePage
+}
+
+// Compile time interface check.
+var _ Page = (*LoginPage)(nil)
+%}
+
+{% func (p *LoginPage) Title() %}
+	Login
+{% endfunc %}
+
+{% func (p *LoginPage) Body() %}
+	<h1>{%s p.Title() %}</h1>
+	<div>
+        <form action="" method="POST">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required value="test@example.org">
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required value="asdf">
+
+            <button type="submit">Login</button>
+        </form>
+	</div>
+{% endfunc %}
