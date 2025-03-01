@@ -1,12 +1,12 @@
 version: "2"
 sql:
   - engine: "sqlite"
-    queries: "internal/pkg/db/queries"
-    schema: "internal/pkg/db/migrations"
+    queries: "queries"
+    schema: "migrations"
     gen:
       go:
         package: "db"
-        out: "internal/pkg/db"
+        out: "."
         emit_db_tags: false
         emit_prepared_queries: false
         emit_json_tags: true

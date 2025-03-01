@@ -14,7 +14,7 @@ import (
 	netmiddleware "github.com/oapi-codegen/nethttp-middleware"
 )
 
-//go:generate go tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen -config oapi-cfg.yaml oapi.yaml
+//go:generate go tool oapi-codegen -config oapi-cfg.yaml oapi.yaml
 
 //go:embed oapi.yaml
 var schema []byte
