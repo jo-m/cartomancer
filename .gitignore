@@ -5,3 +5,4 @@
 *.sql.go
 internal/pkg/db/db.go
 internal/pkg/db/models.go
+*.gen.go

@@ -52,8 +52,8 @@ func New(db *sql.DB) http.Handler {
 	svc := &Users{db: db}
 
 	mux := chi.NewRouter()
-	mux.Get("/", svc.getUsers)
-	mux.Get(fmt.Sprintf("/{%s}", urlParamName), svc.getUser)
+	mux.Get("/users", svc.getUsers)
+	mux.Get(fmt.Sprintf("/users/{%s}", urlParamName), svc.getUser)
 
 	return mux
 }

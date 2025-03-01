@@ -5,5 +5,5 @@ check:
 	go tool sqlc vet
 	find . -name '*.qtpl.go' -delete
 	go generate ./...
-	go mod tidy
 	go fmt ./...
+	go mod tidy

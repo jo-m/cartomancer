@@ -1,0 +1,141 @@
+openapi: 3.0.3
+info:
+  title: User API
+  version: 1.0.0
+paths:
+  /api/v1/users:
+    get:
+      parameters:
+        - $ref: "#/components/parameters/AcceptHeader"
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+            text/html:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+    post:
+      security:
+        - CookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AcceptHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          $ref: '#/components/responses/201Created'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /api/v1/users/{name}:
+    get:
+      parameters:
+        - $ref: "#/components/parameters/AcceptHeader"
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+            text/html:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+    put:
+      security:
+        - CookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AcceptHeader"
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          $ref: '#/components/responses/200OK'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+components:
+  securitySchemes:
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: session_id
+  schemas:
+    User:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+      required:
+        - username
+        - email
+  parameters:
+    AcceptHeader:
+      in: header
+      name: Accept
+      required: true
+      schema:
+        type: string
+  responses:
+    200OK:
+      description: OK
+    201Created:
+      description: Created
+    204NoContent:
+      description: No content
+    400BadRequest:
+      description: Bad request
+    401Unauthorized:
+      description: Unauthorized
+    404NotFound:
+      description: Not found
+    409Conflict:
+      description: Conflict
+    500InternalServerError:
+      description: Internal server error
