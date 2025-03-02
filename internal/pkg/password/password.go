@@ -17,6 +17,7 @@ type argon2idparams struct {
 	saltLen uint32
 }
 
+// TODO: adapt to https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Password_Storage_Cheat_Sheet.md
 var defaultparams argon2idparams = argon2idparams{
 	// https://pkg.go.dev/golang.org/x/crypto/argon2#IDKey
 	Time:   1,

@@ -30,6 +30,10 @@ go tool sqlc vet
 - [x] Common API error response struct
 - [x] Ensure fks are enforced in db
 - [ ] Code TODOs
+- [ ] XSRF protection
+- [ ] Proper session handling -> https://github.com/alexedwards/scs
+- [ ] Auto-restart
+- [ ] Rate limiting for sensitive endpoints
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)
