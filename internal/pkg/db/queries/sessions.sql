@@ -19,4 +19,7 @@ UPDATE sessions
 SET data = ?
 WHERE id = ?;
 
--- TODO: clean up sessions periodically
+-- name: SetSessionUserID :exec
+UPDATE sessions
+SET user_id = ?
+WHERE id = ?;

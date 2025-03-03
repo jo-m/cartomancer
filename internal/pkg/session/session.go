@@ -115,13 +115,16 @@ func Middleware(c Config) func(next http.Handler) http.Handler {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
+				slog.Debug("Created session", "id", newSession.ID)
 				session = newSession
 			}
 
 			if session == nil {
+				slog.Error("Session is nil")
 				panic("session is nil")
 			}
 
+			slog.Debug("Attaching session", "id", session.ID)
 			ctx := context.WithValue(r.Context(), ctxKey{}, session.ID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}

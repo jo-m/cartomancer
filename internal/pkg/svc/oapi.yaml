@@ -9,7 +9,7 @@ paths:
       responses:
         '200':
           # $ref: '#/components/responses/200Form'
-          description: User
+          description: HTML Form
           content:
             text/html:
               schema:
@@ -30,11 +30,23 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /api/v1/sessions/logout:
+    get:
+      tags: [sessions]
+      responses:
+        '200':
+          # $ref: '#/components/responses/200Form'
+          description: HTML Form
+          content:
+            text/html:
+              schema:
+                type: string
     post:
       tags: [sessions]
       responses:
         '204':
           $ref: '#/components/responses/204NoContent'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   /api/v1/users:
     get:
       tags: [users]

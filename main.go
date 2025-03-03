@@ -56,7 +56,6 @@ func main() {
 		Email:        "test@example.org",
 		Name:         "test",
 		PasswordHash: password.Hashed("asdf"),
-		Biography:    sql.NullString{},
 	})
 	if err != nil {
 		slog.Error("CreateUser failed", "err", err)

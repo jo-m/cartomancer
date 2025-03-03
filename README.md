@@ -35,6 +35,7 @@ go tool sqlc vet
 - [ ] Auto-restart
 - [ ] Rate limiting for sensitive endpoints
 - [ ] Better panic()s
+- [ ] Clean up sessions periodically
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)

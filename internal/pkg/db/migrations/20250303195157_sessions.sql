@@ -6,7 +6,9 @@ CREATE TABLE sessions (
     created_at DATETIME NOT NULL,
     expires_at DATETIME NOT NULL,
     secret_hash BLOB NOT NULL,
-    data TEXT
+    user_id INTEGER,
+    data TEXT,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 -- +goose StatementEnd
 
