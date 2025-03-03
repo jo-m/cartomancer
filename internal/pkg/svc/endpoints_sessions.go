@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
@@ -13,7 +14,8 @@ import (
 )
 
 /*
-http://127.0.0.1:8050/api/v1/sessions/login
+	curl -v http://127.0.0.1:8050/api/v1/sessions/login \
+		--cookie-jar cookies.txt --cookie cookies.txt
 */
 func (s *Server) GetApiV1SessionsLogin(ctx context.Context, request GetApiV1SessionsLoginRequestObject) (GetApiV1SessionsLoginResponseObject, error) {
 	p := tpl.LoginPage{}
@@ -22,7 +24,7 @@ func (s *Server) GetApiV1SessionsLogin(ctx context.Context, request GetApiV1Sess
 
 /*
 	curl -v -X POST http://127.0.0.1:8050/api/v1/sessions/login \
-		--cookie-jar cookies.txt \
+		--cookie-jar cookies.txt --cookie cookies.txt \
 		-H "Content-Type: application/x-www-form-urlencoded" \
 		-d "email=test@example.org&password=asdf"
 */
@@ -41,9 +43,9 @@ func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request PostApiV1Se
 		return PostApiV1SessionsLogin401JSONResponse{}, nil
 	}
 
-	sessionID := session.GetSessionID(ctx)
-	slog.Info("Authentication succeeded", "email", user.Email, "session", sessionID)
-	err = s.DB().SetSessionUserID(ctx, db.SetSessionUserIDParams{UserID: sql.NullInt64{Valid: true, Int64: user.ID}, ID: sessionID})
+	sess := session.MustGetSession(ctx)
+	slog.Info("Authentication succeeded", "email", user.Email, "session", sess.ID)
+	err = s.DB().SetSessionUserID(ctx, db.SetSessionUserIDParams{UserID: sql.NullInt64{Valid: true, Int64: user.ID}, ID: sess.ID})
 	if err != nil {
 		slog.Warn("Session login failed", "err", err)
 		return PostApiV1SessionsLogin500JSONResponse{}, nil
@@ -52,23 +54,27 @@ func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request PostApiV1Se
 	return PostApiV1SessionsLogin204Response{}, nil
 }
 
+/*
+	curl -v http://127.0.0.1:8050/api/v1/sessions/logout \
+		--cookie-jar cookies.txt --cookie cookies.txt
+*/
 func (s *Server) GetApiV1SessionsLogout(ctx context.Context, request GetApiV1SessionsLogoutRequestObject) (GetApiV1SessionsLogoutResponseObject, error) {
-	p := tpl.LogoutPage{}
+	p := tpl.LogoutPage{BasePage: tpl.BasePage{CurrentUserName: fmt.Sprint(session.MustGetUser(ctx).Email)}}
 	return GetApiV1SessionsLogout200TexthtmlResponse{Body: Body(func(w io.Writer) { tpl.WritePageTemplate(w, &p) })}, nil
 }
 
 /*
 	curl -v -X POST http://127.0.0.1:8050/api/v1/sessions/logout \
-		--cookie-jar cookies.txt
+		--cookie-jar cookies.txt --cookie cookies.txt
 */
 func (s *Server) PostApiV1SessionsLogout(ctx context.Context, request PostApiV1SessionsLogoutRequestObject) (PostApiV1SessionsLogoutResponseObject, error) {
-	sessionID := session.GetSessionID(ctx)
-	err := s.DB().SetSessionUserID(ctx, db.SetSessionUserIDParams{ID: sessionID})
+	sess := session.MustGetSession(ctx)
+	err := s.DB().SetSessionUserID(ctx, db.SetSessionUserIDParams{ID: sess.ID})
 	if err != nil {
 		slog.Warn("Session logout failed", "err", err)
 		return PostApiV1SessionsLogout500JSONResponse{}, nil
 	}
-	slog.Info("Logout succeeded", "session", sessionID)
+	slog.Info("Logout succeeded", "session", sess.ID)
 
 	return PostApiV1SessionsLogout204Response{}, nil
 }

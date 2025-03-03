@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
-	"fmt"
+	"errors"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/session"
 	"net/http"
@@ -43,13 +43,14 @@ var _ StrictServerInterface = (*Server)(nil)
 
 // TODO:: move to middleware
 func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.AuthenticationInput) error {
-	// TODO: proper error handling
 	if a.SecuritySchemeName != "CookieAuth" {
-		panic("unknown security scheme")
+		return errors.New("unknown security scheme")
 	}
 
-	id := session.GetSessionID(ctx)
-	fmt.Println("===========", id)
+	session := session.MustGetSession(ctx)
+	if !session.UserID.Valid {
+		return errors.New("not authenticated")
+	}
 
 	return nil
 }

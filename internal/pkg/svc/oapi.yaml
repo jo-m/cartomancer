@@ -32,6 +32,8 @@ paths:
   /api/v1/sessions/logout:
     get:
       tags: [sessions]
+      security:
+        - CookieAuth: []
       responses:
         '200':
           # $ref: '#/components/responses/200Form'
@@ -42,6 +44,8 @@ paths:
                 type: string
     post:
       tags: [sessions]
+      security:
+        - CookieAuth: []
       responses:
         '204':
           $ref: '#/components/responses/204NoContent'

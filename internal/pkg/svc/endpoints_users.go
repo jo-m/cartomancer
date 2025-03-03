@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	_ "embed"
 	"errors"
+	"fmt"
 	"goweb/internal/pkg/db"
+	"goweb/internal/pkg/session"
 	"goweb/internal/pkg/svc/tpl"
 	"io"
 
@@ -14,7 +16,7 @@ import (
 
 /*
 	curl -v 'http://127.0.0.1:8050/api/v1/users' \
-		--cookie-jar cookies.txt
+		--cookie-jar cookies.txt --cookie cookies.txt
 */
 func (s *Server) GetApiV1Users(ctx context.Context, request GetApiV1UsersRequestObject) (GetApiV1UsersResponseObject, error) {
 	users, err := db.New(s.db).GetUsers(ctx)
@@ -33,8 +35,8 @@ func (s *Server) GetApiV1Users(ctx context.Context, request GetApiV1UsersRequest
 }
 
 /*
-curl 'http://127.0.0.1:8050/api/v1/users/test' \
-	-H 'Cookie: session="asdf"'
+curl 'http://127.0.0.1:8050/api/v1/users/1' \
+	--cookie-jar cookies.txt --cookie cookies.txt
 */
 
 func (s *Server) GetApiV1UsersId(ctx context.Context, request GetApiV1UsersIdRequestObject) (GetApiV1UsersIdResponseObject, error) {
@@ -47,7 +49,8 @@ func (s *Server) GetApiV1UsersId(ctx context.Context, request GetApiV1UsersIdReq
 	}
 
 	p := tpl.MainPage{
-		Email: user.Email,
+		BasePage: tpl.BasePage{CurrentUserName: fmt.Sprint(session.MustGetUser(ctx).Email)},
+		Email:    user.Email,
 	}
 
 	return GetApiV1UsersId200TexthtmlResponse{Body: Body(func(w io.Writer) { tpl.WritePageTemplate(w, &p) })}, nil

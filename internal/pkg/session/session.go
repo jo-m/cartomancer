@@ -100,7 +100,8 @@ func (c *Config) createSession(w http.ResponseWriter, r *http.Request) (*db.Sess
 	return &session, nil
 }
 
-type ctxKey struct{}
+type ctxKeySession struct{}
+type ctxKeyUser struct{}
 
 func Middleware(c Config) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -125,17 +126,45 @@ func Middleware(c Config) func(next http.Handler) http.Handler {
 			}
 
 			slog.Debug("Attaching session", "id", session.ID)
-			ctx := context.WithValue(r.Context(), ctxKey{}, session.ID)
+			ctx := context.WithValue(r.Context(), ctxKeySession{}, *session)
+
+			if session.UserID.Valid {
+				user, err := c.q().GetUser(ctx, session.UserID.Int64)
+				if err != nil {
+					slog.Error("Failed to retrieve user", "err", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				slog.Debug("Attaching user", "id", user.ID)
+				ctx = context.WithValue(ctx, ctxKeyUser{}, user)
+			}
+
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 		return http.HandlerFunc(fn)
 	}
 }
 
-func GetSessionID(ctx context.Context) int64 {
-	if ret, ok := ctx.Value(ctxKey{}).(int64); ok {
+func MustGetSession(ctx context.Context) db.Session {
+	if ret, ok := ctx.Value(ctxKeySession{}).(db.Session); ok {
 		return ret
 	}
 
-	panic("no session ID attached to context")
+	panic("no session attached to context")
+}
+
+func GetUser(ctx context.Context) *db.User {
+	if ret, ok := ctx.Value(ctxKeyUser{}).(db.User); ok {
+		return &ret
+	}
+	return nil
+}
+
+func MustGetUser(ctx context.Context) db.User {
+	user := GetUser(ctx)
+	if user != nil {
+		return *user
+	}
+
+	panic("no user attached to context")
 }
