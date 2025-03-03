@@ -34,6 +34,7 @@ go tool sqlc vet
 - [ ] Proper session handling -> https://github.com/alexedwards/scs
 - [ ] Auto-restart
 - [ ] Rate limiting for sensitive endpoints
+- [ ] Better panic()s
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/password"
+	"goweb/internal/pkg/session"
 	"goweb/internal/pkg/svc"
 	"log/slog"
 	"net/http"
@@ -22,6 +23,12 @@ func NewHandler(db *sql.DB) http.Handler {
 	mux.Use(middleware.RealIP)
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
+	mux.Use(session.Middleware(session.Config{
+		DB:         db,
+		MaxAge:     time.Second * 1800,
+		CookieName: "s",
+		CookiePath: "/",
+	}))
 	mux.Use(middleware.Timeout(60 * time.Second))
 
 	mux.Mount("/", svc.New(db))
