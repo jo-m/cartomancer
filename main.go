@@ -24,7 +24,7 @@ func NewHandler(db *sql.DB, logger *slog.Logger) http.Handler {
 	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
 	mux.Use(logging.AttachLogger(logger))
-	mux.Use(logging.RequestLogger())
+	mux.Use(logging.RequestLogger)
 	mux.Use(middleware.RequestSize(1024 * 1024))
 	mux.Use(middleware.StripSlashes)
 	mux.Use(session.Middleware(session.Config{
@@ -33,7 +33,6 @@ func NewHandler(db *sql.DB, logger *slog.Logger) http.Handler {
 		CookieName: "s",
 		CookiePath: "/",
 	}))
-	mux.Use(middleware.Timeout(60 * time.Second))
 	mux.Use(middleware.Recoverer)
 
 	mux.Mount("/", svc.New(db))

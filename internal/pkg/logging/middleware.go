@@ -35,25 +35,22 @@ func getLevel(code int) slog.Level {
 	return slog.LevelInfo
 }
 
-// TODO: No need for this to be a func.
-func RequestLogger() func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+func RequestLogger(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
-			t0 := time.Now()
-			defer func() {
-				scheme := "http"
-				if r.TLS != nil {
-					scheme = "https"
-				}
-				url := fmt.Sprintf("%s://%s%s %s\" ", scheme, r.Host, r.RequestURI, r.Proto)
-				msg := fmt.Sprintf("%s %s %d", r.Method, url, ww.Status())
-				Log(r.Context(), getLevel(ww.Status()), msg, "url", r.URL, "method", r.Method, "status", ww.Status(), "duration", time.Since(t0))
-			}()
+		t0 := time.Now()
+		defer func() {
+			scheme := "http"
+			if r.TLS != nil {
+				scheme = "https"
+			}
+			url := fmt.Sprintf("%s://%s%s %s\" ", scheme, r.Host, r.RequestURI, r.Proto)
+			msg := fmt.Sprintf("%s %s %d", r.Method, url, ww.Status())
+			Log(r.Context(), getLevel(ww.Status()), msg, "url", r.URL, "method", r.Method, "status", ww.Status(), "duration", time.Since(t0))
+		}()
 
-			next.ServeHTTP(ww, r)
-		}
-		return http.HandlerFunc(fn)
+		next.ServeHTTP(ww, r)
 	}
+	return http.HandlerFunc(fn)
 }

@@ -34,13 +34,6 @@ type argonHash struct {
 	KeyB64  string `json:"k"`
 }
 
-func Min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func Hashed(password string) string {
 	params := defaultparams
 
