@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 	_ "modernc.org/sqlite"
 )
 
@@ -54,7 +55,12 @@ func main() {
 	defer d.Close()
 
 	q := db.New(d)
+	uid, err := uuid.NewV7()
+	if err != nil {
+		logging.Panic(ctx, "Failed to create uuid", "err", err)
+	}
 	_, err = q.CreateUser(ctx, db.CreateUserParams{
+		ID:           uid.String(),
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 		Email:        "test@example.org",
@@ -62,7 +68,7 @@ func main() {
 		PasswordHash: password.Hashed("asdf"),
 	})
 	if err != nil {
-		logger.Error("CreateUser failed", "err", err)
+		logging.Error(ctx, "CreateUser failed", "err", err)
 	}
 
 	s := &http.Server{
@@ -73,6 +79,6 @@ func main() {
 		WriteTimeout:      10 * time.Second,
 		MaxHeaderBytes:    1 << 20,
 	}
-	logger.Info("Listening", "addr", s.Addr)
-	logger.Error("ListenAndServe failed", "err", s.ListenAndServe())
+	logging.Info(ctx, "Listening", "addr", s.Addr)
+	logging.Error(ctx, "ListenAndServe failed", "err", s.ListenAndServe())
 }

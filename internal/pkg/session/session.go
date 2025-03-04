@@ -12,9 +12,10 @@ import (
 	"goweb/internal/pkg/logging"
 	"goweb/internal/pkg/password"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Config struct {
@@ -51,12 +52,7 @@ func (c *Config) retrieveSession(r *http.Request) (*db.Session, error) {
 		return nil, errors.New("invalid session string")
 	}
 
-	id, err := strconv.ParseInt(parts[0], 10, 64)
-	if err != nil {
-		return nil, errors.New("invalid session id")
-	}
-
-	session, err := c.q().GetSession(r.Context(), id)
+	session, err := c.q().GetSession(r.Context(), parts[0])
 	if err != nil {
 		return nil, errors.New("no such session")
 	}
@@ -76,7 +72,12 @@ func (c *Config) createSession(w http.ResponseWriter, r *http.Request) (*db.Sess
 	secretBytes := password.GenRandBytes(sessionSecretBytes)
 	secret := base64.URLEncoding.EncodeToString(secretBytes)
 	now := time.Now()
+	id, err := uuid.NewV7()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate uuid: %w", err)
+	}
 	params := db.CreateSessionParams{
+		ID:         id.String(),
 		CreatedAt:  now,
 		ExpiresAt:  now.Add(c.MaxAge),
 		SecretHash: hash(secret),
@@ -91,7 +92,7 @@ func (c *Config) createSession(w http.ResponseWriter, r *http.Request) (*db.Sess
 
 	cookie := http.Cookie{
 		Name:     c.CookieName,
-		Value:    fmt.Sprintf("%d:%s", session.ID, secret),
+		Value:    fmt.Sprintf("%s:%s", session.ID, secret),
 		MaxAge:   int(c.MaxAge.Seconds()),
 		Secure:   true,
 		HttpOnly: true,
@@ -132,7 +133,7 @@ func Middleware(c Config) func(next http.Handler) http.Handler {
 			ctx = withSession(ctx, *session)
 
 			if session.UserID.Valid {
-				user, err := c.q().GetUser(ctx, session.UserID.Int64)
+				user, err := c.q().GetUser(ctx, session.UserID.String)
 				if err != nil {
 					logging.Error(ctx, "Failed to retrieve user", "err", err)
 					w.WriteHeader(http.StatusInternalServerError)

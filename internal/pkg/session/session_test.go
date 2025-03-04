@@ -11,11 +11,11 @@ import (
 func TestContext(t *testing.T) {
 	ctx := context.Background()
 
-	sess := db.Session{ID: 123}
+	sess := db.Session{ID: "asdf"}
 	ctx = withSession(ctx, sess)
 	assert.Equal(t, sess, MustGetSession(ctx))
 
-	user := db.User{ID: 456}
+	user := db.User{ID: "asdf"}
 	ctx = withUser(ctx, user)
 	assert.Equal(t, user, MustGetUser(ctx))
 }

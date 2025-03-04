@@ -12,6 +12,7 @@ tool (
 require (
 	github.com/getkin/kin-openapi v0.127.0
 	github.com/go-chi/chi/v5 v5.2.1
+	github.com/google/uuid v1.6.0
 	github.com/lmittmann/tint v1.0.7
 	github.com/oapi-codegen/nethttp-middleware v1.0.2
 	github.com/oapi-codegen/runtime v1.1.1
@@ -48,7 +49,6 @@ require (
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/google/cel-go v0.22.1 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect

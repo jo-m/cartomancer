@@ -23,10 +23,7 @@ func (s *Server) GetApiV1SessionsLogin(ctx context.Context, request GetApiV1Sess
 }
 
 /*
-	curl -v -X POST http://127.0.0.1:8050/api/v1/sessions/login \
-		--cookie-jar cookies.txt --cookie cookies.txt \
-		-H "Content-Type: application/x-www-form-urlencoded" \
-		-d "email=test@example.org&password=asdf"
+7
 */
 func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request PostApiV1SessionsLoginRequestObject) (PostApiV1SessionsLoginResponseObject, error) {
 	user, err := s.q().GetUserByEmail(ctx, request.Body.Email)
@@ -44,8 +41,8 @@ func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request PostApiV1Se
 	}
 
 	sess := session.MustGetSession(ctx)
-	logging.Info(ctx, "Login succeeded", "email", user.Email, "session", sess.ID)
-	err = s.q().SetSessionUserID(ctx, db.SetSessionUserIDParams{UserID: sql.NullInt64{Valid: true, Int64: user.ID}, ID: sess.ID})
+	logging.Info(ctx, "Login succeeded", "user", user.ID, "session", sess.ID)
+	err = s.q().SetSessionUserID(ctx, db.SetSessionUserIDParams{UserID: sql.NullString{Valid: true, String: user.ID}, ID: sess.ID})
 	if err != nil {
 		logging.Warn(ctx, "Session login failed", "err", err)
 		return PostApiV1SessionsLogin500JSONResponse{}, nil

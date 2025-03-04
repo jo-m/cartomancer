@@ -8,6 +8,7 @@ paths:
       tags: [sessions]
       responses:
         '200':
+          # TODO:
           # $ref: '#/components/responses/200Form'
           description: HTML Form
           content:
@@ -102,8 +103,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
       responses:
         '200':
           description: User
@@ -126,8 +126,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
       requestBody:
         required: true
         content:
@@ -155,6 +154,8 @@ components:
     User:
       type: object
       properties:
+        id:
+          type: string
         email:
           type: string
           format: email

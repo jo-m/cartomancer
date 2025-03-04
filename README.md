@@ -37,8 +37,11 @@ go tool sqlc vet
 - [x] Better panic()s
 - [ ] Clean up sessions periodically
 - [ ] Track user last login/active
-- [ ] Make user and session IDs be UUIDs
+- [x] Make user and session IDs be UUIDs
 - [ ] TOTP Login
+- [ ] Clean up/refactor svc package
+- [ ] Maybe store the uuids in the db as bytes
+- [ ] CRUD users, self-registration
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)

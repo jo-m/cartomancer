@@ -11,9 +11,9 @@ SELECT * FROM users ORDER BY id;
 
 -- name: CreateUser :one
 INSERT INTO users (
-  created_at, updated_at, email, name, password_hash
+  id, created_at, updated_at, email, name, password_hash
 ) VALUES (
-  ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?
 )
 RETURNING *;
 
