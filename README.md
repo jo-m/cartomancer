@@ -42,6 +42,9 @@ go tool sqlc vet
 - [ ] Clean up/refactor svc package
 - [ ] Maybe store the uuids in the db as bytes
 - [ ] CRUD users, self-registration
+- [ ] renew session after privilege level change
+- [ ] check for sesion id len on parsing
+- [ ] idle and absolute timeout
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)

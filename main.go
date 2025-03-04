@@ -13,6 +13,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/brianvoe/gofakeit/v7"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
@@ -41,6 +42,22 @@ func NewHandler(db *sql.DB, logger *slog.Logger) http.Handler {
 	return mux
 }
 
+func createUser(ctx context.Context, q *db.Queries, email, pass string) error {
+	uid, err := uuid.NewV7()
+	if err != nil {
+		logging.Panic(ctx, "Failed to create uuid", "err", err)
+	}
+	_, err = q.CreateUser(ctx, db.CreateUserParams{
+		ID:           uid.String(),
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+		Email:        email,
+		Name:         "test",
+		PasswordHash: password.Hashed(pass),
+	})
+	return err
+}
+
 func main() {
 	logger := slog.New(logging.NewHandler())
 	slog.SetDefault(logger)
@@ -55,20 +72,12 @@ func main() {
 	defer d.Close()
 
 	q := db.New(d)
-	uid, err := uuid.NewV7()
-	if err != nil {
-		logging.Panic(ctx, "Failed to create uuid", "err", err)
-	}
-	_, err = q.CreateUser(ctx, db.CreateUserParams{
-		ID:           uid.String(),
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-		Email:        "test@example.org",
-		Name:         "test",
-		PasswordHash: password.Hashed("asdf"),
-	})
+	createUser(ctx, q, "test@example.org", "asdf")
 	if err != nil {
 		logging.Error(ctx, "CreateUser failed", "err", err)
+	}
+	for i := 0; i < 10; i++ {
+		createUser(ctx, q, gofakeit.Email(), password.GenRandPrintableString(32))
 	}
 
 	s := &http.Server{
@@ -79,6 +88,7 @@ func main() {
 		WriteTimeout:      10 * time.Second,
 		MaxHeaderBytes:    1 << 20,
 	}
+	logging.Warn(ctx, gofakeit.HackerPhrase())
 	logging.Info(ctx, "Listening", "addr", s.Addr)
 	logging.Error(ctx, "ListenAndServe failed", "err", s.ListenAndServe())
 }
