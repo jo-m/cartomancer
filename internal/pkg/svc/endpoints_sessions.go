@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"goweb/internal/pkg/db"
+	"goweb/internal/pkg/logging"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
 	"goweb/internal/pkg/svc/tpl"
 	"io"
-	"log/slog"
 )
 
 /*
@@ -29,7 +29,7 @@ func (s *Server) GetApiV1SessionsLogin(ctx context.Context, request GetApiV1Sess
 		-d "email=test@example.org&password=asdf"
 */
 func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request PostApiV1SessionsLoginRequestObject) (PostApiV1SessionsLoginResponseObject, error) {
-	user, err := s.DB().GetUserByEmail(ctx, request.Body.Email)
+	user, err := s.q().GetUserByEmail(ctx, request.Body.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return PostApiV1SessionsLogin401JSONResponse{}, err
@@ -39,15 +39,15 @@ func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request PostApiV1Se
 	}
 
 	if !password.Check(request.Body.Password, user.PasswordHash) {
-		slog.Warn("Authentication failed", "email", user.Email)
+		logging.Warn(ctx, "Authentication failed", "email", user.Email)
 		return PostApiV1SessionsLogin401JSONResponse{}, nil
 	}
 
 	sess := session.MustGetSession(ctx)
-	slog.Info("Authentication succeeded", "email", user.Email, "session", sess.ID)
-	err = s.DB().SetSessionUserID(ctx, db.SetSessionUserIDParams{UserID: sql.NullInt64{Valid: true, Int64: user.ID}, ID: sess.ID})
+	logging.Info(ctx, "Login succeeded", "email", user.Email, "session", sess.ID)
+	err = s.q().SetSessionUserID(ctx, db.SetSessionUserIDParams{UserID: sql.NullInt64{Valid: true, Int64: user.ID}, ID: sess.ID})
 	if err != nil {
-		slog.Warn("Session login failed", "err", err)
+		logging.Warn(ctx, "Session login failed", "err", err)
 		return PostApiV1SessionsLogin500JSONResponse{}, nil
 	}
 
@@ -69,12 +69,12 @@ func (s *Server) GetApiV1SessionsLogout(ctx context.Context, request GetApiV1Ses
 */
 func (s *Server) PostApiV1SessionsLogout(ctx context.Context, request PostApiV1SessionsLogoutRequestObject) (PostApiV1SessionsLogoutResponseObject, error) {
 	sess := session.MustGetSession(ctx)
-	err := s.DB().SetSessionUserID(ctx, db.SetSessionUserIDParams{ID: sess.ID})
+	err := s.q().SetSessionUserID(ctx, db.SetSessionUserIDParams{ID: sess.ID})
 	if err != nil {
-		slog.Warn("Session logout failed", "err", err)
+		logging.Warn(ctx, "Session logout failed", "err", err)
 		return PostApiV1SessionsLogout500JSONResponse{}, nil
 	}
-	slog.Info("Logout succeeded", "session", sess.ID)
+	logging.Info(ctx, "Logout succeeded", "session", sess.ID)
 
 	return PostApiV1SessionsLogout204Response{}, nil
 }

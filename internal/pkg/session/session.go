@@ -9,15 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"goweb/internal/pkg/db"
+	"goweb/internal/pkg/logging"
 	"goweb/internal/pkg/password"
-	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 )
-
-// TODO: replace slog with logger
 
 type Config struct {
 	DB         *sql.DB
@@ -31,7 +29,9 @@ func (c *Config) q() *db.Queries {
 }
 
 const (
-	sessionSecretBytes = 64
+	// 64 bits are recommended, we have 32 * 8 = 256 bits here.
+	// https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#session-id-entropy
+	sessionSecretBytes = 32
 )
 
 func hash(s string) []byte {
@@ -81,6 +81,9 @@ func (c *Config) createSession(w http.ResponseWriter, r *http.Request) (*db.Sess
 		ExpiresAt:  now.Add(c.MaxAge),
 		SecretHash: hash(secret),
 	}
+	if len(params.SecretHash) != sessionSecretBytes {
+		logging.Panic(r.Context(), "Secret hash length must be equal to sessionSecretBytes")
+	}
 	session, err := c.q().CreateSession(r.Context(), params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
@@ -107,36 +110,36 @@ func Middleware(c Config) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			session, err := c.retrieveSession(r)
+			ctx := r.Context()
 			if err != nil {
-				slog.Debug("No session found", "err", err)
+				logging.Debug(ctx, "No session found", "err", err)
 
 				newSession, err := c.createSession(w, r)
 				if err != nil {
-					slog.Error("Failed to create session", "err", err)
+					logging.Error(ctx, "Failed to create session", "err", err)
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
-				slog.Debug("Created session", "id", newSession.ID)
+				logging.Debug(ctx, "Created session", "id", newSession.ID)
 				session = newSession
 			}
 
 			if session == nil {
-				slog.Error("Session is nil")
-				panic("session is nil")
+				logging.Panic(ctx, "Session must not be nil")
 			}
 
-			slog.Debug("Attaching session", "id", session.ID)
-			ctx := context.WithValue(r.Context(), ctxKeySession{}, *session)
+			logging.Debug(ctx, "Attaching session", "id", session.ID)
+			ctx = withSession(ctx, *session)
 
 			if session.UserID.Valid {
 				user, err := c.q().GetUser(ctx, session.UserID.Int64)
 				if err != nil {
-					slog.Error("Failed to retrieve user", "err", err)
+					logging.Error(ctx, "Failed to retrieve user", "err", err)
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
-				slog.Debug("Attaching user", "id", user.ID)
-				ctx = context.WithValue(ctx, ctxKeyUser{}, user)
+				logging.Debug(ctx, "Attaching user", "id", user.ID)
+				ctx = withUser(ctx, user)
 			}
 
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -145,12 +148,21 @@ func Middleware(c Config) func(next http.Handler) http.Handler {
 	}
 }
 
+func withSession(ctx context.Context, sess db.Session) context.Context {
+	return context.WithValue(ctx, ctxKeySession{}, sess)
+}
+
 func MustGetSession(ctx context.Context) db.Session {
 	if ret, ok := ctx.Value(ctxKeySession{}).(db.Session); ok {
 		return ret
 	}
 
-	panic("no session attached to context")
+	logging.Panic(ctx, "No session attached to context")
+	panic("")
+}
+
+func withUser(ctx context.Context, user db.User) context.Context {
+	return context.WithValue(ctx, ctxKeyUser{}, user)
 }
 
 func GetUser(ctx context.Context) *db.User {
@@ -166,5 +178,6 @@ func MustGetUser(ctx context.Context) db.User {
 		return *user
 	}
 
-	panic("no user attached to context")
+	logging.Panic(ctx, "No user attached to context")
+	panic("")
 }

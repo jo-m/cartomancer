@@ -12,6 +12,7 @@ tool (
 require (
 	github.com/getkin/kin-openapi v0.127.0
 	github.com/go-chi/chi/v5 v5.2.1
+	github.com/lmittmann/tint v1.0.7
 	github.com/oapi-codegen/nethttp-middleware v1.0.2
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/pressly/goose/v3 v3.24.1

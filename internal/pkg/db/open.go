@@ -4,9 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
-	"log/slog"
+	"goweb/internal/pkg/logging"
+	"io/fs"
 	"net/url"
+	"strings"
 
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
@@ -44,21 +47,45 @@ func buildDSN(path string, readOnly bool) string {
 	return fmt.Sprintf("file:%s?%s", path, query.Encode())
 }
 
+type gooseLogger struct {
+	ctx context.Context
+}
+
+func (g *gooseLogger) Fatalf(format string, v ...interface{}) {
+	msg := fmt.Sprintf(format, v...)
+	msg = strings.TrimSpace(msg)
+	logging.Panic(g.ctx, msg)
+}
+
+func (g *gooseLogger) Printf(format string, v ...interface{}) {
+	msg := fmt.Sprintf(format, v...)
+	logging.Info(g.ctx, strings.TrimSpace(msg))
+}
+
+var _ goose.Logger = (*gooseLogger)(nil)
+
 func Open(ctx context.Context, path string) (*sql.DB, error) {
 	db, err := sql.Open(driver, buildDSN(path, false))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
 
-	goose.SetDialect(dialect)
-	goose.SetBaseFS(embedMigrations)
-	slog.Info("Running migrations.")
-	if err := goose.UpContext(ctx, db, migrations); err != nil {
-		return nil, fmt.Errorf("failed to run migrations: %w", err)
+	files, err := fs.Sub(embedMigrations, migrations)
+	if err != nil {
+		return nil, errors.New("no migrations")
 	}
-	// TODO: replace with proper log statement
-	if err := goose.VersionContext(ctx, db, migrations); err != nil {
-		return nil, fmt.Errorf("failed to get migration version: %w", err)
+	provider, err := goose.NewProvider(dialect, db, files,
+		goose.WithLogger(&gooseLogger{ctx: ctx}),
+		goose.WithVerbose(true),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize migrations: %w", err)
+	}
+
+	logging.Info(ctx, "Running migrations.")
+	_, err = provider.Up(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	return db, nil

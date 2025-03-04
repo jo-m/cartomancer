@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"goweb/internal/pkg/db"
+	"goweb/internal/pkg/logging"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
 	"goweb/internal/pkg/svc"
@@ -17,12 +18,15 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func NewHandler(db *sql.DB) http.Handler {
+func NewHandler(db *sql.DB, logger *slog.Logger) http.Handler {
+	logger = logger.With("mod", "svc")
+
 	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
-	mux.Use(middleware.RealIP)
-	mux.Use(middleware.Logger)
-	mux.Use(middleware.Recoverer)
+	mux.Use(logging.AttachLogger(logger))
+	mux.Use(logging.RequestLogger())
+	mux.Use(middleware.RequestSize(1024 * 1024))
+	mux.Use(middleware.StripSlashes)
 	mux.Use(session.Middleware(session.Config{
 		DB:         db,
 		MaxAge:     time.Second * 1800,
@@ -30,6 +34,7 @@ func NewHandler(db *sql.DB) http.Handler {
 		CookiePath: "/",
 	}))
 	mux.Use(middleware.Timeout(60 * time.Second))
+	mux.Use(middleware.Recoverer)
 
 	mux.Mount("/", svc.New(db))
 
@@ -37,15 +42,15 @@ func NewHandler(db *sql.DB) http.Handler {
 }
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	logger := slog.New(logging.NewHandler())
 	slog.SetDefault(logger)
-	ctx := context.Background()
+	ctx := logging.WithLogger(context.Background(), logger)
 
 	// Migrations.
 	// TODO: real config via flags/env vars
 	d, err := db.Open(ctx, os.Getenv("GOOSE_DBSTRING"))
 	if err != nil {
-		panic(err)
+		logging.Panic(ctx, "Failed to open db", "err", err)
 	}
 	defer d.Close()
 
@@ -58,17 +63,17 @@ func main() {
 		PasswordHash: password.Hashed("asdf"),
 	})
 	if err != nil {
-		slog.Error("CreateUser failed", "err", err)
+		logger.Error("CreateUser failed", "err", err)
 	}
 
 	s := &http.Server{
 		Addr:              os.Getenv("HTTP_LISTEN"),
-		Handler:           NewHandler(d),
+		Handler:           NewHandler(d, logger),
 		ReadHeaderTimeout: 20 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
 		MaxHeaderBytes:    1 << 20,
 	}
-	slog.Info("Listening", "addr", s.Addr)
-	slog.Error("ListenAndServe failed", "err", s.ListenAndServe())
+	logger.Info("Listening", "addr", s.Addr)
+	logger.Error("ListenAndServe failed", "err", s.ListenAndServe())
 }

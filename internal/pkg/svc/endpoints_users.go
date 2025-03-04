@@ -57,9 +57,9 @@ func (s *Server) GetApiV1UsersId(ctx context.Context, request GetApiV1UsersIdReq
 }
 
 func (s *Server) PostApiV1Users(ctx context.Context, request PostApiV1UsersRequestObject) (PostApiV1UsersResponseObject, error) {
-	panic("unimplemented")
+	panic("not implemented")
 }
 
 func (s *Server) PutApiV1UsersId(ctx context.Context, request PutApiV1UsersIdRequestObject) (PutApiV1UsersIdResponseObject, error) {
-	panic("unimplemented")
+	panic("not implemented")
 }

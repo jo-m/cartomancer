@@ -1,10 +1,6 @@
 check:
-	# Initialize db.
-	rm -f data/db.sqlite
-	mkdir -p data/
-	go tool goose up
-
 	# Cleanup.
+	rm -f data/db.sqlite; mkdir -p data/
 	rm -f internal/pkg/db/{db,models}.go internal/pkg/db/*.sql.go
 	find . -name '*.qtpl.go' -delete
 

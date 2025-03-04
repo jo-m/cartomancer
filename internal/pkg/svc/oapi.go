@@ -33,15 +33,13 @@ type Server struct {
 	db *sql.DB
 }
 
-// TODO: rename to q()?
-func (s *Server) DB() *db.Queries {
+func (s *Server) q() *db.Queries {
 	return db.New(s.db)
 }
 
 // Compile time interface check.
 var _ StrictServerInterface = (*Server)(nil)
 
-// TODO:: move to middleware
 func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.AuthenticationInput) error {
 	if a.SecuritySchemeName != "CookieAuth" {
 		return errors.New("unknown security scheme")
@@ -55,10 +53,6 @@ func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.Authe
 	return nil
 }
 
-func customSchemaErrorFunc(err *openapi3.SchemaError) string {
-	return "TODO: implement schema error func"
-}
-
 func New(db *sql.DB) http.Handler {
 	sv := Server{db: db}
 
@@ -69,7 +63,6 @@ func New(db *sql.DB) http.Handler {
 		IncludeResponseStatus: true,
 		MultiError:            true,
 	}
-	filterOptions.WithCustomSchemaErrorFunc(customSchemaErrorFunc)
 
 	middlewareOptions := netmiddleware.Options{
 		Options: filterOptions,

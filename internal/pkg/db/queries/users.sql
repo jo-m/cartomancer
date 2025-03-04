@@ -27,11 +27,6 @@ UPDATE users
 SET updated_at = ?, password_hash = ?
 WHERE id = ?;
 
--- name: UpdateUserLastSeenAt :exec
-UPDATE users
-SET last_seen_at = ?
-WHERE id = ?;
-
 -- name: DeleteUser :exec
 DELETE FROM users
 WHERE id = ?;

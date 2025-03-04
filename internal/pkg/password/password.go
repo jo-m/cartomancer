@@ -4,27 +4,28 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
-	"runtime"
+	"fmt"
 
 	"golang.org/x/crypto/argon2"
 )
 
 type argon2idparams struct {
-	Time   uint32 `json:"t"`
-	Memory uint32 `json:"m"`
+	Time    uint32 `json:"t"`
+	Memory  uint32 `json:"m"`
+	Threads uint8  `json:"p"`
 
-	keyLen  uint32
-	saltLen uint32
+	keyLenBytes  uint32
+	saltLenBytes uint32
 }
 
-// TODO: adapt to https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Password_Storage_Cheat_Sheet.md
+// See https://pkg.go.dev/golang.org/x/crypto/argon2#IDKey.
 var defaultparams argon2idparams = argon2idparams{
-	// https://pkg.go.dev/golang.org/x/crypto/argon2#IDKey
-	Time:   1,
-	Memory: 64 * 1024,
+	Time:    1,
+	Memory:  64 * 1024,
+	Threads: 1,
 
-	keyLen:  64,
-	saltLen: 32,
+	keyLenBytes:  32,
+	saltLenBytes: 16,
 }
 
 type argonHash struct {
@@ -40,19 +41,11 @@ func Min(a, b int) int {
 	return b
 }
 
-func threads() uint8 {
-	cpus := runtime.NumCPU()
-	if cpus > 8 {
-		return 8
-	}
-	return uint8(cpus)
-}
-
 func Hashed(password string) string {
 	params := defaultparams
 
-	salt := GenRandBytes(params.saltLen)
-	key := argon2.IDKey([]byte(password), []byte(salt), params.Time, params.Memory, threads(), params.keyLen)
+	salt := GenRandBytes(params.saltLenBytes)
+	key := argon2.IDKey([]byte(password), []byte(salt), params.Time, params.Memory, params.Threads, params.keyLenBytes)
 
 	h := argonHash{
 		argon2idparams: params,
@@ -62,7 +55,7 @@ func Hashed(password string) string {
 
 	ret, err := json.Marshal(h)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("failed to marshal: %s", err))
 	}
 
 	return string(ret)
@@ -84,6 +77,6 @@ func Check(password, hashed string) bool {
 		return false
 	}
 
-	computedKey := argon2.IDKey([]byte(password), []byte(salt), h.Time, h.Memory, threads(), uint32(len(key)))
+	computedKey := argon2.IDKey([]byte(password), []byte(salt), h.Time, h.Memory, h.Threads, uint32(len(key)))
 	return subtle.ConstantTimeCompare([]byte(key), []byte(computedKey)) == 1
 }
