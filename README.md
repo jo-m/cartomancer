@@ -24,7 +24,7 @@ go tool sqlc vet
 - [ ] https://developer.android.com/topic/performance/sqlite-performance-best-practices
 - [x] Logging for goose
 - [ ] Unified error handling and rendering
-- [ ] Flag parsing, config, env vars
+- [x] Flag parsing, config, env vars
 - [ ] Clean up endpoints
 - [ ] Check in the generated files
 - [x] Common API error response struct
@@ -33,7 +33,6 @@ go tool sqlc vet
 - [ ] XSRF protection
 - [x] Proper session handling -> https://github.com/alexedwards/scs
 - [ ] Auto-restart
-- [ ] Rate limiting for sensitive endpoints
 - [x] Better panic()s
 - [ ] Clean up sessions periodically
 - [ ] Track user last login/active
@@ -42,9 +41,10 @@ go tool sqlc vet
 - [ ] Clean up/refactor svc package
 - [ ] Maybe store the uuids in the db as bytes
 - [ ] CRUD users, self-registration
-- [ ] renew session after privilege level change
-- [ ] check for sesion id len on parsing
-- [ ] idle and absolute timeout
+- [ ] Session: renew session after privilege level change
+- [ ] Session: check for session id len on parsing
+- [ ] Session: idle and absolute timeout
+- [ ] Rate limiting for sensitive endpoints
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)

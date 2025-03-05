@@ -13,12 +13,25 @@ import (
 	"os"
 	"time"
 
+	"github.com/alexflint/go-arg"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	_ "modernc.org/sqlite"
 )
+
+type config struct {
+	logging.Config
+
+	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8050"`
+	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
+}
+
+// TODO: Those are for argparse
+func (c config) Version() string     { return "Version" }
+func (c config) Description() string { return "Description" }
+func (c config) Epilogue() string    { return "Epilogue" }
 
 func NewHandler(db *sql.DB, logger *slog.Logger) http.Handler {
 	logger = logger.With("mod", "svc")
@@ -59,13 +72,21 @@ func createUser(ctx context.Context, q *db.Queries, email, pass string) error {
 }
 
 func main() {
-	logger := slog.New(logging.NewHandler())
+	// Parse args.
+	c := config{}
+	p, err := arg.NewParser(arg.Config{Out: os.Stderr}, &c)
+	if err != nil {
+		panic(err)
+	}
+	p.MustParse(os.Args[1:])
+
+	// Initialize logging.
+	logger := slog.New(logging.NewHandler(c.Config))
 	slog.SetDefault(logger)
 	ctx := logging.WithLogger(context.Background(), logger)
 
 	// Migrations.
-	// TODO: real config via flags/env vars
-	d, err := db.Open(ctx, os.Getenv("GOOSE_DBSTRING"))
+	d, err := db.Open(ctx, c.DBPath)
 	if err != nil {
 		logging.Panic(ctx, "Failed to open db", "err", err)
 	}
@@ -76,12 +97,12 @@ func main() {
 	if err != nil {
 		logging.Error(ctx, "CreateUser failed", "err", err)
 	}
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		createUser(ctx, q, gofakeit.Email(), password.GenRandPrintableString(32))
 	}
 
 	s := &http.Server{
-		Addr:              os.Getenv("HTTP_LISTEN"),
+		Addr:              c.HTTPListenAddr,
 		Handler:           NewHandler(d, logger),
 		ReadHeaderTimeout: 20 * time.Second,
 		ReadTimeout:       10 * time.Second,
