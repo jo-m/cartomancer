@@ -45,7 +45,7 @@ func RequestLogger(next http.Handler) http.Handler {
 			if r.TLS != nil {
 				scheme = "https"
 			}
-			url := fmt.Sprintf("%s://%s%s %s\" ", scheme, r.Host, r.RequestURI, r.Proto)
+			url := fmt.Sprintf("%s %s://%s%s", r.Proto, scheme, r.Host, r.RequestURI)
 			msg := fmt.Sprintf("%s %s %d", r.Method, url, ww.Status())
 			Log(r.Context(), getLevel(ww.Status()), msg, "url", r.URL, "method", r.Method, "status", ww.Status(), "duration", time.Since(t0))
 		}()

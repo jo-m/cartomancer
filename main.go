@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/logging"
 	"goweb/internal/pkg/password"
@@ -59,7 +60,7 @@ func NewHandler(d *sql.DB, logger *slog.Logger) http.Handler {
 func createUser(ctx context.Context, q *db.Queries, email, pass string) error {
 	uid, err := uuid.NewV7()
 	if err != nil {
-		logging.Panic(ctx, "Failed to create uuid", "err", err)
+		return fmt.Errorf("failed to create uuid: %w", err)
 	}
 	_, err = q.CreateUser(ctx, db.CreateUserParams{
 		ID:           uid.String(),
@@ -77,7 +78,7 @@ func main() {
 	c := config{}
 	p, err := arg.NewParser(arg.Config{Out: os.Stderr}, &c)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("failed to create parser: %s", err))
 	}
 	p.MustParse(os.Args[1:])
 
