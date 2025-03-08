@@ -45,7 +45,7 @@ func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request PostApiV1Se
 	logging.Info(ctx, "Login succeeded", "user", user.ID)
 
 	// Create new session.
-	oldSess := session.MustGetSession(ctx)
+	oldSess := session.MustGet(ctx)
 	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: user.ID}, &oldSess)
 	if err != nil {
 		logging.Warn(ctx, "Creating session failed", "err", err)
@@ -70,7 +70,7 @@ func (s *Server) GetApiV1SessionsLogout(ctx context.Context, request GetApiV1Ses
 		--cookie-jar cookies.txt --cookie cookies.txt
 */
 func (s *Server) PostApiV1SessionsLogout(ctx context.Context, request PostApiV1SessionsLogoutRequestObject) (PostApiV1SessionsLogoutResponseObject, error) {
-	sess := session.MustGetSession(ctx)
+	sess := session.MustGet(ctx)
 	err := session.Delete(ctx, &sess)
 	if err != nil {
 		logging.Warn(ctx, "Logout failed", "err", err)

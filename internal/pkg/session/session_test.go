@@ -13,7 +13,7 @@ func TestContext(t *testing.T) {
 
 	sess := db.Session{ID: "asdf"}
 	ctx = withSession(ctx, sess)
-	assert.Equal(t, sess, MustGetSession(ctx))
+	assert.Equal(t, sess, MustGet(ctx))
 
 	user := db.User{ID: "asdf"}
 	ctx = withUser(ctx, user)

@@ -40,7 +40,7 @@ func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.Authe
 		return errors.New("unknown security scheme")
 	}
 
-	session := session.MustGetSession(ctx)
+	session := session.MustGet(ctx)
 	if !session.UserID.Valid {
 		return errors.New("not authenticated")
 	}

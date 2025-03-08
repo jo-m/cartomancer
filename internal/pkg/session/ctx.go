@@ -36,7 +36,7 @@ func withSession(ctx context.Context, sess db.Session) context.Context {
 	return context.WithValue(ctx, ctxKeySession{}, sess)
 }
 
-func MustGetSession(ctx context.Context) db.Session {
+func MustGet(ctx context.Context) db.Session {
 	if ret, ok := ctx.Value(ctxKeySession{}).(db.Session); ok {
 		return ret
 	}
