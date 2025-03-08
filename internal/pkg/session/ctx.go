@@ -3,7 +3,7 @@ package session
 import (
 	"context"
 	"goweb/internal/pkg/db"
-	"goweb/internal/pkg/logging"
+	"goweb/internal/pkg/logg"
 	"net/http"
 )
 
@@ -26,7 +26,7 @@ func MustGetUser(ctx context.Context) db.User {
 		return *user
 	}
 
-	logging.Panic(ctx, "No user attached to context")
+	logg.Panic(ctx, "No user attached to context")
 	panic("")
 }
 
@@ -41,7 +41,7 @@ func MustGet(ctx context.Context) db.Session {
 		return ret
 	}
 
-	logging.Panic(ctx, "No session attached to context")
+	logg.Panic(ctx, "No session attached to context")
 	panic("")
 }
 
@@ -67,6 +67,6 @@ func mustGetRequest(ctx context.Context) requestCtx {
 		return ret
 	}
 
-	logging.Panic(ctx, "No request attached to context")
+	logg.Panic(ctx, "No request attached to context")
 	panic("")
 }

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"goweb/internal/pkg/logging"
+	"goweb/internal/pkg/logg"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
 	"goweb/internal/pkg/svc/tpl"
@@ -39,19 +39,19 @@ func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request PostApiV1Se
 
 	// Check password.
 	if !password.Check(request.Body.Password, user.PasswordHash) {
-		logging.Warn(ctx, "Authentication failed", "email", user.Email)
+		logg.Warn(ctx, "Authentication failed", "email", user.Email)
 		return PostApiV1SessionsLogin401JSONResponse{}, nil
 	}
-	logging.Info(ctx, "Login succeeded", "user", user.ID)
+	logg.Info(ctx, "Login succeeded", "user", user.ID)
 
 	// Create new session.
 	oldSess := session.MustGet(ctx)
 	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: user.ID}, &oldSess)
 	if err != nil {
-		logging.Warn(ctx, "Creating session failed", "err", err)
+		logg.Warn(ctx, "Creating session failed", "err", err)
 		return PostApiV1SessionsLogin500JSONResponse{}, nil
 	}
-	logging.Debug(ctx, "Created new session", "id", sess.ID)
+	logg.Debug(ctx, "Created new session", "id", sess.ID)
 
 	return PostApiV1SessionsLogin204Response{}, nil
 }
@@ -73,10 +73,10 @@ func (s *Server) PostApiV1SessionsLogout(ctx context.Context, request PostApiV1S
 	sess := session.MustGet(ctx)
 	err := session.Delete(ctx, &sess)
 	if err != nil {
-		logging.Warn(ctx, "Logout failed", "err", err)
+		logg.Warn(ctx, "Logout failed", "err", err)
 		return PostApiV1SessionsLogout500JSONResponse{}, nil
 	}
-	logging.Info(ctx, "Logout succeeded", "session", sess.ID)
+	logg.Info(ctx, "Logout succeeded", "session", sess.ID)
 
 	return PostApiV1SessionsLogout204Response{}, nil
 }

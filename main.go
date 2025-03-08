@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"goweb/internal/pkg/db"
-	"goweb/internal/pkg/logging"
+	"goweb/internal/pkg/logg"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
 	"goweb/internal/pkg/svc"
@@ -23,7 +23,7 @@ import (
 )
 
 type config struct {
-	logging.Config
+	logg.Config
 
 	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8050"`
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
@@ -45,8 +45,8 @@ func NewHandler(d *sql.DB, logger *slog.Logger) http.Handler {
 	})
 	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
-	mux.Use(logging.AttachLogger(logger))
-	mux.Use(logging.RequestLogger)
+	mux.Use(logg.AttachLogger(logger))
+	mux.Use(logg.RequestLogger)
 	mux.Use(middleware.RequestSize(1024 * 1024))
 	mux.Use(middleware.StripSlashes)
 	mux.Use(sess.Middleware())
@@ -83,21 +83,21 @@ func main() {
 	p.MustParse(os.Args[1:])
 
 	// Initialize logging.
-	logger := slog.New(logging.NewHandler(c.Config))
+	logger := slog.New(logg.NewHandler(c.Config))
 	slog.SetDefault(logger)
-	ctx := logging.WithLogger(context.Background(), logger)
+	ctx := logg.WithLogger(context.Background(), logger)
 
 	// Migrations.
 	d, err := db.Open(ctx, c.DBPath)
 	if err != nil {
-		logging.Panic(ctx, "Failed to open db", "err", err)
+		logg.Panic(ctx, "Failed to open db", "err", err)
 	}
 	defer d.Close()
 
 	q := db.New(d)
 	createUser(ctx, q, "test@example.org", "asdf")
 	if err != nil {
-		logging.Error(ctx, "CreateUser failed", "err", err)
+		logg.Error(ctx, "CreateUser failed", "err", err)
 	}
 	for range 10 {
 		createUser(ctx, q, gofakeit.Email(), password.GenRandPrintableString(32))
@@ -111,7 +111,7 @@ func main() {
 		WriteTimeout:      10 * time.Second,
 		MaxHeaderBytes:    1 << 20,
 	}
-	logging.Warn(ctx, gofakeit.HackerPhrase())
-	logging.Info(ctx, "Listening", "addr", s.Addr)
-	logging.Error(ctx, "ListenAndServe failed", "err", s.ListenAndServe())
+	logg.Warn(ctx, gofakeit.HackerPhrase())
+	logg.Info(ctx, "Listening", "addr", s.Addr)
+	logg.Error(ctx, "ListenAndServe failed", "err", s.ListenAndServe())
 }

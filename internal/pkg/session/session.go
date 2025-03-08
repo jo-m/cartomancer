@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"goweb/internal/pkg/db"
-	"goweb/internal/pkg/logging"
+	"goweb/internal/pkg/logg"
 	"goweb/internal/pkg/password"
 	"net/http"
 	"strings"
@@ -136,7 +136,7 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, userId sql.NullSt
 		UserID:       userId,
 	}
 	if len(params.SecretHash) != sessionSecretBytes {
-		logging.Panic(r.Context(), "Secret hash length must be equal to sessionSecretBytes")
+		logg.Panic(r.Context(), "Secret hash length must be equal to sessionSecretBytes")
 	}
 	session, err := s.q.CreateSession(r.Context(), params)
 	if err != nil {
@@ -195,23 +195,23 @@ func (s *Store) Middleware() func(next http.Handler) http.Handler {
 			session, err := s.get(r)
 			ctx := r.Context()
 			if err != nil {
-				logging.Debug(ctx, "No session found", "err", err)
+				logg.Debug(ctx, "No session found", "err", err)
 
 				newSession, err := s.create(w, r, sql.NullString{}, nil)
 				if err != nil {
-					logging.Error(ctx, "Failed to create session", "err", err)
+					logg.Error(ctx, "Failed to create session", "err", err)
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
-				logging.Debug(ctx, "Created session", "id", newSession.ID)
+				logg.Debug(ctx, "Created session", "id", newSession.ID)
 				session = newSession
 			}
 			if session == nil {
-				logging.Panic(ctx, "Session must not be nil at this point")
+				logg.Panic(ctx, "Session must not be nil at this point")
 			}
 
 			// Attach to context.
-			logging.Debug(ctx, "Attaching session", "id", session.ID)
+			logg.Debug(ctx, "Attaching session", "id", session.ID)
 			ctx = withSession(ctx, *session)
 			ctx = withRequest(ctx, requestCtx{w: w, r: r, s: s})
 
@@ -219,11 +219,11 @@ func (s *Store) Middleware() func(next http.Handler) http.Handler {
 			if session.UserID.Valid {
 				user, err := s.q.GetUser(ctx, session.UserID.String)
 				if err != nil {
-					logging.Error(ctx, "Failed to retrieve user", "err", err)
+					logg.Error(ctx, "Failed to retrieve user", "err", err)
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
-				logging.Debug(ctx, "Attaching user", "id", user.ID)
+				logg.Debug(ctx, "Attaching user", "id", user.ID)
 				ctx = withUser(ctx, user)
 			}
 

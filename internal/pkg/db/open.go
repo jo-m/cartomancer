@@ -6,7 +6,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	"goweb/internal/pkg/logging"
+	"goweb/internal/pkg/logg"
 	"io/fs"
 	"net/url"
 	"strings"
@@ -54,12 +54,12 @@ type gooseLogger struct {
 func (g *gooseLogger) Fatalf(format string, v ...interface{}) {
 	msg := fmt.Sprintf(format, v...)
 	msg = strings.TrimSpace(msg)
-	logging.Panic(g.ctx, msg)
+	logg.Panic(g.ctx, msg)
 }
 
 func (g *gooseLogger) Printf(format string, v ...interface{}) {
 	msg := fmt.Sprintf(format, v...)
-	logging.Info(g.ctx, strings.TrimSpace(msg))
+	logg.Info(g.ctx, strings.TrimSpace(msg))
 }
 
 var _ goose.Logger = (*gooseLogger)(nil)
@@ -82,7 +82,7 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to initialize migrations: %w", err)
 	}
 
-	logging.Info(ctx, "Running migrations.")
+	logg.Info(ctx, "Running migrations.")
 	_, err = provider.Up(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
