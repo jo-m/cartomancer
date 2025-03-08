@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/logging"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
@@ -23,10 +22,13 @@ func (s *Server) GetApiV1SessionsLogin(ctx context.Context, request GetApiV1Sess
 }
 
 /*
-7
+	curl -v -X POST http://127.0.0.1:8050/api/v1/sessions/login \
+		--cookie-jar cookies.txt --cookie cookies.txt \
+		-H "Content-Type: application/x-www-form-urlencoded" \
+		-d "email=test@example.org&password=asdf"
 */
 func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request PostApiV1SessionsLoginRequestObject) (PostApiV1SessionsLoginResponseObject, error) {
-	user, err := s.q().GetUserByEmail(ctx, request.Body.Email)
+	user, err := s.q.GetUserByEmail(ctx, request.Body.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return PostApiV1SessionsLogin401JSONResponse{}, err
@@ -35,18 +37,21 @@ func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request PostApiV1Se
 		return PostApiV1SessionsLogin500JSONResponse{}, err
 	}
 
+	// Check password.
 	if !password.Check(request.Body.Password, user.PasswordHash) {
 		logging.Warn(ctx, "Authentication failed", "email", user.Email)
 		return PostApiV1SessionsLogin401JSONResponse{}, nil
 	}
+	logging.Info(ctx, "Login succeeded", "user", user.ID)
 
-	sess := session.MustGetSession(ctx)
-	logging.Info(ctx, "Login succeeded", "user", user.ID, "session", sess.ID)
-	err = s.q().SetSessionUserID(ctx, db.SetSessionUserIDParams{UserID: sql.NullString{Valid: true, String: user.ID}, ID: sess.ID})
+	// Create new session.
+	oldSess := session.MustGetSession(ctx)
+	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: user.ID}, &oldSess)
 	if err != nil {
-		logging.Warn(ctx, "Session login failed", "err", err)
+		logging.Warn(ctx, "Creating session failed", "err", err)
 		return PostApiV1SessionsLogin500JSONResponse{}, nil
 	}
+	logging.Debug(ctx, "Created new session", "id", sess.ID)
 
 	return PostApiV1SessionsLogin204Response{}, nil
 }
@@ -66,9 +71,9 @@ func (s *Server) GetApiV1SessionsLogout(ctx context.Context, request GetApiV1Ses
 */
 func (s *Server) PostApiV1SessionsLogout(ctx context.Context, request PostApiV1SessionsLogoutRequestObject) (PostApiV1SessionsLogoutResponseObject, error) {
 	sess := session.MustGetSession(ctx)
-	err := s.q().SetSessionUserID(ctx, db.SetSessionUserIDParams{ID: sess.ID})
+	err := session.Delete(ctx, &sess)
 	if err != nil {
-		logging.Warn(ctx, "Session logout failed", "err", err)
+		logging.Warn(ctx, "Logout failed", "err", err)
 		return PostApiV1SessionsLogout500JSONResponse{}, nil
 	}
 	logging.Info(ctx, "Logout succeeded", "session", sess.ID)

@@ -1,6 +1,6 @@
 -- name: CreateSession :one
 INSERT INTO sessions (
-  id, created_at, expires_at, secret_hash, data
+  id, created_at, last_active_at, secret_hash, user_id
 ) VALUES (
   ?, ?, ?, ?, ?
 )
@@ -14,12 +14,19 @@ WHERE id = ? LIMIT 1;
 DELETE FROM sessions
 WHERE id = ?;
 
--- name: SetSessionData :exec
+-- name: UpdateSessionLastActive :exec
 UPDATE sessions
-SET data = ?
+SET last_active_at = ?
 WHERE id = ?;
 
--- name: SetSessionUserID :exec
-UPDATE sessions
-SET user_id = ?
-WHERE id = ?;
+-- name: UpdateSessionData :exec
+INSERT INTO sessions_data (
+  session_id, key, data
+) VALUES (
+  ?, ?, ?
+)
+ON CONFLICT(session_id, key) 
+DO UPDATE SET data = excluded.data;
+
+-- name: GetSessionData :many
+SELECT key, data FROM sessions_data WHERE session_id = ? ORDER BY key;

@@ -33,24 +33,25 @@ func (c config) Version() string     { return "Version" }
 func (c config) Description() string { return "Description" }
 func (c config) Epilogue() string    { return "Epilogue" }
 
-func NewHandler(db *sql.DB, logger *slog.Logger) http.Handler {
+func NewHandler(d *sql.DB, logger *slog.Logger) http.Handler {
 	logger = logger.With("mod", "svc")
 
+	sess := session.NewStore(db.New(d), session.Config{
+		MaxIdleTimeout:     time.Minute * 20,
+		MaxAbsoluteTimeout: time.Hour,
+		CookieName:         "sid",
+		CookiePath:         "/",
+	})
 	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
 	mux.Use(logging.AttachLogger(logger))
 	mux.Use(logging.RequestLogger)
 	mux.Use(middleware.RequestSize(1024 * 1024))
 	mux.Use(middleware.StripSlashes)
-	mux.Use(session.Middleware(session.Config{
-		DB:         db,
-		MaxAge:     time.Second * 1800,
-		CookieName: "s",
-		CookiePath: "/",
-	}))
+	mux.Use(sess.Middleware())
 	mux.Use(middleware.Recoverer)
 
-	mux.Mount("/", svc.New(db))
+	mux.Mount("/", svc.New(db.New(d), sess))
 
 	return mux
 }

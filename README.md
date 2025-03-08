@@ -17,34 +17,28 @@ go tool sqlc vet
 ```
 
 # TODOs
-- [x] Middleware to insert auth/session/user info into request context
-- [x] Requests logging middleware
-- [x] Context logger insertion middleware
+
 - [ ] https://phiresky.github.io/blog/2020/sqlite-performance-tuning/
 - [ ] https://developer.android.com/topic/performance/sqlite-performance-best-practices
-- [x] Logging for goose
 - [ ] Unified error handling and rendering
-- [x] Flag parsing, config, env vars
 - [ ] Clean up endpoints
-- [ ] Check in the generated files
-- [x] Common API error response struct
-- [x] Ensure fks are enforced in db
 - [ ] Code TODOs
 - [ ] XSRF protection
-- [x] Proper session handling -> https://github.com/alexedwards/scs
 - [ ] Auto-restart
-- [x] Better panic()s
-- [ ] Clean up sessions periodically
 - [ ] Track user last login/active
-- [x] Make user and session IDs be UUIDs
-- [ ] TOTP Login
 - [ ] Clean up/refactor svc package
-- [ ] Maybe store the uuids in the db as bytes
 - [ ] CRUD users, self-registration
-- [ ] Session: renew session after privilege level change
-- [ ] Session: check for session id len on parsing
-- [ ] Session: idle and absolute timeout
+- [ ] Session data
+- [ ] Ensure non-threadsafe SQLite sessions are not accidentally shared.
+- [ ] e2e tests for: Login, logout, session expiry
+
+# Later TODOs
+
+- [ ] Check in the generated files
 - [ ] Rate limiting for sensitive endpoints
+- [ ] TOTP Login
+- [ ] Clean up sessions periodically
+
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)

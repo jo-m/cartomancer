@@ -2,7 +2,6 @@ package svc
 
 import (
 	"context"
-	"database/sql"
 	_ "embed"
 	"errors"
 	"goweb/internal/pkg/db"
@@ -30,11 +29,7 @@ func init() {
 }
 
 type Server struct {
-	db *sql.DB
-}
-
-func (s *Server) q() *db.Queries {
-	return db.New(s.db)
+	q *db.Queries
 }
 
 // Compile time interface check.
@@ -53,8 +48,10 @@ func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.Authe
 	return nil
 }
 
-func New(db *sql.DB) http.Handler {
-	sv := Server{db: db}
+func New(q *db.Queries, sess session.Store) http.Handler {
+	sv := Server{
+		q: q,
+	}
 
 	filterOptions := openapi3filter.Options{
 		AuthenticationFunc:    sv.authenticationFunc,

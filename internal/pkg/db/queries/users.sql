@@ -27,6 +27,16 @@ UPDATE users
 SET updated_at = ?, password_hash = ?
 WHERE id = ?;
 
+-- name: UpdateUserLastLogin :exec
+UPDATE users
+SET last_login_at = ?, last_active_at = ?
+WHERE id = ?;
+
+-- name: UpdateUserLastActive :exec
+UPDATE users
+SET last_active_at = ?
+WHERE id = ?;
+
 -- name: DeleteUser :exec
 DELETE FROM users
 WHERE id = ?;

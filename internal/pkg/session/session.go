@@ -19,14 +19,23 @@ import (
 )
 
 type Config struct {
-	DB         *sql.DB
-	MaxAge     time.Duration
-	CookieName string
-	CookiePath string
+	MaxIdleTimeout     time.Duration
+	MaxAbsoluteTimeout time.Duration
+	CookieName         string
+	CookieDomain       string
+	CookiePath         string
 }
 
-func (c *Config) q() *db.Queries {
-	return db.New(c.DB)
+type Store struct {
+	q *db.Queries
+	c Config
+}
+
+func NewStore(q *db.Queries, c Config) Store {
+	return Store{
+		q: q,
+		c: c,
+	}
 }
 
 const (
@@ -41,8 +50,8 @@ func hash(s string) []byte {
 	return h.Sum(nil)
 }
 
-func (c *Config) retrieveSession(r *http.Request) (*db.Session, error) {
-	cookie, err := r.Cookie(c.CookieName)
+func (s *Store) get(r *http.Request) (*db.Session, error) {
+	cookie, err := r.Cookie(s.c.CookieName)
 	if err != nil {
 		return nil, fmt.Errorf("no session id: %w", err)
 	}
@@ -52,70 +61,143 @@ func (c *Config) retrieveSession(r *http.Request) (*db.Session, error) {
 		return nil, errors.New("invalid session string")
 	}
 
-	session, err := c.q().GetSession(r.Context(), parts[0])
+	session, err := s.q.GetSession(r.Context(), parts[0])
 	if err != nil {
 		return nil, errors.New("no such session")
-	}
-
-	if time.Since(session.CreatedAt) > time.Minute*30 {
-		return nil, errors.New("session expired")
 	}
 
 	if !bytes.Equal(hash(parts[1]), session.SecretHash) {
 		return nil, errors.New("invalid secret")
 	}
 
+	now := time.Now()
+	if now.Sub(session.CreatedAt) > s.c.MaxAbsoluteTimeout {
+		return nil, errors.New("session expired (absolute)")
+	}
+
+	if now.Sub(session.LastActiveAt) > s.c.MaxIdleTimeout {
+		return nil, errors.New("session expired (idle)")
+	}
+
+	err = s.q.UpdateSessionLastActive(r.Context(), db.UpdateSessionLastActiveParams{
+		ID:           session.ID,
+		LastActiveAt: now,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update session last active: %w", err)
+	}
+
+	if session.UserID.Valid {
+		err := s.q.UpdateUserLastActive(r.Context(), db.UpdateUserLastActiveParams{
+			ID:           session.UserID.String,
+			LastActiveAt: sql.NullTime{Valid: true, Time: now},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to update user last active: %w", err)
+		}
+	}
+
 	return &session, nil
 }
 
-func (c *Config) createSession(w http.ResponseWriter, r *http.Request) (*db.Session, error) {
+func (s *Store) create(w http.ResponseWriter, r *http.Request, userId sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
+	if oldToDelete != nil {
+		err := s.q.DeleteSession(r.Context(), oldToDelete.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete existing session: %w", err)
+		}
+	}
+
+	// Update user last active.
+	now := time.Now()
+	if userId.Valid {
+		err := s.q.UpdateUserLastLogin(r.Context(), db.UpdateUserLastLoginParams{
+			ID:           userId.String,
+			LastLoginAt:  sql.NullTime{Valid: true, Time: now},
+			LastActiveAt: sql.NullTime{Valid: true, Time: now},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to set user last active: %w", err)
+		}
+	}
+
+	// Create new.
 	secretBytes := password.GenRandBytes(sessionSecretBytes)
 	secret := base64.URLEncoding.EncodeToString(secretBytes)
-	now := time.Now()
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate uuid: %w", err)
 	}
 	params := db.CreateSessionParams{
-		ID:         id.String(),
-		CreatedAt:  now,
-		ExpiresAt:  now.Add(c.MaxAge),
-		SecretHash: hash(secret),
+		ID:           id.String(),
+		CreatedAt:    now,
+		LastActiveAt: now,
+		SecretHash:   hash(secret),
+		UserID:       userId,
 	}
 	if len(params.SecretHash) != sessionSecretBytes {
 		logging.Panic(r.Context(), "Secret hash length must be equal to sessionSecretBytes")
 	}
-	session, err := c.q().CreateSession(r.Context(), params)
+	session, err := s.q.CreateSession(r.Context(), params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create session: %w", err)
+		return nil, fmt.Errorf("failed to create session in db: %w", err)
 	}
 
+	// And send the cookie.
 	cookie := http.Cookie{
-		Name:     c.CookieName,
+		Name:     s.c.CookieName,
 		Value:    fmt.Sprintf("%s:%s", session.ID, secret),
-		MaxAge:   int(c.MaxAge.Seconds()),
+		MaxAge:   int(s.c.MaxAbsoluteTimeout.Seconds()),
 		Secure:   true,
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
-		Path:     c.CookiePath,
+		Path:     s.c.CookiePath,
+		Domain:   s.c.CookieDomain,
 	}
 	http.SetCookie(w, &cookie)
 
 	return &session, nil
 }
 
-type ctxKeySession struct{}
-type ctxKeyUser struct{}
+// Create a session.
+// Ctx must be a request context which has passed through the session middleware.
+func Create(ctx context.Context, userId sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
+	req := mustGetRequest(ctx)
+	return req.s.create(req.w, req.r, userId, oldToDelete)
+}
 
-func Middleware(c Config) func(next http.Handler) http.Handler {
+func (s *Store) delete(req requestCtx, session *db.Session) error {
+	deleteCookie := http.Cookie{
+		Name:     s.c.CookieName,
+		Value:    "",
+		MaxAge:   0,
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     s.c.CookiePath,
+		Domain:   s.c.CookieDomain,
+	}
+	http.SetCookie(req.w, &deleteCookie)
+
+	return s.q.DeleteSession(req.r.Context(), session.ID)
+}
+
+// Delete a session.
+// Ctx must be a request context which has passed through the session middleware.
+func Delete(ctx context.Context, session *db.Session) error {
+	req := mustGetRequest(ctx)
+	return req.s.delete(req, session)
+}
+
+func (s *Store) Middleware() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			session, err := c.retrieveSession(r)
+			session, err := s.get(r)
 			ctx := r.Context()
 			if err != nil {
 				logging.Debug(ctx, "No session found", "err", err)
 
-				newSession, err := c.createSession(w, r)
+				newSession, err := s.create(w, r, sql.NullString{}, nil)
 				if err != nil {
 					logging.Error(ctx, "Failed to create session", "err", err)
 					w.WriteHeader(http.StatusInternalServerError)
@@ -124,16 +206,18 @@ func Middleware(c Config) func(next http.Handler) http.Handler {
 				logging.Debug(ctx, "Created session", "id", newSession.ID)
 				session = newSession
 			}
-
 			if session == nil {
-				logging.Panic(ctx, "Session must not be nil")
+				logging.Panic(ctx, "Session must not be nil at this point")
 			}
 
+			// Attach to context.
 			logging.Debug(ctx, "Attaching session", "id", session.ID)
 			ctx = withSession(ctx, *session)
+			ctx = withRequest(ctx, requestCtx{w: w, r: r, s: s})
 
+			// Fetch and attach user.
 			if session.UserID.Valid {
-				user, err := c.q().GetUser(ctx, session.UserID.String)
+				user, err := s.q.GetUser(ctx, session.UserID.String)
 				if err != nil {
 					logging.Error(ctx, "Failed to retrieve user", "err", err)
 					w.WriteHeader(http.StatusInternalServerError)
@@ -147,38 +231,4 @@ func Middleware(c Config) func(next http.Handler) http.Handler {
 		}
 		return http.HandlerFunc(fn)
 	}
-}
-
-func withSession(ctx context.Context, sess db.Session) context.Context {
-	return context.WithValue(ctx, ctxKeySession{}, sess)
-}
-
-func MustGetSession(ctx context.Context) db.Session {
-	if ret, ok := ctx.Value(ctxKeySession{}).(db.Session); ok {
-		return ret
-	}
-
-	logging.Panic(ctx, "No session attached to context")
-	panic("")
-}
-
-func withUser(ctx context.Context, user db.User) context.Context {
-	return context.WithValue(ctx, ctxKeyUser{}, user)
-}
-
-func GetUser(ctx context.Context) *db.User {
-	if ret, ok := ctx.Value(ctxKeyUser{}).(db.User); ok {
-		return &ret
-	}
-	return nil
-}
-
-func MustGetUser(ctx context.Context) db.User {
-	user := GetUser(ctx)
-	if user != nil {
-		return *user
-	}
-
-	logging.Panic(ctx, "No user attached to context")
-	panic("")
 }

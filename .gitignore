@@ -1,4 +1,6 @@
 /data
+# CURL testing cookie jar
+/cookies.txt
 
 # Do not yet check in all the generated files.
 *.qtpl.go

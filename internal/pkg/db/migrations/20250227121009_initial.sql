@@ -5,6 +5,9 @@ CREATE TABLE users (
 
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
+    -- Updating those does not update the `updated_at` field.
+    last_login_at DATETIME,
+    last_active_at DATETIME,
 
     email TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
