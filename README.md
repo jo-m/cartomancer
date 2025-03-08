@@ -25,12 +25,12 @@ go tool sqlc vet
 - [ ] Code TODOs
 - [ ] XSRF protection
 - [ ] Auto-restart
-- [ ] Track user last login/active
 - [ ] Clean up/refactor svc package
 - [ ] CRUD users, self-registration
 - [ ] Session data
 - [ ] Ensure non-threadsafe SQLite sessions are not accidentally shared.
 - [ ] e2e tests for: Login, logout, session expiry
+- [ ] Wrap session actions in db tx
 
 # Later TODOs
 
