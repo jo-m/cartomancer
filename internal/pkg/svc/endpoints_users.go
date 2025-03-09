@@ -1,5 +1,7 @@
 package svc
 
+//lint:file-ignore ST1020,ST1003 Ignore generated method names.
+
 import (
 	"context"
 	"database/sql"

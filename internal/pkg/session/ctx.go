@@ -13,6 +13,8 @@ func withUser(ctx context.Context, user db.User) context.Context {
 	return context.WithValue(ctx, ctxKeyUser{}, user)
 }
 
+// GetUser returns the user attached to a context,
+// nil if there is none.
 func GetUser(ctx context.Context) *db.User {
 	if ret, ok := ctx.Value(ctxKeyUser{}).(db.User); ok {
 		return &ret
@@ -20,6 +22,8 @@ func GetUser(ctx context.Context) *db.User {
 	return nil
 }
 
+// MustGetUser returns the user attached to a context
+// and panics if there is none.
 func MustGetUser(ctx context.Context) db.User {
 	user := GetUser(ctx)
 	if user != nil {
@@ -36,6 +40,8 @@ func withSession(ctx context.Context, sess db.Session) context.Context {
 	return context.WithValue(ctx, ctxKeySession{}, sess)
 }
 
+// MustGet returns the session attached to a context
+// and panics if there is none.
 func MustGet(ctx context.Context) db.Session {
 	if ret, ok := ctx.Value(ctxKeySession{}).(db.Session); ok {
 		return ret

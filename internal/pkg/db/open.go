@@ -57,12 +57,14 @@ type gooseLogger struct {
 	ctx context.Context
 }
 
+// Fatalf implements goose.Logger.
 func (g *gooseLogger) Fatalf(format string, v ...interface{}) {
 	msg := fmt.Sprintf(format, v...)
 	msg = strings.TrimSpace(msg)
 	logg.Panic(g.ctx, msg)
 }
 
+// Printf implements goose.Logger.
 func (g *gooseLogger) Printf(format string, v ...interface{}) {
 	msg := fmt.Sprintf(format, v...)
 	logg.Info(g.ctx, strings.TrimSpace(msg))
@@ -77,10 +79,13 @@ type DB struct {
 	ro *sql.DB
 }
 
+// QueryRO returns a Queries object, with a read only connection.
 func (d *DB) QueryRO() *Queries {
 	return New(d.ro)
 }
 
+// QueryTX returns a Queries object, with a read/write transaction connection.
+// You must call Commit() or Rollback() on the object returned when done.
 func (d *DB) QueryTX(ctx context.Context) (*Queries, error) {
 	tx, err := d.rw.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
@@ -89,6 +94,7 @@ func (d *DB) QueryTX(ctx context.Context) (*Queries, error) {
 	return New(d.rw).WithTx(tx), nil
 }
 
+// Commit the tx.
 func (q *Queries) Commit() error {
 	tx, ok := q.db.(*sql.Tx)
 	if !ok {
@@ -97,6 +103,7 @@ func (q *Queries) Commit() error {
 	return tx.Commit()
 }
 
+// Rollback the tx.
 func (q *Queries) Rollback() error {
 	tx, ok := q.db.(*sql.Tx)
 	if !ok {
@@ -113,6 +120,11 @@ func (d *DB) Close() error {
 	return d.rw.Close()
 }
 
+// Open opens the database.
+// To deal with SQLite concurrency, we maintain both a read-only connection pool,
+// and a read/write pool with only one connection in it.
+// You should maintain only one DB object at a time in your application.
+// You must call Close() on the returned DB object when done.
 func Open(ctx context.Context, path string) (db *DB, err error) {
 	dir := filepath.Dir(path)
 	os.MkdirAll(dir, 0755)

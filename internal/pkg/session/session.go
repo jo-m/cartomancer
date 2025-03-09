@@ -1,3 +1,4 @@
+// Package session deals with sessions.
 package session
 
 import (
@@ -18,20 +19,26 @@ import (
 	"github.com/google/uuid"
 )
 
+// Config options for a session store.
 type Config struct {
+	// Required.
 	MaxIdleTimeout     time.Duration
 	MaxAbsoluteTimeout time.Duration
 	CookieName         string
-	CookieDomain       string
-	CookiePath         string
+	// Optional.
+	CookieDomain string
+	CookiePath   string
 }
 
+// Store manages sessions.
+// Use MakeStore() to create an instance.
 type Store struct {
 	q *db.DB
 	c Config
 }
 
-func NewStore(q *db.DB, c Config) Store {
+// MakeStore creates a new session store.
+func MakeStore(q *db.DB, c Config) Store {
 	return Store{
 		q: q,
 		c: c,
@@ -100,7 +107,7 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 	return &sess, nil
 }
 
-func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, userId sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
+func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, userID sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
 	if oldToDelete != nil {
 		err := tx.DeleteSession(r.Context(), oldToDelete.ID)
 		if err != nil {
@@ -110,9 +117,9 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 
 	// Update user last active.
 	now := time.Now()
-	if userId.Valid {
+	if userID.Valid {
 		err := tx.UpdateUserLastLogin(r.Context(), db.UpdateUserLastLoginParams{
-			ID:           userId.String,
+			ID:           userID.String,
 			LastLoginAt:  sql.NullTime{Valid: true, Time: now},
 			LastActiveAt: sql.NullTime{Valid: true, Time: now},
 		})
@@ -133,7 +140,7 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 		CreatedAt:    now,
 		LastActiveAt: now,
 		SecretHash:   hash(secret),
-		UserID:       userId,
+		UserID:       userID,
 	}
 	if len(params.SecretHash) != sessionSecretBytes {
 		logg.Panic(r.Context(), "Secret hash length must be equal to sessionSecretBytes")
@@ -159,9 +166,10 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 	return &session, nil
 }
 
-// Create a session.
-// Ctx must be a request context which has passed through the session middleware.
-func Create(ctx context.Context, userId sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
+// Create a session in the database and set the session cookie.
+// Ctx must be a request context which has previously passed
+// through the session middleware, so that the required items have been attached to it.
+func Create(ctx context.Context, userID sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
 	req := mustGetRequest(ctx)
 
 	tx, err := req.s.q.QueryTX(req.r.Context())
@@ -170,7 +178,7 @@ func Create(ctx context.Context, userId sql.NullString, oldToDelete *db.Session)
 	}
 	defer tx.Rollback()
 
-	sess, err := req.s.create(req.w, req.r, tx, userId, oldToDelete)
+	sess, err := req.s.create(req.w, req.r, tx, userID, oldToDelete)
 	if err != nil {
 		return nil, err
 	}
@@ -199,8 +207,9 @@ func (s *Store) delete(w http.ResponseWriter, r *http.Request, tx *db.Queries, s
 	return tx.DeleteSession(r.Context(), sess.ID)
 }
 
-// Delete a session.
-// Ctx must be a request context which has passed through the session middleware.
+// Delete a session from the database and delete the session cookie.
+// Ctx must be a request context which has previously passed
+// through the session middleware, so that the required items have been attached to it.
 func Delete(ctx context.Context, sess *db.Session) error {
 	req := mustGetRequest(ctx)
 
@@ -219,6 +228,9 @@ func Delete(ctx context.Context, sess *db.Session) error {
 	return tx.Commit()
 }
 
+// Middleware automatically issues sessions for each request,
+// sends the session token to the user as cookie,
+// and attaches session and user info to the request context.
 func (s *Store) Middleware() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {

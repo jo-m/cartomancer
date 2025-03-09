@@ -1,3 +1,4 @@
+// Package logg deals with logging.
 package logg
 
 import (

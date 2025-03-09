@@ -1,3 +1,4 @@
+// Package password offers password and secrets utilities.
 package password
 
 import (
@@ -34,7 +35,9 @@ type argonHash struct {
 	KeyB64  string `json:"k"`
 }
 
-func Hashed(password string) string {
+// Hash salts and hashes a password.
+// The salt and the hash params are serialized in to the returned string.
+func Hash(password string) string {
 	params := defaultparams
 
 	salt := GenRandBytes(params.saltLenBytes)
@@ -54,6 +57,7 @@ func Hashed(password string) string {
 	return string(ret)
 }
 
+// Check if a password matches a hash which was previously generated via Hash().
 func Check(password, hashed string) bool {
 	var h argonHash
 	err := json.Unmarshal([]byte(hashed), &h)

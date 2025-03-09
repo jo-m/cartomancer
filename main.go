@@ -36,7 +36,7 @@ func (c config) Epilogue() string    { return "Epilogue" }
 func NewHandler(q *db.DB, logger *slog.Logger) http.Handler {
 	logger = logger.With("mod", "svc")
 
-	sess := session.NewStore(q, session.Config{
+	sess := session.MakeStore(q, session.Config{
 		MaxIdleTimeout:     time.Minute * 20,
 		MaxAbsoluteTimeout: time.Hour,
 		CookieName:         "sid",
@@ -67,7 +67,7 @@ func createUser(ctx context.Context, q *db.Queries, email, pass string) error {
 		UpdatedAt:    time.Now(),
 		Email:        email,
 		Name:         "test",
-		PasswordHash: password.Hashed(pass),
+		PasswordHash: password.Hash(pass),
 	})
 	return err
 }

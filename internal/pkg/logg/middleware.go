@@ -9,13 +9,14 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// AttachLogger attaches a logger with the request ID attribute to the request context.
+// AttachLogger is a net/http middleware which attaches a logger with the request ID attribute to the request context.
+// Use GetLogger() to retrieve it.
 func AttachLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 	f := func(h http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			reqId := middleware.GetReqID(ctx)
-			reqLogger := logger.With("reqId", reqId)
+			reqID := middleware.GetReqID(ctx)
+			reqLogger := logger.With("reqId", reqID)
 			ctx = WithLogger(ctx, reqLogger)
 			h.ServeHTTP(w, r.WithContext(ctx))
 		}
@@ -35,6 +36,8 @@ func getLevel(code int) slog.Level {
 	return slog.LevelInfo
 }
 
+// RequestLogger is a net/http middleware which logs each request.
+// It expects the AttachLogger() middleware above in the stack.
 func RequestLogger(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)

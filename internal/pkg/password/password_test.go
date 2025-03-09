@@ -7,7 +7,7 @@ import (
 )
 
 func TestHashCheck(t *testing.T) {
-	hashed := Hashed("asdf")
+	hashed := Hash("asdf")
 	assert.True(t, Check("asdf", hashed))
 	assert.False(t, Check("asdff", hashed))
 	assert.False(t, Check("asdf", "a"+hashed))
@@ -16,6 +16,6 @@ func TestHashCheck(t *testing.T) {
 // go test -bench=Bench ./...
 func BenchmarkPrimeNumbers(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		Check("asdf", Hashed("asdf"))
+		Check("asdf", Hash("asdf"))
 	}
 }
