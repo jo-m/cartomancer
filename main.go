@@ -119,6 +119,6 @@ func main() {
 		MaxHeaderBytes:    1 << 20,
 	}
 	logg.Warn(ctx, gofakeit.HackerPhrase())
-	logg.Info(ctx, "Listening", "addr", s.Addr)
+	logg.Info(ctx, "Listening on", "url", fmt.Sprintf("http://%s", s.Addr))
 	logg.Error(ctx, "ListenAndServe failed", "err", s.ListenAndServe())
 }
