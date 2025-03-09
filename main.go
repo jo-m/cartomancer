@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"goweb/internal/pkg/db"
+	"goweb/internal/pkg/endpoints"
 	"goweb/internal/pkg/logg"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
-	"goweb/internal/pkg/svc"
 	"log/slog"
 	"net/http"
 	"os"
@@ -51,7 +51,7 @@ func NewHandler(q *db.DB, logger *slog.Logger) http.Handler {
 	mux.Use(sess.Middleware())
 	mux.Use(middleware.Recoverer)
 
-	mux.Mount("/", svc.New(q, sess))
+	mux.Mount("/", endpoints.New(q, sess))
 
 	return mux
 }

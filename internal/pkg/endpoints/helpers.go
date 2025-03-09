@@ -1,4 +1,4 @@
-package svc
+package endpoints
 
 import (
 	"io"

@@ -1,39 +1,25 @@
-package svc
+// Package endpoints contains HTTP endpoints implementations.
+package endpoints
 
 import (
 	"context"
-	_ "embed"
 	"errors"
 	"goweb/internal/pkg/db"
+	"goweb/internal/pkg/oapi"
 	"goweb/internal/pkg/session"
 	"net/http"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 	netmiddleware "github.com/oapi-codegen/nethttp-middleware"
 )
-
-//go:generate go tool oapi-codegen -config oapi-cfg.yaml oapi.yaml
-
-//go:embed oapi.yaml
-var schema []byte
-var Schema *openapi3.T
-
-func init() {
-	var err error
-	Schema, err = openapi3.NewLoader().LoadFromData(schema)
-	if err != nil {
-		panic(err)
-	}
-}
 
 type Server struct {
 	q *db.DB
 }
 
 // Compile time interface check.
-var _ StrictServerInterface = (*Server)(nil)
+var _ oapi.StrictServerInterface = (*Server)(nil)
 
 func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.AuthenticationInput) error {
 	if a.SecuritySchemeName != "CookieAuth" {
@@ -64,12 +50,12 @@ func New(q *db.DB, sess session.Store) http.Handler {
 	middlewareOptions := netmiddleware.Options{
 		Options: filterOptions,
 	}
-	middleware := netmiddleware.OapiRequestValidatorWithOptions(Schema, &middlewareOptions)
+	middleware := netmiddleware.OapiRequestValidatorWithOptions(oapi.Schema, &middlewareOptions)
 
 	mux := chi.NewRouter()
 	mux.Use(middleware)
 
-	h := HandlerFromMux(NewStrictHandler(&sv, nil), mux)
+	h := oapi.HandlerFromMux(oapi.NewStrictHandler(&sv, nil), mux)
 
 	return h
 }
