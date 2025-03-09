@@ -1,9 +1,7 @@
 .PHONY: clean
 clean:
-	rm -f internal/pkg/db/{db,models}.go internal/pkg/db/*.sql.go
 	find . -name '*.qtpl.go' -delete
-	rm -rf tmp
-	rm -f cookies.txt
+	find . -name '*.gen.go' -delete
 
 .PHONY: db_reset
 db_reset:
@@ -14,6 +12,7 @@ gen: clean
 	# Generate.
 	go generate ./...
 
-	# # Format.
-	# go fmt ./...
-	# go mod tidy
+.PHONY: format
+format:
+	go fmt ./...
+	go mod tidy

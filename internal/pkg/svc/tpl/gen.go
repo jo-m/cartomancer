@@ -1,3 +1,3 @@
 package tpl
 
-//go:generate go tool qtc -dir=.
+//go:generate go tool qtc

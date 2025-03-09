@@ -14,6 +14,8 @@ go tool goose validate
 
 go tool sqlc generate
 go tool sqlc vet
+
+go tool air
 ```
 
 # TODOs
