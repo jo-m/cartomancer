@@ -20,7 +20,7 @@ type argon2idparams struct {
 }
 
 // See https://pkg.go.dev/golang.org/x/crypto/argon2#IDKey.
-var defaultparams argon2idparams = argon2idparams{
+var defaultparams = argon2idparams{
 	Time:    1,
 	Memory:  64 * 1024,
 	Threads: 1,

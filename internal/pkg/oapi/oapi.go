@@ -10,13 +10,19 @@ import (
 //go:generate go tool oapi-codegen -config oapi-cfg.yaml oapi.yaml
 
 //go:embed oapi.yaml
-var schema []byte
-var Schema *openapi3.T
+var schemaBytes []byte
+
+var schema *openapi3.T
 
 func init() {
 	var err error
-	Schema, err = openapi3.NewLoader().LoadFromData(schema)
+	schema, err = openapi3.NewLoader().LoadFromData(schemaBytes)
 	if err != nil {
 		panic(err)
 	}
+}
+
+// Schema gives access to the OpenAPI schema at runtime.
+func Schema() *openapi3.T {
+	return schema
 }

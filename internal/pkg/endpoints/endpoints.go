@@ -50,7 +50,7 @@ func New(q *db.DB, sess session.Store) http.Handler {
 	middlewareOptions := netmiddleware.Options{
 		Options: filterOptions,
 	}
-	middleware := netmiddleware.OapiRequestValidatorWithOptions(oapi.Schema, &middlewareOptions)
+	middleware := netmiddleware.OapiRequestValidatorWithOptions(oapi.Schema(), &middlewareOptions)
 
 	mux := chi.NewRouter()
 	mux.Use(middleware)

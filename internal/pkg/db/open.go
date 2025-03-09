@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/pressly/goose/v3"
-	_ "modernc.org/sqlite"
+	_ "modernc.org/sqlite" // Database driver.
 )
 
 const (
@@ -72,6 +72,7 @@ func (g *gooseLogger) Printf(format string, v ...interface{}) {
 
 var _ goose.Logger = (*gooseLogger)(nil)
 
+// DB contains both a rw and a ro database conn.
 type DB struct {
 	// Read/write conn.
 	rw *sql.DB
@@ -112,12 +113,14 @@ func (q *Queries) Rollback() error {
 	return tx.Rollback()
 }
 
+// Close closes both conns.
 func (d *DB) Close() error {
-	err := d.ro.Close()
-	if err != nil {
-		return err
+	err0 := d.ro.Close()
+	err1 := d.rw.Close()
+	if err0 != nil || err1 != nil {
+		return fmt.Errorf("closing failed: %s, %s", err0, err1)
 	}
-	return d.rw.Close()
+	return nil
 }
 
 // Open opens the database.
@@ -127,7 +130,12 @@ func (d *DB) Close() error {
 // You must call Close() on the returned DB object when done.
 func Open(ctx context.Context, path string) (db *DB, err error) {
 	dir := filepath.Dir(path)
-	os.MkdirAll(dir, 0755)
+	err = os.MkdirAll(dir, 0750)
+	if err != nil {
+		if !errors.Is(err, os.ErrExist) {
+			return nil, err
+		}
+	}
 
 	// Open read/write conn.
 	rw, err := sql.Open(driver, buildDSN(path, false, time.Second*5))
