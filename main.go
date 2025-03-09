@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/logg"
@@ -34,10 +33,10 @@ func (c config) Version() string     { return "Version" }
 func (c config) Description() string { return "Description" }
 func (c config) Epilogue() string    { return "Epilogue" }
 
-func NewHandler(d *sql.DB, logger *slog.Logger) http.Handler {
+func NewHandler(q *db.DB, logger *slog.Logger) http.Handler {
 	logger = logger.With("mod", "svc")
 
-	sess := session.NewStore(db.New(d), session.Config{
+	sess := session.NewStore(q, session.Config{
 		MaxIdleTimeout:     time.Minute * 20,
 		MaxAbsoluteTimeout: time.Hour,
 		CookieName:         "sid",
@@ -52,7 +51,7 @@ func NewHandler(d *sql.DB, logger *slog.Logger) http.Handler {
 	mux.Use(sess.Middleware())
 	mux.Use(middleware.Recoverer)
 
-	mux.Mount("/", svc.New(db.New(d), sess))
+	mux.Mount("/", svc.New(q, sess))
 
 	return mux
 }
@@ -88,24 +87,32 @@ func main() {
 	ctx := logg.WithLogger(context.Background(), logger)
 
 	// Migrations.
-	d, err := db.Open(ctx, c.DBPath)
+	q, err := db.Open(ctx, c.DBPath)
 	if err != nil {
 		logg.Panic(ctx, "Failed to open db", "err", err)
 	}
-	defer d.Close()
+	defer q.Close()
 
-	q := db.New(d)
-	createUser(ctx, q, "test@example.org", "asdf")
+	tx, err := q.QueryTX(ctx)
+	defer tx.Rollback()
+	if err != nil {
+		logg.Panic(ctx, "Failed to begin tx", "err", err)
+	}
+	createUser(ctx, tx, "test@example.org", "asdf")
 	if err != nil {
 		logg.Error(ctx, "CreateUser failed", "err", err)
 	}
 	for range 10 {
-		createUser(ctx, q, gofakeit.Email(), password.GenRandPrintableString(32))
+		createUser(ctx, tx, gofakeit.Email(), password.GenRandPrintableString(32))
+	}
+	err = tx.Commit()
+	if err != nil {
+		logg.Panic(ctx, "Failed to commit", "err", err)
 	}
 
 	s := &http.Server{
 		Addr:              c.HTTPListenAddr,
-		Handler:           NewHandler(d, logger),
+		Handler:           NewHandler(q, logger),
 		ReadHeaderTimeout: 20 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,

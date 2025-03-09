@@ -18,19 +18,20 @@ go tool sqlc vet
 
 # TODOs
 
-- [ ] https://phiresky.github.io/blog/2020/sqlite-performance-tuning/
+- [x] https://phiresky.github.io/blog/2020/sqlite-performance-tuning/
 - [ ] https://developer.android.com/topic/performance/sqlite-performance-best-practices
 - [ ] Unified error handling and rendering
 - [ ] Clean up endpoints
 - [ ] Code TODOs
 - [ ] XSRF protection
-- [ ] Auto-restart
+- [ ] Auto-restart https://github.com/air-verse/air, https://eradman.com/entrproject/, https://github.com/cortesi/modd
 - [ ] Clean up/refactor svc package
 - [ ] CRUD users, self-registration
-- [ ] Session data
-- [ ] Ensure non-threadsafe SQLite sessions are not accidentally shared.
+- [x] Session data
+- [x] Ensure non-threadsafe SQLite sessions are not accidentally shared.
 - [ ] e2e tests for: Login, logout, session expiry
-- [ ] Wrap session actions in db tx
+- [x] Wrap session actions in db tx
+- [ ] Templates and static files
 
 # Later TODOs
 

@@ -27,11 +27,11 @@ type Config struct {
 }
 
 type Store struct {
-	q *db.Queries
+	q *db.DB
 	c Config
 }
 
-func NewStore(q *db.Queries, c Config) Store {
+func NewStore(q *db.DB, c Config) Store {
 	return Store{
 		q: q,
 		c: c,
@@ -50,7 +50,7 @@ func hash(s string) []byte {
 	return h.Sum(nil)
 }
 
-func (s *Store) get(r *http.Request) (*db.Session, error) {
+func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 	cookie, err := r.Cookie(s.c.CookieName)
 	if err != nil {
 		return nil, fmt.Errorf("no session id: %w", err)
@@ -61,35 +61,35 @@ func (s *Store) get(r *http.Request) (*db.Session, error) {
 		return nil, errors.New("invalid session string")
 	}
 
-	session, err := s.q.GetSession(r.Context(), parts[0])
+	sess, err := tx.GetSession(r.Context(), parts[0])
 	if err != nil {
 		return nil, errors.New("no such session")
 	}
 
-	if !bytes.Equal(hash(parts[1]), session.SecretHash) {
+	if !bytes.Equal(hash(parts[1]), sess.SecretHash) {
 		return nil, errors.New("invalid secret")
 	}
 
 	now := time.Now()
-	if now.Sub(session.CreatedAt) > s.c.MaxAbsoluteTimeout {
+	if now.Sub(sess.CreatedAt) > s.c.MaxAbsoluteTimeout {
 		return nil, errors.New("session expired (absolute)")
 	}
 
-	if now.Sub(session.LastActiveAt) > s.c.MaxIdleTimeout {
+	if now.Sub(sess.LastActiveAt) > s.c.MaxIdleTimeout {
 		return nil, errors.New("session expired (idle)")
 	}
 
-	err = s.q.UpdateSessionLastActive(r.Context(), db.UpdateSessionLastActiveParams{
-		ID:           session.ID,
+	err = tx.UpdateSessionLastActive(r.Context(), db.UpdateSessionLastActiveParams{
+		ID:           sess.ID,
 		LastActiveAt: now,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update session last active: %w", err)
 	}
 
-	if session.UserID.Valid {
-		err := s.q.UpdateUserLastActive(r.Context(), db.UpdateUserLastActiveParams{
-			ID:           session.UserID.String,
+	if sess.UserID.Valid {
+		err := tx.UpdateUserLastActive(r.Context(), db.UpdateUserLastActiveParams{
+			ID:           sess.UserID.String,
 			LastActiveAt: sql.NullTime{Valid: true, Time: now},
 		})
 		if err != nil {
@@ -97,12 +97,12 @@ func (s *Store) get(r *http.Request) (*db.Session, error) {
 		}
 	}
 
-	return &session, nil
+	return &sess, nil
 }
 
-func (s *Store) create(w http.ResponseWriter, r *http.Request, userId sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
+func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, userId sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
 	if oldToDelete != nil {
-		err := s.q.DeleteSession(r.Context(), oldToDelete.ID)
+		err := tx.DeleteSession(r.Context(), oldToDelete.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete existing session: %w", err)
 		}
@@ -111,7 +111,7 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, userId sql.NullSt
 	// Update user last active.
 	now := time.Now()
 	if userId.Valid {
-		err := s.q.UpdateUserLastLogin(r.Context(), db.UpdateUserLastLoginParams{
+		err := tx.UpdateUserLastLogin(r.Context(), db.UpdateUserLastLoginParams{
 			ID:           userId.String,
 			LastLoginAt:  sql.NullTime{Valid: true, Time: now},
 			LastActiveAt: sql.NullTime{Valid: true, Time: now},
@@ -138,7 +138,7 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, userId sql.NullSt
 	if len(params.SecretHash) != sessionSecretBytes {
 		logg.Panic(r.Context(), "Secret hash length must be equal to sessionSecretBytes")
 	}
-	session, err := s.q.CreateSession(r.Context(), params)
+	session, err := tx.CreateSession(r.Context(), params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session in db: %w", err)
 	}
@@ -163,10 +163,27 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, userId sql.NullSt
 // Ctx must be a request context which has passed through the session middleware.
 func Create(ctx context.Context, userId sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
 	req := mustGetRequest(ctx)
-	return req.s.create(req.w, req.r, userId, oldToDelete)
+
+	tx, err := req.s.q.QueryTX(req.r.Context())
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	sess, err := req.s.create(req.w, req.r, tx, userId, oldToDelete)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return sess, nil
 }
 
-func (s *Store) delete(req requestCtx, session *db.Session) error {
+func (s *Store) delete(w http.ResponseWriter, r *http.Request, tx *db.Queries, sess *db.Session) error {
 	deleteCookie := http.Cookie{
 		Name:     s.c.CookieName,
 		Value:    "",
@@ -177,47 +194,68 @@ func (s *Store) delete(req requestCtx, session *db.Session) error {
 		Path:     s.c.CookiePath,
 		Domain:   s.c.CookieDomain,
 	}
-	http.SetCookie(req.w, &deleteCookie)
+	http.SetCookie(w, &deleteCookie)
 
-	return s.q.DeleteSession(req.r.Context(), session.ID)
+	return tx.DeleteSession(r.Context(), sess.ID)
 }
 
 // Delete a session.
 // Ctx must be a request context which has passed through the session middleware.
-func Delete(ctx context.Context, session *db.Session) error {
+func Delete(ctx context.Context, sess *db.Session) error {
 	req := mustGetRequest(ctx)
-	return req.s.delete(req, session)
+
+	tx, err := req.s.q.QueryTX(req.r.Context())
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = req.s.delete(req.w, req.r, tx, sess)
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (s *Store) Middleware() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			session, err := s.get(r)
+			tx, err := s.q.QueryTX(r.Context())
+			if err != nil {
+				logg.Error(r.Context(), "Failed to  begin transaction", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			defer tx.Rollback()
+
+			sess, err := s.get(r, tx)
 			ctx := r.Context()
 			if err != nil {
 				logg.Debug(ctx, "No session found", "err", err)
 
-				newSession, err := s.create(w, r, sql.NullString{}, nil)
+				newSession, err := s.create(w, r, tx, sql.NullString{}, nil)
 				if err != nil {
 					logg.Error(ctx, "Failed to create session", "err", err)
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
 				logg.Debug(ctx, "Created session", "id", newSession.ID)
-				session = newSession
+				sess = newSession
 			}
-			if session == nil {
+			if sess == nil {
 				logg.Panic(ctx, "Session must not be nil at this point")
 			}
 
 			// Attach to context.
-			logg.Debug(ctx, "Attaching session", "id", session.ID)
-			ctx = withSession(ctx, *session)
+			logg.Debug(ctx, "Attaching session", "id", sess.ID)
+			ctx = withSession(ctx, *sess)
 			ctx = withRequest(ctx, requestCtx{w: w, r: r, s: s})
 
 			// Fetch and attach user.
-			if session.UserID.Valid {
-				user, err := s.q.GetUser(ctx, session.UserID.String)
+			if sess.UserID.Valid {
+				user, err := tx.GetUser(ctx, sess.UserID.String)
 				if err != nil {
 					logg.Error(ctx, "Failed to retrieve user", "err", err)
 					w.WriteHeader(http.StatusInternalServerError)
@@ -225,6 +263,13 @@ func (s *Store) Middleware() func(next http.Handler) http.Handler {
 				}
 				logg.Debug(ctx, "Attaching user", "id", user.ID)
 				ctx = withUser(ctx, user)
+			}
+
+			err = tx.Commit()
+			if err != nil {
+				logg.Error(ctx, "Failed to commit", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 
 			next.ServeHTTP(w, r.WithContext(ctx))

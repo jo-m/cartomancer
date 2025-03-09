@@ -18,7 +18,7 @@ import (
 		--cookie-jar cookies.txt --cookie cookies.txt
 */
 func (s *Server) GetApiV1Users(ctx context.Context, request GetApiV1UsersRequestObject) (GetApiV1UsersResponseObject, error) {
-	users, err := s.q.GetUsers(ctx)
+	users, err := s.q.QueryRO().GetUsers(ctx)
 	if err != nil {
 		return GetApiV1Users500JSONResponse{}, nil
 	}
@@ -39,7 +39,7 @@ curl 'http://127.0.0.1:8050/api/v1/users/1' \
 */
 
 func (s *Server) GetApiV1UsersId(ctx context.Context, request GetApiV1UsersIdRequestObject) (GetApiV1UsersIdResponseObject, error) {
-	user, err := s.q.GetUser(ctx, request.Id)
+	user, err := s.q.QueryRO().GetUser(ctx, request.Id)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return GetApiV1UsersId404JSONResponse{}, nil
 	}

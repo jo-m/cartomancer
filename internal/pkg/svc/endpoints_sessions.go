@@ -28,7 +28,7 @@ func (s *Server) GetApiV1SessionsLogin(ctx context.Context, request GetApiV1Sess
 		-d "email=test@example.org&password=asdf"
 */
 func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request PostApiV1SessionsLoginRequestObject) (PostApiV1SessionsLoginResponseObject, error) {
-	user, err := s.q.GetUserByEmail(ctx, request.Body.Email)
+	user, err := s.q.QueryRO().GetUserByEmail(ctx, request.Body.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return PostApiV1SessionsLogin401JSONResponse{}, err

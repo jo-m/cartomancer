@@ -29,7 +29,7 @@ func init() {
 }
 
 type Server struct {
-	q *db.Queries
+	q *db.DB
 }
 
 // Compile time interface check.
@@ -40,15 +40,15 @@ func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.Authe
 		return errors.New("unknown security scheme")
 	}
 
-	session := session.MustGet(ctx)
-	if !session.UserID.Valid {
+	sess := session.MustGet(ctx)
+	if !sess.UserID.Valid {
 		return errors.New("not authenticated")
 	}
 
 	return nil
 }
 
-func New(q *db.Queries, sess session.Store) http.Handler {
+func New(q *db.DB, sess session.Store) http.Handler {
 	sv := Server{
 		q: q,
 	}
