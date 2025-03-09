@@ -102,7 +102,7 @@ func main() {
 	if err != nil {
 		logg.Error(ctx, "CreateUser failed", "err", err)
 	}
-	for range 10 {
+	for range 3 {
 		createUser(ctx, tx, gofakeit.Email(), password.GenRandPrintableString(32))
 	}
 	err = tx.Commit()
