@@ -9,6 +9,8 @@ import (
 	"goweb/internal/pkg/logg"
 	"io/fs"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -112,6 +114,9 @@ func (d *DB) Close() error {
 }
 
 func Open(ctx context.Context, path string) (db *DB, err error) {
+	dir := filepath.Dir(path)
+	os.MkdirAll(dir, 0755)
+
 	// Open read/write conn.
 	rw, err := sql.Open(driver, buildDSN(path, false, time.Second*5))
 	if err != nil {
