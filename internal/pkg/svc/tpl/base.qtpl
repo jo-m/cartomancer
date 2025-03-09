@@ -14,13 +14,19 @@ interface Page {
 		<title>{%= p.Title() %}</title>
 	</head>
 	<body>
+		<nav>
+			<h1>Navigation</h1>
+			<ol>
+			  <li><a href="/">return to main page</a></li>
+			  <li><a href="/api/v1/sessions/logout">logout</a></li>
+			  <li><a href="/api/v1/sessions/login">login</a></li>
+			</ol>
+			{%s p.UserName() %}
+		  </nav>
 		<div>
-			<a href="/">return to main page</a>
-			<a href="/api/v1/sessions/logout">logout</a>
-			<a href="/api/v1/sessions/login">login</a>
-			{%s p.UserName() %}	
-		</div>
-		{%= p.Body() %}
+		<main>
+			{%= p.Body() %}
+		</main>
 	</body>
 </html>
 {% endfunc %}
