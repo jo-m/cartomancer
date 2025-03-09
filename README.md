@@ -26,7 +26,7 @@ go tool air
 - [ ] Clean up endpoints
 - [ ] Code TODOs
 - [ ] XSRF protection
-- [ ] Auto-restart https://github.com/air-verse/air, https://eradman.com/entrproject/, https://github.com/cortesi/modd
+- [x] Auto-restart https://github.com/air-verse/air, https://eradman.com/entrproject/, https://github.com/cortesi/modd
 - [ ] Clean up/refactor svc package
 - [ ] CRUD users, self-registration
 - [x] Session data
