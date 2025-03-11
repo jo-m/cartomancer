@@ -29,6 +29,9 @@ ON CONFLICT(session_id, key)
 DO UPDATE SET data = excluded.data
 RETURNING *;
 
+-- name: GetSessionsCount :one
+SELECT COUNT(*) FROM sessions;
+
 -- name: DeleteSessionData :exec
 DELETE FROM sessions_data
 WHERE session_id = ? AND key = ?;

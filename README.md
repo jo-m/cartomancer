@@ -31,7 +31,7 @@ go tool air
 - [ ] CRUD users, self-registration
 - [x] Session data
 - [x] Ensure non-threadsafe SQLite sessions are not accidentally shared.
-- [ ] e2e tests for: Login, logout, session expiry
+- [x] e2e tests for: Login, logout, session expiry
 - [x] Wrap session actions in db tx
 - [ ] Templates and static files
 

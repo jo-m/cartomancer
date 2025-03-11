@@ -28,6 +28,8 @@ type Config struct {
 	// Optional.
 	CookieDomain string
 	CookiePath   string
+	// Default is safe.
+	insecureUseOnlyForTests bool
 }
 
 // Store manages sessions.
@@ -155,7 +157,7 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 		Name:     s.c.CookieName,
 		Value:    fmt.Sprintf("%s:%s", session.ID, secret),
 		MaxAge:   int(s.c.MaxAbsoluteTimeout.Seconds()),
-		Secure:   true,
+		Secure:   !s.c.insecureUseOnlyForTests,
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 		Path:     s.c.CookiePath,
@@ -196,7 +198,7 @@ func (s *Store) delete(w http.ResponseWriter, r *http.Request, tx *db.Queries, s
 		Name:     s.c.CookieName,
 		Value:    "",
 		MaxAge:   0,
-		Secure:   true,
+		Secure:   !s.c.insecureUseOnlyForTests,
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 		Path:     s.c.CookiePath,
@@ -231,61 +233,59 @@ func Delete(ctx context.Context, sess *db.Session) error {
 // Middleware automatically issues sessions for each request,
 // sends the session token to the user as cookie,
 // and attaches session and user info to the request context.
-func (s *Store) Middleware() func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			tx, err := s.q.QueryTX(r.Context())
-			if err != nil {
-				logg.Error(r.Context(), "Failed to  begin transaction", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			defer tx.Rollback()
-
-			sess, err := s.get(r, tx)
-			ctx := r.Context()
-			if err != nil {
-				logg.Debug(ctx, "No session found", "err", err)
-
-				newSession, err := s.create(w, r, tx, sql.NullString{}, nil)
-				if err != nil {
-					logg.Error(ctx, "Failed to create session", "err", err)
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				logg.Debug(ctx, "Created session", "id", newSession.ID)
-				sess = newSession
-			}
-			if sess == nil {
-				logg.Panic(ctx, "Session must not be nil at this point")
-			}
-
-			// Attach to context.
-			logg.Debug(ctx, "Attaching session", "id", sess.ID)
-			ctx = withSession(ctx, *sess)
-			ctx = withRequest(ctx, requestCtx{w: w, r: r, s: s})
-
-			// Fetch and attach user.
-			if sess.UserID.Valid {
-				user, err := tx.GetUser(ctx, sess.UserID.String)
-				if err != nil {
-					logg.Error(ctx, "Failed to retrieve user", "err", err)
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				logg.Debug(ctx, "Attaching user", "id", user.ID)
-				ctx = withUser(ctx, user)
-			}
-
-			err = tx.Commit()
-			if err != nil {
-				logg.Error(ctx, "Failed to commit", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			next.ServeHTTP(w, r.WithContext(ctx))
+func (s *Store) Middleware(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		tx, err := s.q.QueryTX(r.Context())
+		if err != nil {
+			logg.Error(r.Context(), "Failed to  begin transaction", "err", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
-		return http.HandlerFunc(fn)
+		defer tx.Rollback()
+
+		sess, err := s.get(r, tx)
+		ctx := r.Context()
+		if err != nil {
+			logg.Debug(ctx, "No session found", "err", err)
+
+			newSession, err := s.create(w, r, tx, sql.NullString{}, nil)
+			if err != nil {
+				logg.Error(ctx, "Failed to create session", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			logg.Debug(ctx, "Created session", "id", newSession.ID)
+			sess = newSession
+		}
+		if sess == nil {
+			logg.Panic(ctx, "Session must not be nil at this point")
+		}
+
+		// Attach to context.
+		logg.Debug(ctx, "Attaching session", "id", sess.ID)
+		ctx = withSession(ctx, *sess)
+		ctx = withRequest(ctx, requestCtx{w: w, r: r, s: s})
+
+		// Fetch and attach user.
+		if sess.UserID.Valid {
+			user, err := tx.GetUser(ctx, sess.UserID.String)
+			if err != nil {
+				logg.Error(ctx, "Failed to retrieve user", "err", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			logg.Debug(ctx, "Attaching user", "id", user.ID)
+			ctx = withUser(ctx, user)
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			logg.Error(ctx, "Failed to commit", "err", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		next.ServeHTTP(w, r.WithContext(ctx))
 	}
+	return http.HandlerFunc(fn)
 }

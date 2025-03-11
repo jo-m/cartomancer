@@ -48,7 +48,7 @@ func NewHandler(q *db.DB, logger *slog.Logger) http.Handler {
 	mux.Use(logg.RequestLogger)
 	mux.Use(middleware.RequestSize(1024 * 1024))
 	mux.Use(middleware.StripSlashes)
-	mux.Use(sess.Middleware())
+	mux.Use(sess.Middleware)
 	mux.Use(middleware.Recoverer)
 
 	mux.Mount("/", endpoints.New(q, sess))
