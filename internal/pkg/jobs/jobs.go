@@ -43,8 +43,7 @@ type Workers struct {
 	d       *db.DB
 	c       Config
 	running atomic.Bool
-
-	w map[string]decodeAndWorkFunc
+	w       map[string]decodeAndWorkFunc
 }
 
 func sqlTimeNow() sql.NullTime {
@@ -52,11 +51,23 @@ func sqlTimeNow() sql.NullTime {
 }
 
 func NewWorkers(ctx context.Context, d *db.DB, c Config) (*Workers, error) {
-	w := &Workers{
-		d: d,
-		c: c,
+	if err := ensureSingleInstance(ctx, d); err != nil {
+		return nil, err
+	}
 
-		w: map[string]decodeAndWorkFunc{},
+	err := d.QueryRW().SetJobsAborted(ctx, db.SetJobsAbortedParams{
+		FinishedAt: sqlTimeNow(),
+		OurPID:     sql.NullInt64{Valid: true, Int64: randomID},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to mark aborted jobs: %w", err)
+	}
+
+	w := &Workers{
+		d:       d,
+		c:       c,
+		running: atomic.Bool{},
+		w:       map[string]decodeAndWorkFunc{},
 	}
 
 	if c.AutoCleanupPeriod != 0 {
@@ -112,7 +123,7 @@ func checkArgsType[T Args]() error {
 
 func AddWorker[T Args](w *Workers, worker Worker[T]) error {
 	if w.running.Load() {
-		return fmt.Errorf("already running")
+		return errors.New("already running")
 	}
 
 	err := checkArgsType[T]()
@@ -151,29 +162,104 @@ func (w *Workers) Submitter() *Submitter {
 	return &Submitter{w: w}
 }
 
-func (w *Workers) Runner(ctx context.Context) (*Runner, error) {
-	err := w.d.WithTx(ctx, func(tx *db.Queries) error {
-		// Ensure we are the only instance process-wide.
-		err := tx.InsertJobRunnerPID(ctx, randomID)
-		if err != nil {
-			return fmt.Errorf("there is already another workers instance on this db in this process: %w", err)
-		}
-		err = tx.DeleteOtherJobRunnerPIDs(ctx, randomID)
-		if err != nil {
-			return err
-		}
+func (w *Workers) runJob(ctx context.Context, dbJob *db.Job) (err error) {
+	fn, ok := w.w[dbJob.Kind]
+	if !ok {
+		return fmt.Errorf("unknown worker kind: %s", dbJob.Kind)
+	}
 
-		// Abort jobs which were running on last shutdown.
-		return tx.SetJobsAborted(ctx, db.SetJobsAbortedParams{
-			FinishedAt: sqlTimeNow(),
-			OurPID:     sql.NullInt64{Valid: true, Int64: randomID},
-		})
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v", r)
+		}
+	}()
+
+	err = fn(ctx, json.RawMessage(dbJob.ArgsJson))
+	return
+}
+
+func (w *Workers) getNextJob(ctx context.Context) (*db.Job, error) {
+	job, err := w.d.QueryRW().SetNextJobRunning(ctx, db.SetNextJobRunningParams{
+		StartedAt: sqlTimeNow(),
+		Pid:       sql.NullInt64{Valid: true, Int64: randomID},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &Runner{w: w}, nil
+	return &job, nil
+}
+
+func (w *Workers) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
+	// Retrieve next job.
+	job, err := w.getNextJob(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	// Run job.
+	logger := logg.GetLogger(ctx).With("jobId", job.ID)
+	jobErr := w.runJob(logg.WithLogger(ctx, logger), job)
+
+	// Submit result.
+	if jobErr == nil {
+		return true, w.d.QueryRW().SetJobSuccess(ctx, db.SetJobSuccessParams{
+			FinishedAt: sqlTimeNow(),
+			ID:         job.ID,
+		})
+	} else {
+		return true, w.d.QueryRW().SetJobError(ctx, db.SetJobErrorParams{
+			FinishedAt: sqlTimeNow(),
+			ID:         job.ID,
+			Error:      sql.NullString{Valid: true, String: jobErr.Error()},
+		})
+	}
+}
+
+const waitWhenIdle = time.Second
+
+func (w *Workers) RunInBackground(ctx context.Context) {
+	alreadyRunning := w.running.Swap(true)
+	if alreadyRunning {
+		logg.Panic(ctx, "Already running")
+	}
+
+	nParallel := w.c.MaxParallel
+	if nParallel == 0 {
+		nParallel = uint(runtime.NumCPU())
+	}
+
+	logg.Info(ctx, "Spinning up workers", "n", nParallel)
+
+	for i := uint(0); i < nParallel; i++ {
+		go func(ctx context.Context) {
+			logger := logg.GetLogger(ctx).With("workerId", i)
+			ctx = logg.WithLogger(ctx, logger)
+			logg.Info(ctx, "Started")
+
+			for {
+				select {
+				case <-ctx.Done():
+					logg.Info(ctx, "Shutting down", "err", ctx.Err())
+					return
+				default:
+				}
+
+				ranJob, err := w.getAndRunAndUpdateNextJob(ctx)
+				if err != nil {
+					logg.Error(ctx, "Job runner failure", "err", err)
+				}
+
+				if !ranJob {
+					logg.Trace(ctx, "Idling")
+					time.Sleep(waitWhenIdle)
+				}
+			}
+		}(ctx)
+	}
 }
 
 type Submitter struct {
@@ -228,110 +314,4 @@ func Periodic[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArg
 			}
 		}
 	}()
-}
-
-type Runner struct {
-	w *Workers
-}
-
-func (r *Runner) runJob(ctx context.Context, dbJob *db.Job) (err error) {
-	fn, ok := r.w.w[dbJob.Kind]
-	if !ok {
-		return fmt.Errorf("unknown worker kind: %s", dbJob.Kind)
-	}
-
-	// TODO
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic: %v", r)
-		}
-	}()
-
-	// TODO: recover here.
-	err = fn(ctx, json.RawMessage(dbJob.ArgsJson))
-	return
-}
-
-func (r *Runner) getNextJob(ctx context.Context) (*db.Job, error) {
-	job, err := r.w.d.QueryRW().SetNextJobRunning(ctx, db.SetNextJobRunningParams{
-		StartedAt: sqlTimeNow(),
-		Pid:       sql.NullInt64{Valid: true, Int64: randomID},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &job, nil
-}
-
-func (r *Runner) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
-	// Retrieve next job.
-	job, err := r.getNextJob(ctx)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	// Run job.
-	logger := logg.GetLogger(ctx).With("jobId", job.ID)
-	jobErr := r.runJob(logg.WithLogger(ctx, logger), job)
-
-	// Submit result.
-	if jobErr == nil {
-		return true, r.w.d.QueryRW().SetJobSuccess(ctx, db.SetJobSuccessParams{
-			FinishedAt: sqlTimeNow(),
-			ID:         job.ID,
-		})
-	} else {
-		return true, r.w.d.QueryRW().SetJobError(ctx, db.SetJobErrorParams{
-			FinishedAt: sqlTimeNow(),
-			ID:         job.ID,
-			Error:      sql.NullString{Valid: true, String: jobErr.Error()},
-		})
-	}
-}
-
-const waitWhenIdle = time.Second
-
-func (r *Runner) RunInBackground(ctx context.Context) {
-	alreadyRunning := r.w.running.Swap(true)
-	if alreadyRunning {
-		logg.Panic(ctx, "Already running")
-	}
-
-	nParallel := r.w.c.MaxParallel
-	if nParallel == 0 {
-		nParallel = uint(runtime.NumCPU())
-	}
-
-	logg.Info(ctx, "Spinning up workers", "n", nParallel)
-
-	for i := uint(0); i < nParallel; i++ {
-		go func(ctx context.Context) {
-			logger := logg.GetLogger(ctx).With("workerId", i)
-			ctx = logg.WithLogger(ctx, logger)
-			logg.Info(ctx, "Started")
-
-			for {
-				select {
-				case <-ctx.Done():
-					logg.Info(ctx, "Shutting down", "err", ctx.Err())
-					return
-				default:
-				}
-
-				ranJob, err := r.getAndRunAndUpdateNextJob(ctx)
-				if err != nil {
-					logg.Error(ctx, "Job runner failure", "err", err)
-				}
-
-				if !ranJob {
-					logg.Trace(ctx, "Idling")
-					time.Sleep(waitWhenIdle)
-				}
-			}
-		}(ctx)
-	}
 }

@@ -115,14 +115,9 @@ func main() {
 	}
 	jobs.MustAddWorker(w, &Mailer{})
 	sub := w.Submitter()
-	// jobs.Submit(ctx, sub, 1, MailerArgs{To: "me"})
-	jobs.Periodic(ctx, sub, 1, MailerArgs{To: "me"}, time.Millisecond*100)
-	runner, err := w.Runner(ctx)
-	if err != nil {
-		logg.Panic(ctx, "Failed to get runner", "err", err)
-	}
+	jobs.Submit(ctx, sub, 1, MailerArgs{To: "me"})
 	// TODO: clean shutdown via context.
-	go runner.RunInBackground(ctx)
+	w.RunInBackground(ctx)
 
 	s := &http.Server{
 		Addr:              c.HTTPListenAddr,

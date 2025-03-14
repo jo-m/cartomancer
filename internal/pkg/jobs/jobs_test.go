@@ -91,7 +91,7 @@ func TestUniqueKind(t *testing.T) {
 	assert.Error(t, AddWorker(w, &GoodWorker2{}))
 }
 
-func TestUniqueRunner(t *testing.T) {
+func TestUniqueWorkers(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -102,15 +102,11 @@ func TestUniqueRunner(t *testing.T) {
 	}
 	defer cancel()
 
-	w, err := NewWorkers(ctx, d, c)
+	_, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
 
-	r, err := w.Runner(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, r)
-
-	_, err = w.Runner(ctx)
-	assert.ErrorContains(t, err, "there is already another workers instance")
+	_, err = NewWorkers(ctx, d, c)
+	assert.ErrorContains(t, err, "only one instance allowed")
 
 	ids, err := d.QueryRO().GetJobRunnerPIDs(ctx)
 	assert.NoError(t, err)
@@ -131,13 +127,9 @@ func TestRunnerRunOnlyOnce(t *testing.T) {
 	w, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
 
-	r, err := w.Runner(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, r)
-
-	r.RunInBackground(ctx)
+	w.RunInBackground(ctx)
 	assert.Panics(t, func() {
-		r.RunInBackground(ctx)
+		w.RunInBackground(ctx)
 	})
 	assert.ErrorContains(t, AddWorker(w, &GoodWorker1{}), "already running")
 }
@@ -203,10 +195,6 @@ func TestRunJobsParallel(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, AddWorker(w, &TestWorker{}))
 
-	r, err := w.Runner(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, r)
-
 	s0 := w.Submitter()
 	s1 := w.Submitter()
 	for i := range 10 {
@@ -222,7 +210,7 @@ func TestRunJobsParallel(t *testing.T) {
 	assert.Empty(t, results)
 
 	// Run.
-	r.RunInBackground(ctx)
+	w.RunInBackground(ctx)
 
 	// We submit 20 jobs taking 100+ms each, and have 15 workers,
 	// so we should have 15 jobs done in 100ms, and 5 more in another 100ms.
@@ -247,10 +235,6 @@ func TestRunJobsMaxAttempts(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, AddWorker(w, &TestWorker{}))
 
-	r, err := w.Runner(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, r)
-
 	// Submit 15 failing jobs, each with 3 attempts
 	s := w.Submitter()
 	for i := range 15 {
@@ -258,7 +242,7 @@ func TestRunJobsMaxAttempts(t *testing.T) {
 		err := Submit(ctx, s, 3, args)
 		assert.NoError(t, err)
 	}
-	r.RunInBackground(ctx)
+	w.RunInBackground(ctx)
 
 	resultsOK := slurp(cOK, time.Millisecond*100)
 	resultsErr := slurp(cErr, time.Millisecond*100)
@@ -290,10 +274,6 @@ func TestRunJobsPanicMaxAttempts(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, AddWorker(w, &TestWorker{}))
 
-	r, err := w.Runner(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, r)
-
 	// Submit 15 panicked jobs, each with 3 attempts
 	s := w.Submitter()
 	for i := range 15 {
@@ -301,7 +281,7 @@ func TestRunJobsPanicMaxAttempts(t *testing.T) {
 		err := Submit(ctx, s, 3, args)
 		assert.NoError(t, err)
 	}
-	r.RunInBackground(ctx)
+	w.RunInBackground(ctx)
 
 	resultsOK := slurp(cOK, time.Millisecond*100)
 	resultsErr := slurp(cErr, time.Millisecond*100)
@@ -333,17 +313,13 @@ func TestRunJobsAutoCleanup(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, AddWorker(w, &TestWorker{}))
 
-	r, err := w.Runner(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, r)
-
 	s := w.Submitter()
 	for i := range 5 {
 		assert.NoError(t, Submit(ctx, s, 3, TestArgs{Val: i}))
 		assert.NoError(t, Submit(ctx, s, 3, TestArgs{Val: i, ErrMsg: "err msg"}))
 		assert.NoError(t, Submit(ctx, s, 3, TestArgs{Val: i, PanicMsg: "panic msg"}))
 	}
-	r.RunInBackground(ctx)
+	w.RunInBackground(ctx)
 
 	resultsOK := slurp(cOK, time.Millisecond*100)
 	resultsErr := slurp(cErr, time.Millisecond*100)
@@ -375,15 +351,11 @@ func TestRunJobsPeriodic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, AddWorker(w, &TestWorker{}))
 
-	r, err := w.Runner(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, r)
-
 	// Run.
 	s := w.Submitter()
 	Periodic(ctx, s, 1, TestArgs{Val: 0}, time.Millisecond*10)
 	time.Sleep(time.Millisecond * 100)
-	r.RunInBackground(ctx)
+	w.RunInBackground(ctx)
 	time.Sleep(time.Millisecond * 100)
 	cancel()
 
