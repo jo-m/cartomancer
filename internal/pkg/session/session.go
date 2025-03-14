@@ -231,20 +231,13 @@ func Delete(ctx context.Context, sess *db.Session) error {
 }
 
 func (s *Store) cleanup(ctx context.Context, now time.Time) error {
-	tx, err := s.q.QueryTX(ctx)
-	if err != nil {
+	return s.q.InTx(ctx, func(tx *db.Queries) error {
+		_, err := tx.CleanupSessions(ctx, db.CleanupSessionsParams{
+			CreatedBefore: now.Add(-s.c.MaxAbsoluteTimeout),
+			ActiveBefore:  now.Add(-s.c.MaxIdleTimeout),
+		})
 		return err
-	}
-	defer tx.Rollback()
-
-	_, err = tx.CleanupSessions(ctx, db.CleanupSessionsParams{
-		CreatedBefore: now.Add(-s.c.MaxAbsoluteTimeout),
-		ActiveBefore:  now.Add(-s.c.MaxIdleTimeout),
 	})
-	if err != nil {
-		return err
-	}
-	return tx.Commit()
 }
 
 // Middleware automatically issues sessions for each request,

@@ -39,7 +39,7 @@ go tool air
 - [ ] Make almost all queries `:execrows`
 - [ ] Test and document and use InTx()
 - [ ] Set min age for jobs cleanup
-- [ ] Change DB locking by adding to each job the PID
+- [x] Change DB locking by adding to each job the PID
 - [ ] Exponential backoff
 
 # Later TODOs
