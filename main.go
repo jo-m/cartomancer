@@ -29,11 +29,6 @@ type config struct {
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
 }
 
-// TODO: Those are for argparse
-func (c config) Version() string     { return "Version" }
-func (c config) Description() string { return "Description" }
-func (c config) Epilogue() string    { return "Epilogue" }
-
 func NewHandler(d *db.DB, logger *slog.Logger) http.Handler {
 	logger = logger.With("mod", "svc")
 
