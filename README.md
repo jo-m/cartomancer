@@ -47,7 +47,7 @@ go tool air
 - [ ] Check in the generated files
 - [ ] Rate limiting for sensitive endpoints
 - [ ] TOTP Login
-- [ ] Clean up sessions periodically
+- [x] Clean up sessions periodically
 - [ ] VACUUM
 
 # Hints

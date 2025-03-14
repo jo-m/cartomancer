@@ -32,6 +32,13 @@ type Config struct {
 	insecureUseOnlyForTests bool
 }
 
+func (c *Config) GetCleanerArgs() cleanerArgs {
+	return cleanerArgs{
+		MaxIdleTimeout:     c.MaxIdleTimeout,
+		MaxAbsoluteTimeout: c.MaxAbsoluteTimeout,
+	}
+}
+
 // Store manages sessions.
 // Use MakeStore() to create an instance.
 type Store struct {

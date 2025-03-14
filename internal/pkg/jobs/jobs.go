@@ -307,7 +307,7 @@ func Periodic[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArg
 				err := Submit(ctx, s, maxAttempts, jobArgs)
 
 				if err == nil {
-					logger.Info("Submitted periodic job")
+					logger.Debug("Submitted periodic job")
 				} else {
 					logger.Error("Failed to submit periodic job", "err", err)
 				}

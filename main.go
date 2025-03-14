@@ -29,15 +29,10 @@ type config struct {
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
 }
 
-func NewHandler(d *db.DB, logger *slog.Logger) http.Handler {
+func NewHandler(d *db.DB, logger *slog.Logger, sessConfig session.Config) http.Handler {
 	logger = logger.With("mod", "svc")
 
-	sess := session.MakeStore(d, session.Config{
-		MaxIdleTimeout:     time.Minute * 20,
-		MaxAbsoluteTimeout: time.Hour,
-		CookieName:         "sid",
-		CookiePath:         "/",
-	})
+	sess := session.MakeStore(d, sessConfig)
 	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
 	mux.Use(logg.AttachLogger(logger))
@@ -89,6 +84,7 @@ func main() {
 	}
 	defer q.Close()
 
+	// Insert users.
 	err = q.WithTx(ctx, func(tx *db.Queries) error {
 		createUser(ctx, tx, "test@example.org", "asdf")
 		if err != nil {
@@ -103,20 +99,27 @@ func main() {
 		logg.Panic(ctx, "Failed to commit", "err", err)
 	}
 
+	sessionConfig := session.Config{
+		MaxIdleTimeout:     time.Minute * 20,
+		MaxAbsoluteTimeout: time.Hour,
+		CookieName:         "sid",
+		CookiePath:         "/",
+	}
+
 	// Jobs.
 	w, err := jobs.NewWorkers(ctx, q, jobs.Config{MaxParallel: 2, AutoCleanupPeriod: time.Second * 10})
 	if err != nil {
 		logg.Panic(ctx, "Failed to initialize workers", "err", err)
 	}
-	jobs.MustAddWorker(w, &Mailer{})
-	sub := w.Submitter()
-	jobs.Submit(ctx, sub, 1, MailerArgs{To: "me"})
+	jobs.MustAddWorker(w, &session.Cleaner{})
+	jobs.Submit(ctx, w.Submitter(), 1, sessionConfig.GetCleanerArgs())
+	jobs.Periodic(ctx, w.Submitter(), 1, sessionConfig.GetCleanerArgs(), time.Second*10)
 	// TODO: clean shutdown via context.
 	w.RunInBackground(ctx)
 
 	s := &http.Server{
 		Addr:              c.HTTPListenAddr,
-		Handler:           NewHandler(q, logger),
+		Handler:           NewHandler(q, logger, sessionConfig),
 		ReadHeaderTimeout: 20 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
