@@ -27,7 +27,6 @@ go tool air
 - [ ] Clean up/refactor svc package
 - [ ] CRUD users, self-registration
 - [ ] Templates and static files
-- [ ] Set min age for jobs cleanup
 
 # Later TODOs
 
