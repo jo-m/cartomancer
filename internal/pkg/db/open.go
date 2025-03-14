@@ -95,6 +95,22 @@ func (d *DB) QueryTX(ctx context.Context) (*Queries, error) {
 	return New(d.rw).WithTx(tx), nil
 }
 
+// InTx runs the given function in a transaction.
+// If the function returns an error, the transaction is rolled back.
+func (d *DB) InTx(ctx context.Context, fn func(q *Queries) error) error {
+	tx, err := d.QueryTX(context.Background())
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = fn(tx)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 // Commit the tx.
 func (q *Queries) Commit() error {
 	tx, ok := q.db.(*sql.Tx)

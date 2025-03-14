@@ -93,19 +93,16 @@ func main() {
 	}
 	defer q.Close()
 
-	tx, err := q.QueryTX(ctx)
-	defer tx.Rollback()
-	if err != nil {
-		logg.Panic(ctx, "Failed to begin tx", "err", err)
-	}
-	createUser(ctx, tx, "test@example.org", "asdf")
-	if err != nil {
-		logg.Error(ctx, "CreateUser failed", "err", err)
-	}
-	for range 3 {
-		createUser(ctx, tx, gofakeit.Email(), password.GenRandPrintableString(32))
-	}
-	err = tx.Commit()
+	err = q.InTx(ctx, func(tx *db.Queries) error {
+		createUser(ctx, tx, "test@example.org", "asdf")
+		if err != nil {
+			logg.Error(ctx, "CreateUser failed", "err", err)
+		}
+		for range 3 {
+			createUser(ctx, tx, gofakeit.Email(), password.GenRandPrintableString(32))
+		}
+		return nil
+	})
 	if err != nil {
 		logg.Panic(ctx, "Failed to commit", "err", err)
 	}
