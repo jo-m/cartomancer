@@ -38,3 +38,9 @@ WHERE session_id = ? AND key = ?;
 
 -- name: GetSessionData :many
 SELECT key, data FROM sessions_data WHERE session_id = ? ORDER BY key;
+
+-- name: CleanupSessions :execrows
+DELETE FROM sessions
+WHERE
+  created_at < @createdBefore
+  OR last_active_at < @activeBefore;

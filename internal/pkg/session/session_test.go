@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -68,14 +67,6 @@ func (c *testClient) doRequest(method, url string, body io.Reader, expectedStatu
 	return string(respBody), resp.Cookies(), resp.Header
 }
 
-func setupDB(t *testing.T) *db.DB {
-	dir := t.TempDir()
-	ctx := context.Background()
-	d, err := db.Open(ctx, filepath.Join(dir, "db"))
-	assert.NoError(t, err)
-	return d
-}
-
 func createUser(t *testing.T, d *db.DB) {
 	ctx := context.Background()
 	q, err := d.QueryTX(ctx)
@@ -127,12 +118,18 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func assertSessionsCount(t *testing.T, d *db.DB, expected int64) {
+	ctx := context.Background()
+	c, err := d.QueryRO().GetSessionsCount(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, c)
+}
+
 func TestSessionMiddleware(t *testing.T) {
 	// Setup database and create user.
-	d := setupDB(t)
+	d := db.GetTestDB(t)
 	defer d.Close()
 	createUser(t, d)
-	ctx := context.Background()
 
 	// Setup session store.
 	conf := Config{
@@ -157,25 +154,18 @@ func TestSessionMiddleware(t *testing.T) {
 	body, cookies, _ := client.doRequest(http.MethodGet, ts.URL+"/user", nil, http.StatusOK)
 	assert.Len(t, cookies, 1)
 	assert.Equal(t, "user nil", body)
-
-	c, err := d.QueryRO().GetSessionsCount(ctx)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), c)
+	assertSessionsCount(t, d, 1)
 
 	// Same session.
 	body0, cookies, _ := client.doRequest(http.MethodGet, ts.URL+"/session", nil, http.StatusOK)
 	assert.Empty(t, cookies)
-	c, err = d.QueryRO().GetSessionsCount(ctx)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), c)
+	assertSessionsCount(t, d, 1)
 	body1, _, _ := client.doRequest(http.MethodGet, ts.URL+"/session", nil, http.StatusOK)
 	assert.Equal(t, body0, body1)
 
 	// Login.
 	client.doRequest(http.MethodPost, ts.URL+"/login", nil, http.StatusNoContent)
-	c, err = d.QueryRO().GetSessionsCount(ctx)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(1), c)
+	assertSessionsCount(t, d, 1)
 	body2, _, _ := client.doRequest(http.MethodGet, ts.URL+"/session", nil, http.StatusOK)
 	assert.NotEqual(t, body0, body2)
 	body3, _, _ := client.doRequest(http.MethodGet, ts.URL+"/user", nil, http.StatusOK)
@@ -183,9 +173,7 @@ func TestSessionMiddleware(t *testing.T) {
 
 	// Logout.
 	_, cookies, _ = client.doRequest(http.MethodPost, ts.URL+"/logout", nil, http.StatusNoContent)
-	c, err = d.QueryRO().GetSessionsCount(ctx)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(0), c)
+	assertSessionsCount(t, d, 0)
 	body4, _, _ := client.doRequest(http.MethodGet, ts.URL+"/session", nil, http.StatusOK)
 	assert.NotEqual(t, body2, body4)
 	// Cookie was deleted.
@@ -231,8 +219,10 @@ func pokeSession(t *testing.T, d *db.DB, store *Store, cookieVal string) error {
 }
 
 func TestSessionExpiry(t *testing.T) {
+	ctx := context.Background()
+
 	// Setup database and create user.
-	d := setupDB(t)
+	d := db.GetTestDB(t)
 	defer d.Close()
 	createUser(t, d)
 
@@ -256,10 +246,19 @@ func TestSessionExpiry(t *testing.T) {
 	// Hit the absolute timeout.
 	assert.EqualError(t, pokeSession(t, d, &store, cookieVal), "session expired (absolute)")
 
+	// Cleanup.
+	assertSessionsCount(t, d, 1)
+	store.cleanup(ctx, time.Now())
+	assertSessionsCount(t, d, 0)
+
 	// Create a new session.
 	cookieVal = createSession(t, d, &store)
 	time.Sleep(time.Millisecond * 101)
 	// Hit the idle timeout.
 	assert.EqualError(t, pokeSession(t, d, &store, cookieVal), "session expired (idle)")
 
+	// Cleanup.
+	assertSessionsCount(t, d, 1)
+	store.cleanup(ctx, time.Now())
+	assertSessionsCount(t, d, 0)
 }
