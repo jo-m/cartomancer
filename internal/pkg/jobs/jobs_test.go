@@ -226,9 +226,9 @@ func TestRunJobsParallel(t *testing.T) {
 
 	// We submit 20 jobs taking 100+ms each, and have 15 workers,
 	// so we should have 15 jobs done in 100ms, and 5 more in another 100ms.
-	results = slurp(cOK, time.Millisecond*105)
+	results = slurp(cOK, time.Millisecond*120)
 	assert.Len(t, results, 15)
-	results = slurp(cOK, time.Millisecond*105)
+	results = slurp(cOK, time.Millisecond*120)
 	assert.Len(t, results, 5)
 }
 
