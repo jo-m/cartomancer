@@ -9,6 +9,7 @@ CREATE TABLE jobs (
 
     -- C: Created, R: Running, A: Aborted, E: Error, S: Success
     status TEXT CHECK(status IN ('C', 'R', 'A', 'E', 'S') ) NOT NULL DEFAULT 'C',
+    pid INTEGER DEFAULT NULL,
     -- Is increased as soon as the job switches to the 'R' status.
     attempts INTEGER NOT NULL DEFAULT 0,
     max_attempts INTEGER NOT NULL,
@@ -17,16 +18,14 @@ CREATE TABLE jobs (
     args_json TEXT NOT NULL,
     error TEXT
 );
-CREATE TABLE job_runner_process_id (
-    id INTEGER PRIMARY KEY,
+CREATE TABLE job_runner_pid (
     pid INTEGER NOT NULL,
-    random_id TEXT NOT NULL,
-    UNIQUE (pid, random_id)
+    UNIQUE (pid)
 );
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE jobs;
-DROP TABLE job_runner_process_id;
+DROP TABLE job_runner_pid;
 -- +goose StatementEnd

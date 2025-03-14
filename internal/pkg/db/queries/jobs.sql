@@ -10,6 +10,7 @@ RETURNING *;
 UPDATE jobs
 SET
   started_at = ?,
+  pid = ?,
   attempts = (CASE WHEN (status = 'A') THEN (attempts) ELSE (attempts + 1) END),
   status = 'R',
   error = NULL
@@ -25,18 +26,21 @@ RETURNING *;
 
 -- name: SetJobSuccess :exec
 UPDATE jobs
-SET finished_at = ?, status = 'S',  error = NULL
+SET status = 'S', finished_at = ?, pid = NULL, error = NULL
 WHERE id = ? AND status = 'R';
 
 -- name: SetJobError :exec
 UPDATE jobs
-SET finished_at = ?, status = 'E', error = ?
+SET status = 'E', finished_at = ?, pid = NULL, error = ?
 WHERE id = ? AND status = 'R';
 
 -- name: SetJobsAborted :exec
 UPDATE jobs
-SET status = 'A', finished_at = ?, error = "Aborted"
-WHERE status = 'R';
+SET status = 'A', finished_at = ?, pid = NULL, error = "Aborted"
+WHERE
+  status = 'R'
+  AND pid IS NOT NULL
+  AND pid != @ourPID;
 
 -- name: CleanupJobs :execrows
 DELETE FROM jobs
@@ -44,17 +48,19 @@ WHERE
   status = 'S'
   OR (status IN ('E', 'A') AND attempts >= max_attempts);
 
--- name: SetJobRunnerProcessID :one
-INSERT INTO job_runner_process_id (
-  pid, random_id
-) VALUES (
-  ?, ?
-)
-RETURNING *;
-
 -- name: GetJobs :many
 SELECT * FROM jobs;
 
--- name: DeleteJobRunnerProcessIDs :exec
-DELETE FROM job_runner_process_id
-WHERE id != ?;
+-- name: InsertJobRunnerPID :exec
+INSERT INTO job_runner_pid (
+  pid
+) VALUES (
+  ?
+);
+
+-- name: DeleteOtherJobRunnerPIDs :exec
+DELETE FROM job_runner_pid
+WHERE pid != @ourPID;
+
+-- name: GetJobRunnerPIDs :many
+SELECT * FROM job_runner_pid;

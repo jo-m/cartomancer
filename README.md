@@ -40,6 +40,7 @@ go tool air
 - [ ] Test and document and use InTx()
 - [ ] Set min age for jobs cleanup
 - [ ] Change DB locking by adding to each job the PID
+- [ ] Exponential backoff
 
 # Later TODOs
 

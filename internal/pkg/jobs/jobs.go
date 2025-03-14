@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/logg"
-	"os"
 	"reflect"
 	"runtime"
 	"sync/atomic"
@@ -159,21 +158,21 @@ func (w *Workers) Runner(ctx context.Context) (*Runner, error) {
 	}
 	defer tx.Rollback()
 
-	// Ensure we are the only instance in the process.
-	id, err := tx.SetJobRunnerProcessID(ctx, db.SetJobRunnerProcessIDParams{
-		Pid:      int64(os.Getpid()),
-		RandomID: randomID,
-	})
+	// Ensure we are the only instance process-wide.
+	err = tx.InsertJobRunnerPID(ctx, randomID)
 	if err != nil {
 		return nil, fmt.Errorf("there is already another workers instance on this db in this process: %w", err)
 	}
-	err = tx.DeleteJobRunnerProcessIDs(ctx, id.ID)
+	err = tx.DeleteOtherJobRunnerPIDs(ctx, randomID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Abort jobs which were running on last shutdown.
-	err = tx.SetJobsAborted(ctx, sqlTimeNow())
+	err = tx.SetJobsAborted(ctx, db.SetJobsAbortedParams{
+		FinishedAt: sqlTimeNow(),
+		OurPID:     sql.NullInt64{Valid: true, Int64: randomID},
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +278,10 @@ func (r *Runner) getNextJob(ctx context.Context) (*db.Job, error) {
 	}
 	defer tx.Rollback()
 
-	job, err := tx.SetNextJobRunning(ctx, sqlTimeNow())
+	job, err := tx.SetNextJobRunning(ctx, db.SetNextJobRunningParams{
+		StartedAt: sqlTimeNow(),
+		Pid:       sql.NullInt64{Valid: true, Int64: randomID},
+	})
 	if err != nil {
 		return nil, err
 	}
