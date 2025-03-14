@@ -208,16 +208,20 @@ func (w *Workers) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
 
 	// Submit result.
 	if jobErr == nil {
-		return true, db.EnsureOneRowChanged(w.d.QueryRW().SetJobSuccess(ctx, db.SetJobSuccessParams{
-			FinishedAt: sqlTimeNow(),
-			ID:         job.ID,
-		}))
+		logger.Debug("Job succeeded")
+		return true, db.EnsureOneRowChanged(
+			w.d.QueryRW().SetJobSuccess(ctx, db.SetJobSuccessParams{
+				FinishedAt: sqlTimeNow(),
+				ID:         job.ID,
+			}))
 	} else {
-		return true, db.EnsureOneRowChanged(w.d.QueryRW().SetJobError(ctx, db.SetJobErrorParams{
-			FinishedAt: sqlTimeNow(),
-			ID:         job.ID,
-			Error:      sql.NullString{Valid: true, String: jobErr.Error()},
-		}))
+		logger.Error("Job failed", "err", jobErr)
+		return true, db.EnsureOneRowChanged(
+			w.d.QueryRW().SetJobError(ctx, db.SetJobErrorParams{
+				FinishedAt: sqlTimeNow(),
+				ID:         job.ID,
+				Error:      sql.NullString{Valid: true, String: jobErr.Error()},
+			}))
 	}
 }
 

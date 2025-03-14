@@ -78,25 +78,27 @@ func main() {
 	ctx := logg.WithLogger(context.Background(), logger)
 
 	// Migrations.
-	q, err := db.Open(ctx, c.DBPath)
+	d, err := db.Open(ctx, c.DBPath)
 	if err != nil {
 		logg.Panic(ctx, "Failed to open db", "err", err)
 	}
-	defer q.Close()
+	defer d.Close()
 
 	// Insert users.
-	err = q.WithTx(ctx, func(tx *db.Queries) error {
-		createUser(ctx, tx, "test@example.org", "asdf")
+	{
+		err := d.WithTx(ctx, func(tx *db.Queries) error {
+			createUser(ctx, tx, "test@example.org", "asdf")
+			if err != nil {
+				logg.Error(ctx, "CreateUser failed", "err", err)
+			}
+			for range 3 {
+				createUser(ctx, tx, gofakeit.Email(), password.GenRandPrintableString(32))
+			}
+			return nil
+		})
 		if err != nil {
-			logg.Error(ctx, "CreateUser failed", "err", err)
+			logg.Panic(ctx, "Failed to commit", "err", err)
 		}
-		for range 3 {
-			createUser(ctx, tx, gofakeit.Email(), password.GenRandPrintableString(32))
-		}
-		return nil
-	})
-	if err != nil {
-		logg.Panic(ctx, "Failed to commit", "err", err)
 	}
 
 	sessionConfig := session.Config{
@@ -107,25 +109,29 @@ func main() {
 	}
 
 	// Jobs.
-	w, err := jobs.NewWorkers(ctx, q, jobs.Config{MaxParallel: 2, AutoCleanupPeriod: time.Second * 10})
-	if err != nil {
-		logg.Panic(ctx, "Failed to initialize workers", "err", err)
+	{
+		ctx := logg.WithLogger(ctx, logger.With("mod", "jobs"))
+		w, err := jobs.NewWorkers(ctx, d, jobs.Config{MaxParallel: 2, AutoCleanupPeriod: time.Minute})
+		if err != nil {
+			logg.Panic(ctx, "Failed to initialize workers", "err", err)
+		}
+		jobs.MustAddWorker(w, &session.Cleaner{})
+		jobs.Periodic(ctx, w.Submitter(), 1, sessionConfig.GetCleanerArgs(), time.Minute)
+		// TODO: clean shutdown via context.
+		w.RunInBackground(ctx)
 	}
-	jobs.MustAddWorker(w, &session.Cleaner{})
-	jobs.Submit(ctx, w.Submitter(), 1, sessionConfig.GetCleanerArgs())
-	jobs.Periodic(ctx, w.Submitter(), 1, sessionConfig.GetCleanerArgs(), time.Second*10)
-	// TODO: clean shutdown via context.
-	w.RunInBackground(ctx)
 
-	s := &http.Server{
-		Addr:              c.HTTPListenAddr,
-		Handler:           NewHandler(q, logger, sessionConfig),
-		ReadHeaderTimeout: 20 * time.Second,
-		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      10 * time.Second,
-		MaxHeaderBytes:    1 << 20,
+	{
+		s := &http.Server{
+			Addr:              c.HTTPListenAddr,
+			Handler:           NewHandler(d, logger, sessionConfig),
+			ReadHeaderTimeout: 20 * time.Second,
+			ReadTimeout:       10 * time.Second,
+			WriteTimeout:      10 * time.Second,
+			MaxHeaderBytes:    1 << 20,
+		}
+		logg.Warn(ctx, gofakeit.HackerPhrase())
+		logg.Info(ctx, "Listening on", "url", fmt.Sprintf("http://%s", s.Addr))
+		logg.Error(ctx, "ListenAndServe failed", "err", s.ListenAndServe())
 	}
-	logg.Warn(ctx, gofakeit.HackerPhrase())
-	logg.Info(ctx, "Listening on", "url", fmt.Sprintf("http://%s", s.Addr))
-	logg.Error(ctx, "ListenAndServe failed", "err", s.ListenAndServe())
 }
