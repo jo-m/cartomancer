@@ -55,12 +55,14 @@ func NewWorkers(ctx context.Context, d *db.DB, c Config) (*Workers, error) {
 		return nil, err
 	}
 
-	err := d.QueryRW().SetJobsAborted(ctx, db.SetJobsAbortedParams{
+	n, err := d.QueryRW().SetJobsAborted(ctx, db.SetJobsAbortedParams{
 		FinishedAt: sqlTimeNow(),
 		OurPID:     sql.NullInt64{Valid: true, Int64: randomID},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to mark aborted jobs: %w", err)
+	} else if n > 0 {
+		logg.Warn(ctx, "Aborted jobs from previous proc", "count", n)
 	}
 
 	w := &Workers{
@@ -73,7 +75,7 @@ func NewWorkers(ctx context.Context, d *db.DB, c Config) (*Workers, error) {
 	if c.AutoCleanupPeriod != 0 {
 		MustAddWorker(w, &cleaner{})
 		s := w.Submitter()
-		Periodic(ctx, s, 1, cleanupArgs{}, c.AutoCleanupPeriod)
+		Periodic(ctx, s, 1, cleanerArgs{}, c.AutoCleanupPeriod)
 	}
 
 	return w, nil
@@ -206,16 +208,16 @@ func (w *Workers) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
 
 	// Submit result.
 	if jobErr == nil {
-		return true, w.d.QueryRW().SetJobSuccess(ctx, db.SetJobSuccessParams{
+		return true, db.EnsureOneRowChanged(w.d.QueryRW().SetJobSuccess(ctx, db.SetJobSuccessParams{
 			FinishedAt: sqlTimeNow(),
 			ID:         job.ID,
-		})
+		}))
 	} else {
-		return true, w.d.QueryRW().SetJobError(ctx, db.SetJobErrorParams{
+		return true, db.EnsureOneRowChanged(w.d.QueryRW().SetJobError(ctx, db.SetJobErrorParams{
 			FinishedAt: sqlTimeNow(),
 			ID:         job.ID,
 			Error:      sql.NullString{Valid: true, String: jobErr.Error()},
-		})
+		}))
 	}
 }
 

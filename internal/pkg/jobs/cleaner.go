@@ -10,17 +10,17 @@ import (
 
 const jobNameCleanup = "_jobs_cleanup"
 
-type cleanupArgs struct{}
+type cleanerArgs struct{}
 
-func (a cleanupArgs) Kind() string { return jobNameCleanup }
+func (a cleanerArgs) Kind() string { return jobNameCleanup }
 
-var _ Args = (*cleanupArgs)(nil)
+var _ Args = (*cleanerArgs)(nil)
 
 type cleaner struct{}
 
-var _ Worker[cleanupArgs] = (*cleaner)(nil)
+var _ Worker[cleanerArgs] = (*cleaner)(nil)
 
-func (c *cleaner) Work(ctx context.Context, d *db.DB, args cleanupArgs) error {
+func (c *cleaner) Work(ctx context.Context, d *db.DB, args cleanerArgs) error {
 	n, err := d.QueryRW().CleanupJobs(ctx)
 	if n > 0 {
 		logg.Debug(ctx, "Cleaned up jobs", "count", n)

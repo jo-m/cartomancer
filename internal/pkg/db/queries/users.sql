@@ -17,26 +17,26 @@ INSERT INTO users (
 )
 RETURNING *;
 
--- name: UpdateUser :exec
+-- name: UpdateUser :execrows
 UPDATE users
 SET updated_at = ?, email = ?, name = ?
 WHERE id = ?;
 
--- name: UpdateUserPassword :exec
+-- name: UpdateUserPassword :execrows
 UPDATE users
 SET updated_at = ?, password_hash = ?
 WHERE id = ?;
 
--- name: UpdateUserLastLogin :exec
+-- name: UpdateUserLastLogin :execrows
 UPDATE users
 SET last_login_at = ?, last_active_at = ?
 WHERE id = ?;
 
--- name: UpdateUserLastActive :exec
+-- name: UpdateUserLastActive :execrows
 UPDATE users
 SET last_active_at = ?
 WHERE id = ?;
 
--- name: DeleteUser :exec
+-- name: DeleteUser :execrows
 DELETE FROM users
 WHERE id = ?;

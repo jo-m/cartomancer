@@ -95,19 +95,19 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 		return nil, errors.New("session expired (idle)")
 	}
 
-	err = tx.UpdateSessionLastActive(r.Context(), db.UpdateSessionLastActiveParams{
+	err = db.EnsureOneRowChanged(tx.UpdateSessionLastActive(r.Context(), db.UpdateSessionLastActiveParams{
 		ID:           sess.ID,
 		LastActiveAt: now,
-	})
+	}))
 	if err != nil {
 		return nil, fmt.Errorf("failed to update session last active: %w", err)
 	}
 
 	if sess.UserID.Valid {
-		err := tx.UpdateUserLastActive(r.Context(), db.UpdateUserLastActiveParams{
+		err := db.EnsureOneRowChanged(tx.UpdateUserLastActive(r.Context(), db.UpdateUserLastActiveParams{
 			ID:           sess.UserID.String,
 			LastActiveAt: sql.NullTime{Valid: true, Time: now},
-		})
+		}))
 		if err != nil {
 			return nil, fmt.Errorf("failed to update user last active: %w", err)
 		}
@@ -118,7 +118,7 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 
 func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, userID sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
 	if oldToDelete != nil {
-		err := tx.DeleteSession(r.Context(), oldToDelete.ID)
+		err := db.EnsureOneRowChanged(tx.DeleteSession(r.Context(), oldToDelete.ID))
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete existing session: %w", err)
 		}
@@ -127,11 +127,11 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 	// Update user last active.
 	now := time.Now()
 	if userID.Valid {
-		err := tx.UpdateUserLastLogin(r.Context(), db.UpdateUserLastLoginParams{
+		err := db.EnsureOneRowChanged(tx.UpdateUserLastLogin(r.Context(), db.UpdateUserLastLoginParams{
 			ID:           userID.String,
 			LastLoginAt:  sql.NullTime{Valid: true, Time: now},
 			LastActiveAt: sql.NullTime{Valid: true, Time: now},
-		})
+		}))
 		if err != nil {
 			return nil, fmt.Errorf("failed to set user last active: %w", err)
 		}
@@ -207,7 +207,7 @@ func (s *Store) delete(w http.ResponseWriter, r *http.Request, tx *db.Queries, s
 	}
 	http.SetCookie(w, &deleteCookie)
 
-	return tx.DeleteSession(r.Context(), sess.ID)
+	return db.EnsureOneRowChanged(tx.DeleteSession(r.Context(), sess.ID))
 }
 
 // Delete a session from the database and delete the session cookie.

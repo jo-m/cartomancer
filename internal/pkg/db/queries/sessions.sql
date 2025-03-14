@@ -10,11 +10,11 @@ RETURNING *;
 SELECT * FROM sessions
 WHERE id = ? LIMIT 1;
 
--- name: DeleteSession :exec
+-- name: DeleteSession :execrows
 DELETE FROM sessions
 WHERE id = ?;
 
--- name: UpdateSessionLastActive :exec
+-- name: UpdateSessionLastActive :execrows
 UPDATE sessions
 SET last_active_at = ?
 WHERE id = ?;
@@ -32,7 +32,7 @@ RETURNING *;
 -- name: GetSessionsCount :one
 SELECT COUNT(*) FROM sessions;
 
--- name: DeleteSessionData :exec
+-- name: DeleteSessionData :execrows
 DELETE FROM sessions_data
 WHERE session_id = ? AND key = ?;
 

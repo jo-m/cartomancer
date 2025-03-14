@@ -24,17 +24,17 @@ WHERE id = (
 )
 RETURNING *;
 
--- name: SetJobSuccess :exec
+-- name: SetJobSuccess :execrows
 UPDATE jobs
 SET status = 'S', finished_at = ?, pid = NULL, error = NULL
 WHERE id = ? AND status = 'R';
 
--- name: SetJobError :exec
+-- name: SetJobError :execrows
 UPDATE jobs
 SET status = 'E', finished_at = ?, pid = NULL, error = ?
 WHERE id = ? AND status = 'R';
 
--- name: SetJobsAborted :exec
+-- name: SetJobsAborted :execrows
 UPDATE jobs
 SET status = 'A', finished_at = ?, pid = NULL, error = "Aborted"
 WHERE

@@ -36,7 +36,7 @@ go tool air
 - [ ] Templates and static files
 - [x] Job queue
 - [x] Scheduled jobs
-- [ ] Make almost all queries `:execrows`
+- [x] Make almost all queries `:execrows`
 - [x] Test and document and use InTx()
 - [ ] Set min age for jobs cleanup
 - [x] Change DB locking by adding to each job the PID
