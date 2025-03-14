@@ -34,10 +34,10 @@ func (c config) Version() string     { return "Version" }
 func (c config) Description() string { return "Description" }
 func (c config) Epilogue() string    { return "Epilogue" }
 
-func NewHandler(q *db.DB, logger *slog.Logger) http.Handler {
+func NewHandler(d *db.DB, logger *slog.Logger) http.Handler {
 	logger = logger.With("mod", "svc")
 
-	sess := session.MakeStore(q, session.Config{
+	sess := session.MakeStore(d, session.Config{
 		MaxIdleTimeout:     time.Minute * 20,
 		MaxAbsoluteTimeout: time.Hour,
 		CookieName:         "sid",
@@ -52,7 +52,7 @@ func NewHandler(q *db.DB, logger *slog.Logger) http.Handler {
 	mux.Use(sess.Middleware)
 	mux.Use(middleware.Recoverer)
 
-	mux.Mount("/", endpoints.New(q, sess))
+	mux.Mount("/", endpoints.New(d, sess))
 
 	return mux
 }
@@ -94,7 +94,7 @@ func main() {
 	}
 	defer q.Close()
 
-	err = q.InTx(ctx, func(tx *db.Queries) error {
+	err = q.WithTx(ctx, func(tx *db.Queries) error {
 		createUser(ctx, tx, "test@example.org", "asdf")
 		if err != nil {
 			logg.Error(ctx, "CreateUser failed", "err", err)

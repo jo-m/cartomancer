@@ -85,9 +85,9 @@ func (d *DB) QueryRO() *Queries {
 	return New(d.ro)
 }
 
-// QueryTX returns a Queries object, with a read/write transaction connection.
-// You must call Commit() or Rollback() on the object returned when done.
-func (d *DB) QueryTX(ctx context.Context) (*Queries, error) {
+// BeginTX returns a Queries object, with a read/write transaction connection.
+// You must call Commit() or Rollback() on the returned object when done.
+func (d *DB) BeginTX(ctx context.Context) (*Queries, error) {
 	tx, err := d.rw.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin tx: %w", err)
@@ -95,10 +95,10 @@ func (d *DB) QueryTX(ctx context.Context) (*Queries, error) {
 	return New(d.rw).WithTx(tx), nil
 }
 
-// InTx runs the given function in a transaction.
+// WithTx runs the given function in a transaction.
 // If the function returns an error, the transaction is rolled back.
-func (d *DB) InTx(ctx context.Context, fn func(q *Queries) error) error {
-	tx, err := d.QueryTX(context.Background())
+func (d *DB) WithTx(ctx context.Context, fn func(q *Queries) error) error {
+	tx, err := d.BeginTX(context.Background())
 	if err != nil {
 		return err
 	}

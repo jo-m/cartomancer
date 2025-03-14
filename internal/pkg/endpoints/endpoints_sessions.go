@@ -31,7 +31,7 @@ func (s *Server) GetApiV1SessionsLogin(ctx context.Context, request oapi.GetApiV
 		-d "email=test@example.org&password=asdf"
 */
 func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request oapi.PostApiV1SessionsLoginRequestObject) (oapi.PostApiV1SessionsLoginResponseObject, error) {
-	user, err := s.q.QueryRO().GetUserByEmail(ctx, request.Body.Email)
+	user, err := s.d.QueryRO().GetUserByEmail(ctx, request.Body.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return oapi.PostApiV1SessionsLogin401JSONResponse{}, err

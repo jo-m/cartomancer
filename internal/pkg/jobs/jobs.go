@@ -152,7 +152,7 @@ func (w *Workers) Submitter() *Submitter {
 }
 
 func (w *Workers) Runner(ctx context.Context) (*Runner, error) {
-	tx, err := w.d.QueryTX(ctx)
+	tx, err := w.d.BeginTX(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +205,7 @@ func Submit[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArgs 
 		return fmt.Errorf("failed to marshal job args: %w", err)
 	}
 
-	tx, err := s.w.d.QueryTX(ctx)
+	tx, err := s.w.d.BeginTX(ctx)
 	if err != nil {
 		return err
 	}
@@ -272,7 +272,7 @@ func (r *Runner) runJob(ctx context.Context, dbJob *db.Job) (err error) {
 }
 
 func (r *Runner) getNextJob(ctx context.Context) (*db.Job, error) {
-	tx, err := r.w.d.QueryTX(ctx)
+	tx, err := r.w.d.BeginTX(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +311,7 @@ func (r *Runner) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
 	jobErr := r.runJob(logg.WithLogger(ctx, logger), job)
 
 	// Submit result.
-	tx, err := r.w.d.QueryTX(ctx)
+	tx, err := r.w.d.BeginTX(ctx)
 	if err != nil {
 		return true, err
 	}

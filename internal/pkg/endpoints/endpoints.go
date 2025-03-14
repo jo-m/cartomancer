@@ -15,7 +15,7 @@ import (
 )
 
 type Server struct {
-	q *db.DB
+	d *db.DB
 }
 
 // Compile time interface check.
@@ -34,9 +34,9 @@ func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.Authe
 	return nil
 }
 
-func New(q *db.DB, sess session.Store) http.Handler {
+func New(d *db.DB, sess session.Store) http.Handler {
 	sv := Server{
-		q: q,
+		d: d,
 	}
 
 	filterOptions := openapi3filter.Options{

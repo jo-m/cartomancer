@@ -35,14 +35,14 @@ type Config struct {
 // Store manages sessions.
 // Use MakeStore() to create an instance.
 type Store struct {
-	q *db.DB
+	d *db.DB
 	c Config
 }
 
 // MakeStore creates a new session store.
-func MakeStore(q *db.DB, c Config) Store {
+func MakeStore(d *db.DB, c Config) Store {
 	return Store{
-		q: q,
+		d: d,
 		c: c,
 	}
 }
@@ -174,7 +174,7 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 func Create(ctx context.Context, userID sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
 	req := mustGetRequest(ctx)
 
-	tx, err := req.s.q.QueryTX(req.r.Context())
+	tx, err := req.s.d.BeginTX(req.r.Context())
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +215,7 @@ func (s *Store) delete(w http.ResponseWriter, r *http.Request, tx *db.Queries, s
 func Delete(ctx context.Context, sess *db.Session) error {
 	req := mustGetRequest(ctx)
 
-	tx, err := req.s.q.QueryTX(req.r.Context())
+	tx, err := req.s.d.BeginTX(req.r.Context())
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func Delete(ctx context.Context, sess *db.Session) error {
 }
 
 func (s *Store) cleanup(ctx context.Context, now time.Time) error {
-	return s.q.InTx(ctx, func(tx *db.Queries) error {
+	return s.d.WithTx(ctx, func(tx *db.Queries) error {
 		_, err := tx.CleanupSessions(ctx, db.CleanupSessionsParams{
 			CreatedBefore: now.Add(-s.c.MaxAbsoluteTimeout),
 			ActiveBefore:  now.Add(-s.c.MaxIdleTimeout),
@@ -245,7 +245,7 @@ func (s *Store) cleanup(ctx context.Context, now time.Time) error {
 // and attaches session and user info to the request context.
 func (s *Store) Middleware(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		tx, err := s.q.QueryTX(r.Context())
+		tx, err := s.d.BeginTX(r.Context())
 		if err != nil {
 			logg.Error(r.Context(), "Failed to  begin transaction", "err", err)
 			w.WriteHeader(http.StatusInternalServerError)

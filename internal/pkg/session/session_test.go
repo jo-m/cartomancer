@@ -69,10 +69,10 @@ func (c *testClient) doRequest(method, url string, body io.Reader, expectedStatu
 
 func createUser(t *testing.T, d *db.DB) {
 	ctx := context.Background()
-	q, err := d.QueryTX(ctx)
+	tx, err := d.BeginTX(ctx)
 	assert.NoError(t, err)
-	defer q.Rollback()
-	_, err = q.CreateUser(ctx, db.CreateUserParams{
+	defer tx.Rollback()
+	_, err = tx.CreateUser(ctx, db.CreateUserParams{
 		ID:           userID,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
@@ -81,7 +81,7 @@ func createUser(t *testing.T, d *db.DB) {
 		PasswordHash: password.Hash(userPass),
 	})
 	assert.NoError(t, err)
-	assert.NoError(t, q.Commit())
+	assert.NoError(t, tx.Commit())
 }
 
 func sessionHandler(w http.ResponseWriter, r *http.Request) {
@@ -184,7 +184,7 @@ func TestSessionMiddleware(t *testing.T) {
 
 func createSession(t *testing.T, d *db.DB, store *Store) string {
 	ctx := context.Background()
-	tx, err := d.QueryTX(ctx)
+	tx, err := d.BeginTX(ctx)
 	assert.NoError(t, err)
 	defer tx.Rollback()
 
@@ -202,7 +202,7 @@ func createSession(t *testing.T, d *db.DB, store *Store) string {
 
 func pokeSession(t *testing.T, d *db.DB, store *Store, cookieVal string) error {
 	ctx := context.Background()
-	tx, err := d.QueryTX(ctx)
+	tx, err := d.BeginTX(ctx)
 	assert.NoError(t, err)
 	defer tx.Rollback()
 

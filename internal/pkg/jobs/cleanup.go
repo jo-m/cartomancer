@@ -21,7 +21,7 @@ type cleaner struct{}
 var _ Worker[cleanupArgs] = (*cleaner)(nil)
 
 func (c *cleaner) Work(ctx context.Context, d *db.DB, args cleanupArgs) error {
-	return d.InTx(ctx, func(tx *db.Queries) error {
+	return d.WithTx(ctx, func(tx *db.Queries) error {
 		n, err := tx.CleanupJobs(ctx)
 		logg.Debug(ctx, "Cleaned up jobs", "count", n)
 		return err
