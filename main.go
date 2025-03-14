@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/endpoints"
+	"goweb/internal/pkg/jobs"
 	"goweb/internal/pkg/logg"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
@@ -106,6 +107,22 @@ func main() {
 	if err != nil {
 		logg.Panic(ctx, "Failed to commit", "err", err)
 	}
+
+	// Jobs.
+	w, err := jobs.NewWorkers(ctx, q, jobs.Config{MaxParallel: 2, AutoCleanupPeriod: time.Second * 10})
+	if err != nil {
+		logg.Panic(ctx, "Failed to initialize workers", "err", err)
+	}
+	jobs.MustAddWorker(w, &Mailer{})
+	sub := w.Submitter()
+	// jobs.Submit(ctx, sub, 1, MailerArgs{To: "me"})
+	jobs.Periodic(ctx, sub, 1, MailerArgs{To: "me"}, time.Millisecond*100)
+	runner, err := w.Runner(ctx)
+	if err != nil {
+		logg.Panic(ctx, "Failed to get runner", "err", err)
+	}
+	// TODO: clean shutdown via context.
+	go runner.RunInBackground(ctx)
 
 	s := &http.Server{
 		Addr:              c.HTTPListenAddr,

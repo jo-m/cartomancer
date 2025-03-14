@@ -34,6 +34,12 @@ go tool air
 - [x] e2e tests for: Login, logout, session expiry
 - [x] Wrap session actions in db tx
 - [ ] Templates and static files
+- [x] Job queue
+- [x] Scheduled jobs
+- [ ] Make almost all queries `:execrows`
+- [ ] Test and document and use InTx()
+- [ ] Set min age for jobs cleanup
+- [ ] Change DB locking by adding to each job the PID
 
 # Later TODOs
 
@@ -41,10 +47,12 @@ go tool air
 - [ ] Rate limiting for sensitive endpoints
 - [ ] TOTP Login
 - [ ] Clean up sessions periodically
+- [ ] VACUUM
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)
-- goose because: can do both sql and go
+- Goose because: can do both SQL and Go migrations
+- We always try to store as little as possible in the database, and delete it right away. For investigations and debugging, we keep the logs instead.
 
 # Various
 - https://betterstack.com/community/guides/logging/golang-contextual-logging/#using-context-context-with-slog
