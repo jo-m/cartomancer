@@ -18,6 +18,11 @@ func WithLogger(ctx context.Context, logger *slog.Logger) context.Context {
 	return context.WithValue(ctx, ctxKey{}, logger)
 }
 
+func WithDiscardHandler(ctx context.Context) context.Context {
+	logger := slog.New(slog.DiscardHandler)
+	return WithLogger(ctx, logger)
+}
+
 // GetLogger retrieves a logger from the context.
 func GetLogger(ctx context.Context) *slog.Logger {
 	if ctx != nil {

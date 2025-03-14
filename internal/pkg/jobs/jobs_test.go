@@ -77,7 +77,7 @@ func TestCheckArgsType(t *testing.T) {
 func TestUniqueKind(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx := context.Background()
+	ctx := logg.WithDiscardHandler(context.Background())
 	c := Config{
 		MaxParallel:       1,
 		AutoCleanupPeriod: 0,
@@ -95,6 +95,7 @@ func TestUniqueRunner(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
+	ctx = logg.WithDiscardHandler(ctx)
 	c := Config{
 		MaxParallel:       1,
 		AutoCleanupPeriod: 0,
@@ -116,6 +117,7 @@ func TestRunnerRunOnlyOnce(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
+	ctx = logg.WithDiscardHandler(ctx)
 	c := Config{
 		MaxParallel:       1,
 		AutoCleanupPeriod: 0,
@@ -186,6 +188,7 @@ func TestRunJobsParallel(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
+	ctx = logg.WithDiscardHandler(ctx)
 	c := Config{
 		MaxParallel:       15,
 		AutoCleanupPeriod: 0,
@@ -229,6 +232,7 @@ func TestRunJobsMaxAttempts(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
+	ctx = logg.WithDiscardHandler(ctx)
 	c := Config{
 		MaxParallel:       15,
 		AutoCleanupPeriod: 0,
@@ -271,6 +275,7 @@ func TestRunJobsPanicMaxAttempts(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
+	ctx = logg.WithDiscardHandler(ctx)
 	c := Config{
 		MaxParallel:       15,
 		AutoCleanupPeriod: 0,
@@ -313,6 +318,7 @@ func TestRunJobsAutoCleanup(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
+	ctx = logg.WithDiscardHandler(ctx)
 	c := Config{
 		MaxParallel:       30,
 		AutoCleanupPeriod: time.Second,
@@ -354,6 +360,7 @@ func TestRunJobsPeriodic(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
+	ctx = logg.WithDiscardHandler(ctx)
 	c := Config{
 		MaxParallel:       15,
 		AutoCleanupPeriod: 0,
