@@ -17,6 +17,7 @@ type Config struct {
 func NewHandler(c Config) slog.Handler {
 	if c.LogPretty {
 		return tint.NewHandler(os.Stderr, &tint.Options{
+			// TODO: Skip levels!
 			AddSource:  true,
 			Level:      c.LogLevel,
 			TimeFormat: time.Kitchen,

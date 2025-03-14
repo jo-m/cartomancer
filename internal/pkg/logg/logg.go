@@ -6,6 +6,11 @@ import (
 	"log/slog"
 )
 
+const (
+	LevelTrace = slog.Level(-8)
+	LevelPanic = slog.Level(10)
+)
+
 type ctxKey struct{}
 
 // WithLogger attaches a logger to the context.
@@ -43,7 +48,9 @@ func Debug(ctx context.Context, msg string, attrs ...any) {
 	Log(ctx, slog.LevelDebug, msg, attrs...)
 }
 
-const LevelPanic = slog.Level(10)
+func Trace(ctx context.Context, msg string, attrs ...any) {
+	Log(ctx, LevelTrace, msg, attrs...)
+}
 
 func Panic(ctx context.Context, msg string, attrs ...any) {
 	Log(ctx, LevelPanic, msg, attrs...)
