@@ -6,15 +6,15 @@ import (
 )
 
 // This is a random ID unique per OS process.
-const randomIdLen = 32
+const randomIDLen = 32
 
-var randomId string
+var randomID string
 
 func init() {
-	b := make([]byte, randomIdLen)
+	b := make([]byte, randomIDLen)
 	_, err := rand.Read(b)
 	if err != nil {
 		panic("rand.Read() cannot return err")
 	}
-	randomId = base64.RawStdEncoding.EncodeToString(b)
+	randomID = base64.RawStdEncoding.EncodeToString(b)
 }

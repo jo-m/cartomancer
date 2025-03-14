@@ -52,6 +52,8 @@ type BadArgsPrivate struct {
 	private int
 }
 
+var _ BadArgsPrivate = BadArgsPrivate{private: 1}
+
 func (BadArgsPrivate) Kind() string {
 	return "bad"
 }

@@ -162,7 +162,7 @@ func (w *Workers) Runner(ctx context.Context) (*Runner, error) {
 	// Ensure we are the only instance in the process.
 	id, err := tx.SetJobRunnerProcessID(ctx, db.SetJobRunnerProcessIDParams{
 		Pid:      int64(os.Getpid()),
-		RandomID: randomId,
+		RandomID: randomID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("there is already another workers instance on this db in this process: %w", err)
@@ -201,7 +201,7 @@ func Submit[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArgs 
 		return fmt.Errorf("unknown worker kind: %s", kind)
 	}
 
-	argsJson, err := json.Marshal(jobArgs)
+	argsJSON, err := json.Marshal(jobArgs)
 	if err != nil {
 		return fmt.Errorf("failed to marshal job args: %w", err)
 	}
@@ -216,7 +216,7 @@ func Submit[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArgs 
 		CreatedAt:   time.Now(),
 		MaxAttempts: int64(maxAttempts),
 		Kind:        kind,
-		ArgsJson:    string(argsJson),
+		ArgsJson:    string(argsJSON),
 	})
 	if err != nil {
 		return err
