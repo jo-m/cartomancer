@@ -111,6 +111,10 @@ func TestUniqueRunner(t *testing.T) {
 
 	_, err = w.Runner(ctx)
 	assert.ErrorContains(t, err, "there is already another workers instance")
+
+	ids, err := d.QueryRO().GetJobRunnerPIDs(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{randomID}, ids)
 }
 
 func TestRunnerRunOnlyOnce(t *testing.T) {
