@@ -174,18 +174,12 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 func Create(ctx context.Context, userID sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
 	req := mustGetRequest(ctx)
 
-	tx, err := req.s.d.BeginTX(req.r.Context())
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
-	sess, err := req.s.create(req.w, req.r, tx, userID, oldToDelete)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
+	var sess *db.Session
+	err := req.s.d.WithTx(ctx, func(tx *db.Queries) error {
+		var err error
+		sess, err = req.s.create(req.w, req.r, tx, userID, oldToDelete)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -215,29 +209,17 @@ func (s *Store) delete(w http.ResponseWriter, r *http.Request, tx *db.Queries, s
 func Delete(ctx context.Context, sess *db.Session) error {
 	req := mustGetRequest(ctx)
 
-	tx, err := req.s.d.BeginTX(req.r.Context())
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	err = req.s.delete(req.w, req.r, tx, sess)
-
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return req.s.d.WithTx(ctx, func(tx *db.Queries) error {
+		return req.s.delete(req.w, req.r, tx, sess)
+	})
 }
 
 func (s *Store) cleanup(ctx context.Context, now time.Time) error {
-	return s.d.WithTx(ctx, func(tx *db.Queries) error {
-		_, err := tx.CleanupSessions(ctx, db.CleanupSessionsParams{
-			CreatedBefore: now.Add(-s.c.MaxAbsoluteTimeout),
-			ActiveBefore:  now.Add(-s.c.MaxIdleTimeout),
-		})
-		return err
+	_, err := s.d.QueryRW().CleanupSessions(ctx, db.CleanupSessionsParams{
+		CreatedBefore: now.Add(-s.c.MaxAbsoluteTimeout),
+		ActiveBefore:  now.Add(-s.c.MaxIdleTimeout),
 	})
+	return err
 }
 
 // Middleware automatically issues sessions for each request,

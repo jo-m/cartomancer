@@ -152,32 +152,23 @@ func (w *Workers) Submitter() *Submitter {
 }
 
 func (w *Workers) Runner(ctx context.Context) (*Runner, error) {
-	tx, err := w.d.BeginTX(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
+	err := w.d.WithTx(ctx, func(tx *db.Queries) error {
+		// Ensure we are the only instance process-wide.
+		err := tx.InsertJobRunnerPID(ctx, randomID)
+		if err != nil {
+			return fmt.Errorf("there is already another workers instance on this db in this process: %w", err)
+		}
+		err = tx.DeleteOtherJobRunnerPIDs(ctx, randomID)
+		if err != nil {
+			return err
+		}
 
-	// Ensure we are the only instance process-wide.
-	err = tx.InsertJobRunnerPID(ctx, randomID)
-	if err != nil {
-		return nil, fmt.Errorf("there is already another workers instance on this db in this process: %w", err)
-	}
-	err = tx.DeleteOtherJobRunnerPIDs(ctx, randomID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Abort jobs which were running on last shutdown.
-	err = tx.SetJobsAborted(ctx, db.SetJobsAbortedParams{
-		FinishedAt: sqlTimeNow(),
-		OurPID:     sql.NullInt64{Valid: true, Int64: randomID},
+		// Abort jobs which were running on last shutdown.
+		return tx.SetJobsAborted(ctx, db.SetJobsAbortedParams{
+			FinishedAt: sqlTimeNow(),
+			OurPID:     sql.NullInt64{Valid: true, Int64: randomID},
+		})
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -205,23 +196,13 @@ func Submit[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArgs 
 		return fmt.Errorf("failed to marshal job args: %w", err)
 	}
 
-	tx, err := s.w.d.BeginTX(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	_, err = tx.CreateJob(ctx, db.CreateJobParams{
+	_, err = s.w.d.QueryRW().CreateJob(ctx, db.CreateJobParams{
 		CreatedAt:   time.Now(),
 		MaxAttempts: int64(maxAttempts),
 		Kind:        kind,
 		ArgsJson:    string(argsJSON),
 	})
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return err
 }
 
 func Periodic[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArgs T, period time.Duration) {
@@ -272,21 +253,10 @@ func (r *Runner) runJob(ctx context.Context, dbJob *db.Job) (err error) {
 }
 
 func (r *Runner) getNextJob(ctx context.Context) (*db.Job, error) {
-	tx, err := r.w.d.BeginTX(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
-	job, err := tx.SetNextJobRunning(ctx, db.SetNextJobRunningParams{
+	job, err := r.w.d.QueryRW().SetNextJobRunning(ctx, db.SetNextJobRunningParams{
 		StartedAt: sqlTimeNow(),
 		Pid:       sql.NullInt64{Valid: true, Int64: randomID},
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -304,36 +274,23 @@ func (r *Runner) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	// TODO: handle case when we err below here, with ownership of the job.
-
 	// Run job.
 	logger := logg.GetLogger(ctx).With("jobId", job.ID)
 	jobErr := r.runJob(logg.WithLogger(ctx, logger), job)
 
 	// Submit result.
-	tx, err := r.w.d.BeginTX(ctx)
-	if err != nil {
-		return true, err
-	}
-	defer tx.Rollback()
-
 	if jobErr == nil {
-		err = tx.SetJobSuccess(ctx, db.SetJobSuccessParams{
+		return true, r.w.d.QueryRW().SetJobSuccess(ctx, db.SetJobSuccessParams{
 			FinishedAt: sqlTimeNow(),
 			ID:         job.ID,
 		})
 	} else {
-		err = tx.SetJobError(ctx, db.SetJobErrorParams{
+		return true, r.w.d.QueryRW().SetJobError(ctx, db.SetJobErrorParams{
 			FinishedAt: sqlTimeNow(),
 			ID:         job.ID,
 			Error:      sql.NullString{Valid: true, String: jobErr.Error()},
 		})
 	}
-	if err != nil {
-		return true, err
-	}
-
-	return true, tx.Commit()
 }
 
 const waitWhenIdle = time.Second

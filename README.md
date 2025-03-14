@@ -37,7 +37,7 @@ go tool air
 - [x] Job queue
 - [x] Scheduled jobs
 - [ ] Make almost all queries `:execrows`
-- [ ] Test and document and use InTx()
+- [x] Test and document and use InTx()
 - [ ] Set min age for jobs cleanup
 - [x] Change DB locking by adding to each job the PID
 - [ ] Exponential backoff
