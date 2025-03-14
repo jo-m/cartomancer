@@ -20,35 +20,22 @@ go tool air
 
 # TODOs
 
-- [x] https://phiresky.github.io/blog/2020/sqlite-performance-tuning/
-- [ ] https://developer.android.com/topic/performance/sqlite-performance-best-practices
 - [ ] Unified error handling and rendering
 - [ ] Clean up endpoints
 - [ ] Code TODOs
 - [ ] XSRF protection
-- [x] Auto-restart https://github.com/air-verse/air, https://eradman.com/entrproject/, https://github.com/cortesi/modd
 - [ ] Clean up/refactor svc package
 - [ ] CRUD users, self-registration
-- [x] Session data
-- [x] Ensure non-threadsafe SQLite sessions are not accidentally shared.
-- [x] e2e tests for: Login, logout, session expiry
-- [x] Wrap session actions in db tx
 - [ ] Templates and static files
-- [x] Job queue
-- [x] Scheduled jobs
-- [x] Make almost all queries `:execrows`
-- [x] Test and document and use InTx()
 - [ ] Set min age for jobs cleanup
-- [x] Change DB locking by adding to each job the PID
-- [ ] Exponential backoff
 
 # Later TODOs
 
 - [ ] Check in the generated files
 - [ ] Rate limiting for sensitive endpoints
 - [ ] TOTP Login
-- [x] Clean up sessions periodically
 - [ ] VACUUM
+- [ ] Delay & Exponential backoff
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)
