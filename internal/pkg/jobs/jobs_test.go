@@ -294,10 +294,10 @@ func TestRunJobsPanicMaxAttempts(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, r)
 
-	// Submit 15 panicing jobs, each with 3 attempts
+	// Submit 15 panicked jobs, each with 3 attempts
 	s := w.Submitter()
 	for i := range 15 {
-		args := TestArgs{Val: i, PanicMsg: "this paniced"}
+		args := TestArgs{Val: i, PanicMsg: "this panicked"}
 		err := Submit(ctx, s, 3, args)
 		assert.NoError(t, err)
 	}
@@ -314,7 +314,7 @@ func TestRunJobsPanicMaxAttempts(t *testing.T) {
 	assert.Len(t, jobs, 15)
 	for _, j := range jobs {
 		assert.Equal(t, int64(3), j.Attempts)
-		assert.Equal(t, "panic: this paniced", j.Error.String)
+		assert.Equal(t, "panic: this panicked", j.Error.String)
 	}
 }
 
