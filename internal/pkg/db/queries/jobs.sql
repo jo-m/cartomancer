@@ -1,8 +1,8 @@
 -- name: CreateJob :one
 INSERT INTO jobs (
-  created_at, max_attempts, kind, args_json
+  created_at, delay_seconds, max_attempts, kind, args_json
 ) VALUES (
-  ?, ?, ?, ?
+  ?, ?, ?, ?, ?
 )
 RETURNING *;
 
@@ -19,10 +19,18 @@ WHERE id = (
   WHERE
     status IN ('C', 'A', 'E')
     AND attempts < max_attempts
+    AND @now >= Datetime(jobs.created_at, (delay_seconds + @factorSec * (Power(2,jobs.attempts)-1)) || ' seconds')
   ORDER BY attempts ASC, created_at ASC, id ASC
   LIMIT 1
 )
 RETURNING *;
+
+-- name: GetJobNextAttempt :one
+SELECT
+  *,
+  Datetime(jobs.created_at, (delay_seconds + @factorSec * (Power(2,jobs.attempts)-1)) || ' seconds') AS next_attempt_at
+FROM jobs
+WHERE id = ?;
 
 -- name: SetJobSuccess :execrows
 UPDATE jobs

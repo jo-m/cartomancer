@@ -199,8 +199,8 @@ func TestRunJobsParallel(t *testing.T) {
 	s1 := w.Submitter()
 	for i := range 10 {
 		args := TestArgs{Val: i, Sleep: time.Millisecond * 100}
-		err0 := Submit(ctx, s0, 1, args)
-		err1 := Submit(ctx, s1, 1, args)
+		err0 := Submit(ctx, s0, 1, 0, args)
+		err1 := Submit(ctx, s1, 1, 0, args)
 		assert.NoError(t, err0)
 		assert.NoError(t, err1)
 	}
@@ -239,7 +239,7 @@ func TestRunJobsMaxAttempts(t *testing.T) {
 	s := w.Submitter()
 	for i := range 15 {
 		args := TestArgs{Val: i, ErrMsg: "this failed"}
-		err := Submit(ctx, s, 3, args)
+		err := Submit(ctx, s, 3, 0, args)
 		assert.NoError(t, err)
 	}
 	w.RunInBackground(ctx)
@@ -278,7 +278,7 @@ func TestRunJobsPanicMaxAttempts(t *testing.T) {
 	s := w.Submitter()
 	for i := range 15 {
 		args := TestArgs{Val: i, PanicMsg: "this panicked"}
-		err := Submit(ctx, s, 3, args)
+		err := Submit(ctx, s, 3, 0, args)
 		assert.NoError(t, err)
 	}
 	w.RunInBackground(ctx)
@@ -315,9 +315,9 @@ func TestRunJobsAutoCleanup(t *testing.T) {
 
 	s := w.Submitter()
 	for i := range 5 {
-		assert.NoError(t, Submit(ctx, s, 3, TestArgs{Val: i}))
-		assert.NoError(t, Submit(ctx, s, 3, TestArgs{Val: i, ErrMsg: "err msg"}))
-		assert.NoError(t, Submit(ctx, s, 3, TestArgs{Val: i, PanicMsg: "panic msg"}))
+		assert.NoError(t, Submit(ctx, s, 3, 0, TestArgs{Val: i}))
+		assert.NoError(t, Submit(ctx, s, 3, 0, TestArgs{Val: i, ErrMsg: "err msg"}))
+		assert.NoError(t, Submit(ctx, s, 3, 0, TestArgs{Val: i, PanicMsg: "panic msg"}))
 	}
 	w.RunInBackground(ctx)
 

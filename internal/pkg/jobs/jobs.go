@@ -19,10 +19,13 @@ import (
 	"time"
 )
 
+// Args is the interface job args have to implement.
 type Args interface {
+	// Kind must return a constant, unique string identifying the job type.
 	Kind() string
 }
 
+// Worker is the interface to implement custom jobs.
 type Worker[T Args] interface {
 	Work(ctx context.Context, d *db.DB, args T) error
 }
@@ -30,11 +33,18 @@ type Worker[T Args] interface {
 // Config is the background jobs configuration.
 type Config struct {
 	// MaxParallel is the maximum number of jobs that can run in parallel.
-	// It defaults to `runtime.NumCPU()` if not set.
+	// It defaults to `runtime.NumCPU()` if zero.
 	MaxParallel uint
 	// AutoCleanupPeriod is the period at which the built-in cleanup job will run.
 	// No cleanup will be performed if set to 0.
 	AutoCleanupPeriod time.Duration
+	// BackofFactorS is the factor applied when calculating the exponential backoff delay:
+	//
+	// 	factor * (pow(2, attempts) - 1) [sec]
+	//
+	// It must be in whole seconds.
+	// Exponential backoff can be disabled by setting this value to 0.
+	BackofFactorS time.Duration
 }
 
 type decodeAndWorkFunc func(ctx context.Context, args json.RawMessage) error
@@ -51,6 +61,14 @@ func sqlTimeNow() sql.NullTime {
 }
 
 func NewWorkers(ctx context.Context, d *db.DB, c Config) (*Workers, error) {
+	if c.BackofFactorS < 0 {
+		return nil, errors.New("backoff factor must not be negative")
+	}
+
+	if c.BackofFactorS%time.Second != 0 {
+		return nil, errors.New("backoff factor must be whole seconds")
+	}
+
 	if err := ensureSingleInstance(ctx, d); err != nil {
 		return nil, err
 	}
@@ -184,6 +202,8 @@ func (w *Workers) getNextJob(ctx context.Context) (*db.Job, error) {
 	job, err := w.d.QueryRW().SetNextJobRunning(ctx, db.SetNextJobRunningParams{
 		StartedAt: sqlTimeNow(),
 		Pid:       sql.NullInt64{Valid: true, Int64: randomID},
+		Now:       time.Now(),
+		FactorSec: int64(w.c.BackofFactorS / time.Second),
 	})
 	if err != nil {
 		return nil, err
@@ -272,9 +292,17 @@ type Submitter struct {
 	w *Workers
 }
 
-func Submit[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArgs T) error {
+func Submit[T Args](ctx context.Context, s *Submitter, maxAttempts int, delay time.Duration, jobArgs T) error {
 	if maxAttempts < 1 {
-		return fmt.Errorf("maxAttempts must	be at least 1")
+		return errors.New("maxAttempts must	be at least 1")
+	}
+
+	if delay < 0 {
+		return errors.New("delay must not be negative")
+	}
+
+	if delay > 0 && delay < time.Second {
+		return errors.New("there is no point in specifying a delay smaller than a second")
 	}
 
 	kind := jobArgs.Kind()
@@ -289,10 +317,11 @@ func Submit[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArgs 
 	}
 
 	_, err = s.w.d.QueryRW().CreateJob(ctx, db.CreateJobParams{
-		CreatedAt:   time.Now(),
-		MaxAttempts: int64(maxAttempts),
-		Kind:        kind,
-		ArgsJson:    string(argsJSON),
+		CreatedAt:    time.Now(),
+		DelaySeconds: int64(delay.Seconds()),
+		MaxAttempts:  int64(maxAttempts),
+		Kind:         kind,
+		ArgsJson:     string(argsJSON),
 	})
 	return err
 }
@@ -310,7 +339,7 @@ func Periodic[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArg
 				logger.Info("Shutting down", "err", ctx.Err())
 				return
 			case <-tick.C:
-				err := Submit(ctx, s, maxAttempts, jobArgs)
+				err := Submit(ctx, s, maxAttempts, 0, jobArgs)
 
 				if err == nil {
 					logger.Debug("Submitted periodic job")

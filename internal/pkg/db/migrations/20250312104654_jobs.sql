@@ -10,6 +10,7 @@ CREATE TABLE jobs (
     -- C: Created, R: Running, A: Aborted, E: Error, S: Success
     status TEXT CHECK(status IN ('C', 'R', 'A', 'E', 'S') ) NOT NULL DEFAULT 'C',
     pid INTEGER DEFAULT NULL,
+    delay_seconds INTEGER NOT NULL,
     -- Is increased as soon as the job switches to the 'R' status.
     attempts INTEGER NOT NULL DEFAULT 0,
     max_attempts INTEGER NOT NULL,

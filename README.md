@@ -20,6 +20,10 @@ go tool air
 
 # TODOs
 
+- [x] Jobs: Delay, exponential backoff
+- [ ] Email job
+- [ ] Tests for job delay and backoff
+- [ ] Forms/templates
 - [ ] Unified error handling and rendering
 - [ ] Clean up endpoints
 - [ ] Code TODOs
@@ -34,7 +38,6 @@ go tool air
 - [ ] Rate limiting for sensitive endpoints
 - [ ] TOTP Login
 - [ ] VACUUM
-- [ ] Delay & Exponential backoff
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)
