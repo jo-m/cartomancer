@@ -333,7 +333,7 @@ func TestRunJobsAutoCleanup(t *testing.T) {
 	jobs, err := d.QueryRO().GetJobs(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, jobs, 1)
-	assert.Equal(t, jobNameCleanup, jobs[0].Kind)
+	assert.Equal(t, jobNameCleaner, jobs[0].Kind)
 }
 
 func TestRunJobsPeriodic(t *testing.T) {

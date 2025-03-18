@@ -13,7 +13,8 @@ type cleanerArgs struct {
 	MaxAbsoluteTimeout time.Duration
 }
 
-func (a cleanerArgs) Kind() string { return "sessions_cleanup" }
+// Kind implements jobs.Args.
+func (a cleanerArgs) Kind() string { return "sessions.cleaner" }
 
 var _ jobs.Args = (*cleanerArgs)(nil)
 
@@ -21,6 +22,7 @@ type Cleaner struct{}
 
 var _ jobs.Job[cleanerArgs] = (*Cleaner)(nil)
 
+// Run implements jobs.Job.
 func (c *Cleaner) Run(ctx context.Context, d *db.DB, args cleanerArgs) error {
 	now := time.Now()
 	n, err := d.QueryRW().CleanupSessions(ctx, db.CleanupSessionsParams{

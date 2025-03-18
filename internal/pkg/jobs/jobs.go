@@ -20,6 +20,8 @@ import (
 )
 
 // Args is the interface job args have to implement.
+// In addition, the implementing struct must be JSON serializable,
+// and all members must be publicly visible.
 type Args interface {
 	// Kind must return a constant, unique string identifying the job type.
 	Kind() string
@@ -248,13 +250,14 @@ func (w *Workers) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
 				ID:         job.ID,
 			}))
 	} else {
-		logger.Error("Job failed", "err", jobErr)
-		return true, db.EnsureOneRowChanged(
-			w.d.QueryRW().SetJobError(ctx, db.SetJobErrorParams{
-				FinishedAt: sqlTimeNow(),
-				ID:         job.ID,
-				Error:      sql.NullString{Valid: true, String: jobErr.Error()},
-			}))
+		next, err := w.d.QueryRW().SetJobError(ctx, db.SetJobErrorParams{
+			FinishedAt: sqlTimeNow(),
+			ID:         job.ID,
+			Error:      sql.NullString{Valid: true, String: jobErr.Error()},
+			FactorSec:  int64(w.c.BackofFactorS / time.Second),
+		})
+		logger.Error("Job failed", "err", jobErr, "next", next)
+		return true, err
 	}
 }
 
@@ -349,7 +352,11 @@ func Submit[T Args](ctx context.Context, s *Submitter, maxAttempts int, delay ti
 // Periodic will periodically post a job to the queue.
 // It is dangerous to pass maxAttempts > 1 as the job queue might grow to infinity.
 // Exponential backoff is not possible.
-func Periodic[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArgs T, period time.Duration) {
+func Periodic[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArgs T, period time.Duration) error {
+	if maxAttempts < 1 {
+		return errors.New("maxAttempts must	be at least 1")
+	}
+
 	go func() {
 		tick := time.NewTicker(period)
 		defer tick.Stop()
@@ -372,4 +379,5 @@ func Periodic[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArg
 			}
 		}
 	}()
+	return nil
 }

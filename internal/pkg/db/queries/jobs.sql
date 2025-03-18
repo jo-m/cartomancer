@@ -19,28 +19,29 @@ WHERE id = (
   WHERE
     status IN ('C', 'A', 'E')
     AND attempts < max_attempts
-    AND @now >= Datetime(jobs.created_at, (delay_seconds + @factorSec * (Power(2,jobs.attempts)-1)) || ' seconds')
+    AND Datetime(@now) >= Datetime(jobs.created_at, (delay_seconds + @factorSec * (Power(2,jobs.attempts)-1)) || ' seconds')
   ORDER BY attempts ASC, created_at ASC, id ASC
   LIMIT 1
 )
 RETURNING *;
-
--- name: GetJobNextAttempt :one
-SELECT
-  *,
-  Datetime(jobs.created_at, (delay_seconds + @factorSec * (Power(2,jobs.attempts)-1)) || ' seconds') AS next_attempt_at
-FROM jobs
-WHERE id = ?;
 
 -- name: SetJobSuccess :execrows
 UPDATE jobs
 SET status = 'S', finished_at = ?, pid = NULL, error = NULL
 WHERE id = ? AND status = 'R';
 
--- name: SetJobError :execrows
+-- name: SetJobError :one
 UPDATE jobs
 SET status = 'E', finished_at = ?, pid = NULL, error = ?
-WHERE id = ? AND status = 'R';
+WHERE id = ? AND status = 'R'
+RETURNING
+  CASE WHEN attempts < max_attempts THEN
+    Datetime(jobs.created_at, (delay_seconds + @factorSec * (Power(2,jobs.attempts)-1)) || ' seconds')
+  ELSE
+    NULL
+  END
+  AS next_attempt_at
+;
 
 -- name: SetJobsAborted :execrows
 UPDATE jobs

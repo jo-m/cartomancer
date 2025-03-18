@@ -7,6 +7,7 @@ import (
 	"goweb/internal/pkg/endpoints"
 	"goweb/internal/pkg/jobs"
 	"goweb/internal/pkg/logg"
+	"goweb/internal/pkg/mail"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
 	"log/slog"
@@ -110,12 +111,30 @@ func main() {
 	// Jobs.
 	{
 		ctx := logg.WithLogger(ctx, logger.With("mod", "jobs"))
-		w, err := jobs.NewWorkers(ctx, d, jobs.Config{MaxParallel: 2, AutoCleanupPeriod: time.Minute})
+		w, err := jobs.NewWorkers(ctx, d, jobs.Config{
+			MaxParallel:       2,
+			AutoCleanupPeriod: time.Minute,
+			BackofFactorS:     time.Second,
+		})
 		if err != nil {
 			logg.Panic(ctx, "Failed to initialize workers", "err", err)
 		}
+
 		jobs.MustRegisterJob(w, &session.Cleaner{})
-		jobs.Periodic(ctx, w.Submitter(), 1, sessionConfig.GetCleanerArgs(), time.Minute)
+		jobs.MustRegisterJob(w, &mail.Mailer{})
+
+		err = jobs.Periodic(ctx, w.Submitter(), 1, sessionConfig.GetCleanerArgs(), time.Minute)
+		if err != nil {
+			logg.Panic(ctx, "Failed to submit periodic", "err", err)
+		}
+
+		err = jobs.Submit(ctx, w.Submitter(), 5, time.Second*1, mail.Args{
+			To: "Myself",
+		})
+		if err != nil {
+			logg.Panic(ctx, "Failed to submit", "err", err)
+		}
+
 		// TODO: clean shutdown via context.
 		w.RunInBackground(ctx)
 	}

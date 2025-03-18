@@ -8,18 +8,20 @@ import (
 
 // Builtin periodic job to cleanup old jobs from the database.
 
-const jobNameCleanup = "_jobs_cleanup"
+const jobNameCleaner = "_jobs.cleaner"
 
 type cleanerArgs struct{}
 
-func (a cleanerArgs) Kind() string { return jobNameCleanup }
-
 var _ Args = (*cleanerArgs)(nil)
+
+// Kind implements Args.
+func (a cleanerArgs) Kind() string { return jobNameCleaner }
 
 type cleaner struct{}
 
 var _ Job[cleanerArgs] = (*cleaner)(nil)
 
+// Run implements Job.
 func (c *cleaner) Run(ctx context.Context, d *db.DB, args cleanerArgs) error {
 	n, err := d.QueryRW().CleanupJobs(ctx)
 	if n > 0 {
