@@ -114,7 +114,7 @@ func main() {
 		if err != nil {
 			logg.Panic(ctx, "Failed to initialize workers", "err", err)
 		}
-		jobs.MustAddWorker(w, &session.Cleaner{})
+		jobs.MustRegisterJob(w, &session.Cleaner{})
 		jobs.Periodic(ctx, w.Submitter(), 1, sessionConfig.GetCleanerArgs(), time.Minute)
 		// TODO: clean shutdown via context.
 		w.RunInBackground(ctx)

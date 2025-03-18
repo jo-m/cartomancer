@@ -24,7 +24,7 @@ func (GoodArgs1) Kind() string {
 
 type GoodWorker1 struct{}
 
-func (m *GoodWorker1) Work(ctx context.Context, _ *db.DB, args GoodArgs1) error {
+func (m *GoodWorker1) Run(ctx context.Context, _ *db.DB, args GoodArgs1) error {
 	logg.Info(ctx, "Doing good work", "args", args)
 	time.Sleep(time.Millisecond * 100)
 	return nil
@@ -41,7 +41,7 @@ func (GoodArgs2) Kind() string {
 
 type GoodWorker2 struct{}
 
-func (m *GoodWorker2) Work(ctx context.Context, _ *db.DB, args GoodArgs2) error {
+func (m *GoodWorker2) Run(ctx context.Context, _ *db.DB, args GoodArgs2) error {
 	logg.Info(ctx, "Doing good work", "args", args)
 	time.Sleep(time.Millisecond * 100)
 	return nil
@@ -85,10 +85,10 @@ func TestUniqueKind(t *testing.T) {
 
 	w, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
-	assert.NoError(t, AddWorker(w, &GoodWorker1{}))
-	assert.Error(t, AddWorker(w, &GoodWorker1{}))
-	assert.NoError(t, AddWorker(w, &GoodWorker2{}))
-	assert.Error(t, AddWorker(w, &GoodWorker2{}))
+	assert.NoError(t, RegisterJob(w, &GoodWorker1{}))
+	assert.Error(t, RegisterJob(w, &GoodWorker1{}))
+	assert.NoError(t, RegisterJob(w, &GoodWorker2{}))
+	assert.Error(t, RegisterJob(w, &GoodWorker2{}))
 }
 
 func TestUniqueWorkers(t *testing.T) {
@@ -131,7 +131,7 @@ func TestRunnerRunOnlyOnce(t *testing.T) {
 	assert.Panics(t, func() {
 		w.RunInBackground(ctx)
 	})
-	assert.ErrorContains(t, AddWorker(w, &GoodWorker1{}), "already running")
+	assert.ErrorContains(t, RegisterJob(w, &GoodWorker1{}), "already running")
 }
 
 var cOK chan int = make(chan int, 10000)
@@ -164,7 +164,7 @@ func (TestArgs) Kind() string {
 
 type TestWorker struct{}
 
-func (m *TestWorker) Work(ctx context.Context, _ *db.DB, args TestArgs) error {
+func (m *TestWorker) Run(ctx context.Context, _ *db.DB, args TestArgs) error {
 	time.Sleep(args.Sleep)
 
 	if args.ErrMsg != "" {
@@ -193,7 +193,7 @@ func TestRunJobsParallel(t *testing.T) {
 
 	w, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
-	assert.NoError(t, AddWorker(w, &TestWorker{}))
+	assert.NoError(t, RegisterJob(w, &TestWorker{}))
 
 	s0 := w.Submitter()
 	s1 := w.Submitter()
@@ -233,7 +233,7 @@ func TestRunJobsMaxAttempts(t *testing.T) {
 
 	w, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
-	assert.NoError(t, AddWorker(w, &TestWorker{}))
+	assert.NoError(t, RegisterJob(w, &TestWorker{}))
 
 	// Submit 15 failing jobs, each with 3 attempts
 	s := w.Submitter()
@@ -272,7 +272,7 @@ func TestRunJobsPanicMaxAttempts(t *testing.T) {
 
 	w, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
-	assert.NoError(t, AddWorker(w, &TestWorker{}))
+	assert.NoError(t, RegisterJob(w, &TestWorker{}))
 
 	// Submit 15 panicked jobs, each with 3 attempts
 	s := w.Submitter()
@@ -311,7 +311,7 @@ func TestRunJobsAutoCleanup(t *testing.T) {
 
 	w, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
-	assert.NoError(t, AddWorker(w, &TestWorker{}))
+	assert.NoError(t, RegisterJob(w, &TestWorker{}))
 
 	s := w.Submitter()
 	for i := range 5 {
@@ -349,7 +349,7 @@ func TestRunJobsPeriodic(t *testing.T) {
 
 	w, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
-	assert.NoError(t, AddWorker(w, &TestWorker{}))
+	assert.NoError(t, RegisterJob(w, &TestWorker{}))
 
 	// Run.
 	s := w.Submitter()

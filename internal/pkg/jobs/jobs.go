@@ -25,12 +25,15 @@ type Args interface {
 	Kind() string
 }
 
-// Worker is the interface to implement custom jobs.
-type Worker[T Args] interface {
-	Work(ctx context.Context, d *db.DB, args T) error
+// Job is the interface to define custom jobs.
+type Job[T Args] interface {
+	// Run must be implemented to run the job once.
+	// Returning nil means successful execution.
+	// Returning an error means that the job will be retried (if maxAttemps is set to > 1).
+	Run(ctx context.Context, d *db.DB, args T) error
 }
 
-// Config is the background jobs configuration.
+// Config is the configuration for Workers.
 type Config struct {
 	// MaxParallel is the maximum number of jobs that can run in parallel.
 	// It defaults to `runtime.NumCPU()` if zero.
@@ -49,6 +52,8 @@ type Config struct {
 
 type decodeAndWorkFunc func(ctx context.Context, args json.RawMessage) error
 
+// Workers runs jobs.
+// Use NewWorkers() create an instance.
 type Workers struct {
 	d       *db.DB
 	c       Config
@@ -60,13 +65,17 @@ func sqlTimeNow() sql.NullTime {
 	return sql.NullTime{Time: time.Now(), Valid: true}
 }
 
+// NewWorkers() creates a new workers instance.
+// There can only be one instance per process and database.
+// Use jobs.RegisterJob() to register new jobs on the worker.
+// Use jobs.Submit() and jobs.Periodic() on a submitter (w.Submitter()) to submit jobs to be run.
 func NewWorkers(ctx context.Context, d *db.DB, c Config) (*Workers, error) {
 	if c.BackofFactorS < 0 {
 		return nil, errors.New("backoff factor must not be negative")
 	}
 
 	if c.BackofFactorS%time.Second != 0 {
-		return nil, errors.New("backoff factor must be whole seconds")
+		return nil, errors.New("backoff factor must be in whole seconds")
 	}
 
 	if err := ensureSingleInstance(ctx, d); err != nil {
@@ -91,7 +100,7 @@ func NewWorkers(ctx context.Context, d *db.DB, c Config) (*Workers, error) {
 	}
 
 	if c.AutoCleanupPeriod != 0 {
-		MustAddWorker(w, &cleaner{})
+		MustRegisterJob(w, &cleaner{})
 		s := w.Submitter()
 		Periodic(ctx, s, 1, cleanerArgs{}, c.AutoCleanupPeriod)
 	}
@@ -141,7 +150,9 @@ func checkArgsType[T Args]() error {
 	return nil
 }
 
-func AddWorker[T Args](w *Workers, worker Worker[T]) error {
+// RegisterJob registers a new job.
+// After registration, jobs of this type can be submitted for running.
+func RegisterJob[T Args](w *Workers, worker Job[T]) error {
 	if w.running.Load() {
 		return errors.New("already running")
 	}
@@ -165,19 +176,21 @@ func AddWorker[T Args](w *Workers, worker Worker[T]) error {
 			return fmt.Errorf("failed to deserialize job args: %w", err)
 		}
 
-		return worker.Work(ctx, w.d, deserialized)
+		return worker.Run(ctx, w.d, deserialized)
 	}
 
 	return nil
 }
 
-func MustAddWorker[T Args](w *Workers, worker Worker[T]) {
-	err := AddWorker(w, worker)
+// MustRegisterJob is like RegisterJob() but panics on error.
+func MustRegisterJob[T Args](w *Workers, worker Job[T]) {
+	err := RegisterJob(w, worker)
 	if err != nil {
 		panic(err)
 	}
 }
 
+// Submitter returns a submitter instance for this worker.
 func (w *Workers) Submitter() *Submitter {
 	return &Submitter{w: w}
 }
@@ -247,6 +260,9 @@ func (w *Workers) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
 
 const waitWhenIdle = time.Second
 
+// RunInBackground spins up the worker goroutines which run jobs.
+// Returns immediately.
+// Panics if invoked more than once.
 func (w *Workers) RunInBackground(ctx context.Context) {
 	alreadyRunning := w.running.Swap(true)
 	if alreadyRunning {
@@ -288,10 +304,14 @@ func (w *Workers) RunInBackground(ctx context.Context) {
 	}
 }
 
+// Submitter is a proxy object which can submit jobs to a worker.
 type Submitter struct {
 	w *Workers
 }
 
+// Submit posts a job to the job queue with given args,
+// to be run with maxAttempts and delay.
+// maxAttempts must be at least 1, delay may not be negative.
 func Submit[T Args](ctx context.Context, s *Submitter, maxAttempts int, delay time.Duration, jobArgs T) error {
 	if maxAttempts < 1 {
 		return errors.New("maxAttempts must	be at least 1")
@@ -326,6 +346,9 @@ func Submit[T Args](ctx context.Context, s *Submitter, maxAttempts int, delay ti
 	return err
 }
 
+// Periodic will periodically post a job to the queue.
+// It is dangerous to pass maxAttempts > 1 as the job queue might grow to infinity.
+// Exponential backoff is not possible.
 func Periodic[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArgs T, period time.Duration) {
 	go func() {
 		tick := time.NewTicker(period)

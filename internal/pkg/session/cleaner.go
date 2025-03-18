@@ -19,9 +19,9 @@ var _ jobs.Args = (*cleanerArgs)(nil)
 
 type Cleaner struct{}
 
-var _ jobs.Worker[cleanerArgs] = (*Cleaner)(nil)
+var _ jobs.Job[cleanerArgs] = (*Cleaner)(nil)
 
-func (c *Cleaner) Work(ctx context.Context, d *db.DB, args cleanerArgs) error {
+func (c *Cleaner) Run(ctx context.Context, d *db.DB, args cleanerArgs) error {
 	now := time.Now()
 	n, err := d.QueryRW().CleanupSessions(ctx, db.CleanupSessionsParams{
 		CreatedBefore: now.Add(-args.MaxAbsoluteTimeout),

@@ -18,9 +18,9 @@ var _ Args = (*cleanerArgs)(nil)
 
 type cleaner struct{}
 
-var _ Worker[cleanerArgs] = (*cleaner)(nil)
+var _ Job[cleanerArgs] = (*cleaner)(nil)
 
-func (c *cleaner) Work(ctx context.Context, d *db.DB, args cleanerArgs) error {
+func (c *cleaner) Run(ctx context.Context, d *db.DB, args cleanerArgs) error {
 	n, err := d.QueryRW().CleanupJobs(ctx)
 	if n > 0 {
 		logg.Debug(ctx, "Cleaned up jobs", "count", n)
