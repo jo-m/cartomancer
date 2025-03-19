@@ -25,6 +25,7 @@ import (
 type config struct {
 	logg.LoggConfig
 	jobs.JobsConfig
+	session.SessionConfig
 
 	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8050"`
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
@@ -33,7 +34,10 @@ type config struct {
 func NewHandler(d *db.DB, logger *slog.Logger, sessConfig session.SessionConfig) http.Handler {
 	logger = logger.With("mod", "svc")
 
-	sess := session.MakeStore(d, sessConfig)
+	sess, err := session.NewStore(d, sessConfig)
+	if err != nil {
+		logg.Panic(context.Background(), "Failed to create session store", "err", err)
+	}
 	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
 	mux.Use(logg.AttachLogger(logger))
@@ -102,13 +106,6 @@ func main() {
 		}
 	}
 
-	sessionConfig := session.SessionConfig{
-		MaxIdleTimeout:     time.Minute * 20,
-		MaxAbsoluteTimeout: time.Hour,
-		CookieName:         "sid",
-		CookiePath:         "/",
-	}
-
 	// Jobs.
 	{
 		ctx := logg.WithLogger(ctx, logger.With("mod", "jobs"))
@@ -120,7 +117,7 @@ func main() {
 		jobs.MustRegisterJob(w, session.NewCleaner(d))
 		jobs.MustRegisterJob(w, &mail.Mailer{})
 
-		jobs.Periodic(ctx, w.Submitter(), sessionConfig.GetCleanerArgs(), time.Minute)
+		jobs.Periodic(ctx, w.Submitter(), c.GetCleanerArgs(), time.Minute)
 		err = jobs.Submit(ctx, w.Submitter(), mail.Args{
 			To: "Myself",
 		}, jobs.Params{
@@ -139,7 +136,7 @@ func main() {
 	{
 		s := &http.Server{
 			Addr:              c.HTTPListenAddr,
-			Handler:           NewHandler(d, logger, sessionConfig),
+			Handler:           NewHandler(d, logger, c.SessionConfig),
 			ReadHeaderTimeout: 20 * time.Second,
 			ReadTimeout:       10 * time.Second,
 			WriteTimeout:      10 * time.Second,

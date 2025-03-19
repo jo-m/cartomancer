@@ -9,10 +9,13 @@ import (
 )
 
 // LoggConfig is the logging configuration.
-// It contains struct tags compatible with github.com/alexflint/go-arg.
+// It has struct tags compatible with github.com/alexflint/go-arg.
 type LoggConfig struct {
-	LogPretty bool       `arg:"--log-pretty,env:LOG_PRETTY" default:"false" help:"Log pretty/with colors"`
-	LogLevel  slog.Level `arg:"--log-level,env:LOG_LEVEL" default:"INFO" help:"Log level" placeholder:"LEVEL"`
+	// LogPretty enables pretty logging.
+	// Default is false (JSON logging).
+	LogPretty bool `arg:"--log-pretty,env:LOG_PRETTY" default:"false" help:"Log pretty/with colors"`
+	// LogLevel is the log level.
+	LogLevel slog.Level `arg:"--log-level,env:LOG_LEVEL" default:"INFO" help:"Log level" placeholder:"LEVEL"`
 }
 
 func NewHandler(c LoggConfig) slog.Handler {

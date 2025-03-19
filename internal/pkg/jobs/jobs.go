@@ -37,14 +37,14 @@ type Job[T Args] interface {
 }
 
 // JobsConfig is the configuration for Workers.
-// It contains struct tags compatible with github.com/alexflint/go-arg.
+// It has struct tags compatible with github.com/alexflint/go-arg.
 type JobsConfig struct {
 	// MaxParallel is the maximum number of jobs that can run in parallel.
 	// It defaults to `runtime.NumCPU()` if zero.
 	MaxParallel uint `arg:"--jobs-max-parallel,env:JOBS_MAX_PARALLEL" default:"0" help:"Maximum number of parallel jobs" placeholder:"N"`
 	// AutoCleanupPeriod is the period at which old jobs will be cleared from the database.
 	// Disabled if set to 0.
-	AutoCleanupPeriod time.Duration `arg:"--jobs-auto-cleanup-period,env:JOBS_AUTO_CLEANUP_PERIOD" default:"0" help:"Period at which old jobs will be cleared from the database " placeholder:"DUR"`
+	AutoCleanupPeriod time.Duration `arg:"--jobs-auto-cleanup-period,env:JOBS_AUTO_CLEANUP_PERIOD" default:"0" help:"Period at which old jobs will be cleared from the database" placeholder:"DUR"`
 }
 
 type decodeAndWorkFunc func(ctx context.Context, args json.RawMessage) error

@@ -9,8 +9,8 @@ import (
 )
 
 type cleanerArgs struct {
-	MaxIdleTimeout     time.Duration
-	MaxAbsoluteTimeout time.Duration
+	IdleTimeout     time.Duration
+	AbsoluteTimeout time.Duration
 }
 
 // Kind implements jobs.Args.
@@ -35,8 +35,8 @@ var _ jobs.Job[cleanerArgs] = (*Cleaner)(nil)
 func (c *Cleaner) Run(ctx context.Context, args cleanerArgs) error {
 	now := time.Now()
 	n, err := c.d.QueryRW().CleanupSessions(ctx, db.CleanupSessionsParams{
-		CreatedBefore: now.Add(-args.MaxAbsoluteTimeout),
-		ActiveBefore:  now.Add(-args.MaxIdleTimeout),
+		CreatedBefore: now.Add(-args.AbsoluteTimeout),
+		ActiveBefore:  now.Add(-args.IdleTimeout),
 	})
 	if n > 0 {
 		logg.Info(ctx, "Cleaned up sessions", "count", n)

@@ -20,38 +20,60 @@ import (
 )
 
 // SessionConfig options for a session store.
+// It has struct tags compatible with github.com/alexflint/go-arg.
 type SessionConfig struct {
 	// Required.
-	MaxIdleTimeout     time.Duration
-	MaxAbsoluteTimeout time.Duration
-	CookieName         string
+	IdleTimeout     time.Duration `arg:"--session-idle-timeout,env:SESSION_IDLE_TIMEOUT" default:"0" help:"Session idle timeout" placeholder:"DUR"`
+	AbsoluteTimeout time.Duration `arg:"--session-abs-timeout,env:SESSION_ABS_TIMEOUT" default:"0" help:"Session absolute timeout" placeholder:"DUR"`
+	CookieName      string        `arg:"--session-cookie-name,env:SESSION_COOKIE_NAME" default:"" help:"Session cookie name" placeholder:"NAME"`
 	// Optional.
-	CookieDomain string
-	CookiePath   string
+	CookieDomain string `arg:"--session-cookie-domain,env:SESSION_COOKIE_DOMAIN" default:"" help:"Session cookie domain" placeholder:"HOST"`
+	CookiePath   string `arg:"--session-cookie-path,env:SESSION_COOKIE_PATH" default:"/" help:"Session cookie path" placeholder:"PATH"`
 	// Default is safe.
 	insecureUseOnlyForTests bool
 }
 
+func (c *SessionConfig) Validate() error {
+	if c.IdleTimeout <= 0 {
+		return errors.New("idle timeout must be positive")
+	}
+	if c.AbsoluteTimeout <= 0 {
+		return errors.New("absolute timeout must be positive")
+	}
+	if c.IdleTimeout > c.AbsoluteTimeout {
+		return errors.New("absolute timeout must be greater or equal absolute timeout")
+	}
+	if c.CookieName == "" {
+		return errors.New("cookie name must not be empty")
+	}
+	return nil
+}
+
 func (c *SessionConfig) GetCleanerArgs() cleanerArgs {
 	return cleanerArgs{
-		MaxIdleTimeout:     c.MaxIdleTimeout,
-		MaxAbsoluteTimeout: c.MaxAbsoluteTimeout,
+		IdleTimeout:     c.IdleTimeout,
+		AbsoluteTimeout: c.AbsoluteTimeout,
 	}
 }
 
 // Store manages sessions.
-// Use MakeStore() to create an instance.
+// Use NewStore() to create an instance.
 type Store struct {
 	d *db.DB
 	c SessionConfig
 }
 
-// MakeStore creates a new session store.
-func MakeStore(d *db.DB, c SessionConfig) Store {
-	return Store{
+// NewStore creates a new session store.
+func NewStore(d *db.DB, c SessionConfig) (*Store, error) {
+	err := c.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("invalid session config: %w", err)
+	}
+
+	return &Store{
 		d: d,
 		c: c,
-	}
+	}, nil
 }
 
 const (
@@ -87,11 +109,11 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 	}
 
 	now := time.Now()
-	if now.Sub(sess.CreatedAt) > s.c.MaxAbsoluteTimeout {
+	if now.Sub(sess.CreatedAt) > s.c.AbsoluteTimeout {
 		return nil, errors.New("session expired (absolute)")
 	}
 
-	if now.Sub(sess.LastActiveAt) > s.c.MaxIdleTimeout {
+	if now.Sub(sess.LastActiveAt) > s.c.IdleTimeout {
 		return nil, errors.New("session expired (idle)")
 	}
 
@@ -163,7 +185,7 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 	cookie := http.Cookie{
 		Name:     s.c.CookieName,
 		Value:    fmt.Sprintf("%s:%s", session.ID, secret),
-		MaxAge:   int(s.c.MaxAbsoluteTimeout.Seconds()),
+		MaxAge:   int(s.c.AbsoluteTimeout.Seconds()),
 		Secure:   !s.c.insecureUseOnlyForTests,
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
@@ -223,8 +245,8 @@ func Delete(ctx context.Context, sess *db.Session) error {
 
 func (s *Store) cleanup(ctx context.Context, now time.Time) error {
 	_, err := s.d.QueryRW().CleanupSessions(ctx, db.CleanupSessionsParams{
-		CreatedBefore: now.Add(-s.c.MaxAbsoluteTimeout),
-		ActiveBefore:  now.Add(-s.c.MaxIdleTimeout),
+		CreatedBefore: now.Add(-s.c.AbsoluteTimeout),
+		ActiveBefore:  now.Add(-s.c.IdleTimeout),
 	})
 	return err
 }

@@ -34,7 +34,7 @@ func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.Authe
 	return nil
 }
 
-func New(d *db.DB, sess session.Store) http.Handler {
+func New(d *db.DB, sess *session.Store) http.Handler {
 	sv := Server{
 		d: d,
 	}

@@ -133,12 +133,13 @@ func TestSessionMiddleware(t *testing.T) {
 
 	// Setup session store.
 	conf := SessionConfig{
-		MaxIdleTimeout:          time.Second * 10,
-		MaxAbsoluteTimeout:      time.Second * 10,
+		IdleTimeout:             time.Second * 10,
+		AbsoluteTimeout:         time.Second * 10,
 		CookieName:              cookieName,
 		insecureUseOnlyForTests: true,
 	}
-	sessionStore := MakeStore(d, conf)
+	sessionStore, err := NewStore(d, conf)
+	assert.NoError(t, err)
 
 	// Setup test server.
 	mux := http.NewServeMux()
@@ -228,23 +229,24 @@ func TestSessionExpiry(t *testing.T) {
 
 	// Setup session store.
 	conf := SessionConfig{
-		MaxIdleTimeout:          time.Millisecond * 100,
-		MaxAbsoluteTimeout:      time.Millisecond * 400,
+		IdleTimeout:             time.Millisecond * 100,
+		AbsoluteTimeout:         time.Millisecond * 400,
 		CookieName:              cookieName,
 		insecureUseOnlyForTests: true,
 	}
-	store := MakeStore(d, conf)
+	store, err := NewStore(d, conf)
+	assert.NoError(t, err)
 
 	// Create a session.
-	cookieVal := createSession(t, d, &store)
+	cookieVal := createSession(t, d, store)
 	// And it remains valid.
 	for range 35 {
-		assert.NoError(t, pokeSession(t, d, &store, cookieVal))
+		assert.NoError(t, pokeSession(t, d, store, cookieVal))
 		time.Sleep(time.Millisecond * 10)
 	}
 	time.Sleep(time.Millisecond * 100)
 	// Hit the absolute timeout.
-	assert.EqualError(t, pokeSession(t, d, &store, cookieVal), "session expired (absolute)")
+	assert.EqualError(t, pokeSession(t, d, store, cookieVal), "session expired (absolute)")
 
 	// Cleanup.
 	assertSessionsCount(t, d, 1)
@@ -252,10 +254,10 @@ func TestSessionExpiry(t *testing.T) {
 	assertSessionsCount(t, d, 0)
 
 	// Create a new session.
-	cookieVal = createSession(t, d, &store)
+	cookieVal = createSession(t, d, store)
 	time.Sleep(time.Millisecond * 101)
 	// Hit the idle timeout.
-	assert.EqualError(t, pokeSession(t, d, &store, cookieVal), "session expired (idle)")
+	assert.EqualError(t, pokeSession(t, d, store, cookieVal), "session expired (idle)")
 
 	// Cleanup.
 	assertSessionsCount(t, d, 1)
