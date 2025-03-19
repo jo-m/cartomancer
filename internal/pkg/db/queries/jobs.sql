@@ -1,8 +1,8 @@
 -- name: CreateJob :one
 INSERT INTO jobs (
-  created_at, delay_seconds, max_attempts, kind, args_json
+  created_at, max_attempts, delay_s, backoff_factor_s, kind, args_json
 ) VALUES (
-  ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?
 )
 RETURNING *;
 
@@ -19,7 +19,7 @@ WHERE id = (
   WHERE
     status IN ('C', 'A', 'E')
     AND attempts < max_attempts
-    AND Datetime(@now) >= Datetime(jobs.created_at, (delay_seconds + @factorSec * (Power(2,jobs.attempts)-1)) || ' seconds')
+    AND Datetime(@now) >= Datetime(jobs.created_at, (delay_s + backoff_factor_s * (Power(2,jobs.attempts)-1)) || ' seconds')
   ORDER BY attempts ASC, created_at ASC, id ASC
   LIMIT 1
 )
@@ -36,7 +36,7 @@ SET status = 'E', finished_at = ?, pid = NULL, error = ?
 WHERE id = ? AND status = 'R'
 RETURNING
   CASE WHEN attempts < max_attempts THEN
-    Datetime(jobs.created_at, (delay_seconds + @factorSec * (Power(2,jobs.attempts)-1)) || ' seconds')
+    Datetime(jobs.created_at, (delay_s + backoff_factor_s * (Power(2,jobs.attempts)-1)) || ' seconds')
   ELSE
     NULL
   END

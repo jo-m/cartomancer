@@ -199,8 +199,8 @@ func TestRunJobsParallel(t *testing.T) {
 	s1 := w.Submitter()
 	for i := range 10 {
 		args := TestArgs{Val: i, Sleep: time.Millisecond * 100}
-		err0 := Submit(ctx, s0, 1, 0, args)
-		err1 := Submit(ctx, s1, 1, 0, args)
+		err0 := Submit(ctx, s0, args, Params{})
+		err1 := Submit(ctx, s1, args, Params{})
 		assert.NoError(t, err0)
 		assert.NoError(t, err1)
 	}
@@ -220,7 +220,7 @@ func TestRunJobsParallel(t *testing.T) {
 	assert.Len(t, results, 5)
 }
 
-func TestRunJobsMaxAttempts(t *testing.T) {
+func TestRunJobsMaxRetries(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -235,11 +235,11 @@ func TestRunJobsMaxAttempts(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, RegisterJob(w, &TestWorker{}))
 
-	// Submit 15 failing jobs, each with 3 attempts
+	// Submit 15 failing jobs, each with 2 retries.
 	s := w.Submitter()
 	for i := range 15 {
 		args := TestArgs{Val: i, ErrMsg: "this failed"}
-		err := Submit(ctx, s, 3, 0, args)
+		err := Submit(ctx, s, args, Params{MaxRetries: 2})
 		assert.NoError(t, err)
 	}
 	w.RunInBackground(ctx)
@@ -259,7 +259,7 @@ func TestRunJobsMaxAttempts(t *testing.T) {
 	}
 }
 
-func TestRunJobsPanicMaxAttempts(t *testing.T) {
+func TestRunJobsPanicMaxRetries(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -274,11 +274,11 @@ func TestRunJobsPanicMaxAttempts(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, RegisterJob(w, &TestWorker{}))
 
-	// Submit 15 panicked jobs, each with 3 attempts
+	// Submit 15 panicked jobs, each with 3 retries.
 	s := w.Submitter()
 	for i := range 15 {
 		args := TestArgs{Val: i, PanicMsg: "this panicked"}
-		err := Submit(ctx, s, 3, 0, args)
+		err := Submit(ctx, s, args, Params{MaxRetries: 2})
 		assert.NoError(t, err)
 	}
 	w.RunInBackground(ctx)
@@ -315,9 +315,9 @@ func TestRunJobsAutoCleanup(t *testing.T) {
 
 	s := w.Submitter()
 	for i := range 5 {
-		assert.NoError(t, Submit(ctx, s, 3, 0, TestArgs{Val: i}))
-		assert.NoError(t, Submit(ctx, s, 3, 0, TestArgs{Val: i, ErrMsg: "err msg"}))
-		assert.NoError(t, Submit(ctx, s, 3, 0, TestArgs{Val: i, PanicMsg: "panic msg"}))
+		assert.NoError(t, Submit(ctx, s, TestArgs{Val: i}, Params{MaxRetries: 2}))
+		assert.NoError(t, Submit(ctx, s, TestArgs{Val: i, ErrMsg: "err msg"}, Params{MaxRetries: 2}))
+		assert.NoError(t, Submit(ctx, s, TestArgs{Val: i, PanicMsg: "panic msg"}, Params{MaxRetries: 2}))
 	}
 	w.RunInBackground(ctx)
 
@@ -353,7 +353,7 @@ func TestRunJobsPeriodic(t *testing.T) {
 
 	// Run.
 	s := w.Submitter()
-	Periodic(ctx, s, 1, TestArgs{Val: 0}, time.Millisecond*10)
+	Periodic(ctx, s, TestArgs{Val: 0}, time.Millisecond*10)
 	time.Sleep(time.Millisecond * 100)
 	w.RunInBackground(ctx)
 	time.Sleep(time.Millisecond * 100)

@@ -114,7 +114,6 @@ func main() {
 		w, err := jobs.NewWorkers(ctx, d, jobs.Config{
 			MaxParallel:       2,
 			AutoCleanupPeriod: time.Minute,
-			BackofFactorS:     time.Second,
 		})
 		if err != nil {
 			logg.Panic(ctx, "Failed to initialize workers", "err", err)
@@ -123,13 +122,17 @@ func main() {
 		jobs.MustRegisterJob(w, &session.Cleaner{})
 		jobs.MustRegisterJob(w, &mail.Mailer{})
 
-		err = jobs.Periodic(ctx, w.Submitter(), 1, sessionConfig.GetCleanerArgs(), time.Minute)
+		jobs.Periodic(ctx, w.Submitter(), sessionConfig.GetCleanerArgs(), time.Minute)
 		if err != nil {
 			logg.Panic(ctx, "Failed to submit periodic", "err", err)
 		}
 
-		err = jobs.Submit(ctx, w.Submitter(), 5, time.Second*1, mail.Args{
+		err = jobs.Submit(ctx, w.Submitter(), mail.Args{
 			To: "Myself",
+		}, jobs.Params{
+			MaxRetries:    5,
+			DelayS:        time.Second * 5,
+			BackofFactorS: time.Second * 2,
 		})
 		if err != nil {
 			logg.Panic(ctx, "Failed to submit", "err", err)

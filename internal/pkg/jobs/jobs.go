@@ -1,6 +1,7 @@
 // Package jobs implements an async job queue.
 // The db package is used for persistence between restarts.
 // Periodically scheduled jobs are also supported.
+// Jobs are run according to at-least-once semantics.
 //
 // The interface is partially inspired by https://riverqueue.com/docs.
 package jobs
@@ -43,13 +44,6 @@ type Config struct {
 	// AutoCleanupPeriod is the period at which the built-in cleanup job will run.
 	// No cleanup will be performed if set to 0.
 	AutoCleanupPeriod time.Duration
-	// BackofFactorS is the factor applied when calculating the exponential backoff delay:
-	//
-	// 	factor * (pow(2, attempts) - 1) [sec]
-	//
-	// It must be in whole seconds.
-	// Exponential backoff can be disabled by setting this value to 0.
-	BackofFactorS time.Duration
 }
 
 type decodeAndWorkFunc func(ctx context.Context, args json.RawMessage) error
@@ -72,14 +66,6 @@ func sqlTimeNow() sql.NullTime {
 // Use jobs.RegisterJob() to register new jobs on the worker.
 // Use jobs.Submit() and jobs.Periodic() on a submitter (w.Submitter()) to submit jobs to be run.
 func NewWorkers(ctx context.Context, d *db.DB, c Config) (*Workers, error) {
-	if c.BackofFactorS < 0 {
-		return nil, errors.New("backoff factor must not be negative")
-	}
-
-	if c.BackofFactorS%time.Second != 0 {
-		return nil, errors.New("backoff factor must be in whole seconds")
-	}
-
 	if err := ensureSingleInstance(ctx, d); err != nil {
 		return nil, err
 	}
@@ -104,7 +90,7 @@ func NewWorkers(ctx context.Context, d *db.DB, c Config) (*Workers, error) {
 	if c.AutoCleanupPeriod != 0 {
 		MustRegisterJob(w, &cleaner{})
 		s := w.Submitter()
-		Periodic(ctx, s, 1, cleanerArgs{}, c.AutoCleanupPeriod)
+		Periodic(ctx, s, cleanerArgs{}, c.AutoCleanupPeriod)
 	}
 
 	return w, nil
@@ -218,7 +204,6 @@ func (w *Workers) getNextJob(ctx context.Context) (*db.Job, error) {
 		StartedAt: sqlTimeNow(),
 		Pid:       sql.NullInt64{Valid: true, Int64: randomID},
 		Now:       time.Now(),
-		FactorSec: int64(w.c.BackofFactorS / time.Second),
 	})
 	if err != nil {
 		return nil, err
@@ -252,9 +237,8 @@ func (w *Workers) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
 	} else {
 		next, err := w.d.QueryRW().SetJobError(ctx, db.SetJobErrorParams{
 			FinishedAt: sqlTimeNow(),
-			ID:         job.ID,
 			Error:      sql.NullString{Valid: true, String: jobErr.Error()},
-			FactorSec:  int64(w.c.BackofFactorS / time.Second),
+			ID:         job.ID,
 		})
 		logger.Error("Job failed", "err", jobErr, "next", next)
 		return true, err
@@ -312,20 +296,48 @@ type Submitter struct {
 	w *Workers
 }
 
-// Submit posts a job to the job queue with given args,
-// to be run with maxAttempts and delay.
-// maxAttempts must be at least 1, delay may not be negative.
-func Submit[T Args](ctx context.Context, s *Submitter, maxAttempts int, delay time.Duration, jobArgs T) error {
-	if maxAttempts < 1 {
-		return errors.New("maxAttempts must	be at least 1")
-	}
+// Params are the scheduling parameters for Submit().
+// The zero value is valid and means no delay and no retries.
+type Params struct {
+	// How many times the job should be retried on failure.
+	// 0 means the job will be run once and not retried on failure.
+	MaxRetries uint
+	// DelayS is the delay before the job is run.
+	// It must be in whole seconds (X * time.Second).
+	DelayS time.Duration
+	// BackofFactorS is the factor applied when calculating the exponential backoff delay:
+	//
+	// 	factor * (pow(2, retries) - 1)
+	//
+	// It must be in whole seconds (X * time.Second).
+	// Exponential backoff can be disabled by setting this value to 0.
+	BackofFactorS time.Duration
+}
 
-	if delay < 0 {
+func (c *Params) validate() error {
+	if c.DelayS < 0 {
 		return errors.New("delay must not be negative")
 	}
 
-	if delay > 0 && delay < time.Second {
-		return errors.New("there is no point in specifying a delay smaller than a second")
+	if c.DelayS%time.Second != 0 {
+		return errors.New("delay must be in whole seconds")
+	}
+
+	if c.BackofFactorS < 0 {
+		return errors.New("BackofFactorS must not be negative")
+	}
+
+	if c.BackofFactorS%time.Second != 0 {
+		return errors.New("backoff factor must be in whole seconds")
+	}
+
+	return nil
+}
+
+// Submit posts a job to the job queue with given args, to be scheduled with the given params.
+func Submit[T Args](ctx context.Context, s *Submitter, jobArgs T, params Params) error {
+	if err := params.validate(); err != nil {
+		return err
 	}
 
 	kind := jobArgs.Kind()
@@ -340,23 +352,19 @@ func Submit[T Args](ctx context.Context, s *Submitter, maxAttempts int, delay ti
 	}
 
 	_, err = s.w.d.QueryRW().CreateJob(ctx, db.CreateJobParams{
-		CreatedAt:    time.Now(),
-		DelaySeconds: int64(delay.Seconds()),
-		MaxAttempts:  int64(maxAttempts),
-		Kind:         kind,
-		ArgsJson:     string(argsJSON),
+		CreatedAt:      time.Now(),
+		MaxAttempts:    int64(params.MaxRetries) + 1,
+		DelayS:         int64(params.DelayS / time.Second),
+		BackoffFactorS: int64(params.BackofFactorS / time.Second),
+		Kind:           kind,
+		ArgsJson:       string(argsJSON),
 	})
 	return err
 }
 
-// Periodic will periodically post a job to the queue.
-// It is dangerous to pass maxAttempts > 1 as the job queue might grow to infinity.
-// Exponential backoff is not possible.
-func Periodic[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArgs T, period time.Duration) error {
-	if maxAttempts < 1 {
-		return errors.New("maxAttempts must	be at least 1")
-	}
-
+// Periodic schedules a job for periodic submission to the queue.
+// Retries and delay cannot be set for periodic jobs and default to 0.
+func Periodic[T Args](ctx context.Context, s *Submitter, jobArgs T, period time.Duration) {
 	go func() {
 		tick := time.NewTicker(period)
 		defer tick.Stop()
@@ -369,7 +377,7 @@ func Periodic[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArg
 				logger.Info("Shutting down", "err", ctx.Err())
 				return
 			case <-tick.C:
-				err := Submit(ctx, s, maxAttempts, 0, jobArgs)
+				err := Submit(ctx, s, jobArgs, Params{})
 
 				if err == nil {
 					logger.Debug("Submitted periodic job")
@@ -379,5 +387,4 @@ func Periodic[T Args](ctx context.Context, s *Submitter, maxAttempts int, jobArg
 			}
 		}
 	}()
-	return nil
 }

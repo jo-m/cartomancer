@@ -21,7 +21,7 @@ go tool air
 # TODOs
 
 - [x] Jobs: Delay, exponential backoff
-- [ ] Make BackofFactorS configurable per Job
+- [x] Make BackofFactorS configurable per Job
 - [ ] Email job
 - [ ] Tests for job delay and backoff
 - [ ] Forms/templates
