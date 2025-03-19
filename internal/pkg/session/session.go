@@ -19,8 +19,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// Config options for a session store.
-type Config struct {
+// SessionConfig options for a session store.
+type SessionConfig struct {
 	// Required.
 	MaxIdleTimeout     time.Duration
 	MaxAbsoluteTimeout time.Duration
@@ -32,7 +32,7 @@ type Config struct {
 	insecureUseOnlyForTests bool
 }
 
-func (c *Config) GetCleanerArgs() cleanerArgs {
+func (c *SessionConfig) GetCleanerArgs() cleanerArgs {
 	return cleanerArgs{
 		MaxIdleTimeout:     c.MaxIdleTimeout,
 		MaxAbsoluteTimeout: c.MaxAbsoluteTimeout,
@@ -43,11 +43,11 @@ func (c *Config) GetCleanerArgs() cleanerArgs {
 // Use MakeStore() to create an instance.
 type Store struct {
 	d *db.DB
-	c Config
+	c SessionConfig
 }
 
 // MakeStore creates a new session store.
-func MakeStore(d *db.DB, c Config) Store {
+func MakeStore(d *db.DB, c SessionConfig) Store {
 	return Store{
 		d: d,
 		c: c,

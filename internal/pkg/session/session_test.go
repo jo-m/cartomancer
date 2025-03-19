@@ -132,7 +132,7 @@ func TestSessionMiddleware(t *testing.T) {
 	createUser(t, d)
 
 	// Setup session store.
-	conf := Config{
+	conf := SessionConfig{
 		MaxIdleTimeout:          time.Second * 10,
 		MaxAbsoluteTimeout:      time.Second * 10,
 		CookieName:              cookieName,
@@ -227,7 +227,7 @@ func TestSessionExpiry(t *testing.T) {
 	createUser(t, d)
 
 	// Setup session store.
-	conf := Config{
+	conf := SessionConfig{
 		MaxIdleTimeout:          time.Millisecond * 100,
 		MaxAbsoluteTimeout:      time.Millisecond * 400,
 		CookieName:              cookieName,

@@ -81,7 +81,7 @@ func TestUniqueKind(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx := logg.WithDiscardHandler(context.Background())
-	c := Config{
+	c := JobsConfig{
 		MaxParallel:       1,
 		AutoCleanupPeriod: 0,
 	}
@@ -99,7 +99,7 @@ func TestUniqueWorkers(t *testing.T) {
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	ctx = logg.WithDiscardHandler(ctx)
-	c := Config{
+	c := JobsConfig{
 		MaxParallel:       1,
 		AutoCleanupPeriod: 0,
 	}
@@ -121,7 +121,7 @@ func TestRunnerRunOnlyOnce(t *testing.T) {
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	ctx = logg.WithDiscardHandler(ctx)
-	c := Config{
+	c := JobsConfig{
 		MaxParallel:       1,
 		AutoCleanupPeriod: 0,
 	}
@@ -195,7 +195,7 @@ func TestRunJobsParallel(t *testing.T) {
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	ctx = logg.WithDiscardHandler(ctx)
-	c := Config{
+	c := JobsConfig{
 		MaxParallel:       15,
 		AutoCleanupPeriod: 0,
 	}
@@ -236,7 +236,7 @@ func TestRunJobsMaxRetries(t *testing.T) {
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	ctx = logg.WithDiscardHandler(ctx)
-	c := Config{
+	c := JobsConfig{
 		MaxParallel:       15,
 		AutoCleanupPeriod: 0,
 	}
@@ -276,7 +276,7 @@ func TestRunJobsPanicMaxRetries(t *testing.T) {
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	ctx = logg.WithDiscardHandler(ctx)
-	c := Config{
+	c := JobsConfig{
 		MaxParallel:       15,
 		AutoCleanupPeriod: 0,
 	}
@@ -316,7 +316,7 @@ func TestRunJobsAutoCleanup(t *testing.T) {
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	ctx = logg.WithDiscardHandler(ctx)
-	c := Config{
+	c := JobsConfig{
 		MaxParallel:       30,
 		AutoCleanupPeriod: time.Second,
 	}
@@ -355,7 +355,7 @@ func TestRunJobsPeriodic(t *testing.T) {
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	ctx = logg.WithDiscardHandler(ctx)
-	c := Config{
+	c := JobsConfig{
 		MaxParallel:       15,
 		AutoCleanupPeriod: 0,
 	}
@@ -419,7 +419,7 @@ func TestRunJobsDelay(t *testing.T) {
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	ctx = logg.WithDiscardHandler(ctx)
-	c := Config{
+	c := JobsConfig{
 		MaxParallel: 2,
 	}
 	defer cancel()
@@ -445,7 +445,7 @@ func TestRunJobsBackoff(t *testing.T) {
 	defer d.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	ctx = logg.WithDiscardHandler(ctx)
-	c := Config{
+	c := JobsConfig{
 		MaxParallel: 2,
 	}
 	defer cancel()

@@ -36,14 +36,15 @@ type Job[T Args] interface {
 	Run(ctx context.Context, args T) error
 }
 
-// Config is the configuration for Workers.
-type Config struct {
+// JobsConfig is the configuration for Workers.
+// It contains struct tags compatible with github.com/alexflint/go-arg.
+type JobsConfig struct {
 	// MaxParallel is the maximum number of jobs that can run in parallel.
 	// It defaults to `runtime.NumCPU()` if zero.
-	MaxParallel uint
-	// AutoCleanupPeriod is the period at which the built-in cleanup job will run.
-	// No cleanup will be performed if set to 0.
-	AutoCleanupPeriod time.Duration
+	MaxParallel uint `arg:"--jobs-max-parallel,env:JOBS_MAX_PARALLEL" default:"0" help:"Maximum number of parallel jobs" placeholder:"N"`
+	// AutoCleanupPeriod is the period at which old jobs will be cleared from the database.
+	// Disabled if set to 0.
+	AutoCleanupPeriod time.Duration `arg:"--jobs-auto-cleanup-period,env:JOBS_AUTO_CLEANUP_PERIOD" default:"0" help:"Period at which old jobs will be cleared from the database " placeholder:"DUR"`
 }
 
 type decodeAndWorkFunc func(ctx context.Context, args json.RawMessage) error
@@ -52,7 +53,7 @@ type decodeAndWorkFunc func(ctx context.Context, args json.RawMessage) error
 // Use NewWorkers() create an instance.
 type Workers struct {
 	d       *db.DB
-	c       Config
+	c       JobsConfig
 	running atomic.Bool
 	w       map[string]decodeAndWorkFunc
 }
@@ -65,7 +66,7 @@ func sqlTimeNow() sql.NullTime {
 // There can only be one instance per process and database.
 // Use jobs.RegisterJob() to register new jobs on the worker.
 // Use jobs.Submit() and jobs.Periodic() on a submitter (w.Submitter()) to submit jobs to be run.
-func NewWorkers(ctx context.Context, d *db.DB, c Config) (*Workers, error) {
+func NewWorkers(ctx context.Context, d *db.DB, c JobsConfig) (*Workers, error) {
 	if err := ensureSingleInstance(ctx, d); err != nil {
 		return nil, err
 	}

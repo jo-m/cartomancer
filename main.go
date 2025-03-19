@@ -23,13 +23,14 @@ import (
 )
 
 type config struct {
-	logg.Config
+	logg.LoggConfig
+	jobs.JobsConfig
 
 	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8050"`
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
 }
 
-func NewHandler(d *db.DB, logger *slog.Logger, sessConfig session.Config) http.Handler {
+func NewHandler(d *db.DB, logger *slog.Logger, sessConfig session.SessionConfig) http.Handler {
 	logger = logger.With("mod", "svc")
 
 	sess := session.MakeStore(d, sessConfig)
@@ -73,7 +74,7 @@ func main() {
 	p.MustParse(os.Args[1:])
 
 	// Initialize logging.
-	logger := slog.New(logg.NewHandler(c.Config))
+	logger := slog.New(logg.NewHandler(c.LoggConfig))
 	slog.SetDefault(logger)
 	ctx := logg.WithLogger(context.Background(), logger)
 
@@ -101,7 +102,7 @@ func main() {
 		}
 	}
 
-	sessionConfig := session.Config{
+	sessionConfig := session.SessionConfig{
 		MaxIdleTimeout:     time.Minute * 20,
 		MaxAbsoluteTimeout: time.Hour,
 		CookieName:         "sid",
@@ -111,10 +112,7 @@ func main() {
 	// Jobs.
 	{
 		ctx := logg.WithLogger(ctx, logger.With("mod", "jobs"))
-		w, err := jobs.NewWorkers(ctx, d, jobs.Config{
-			MaxParallel:       2,
-			AutoCleanupPeriod: time.Minute,
-		})
+		w, err := jobs.NewWorkers(ctx, d, c.JobsConfig)
 		if err != nil {
 			logg.Panic(ctx, "Failed to initialize workers", "err", err)
 		}
