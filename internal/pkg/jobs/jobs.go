@@ -33,7 +33,7 @@ type Job[T Args] interface {
 	// Run must be implemented to run the job once.
 	// Returning nil means successful execution.
 	// Returning an error means that the job will be retried (if maxAttemps is set to > 1).
-	Run(ctx context.Context, d *db.DB, args T) error
+	Run(ctx context.Context, args T) error
 }
 
 // Config is the configuration for Workers.
@@ -88,7 +88,7 @@ func NewWorkers(ctx context.Context, d *db.DB, c Config) (*Workers, error) {
 	}
 
 	if c.AutoCleanupPeriod != 0 {
-		MustRegisterJob(w, &cleaner{})
+		MustRegisterJob(w, &cleaner{d: d})
 		s := w.Submitter()
 		Periodic(ctx, s, cleanerArgs{}, c.AutoCleanupPeriod)
 	}
@@ -164,7 +164,7 @@ func RegisterJob[T Args](w *Workers, worker Job[T]) error {
 			return fmt.Errorf("failed to deserialize job args: %w", err)
 		}
 
-		return worker.Run(ctx, w.d, deserialized)
+		return worker.Run(ctx, deserialized)
 	}
 
 	return nil

@@ -3,7 +3,6 @@ package mail
 import (
 	"context"
 	"fmt"
-	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/jobs"
 )
 
@@ -21,7 +20,7 @@ type Mailer struct{}
 var _ jobs.Job[Args] = (*Mailer)(nil)
 
 // Run implements jobs.Job.
-func (c *Mailer) Run(ctx context.Context, d *db.DB, args Args) error {
+func (c *Mailer) Run(ctx context.Context, args Args) error {
 	// TODO: actually implement.
 	return fmt.Errorf("failed to send mail to %s", args.To)
 }

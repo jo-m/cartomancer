@@ -119,14 +119,10 @@ func main() {
 			logg.Panic(ctx, "Failed to initialize workers", "err", err)
 		}
 
-		jobs.MustRegisterJob(w, &session.Cleaner{})
+		jobs.MustRegisterJob(w, session.NewCleaner(d))
 		jobs.MustRegisterJob(w, &mail.Mailer{})
 
 		jobs.Periodic(ctx, w.Submitter(), sessionConfig.GetCleanerArgs(), time.Minute)
-		if err != nil {
-			logg.Panic(ctx, "Failed to submit periodic", "err", err)
-		}
-
 		err = jobs.Submit(ctx, w.Submitter(), mail.Args{
 			To: "Myself",
 		}, jobs.Params{

@@ -18,14 +18,23 @@ func (a cleanerArgs) Kind() string { return "sessions.cleaner" }
 
 var _ jobs.Args = (*cleanerArgs)(nil)
 
-type Cleaner struct{}
+// Cleaner implements a session cleanup job.
+// Use NewCleaner to create a new instance.
+type Cleaner struct {
+	d *db.DB
+}
+
+// NewCleaner creates a new Cleaner instance.
+func NewCleaner(d *db.DB) *Cleaner {
+	return &Cleaner{d: d}
+}
 
 var _ jobs.Job[cleanerArgs] = (*Cleaner)(nil)
 
 // Run implements jobs.Job.
-func (c *Cleaner) Run(ctx context.Context, d *db.DB, args cleanerArgs) error {
+func (c *Cleaner) Run(ctx context.Context, args cleanerArgs) error {
 	now := time.Now()
-	n, err := d.QueryRW().CleanupSessions(ctx, db.CleanupSessionsParams{
+	n, err := c.d.QueryRW().CleanupSessions(ctx, db.CleanupSessionsParams{
 		CreatedBefore: now.Add(-args.MaxAbsoluteTimeout),
 		ActiveBefore:  now.Add(-args.MaxIdleTimeout),
 	})
