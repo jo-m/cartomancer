@@ -134,11 +134,8 @@ func TestRunnerRunOnlyOnce(t *testing.T) {
 	assert.ErrorContains(t, RegisterJob(w, &GoodJob1{}), "already running")
 }
 
-var cOK chan int = make(chan int, 10000)
-var cErr chan int = make(chan int, 10000)
-
-func slurp(c <-chan int, timeout time.Duration) []int {
-	var results []int
+func slurp[T any](c <-chan T, timeout time.Duration) []T {
+	var results []T
 	timer := time.NewTimer(timeout)
 
 	for {
@@ -151,24 +148,34 @@ func slurp(c <-chan int, timeout time.Duration) []int {
 	}
 }
 
-type TestArgs struct {
+type TestIntArgs struct {
 	Sleep    time.Duration
 	ErrMsg   string
 	PanicMsg string
 	Val      int
 }
 
-func (TestArgs) Kind() string {
-	return "test"
+func (TestIntArgs) Kind() string {
+	return "jobs.test_int"
 }
 
-type TestJob struct{}
+type TestIntJob struct {
+	cOK  chan int
+	cErr chan int
+}
 
-func (m *TestJob) Run(ctx context.Context, args TestArgs) error {
+func newTestIntJob() *TestIntJob {
+	return &TestIntJob{
+		cOK:  make(chan int, 10000),
+		cErr: make(chan int, 10000),
+	}
+}
+
+func (j *TestIntJob) Run(ctx context.Context, args TestIntArgs) error {
 	time.Sleep(args.Sleep)
 
 	if args.ErrMsg != "" {
-		cErr <- args.Val
+		j.cErr <- args.Val
 		return errors.New(args.ErrMsg)
 	}
 
@@ -176,7 +183,7 @@ func (m *TestJob) Run(ctx context.Context, args TestArgs) error {
 		panic(args.PanicMsg)
 	}
 
-	cOK <- args.Val
+	j.cOK <- args.Val
 	return nil
 }
 
@@ -193,12 +200,13 @@ func TestRunJobsParallel(t *testing.T) {
 
 	w, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
-	assert.NoError(t, RegisterJob(w, &TestJob{}))
+	j := newTestIntJob()
+	assert.NoError(t, RegisterJob(w, j))
 
 	s0 := w.Submitter()
 	s1 := w.Submitter()
 	for i := range 10 {
-		args := TestArgs{Val: i, Sleep: time.Millisecond * 100}
+		args := TestIntArgs{Val: i, Sleep: time.Millisecond * 100}
 		err0 := Submit(ctx, s0, args, Params{})
 		err1 := Submit(ctx, s1, args, Params{})
 		assert.NoError(t, err0)
@@ -206,7 +214,7 @@ func TestRunJobsParallel(t *testing.T) {
 	}
 
 	// Nothing executed yet.
-	results := slurp(cOK, time.Millisecond*150)
+	results := slurp(j.cOK, time.Millisecond*150)
 	assert.Empty(t, results)
 
 	// Run.
@@ -214,9 +222,9 @@ func TestRunJobsParallel(t *testing.T) {
 
 	// We submit 20 jobs taking 100+ms each, and have 15 workers,
 	// so we should have 15 jobs done in 100ms, and 5 more in another 100ms.
-	results = slurp(cOK, time.Millisecond*120)
+	results = slurp(j.cOK, time.Millisecond*120)
 	assert.Len(t, results, 15)
-	results = slurp(cOK, time.Millisecond*120)
+	results = slurp(j.cOK, time.Millisecond*120)
 	assert.Len(t, results, 5)
 }
 
@@ -233,19 +241,20 @@ func TestRunJobsMaxRetries(t *testing.T) {
 
 	w, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
-	assert.NoError(t, RegisterJob(w, &TestJob{}))
+	j := newTestIntJob()
+	assert.NoError(t, RegisterJob(w, j))
 
 	// Submit 15 failing jobs, each with 2 retries.
 	s := w.Submitter()
 	for i := range 15 {
-		args := TestArgs{Val: i, ErrMsg: "this failed"}
+		args := TestIntArgs{Val: i, ErrMsg: "this failed"}
 		err := Submit(ctx, s, args, Params{MaxRetries: 2})
 		assert.NoError(t, err)
 	}
 	w.RunInBackground(ctx)
 
-	resultsOK := slurp(cOK, time.Millisecond*100)
-	resultsErr := slurp(cErr, time.Millisecond*100)
+	resultsOK := slurp(j.cOK, time.Millisecond*100)
+	resultsErr := slurp(j.cErr, time.Millisecond*100)
 	assert.Len(t, resultsOK, 0)
 	assert.Len(t, resultsErr, 15*3)
 
@@ -272,19 +281,20 @@ func TestRunJobsPanicMaxRetries(t *testing.T) {
 
 	w, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
-	assert.NoError(t, RegisterJob(w, &TestWorker{}))
+	j := newTestIntJob()
+	assert.NoError(t, RegisterJob(w, j))
 
 	// Submit 15 panicked jobs, each with 3 retries.
 	s := w.Submitter()
 	for i := range 15 {
-		args := TestArgs{Val: i, PanicMsg: "this panicked"}
+		args := TestIntArgs{Val: i, PanicMsg: "this panicked"}
 		err := Submit(ctx, s, args, Params{MaxRetries: 2})
 		assert.NoError(t, err)
 	}
 	w.RunInBackground(ctx)
 
-	resultsOK := slurp(cOK, time.Millisecond*100)
-	resultsErr := slurp(cErr, time.Millisecond*100)
+	resultsOK := slurp(j.cOK, time.Millisecond*100)
+	resultsErr := slurp(j.cErr, time.Millisecond*100)
 	assert.Len(t, resultsOK, 0)
 	assert.Len(t, resultsErr, 0)
 
@@ -311,18 +321,19 @@ func TestRunJobsAutoCleanup(t *testing.T) {
 
 	w, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
-	assert.NoError(t, RegisterJob(w, &TestJob{}))
+	j := newTestIntJob()
+	assert.NoError(t, RegisterJob(w, j))
 
 	s := w.Submitter()
 	for i := range 5 {
-		assert.NoError(t, Submit(ctx, s, TestArgs{Val: i}, Params{MaxRetries: 2}))
-		assert.NoError(t, Submit(ctx, s, TestArgs{Val: i, ErrMsg: "err msg"}, Params{MaxRetries: 2}))
-		assert.NoError(t, Submit(ctx, s, TestArgs{Val: i, PanicMsg: "panic msg"}, Params{MaxRetries: 2}))
+		assert.NoError(t, Submit(ctx, s, TestIntArgs{Val: i}, Params{MaxRetries: 2}))
+		assert.NoError(t, Submit(ctx, s, TestIntArgs{Val: i, ErrMsg: "err msg"}, Params{MaxRetries: 2}))
+		assert.NoError(t, Submit(ctx, s, TestIntArgs{Val: i, PanicMsg: "panic msg"}, Params{MaxRetries: 2}))
 	}
 	w.RunInBackground(ctx)
 
-	resultsOK := slurp(cOK, time.Millisecond*100)
-	resultsErr := slurp(cErr, time.Millisecond*100)
+	resultsOK := slurp(j.cOK, time.Millisecond*100)
+	resultsErr := slurp(j.cErr, time.Millisecond*100)
 	assert.Len(t, resultsOK, 5)
 	assert.Len(t, resultsErr, 15)
 
@@ -349,17 +360,18 @@ func TestRunJobsPeriodic(t *testing.T) {
 
 	w, err := NewWorkers(ctx, d, c)
 	assert.NoError(t, err)
-	assert.NoError(t, RegisterJob(w, &TestJob{}))
+	j := newTestIntJob()
+	assert.NoError(t, RegisterJob(w, j))
 
 	// Run.
 	s := w.Submitter()
-	Periodic(ctx, s, TestArgs{Val: 0}, time.Millisecond*10)
+	Periodic(ctx, s, TestIntArgs{Val: 0}, time.Millisecond*10)
 	time.Sleep(time.Millisecond * 100)
 	w.RunInBackground(ctx)
 	time.Sleep(time.Millisecond * 100)
 	cancel()
 
 	// Check
-	results := slurp(cOK, time.Millisecond*150)
+	results := slurp(j.cOK, time.Millisecond*150)
 	assert.Len(t, results, 10)
 }
