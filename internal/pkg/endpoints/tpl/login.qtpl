@@ -1,6 +1,8 @@
+{% import "goweb/internal/pkg/oapi" %}
 {% code
 type LoginPage struct {
 	BasePage
+    Data oapi.Login
 }
 
 // Compile time interface check.
@@ -16,10 +18,10 @@ var _ Page = (*LoginPage)(nil)
 	<div>
         <form action="" method="POST">
             <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required value="test@example.org">
+            <input type="email" id="email" name="email" required value="{%s p.Data.Email %}">
 
             <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required value="asdf">
+            <input type="password" id="password" name="password" required value="{%s p.Data.Password %}">
 
             <button type="submit">Login</button>
         </form>

@@ -2,7 +2,6 @@
 interface Page {
 	Title()
 	Body()
-	UserName()
 }
 %}
 
@@ -21,7 +20,6 @@ interface Page {
 			  <li><a href="/api/v1/sessions/logout">logout</a></li>
 			  <li><a href="/api/v1/sessions/login">login</a></li>
 			</ol>
-			{%s p.UserName() %}
 		  </nav>
 		<div>
 		<main>
@@ -41,8 +39,4 @@ This is the base title
 
 {% func (p *BasePage) Body() %}
 This is the base body
-{% endfunc %}
-
-{% func (p *BasePage) UserName() %}
-{%s p.CurrentUserName %}
 {% endfunc %}

@@ -34,16 +34,16 @@ func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request oapi.PostAp
 	user, err := s.d.QueryRO().GetUserByEmail(ctx, request.Body.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return oapi.PostApiV1SessionsLogin401JSONResponse{}, err
+			return oapi.PostApiV1SessionsLogin401TexthtmlResponse{}, err
 		}
 
-		return oapi.PostApiV1SessionsLogin500JSONResponse{}, err
+		return oapi.PostApiV1SessionsLogin500TexthtmlResponse{}, err
 	}
 
 	// Check password.
 	if !password.Check(request.Body.Password, user.PasswordHash) {
 		logg.Warn(ctx, "Authentication failed", "email", user.Email)
-		return oapi.PostApiV1SessionsLogin401JSONResponse{}, nil
+		return oapi.PostApiV1SessionsLogin401TexthtmlResponse{}, nil
 	}
 	logg.Info(ctx, "Login succeeded", "user", user.ID)
 
@@ -52,11 +52,11 @@ func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request oapi.PostAp
 	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: user.ID}, &oldSess)
 	if err != nil {
 		logg.Warn(ctx, "Creating session failed", "err", err)
-		return oapi.PostApiV1SessionsLogin500JSONResponse{}, nil
+		return oapi.PostApiV1SessionsLogin500TexthtmlResponse{}, nil
 	}
 	logg.Debug(ctx, "Created new session", "id", sess.ID)
 
-	return oapi.PostApiV1SessionsLogin204Response{}, nil
+	return oapi.PostApiV1SessionsLogin200TexthtmlResponse{}, nil
 }
 
 /*
@@ -77,7 +77,7 @@ func (s *Server) PostApiV1SessionsLogout(ctx context.Context, request oapi.PostA
 	err := session.Delete(ctx, &sess)
 	if err != nil {
 		logg.Warn(ctx, "Logout failed", "err", err)
-		return oapi.PostApiV1SessionsLogout500JSONResponse{}, nil
+		return oapi.PostApiV1SessionsLogout500TexthtmlResponse{}, nil
 	}
 	logg.Info(ctx, "Logout succeeded", "session", sess.ID)
 

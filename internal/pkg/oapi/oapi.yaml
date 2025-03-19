@@ -8,9 +8,6 @@ paths:
       tags: [sessions]
       responses:
         '200':
-          # TODO:
-          # $ref: '#/components/responses/200Form'
-          description: HTML Form
           content:
             text/html:
               schema:
@@ -24,12 +21,21 @@ paths:
             schema:
               $ref: '#/components/schemas/Login'
       responses:
-        '204':
-          $ref: '#/components/responses/204NoContent'
+        '200':
+          content:
+            text/html:
+              schema:
+                type: string
         '401':
-          $ref: '#/components/responses/401Unauthorized'
+          content:
+            text/html:
+              schema:
+                type: string
         '500':
-          $ref: '#/components/responses/500InternalServerError'
+          content:
+            text/html:
+              schema:
+                type: string
   /api/v1/sessions/logout:
     get:
       tags: [sessions]
@@ -174,19 +180,13 @@ components:
       required:
         - email
         - password
-    RFC9457ProblemDetail:
+    ErrorJSON:
       type: object
       properties:
-        type:
+        message:
           type: string
-        status:
-          type: string
-        title:
-          type: string
-        detail:
-          type: string
-        instance:
-          type: string
+      required:
+        - message
 
   parameters:
     AcceptHeader:
@@ -213,7 +213,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RFC9457ProblemDetail'
+            $ref: '#/components/schemas/ErrorJSON'
         text/html:
           schema:
             type: string
@@ -222,7 +222,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RFC9457ProblemDetail'
+            $ref: '#/components/schemas/ErrorJSON'
         text/html:
           schema:
             type: string
@@ -231,7 +231,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RFC9457ProblemDetail'
+            $ref: '#/components/schemas/ErrorJSON'
         text/html:
           schema:
             type: string
@@ -240,7 +240,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RFC9457ProblemDetail'
+            $ref: '#/components/schemas/ErrorJSON'
         text/html:
           schema:
             type: string
@@ -249,7 +249,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RFC9457ProblemDetail'
+            $ref: '#/components/schemas/ErrorJSON'
         text/html:
           schema:
             type: string
