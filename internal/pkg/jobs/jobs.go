@@ -121,6 +121,10 @@ func checkArgsType[T Args]() error {
 		if !field.IsExported() {
 			return fmt.Errorf("field '%s' on '%s' is not exported", field.Name, typeName)
 		}
+
+		if field.Type.Kind() == reflect.Interface {
+			return fmt.Errorf("field '%s' on '%s' is an interface", field.Name, typeName)
+		}
 	}
 
 	kind := args.Kind()

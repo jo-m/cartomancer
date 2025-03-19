@@ -13,6 +13,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// To enable debug logging per test:
+// ctx = logg.WithLogger(ctx, slog.New(logg.NewHandler(logg.Config{LogPretty: true, LogLevel: slog.LevelDebug})))
+
 type GoodArgs1 struct {
 	Member  string
 	Another int
@@ -374,4 +377,91 @@ func TestRunJobsPeriodic(t *testing.T) {
 	// Check
 	results := slurp(j.cOK, time.Millisecond*150)
 	assert.Len(t, results, 10)
+}
+
+type TestTimeArgs struct {
+	T0   time.Time
+	Fail string
+}
+
+func (TestTimeArgs) Kind() string {
+	return "jobs.test_time"
+}
+
+type TestTimeJob struct {
+	c chan time.Duration
+}
+
+func newTestTimeJob() *TestTimeJob {
+	return &TestTimeJob{
+		c: make(chan time.Duration, 10000),
+	}
+}
+
+func (j *TestTimeJob) Run(ctx context.Context, args TestTimeArgs) error {
+	j.c <- time.Since(args.T0)
+	if args.Fail != "" {
+		return errors.New(args.Fail)
+	}
+	return nil
+}
+
+func durationsToS(d []time.Duration) []int {
+	ret := make([]int, len(d))
+	for i := range d {
+		ret[i] = int(d[i] / time.Second)
+	}
+	return ret
+}
+
+func TestRunJobsDelay(t *testing.T) {
+	d := db.GetTestDB(t)
+	defer d.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	ctx = logg.WithDiscardHandler(ctx)
+	c := Config{
+		MaxParallel: 2,
+	}
+	defer cancel()
+
+	w, err := NewWorkers(ctx, d, c)
+	assert.NoError(t, err)
+	j := newTestTimeJob()
+	assert.NoError(t, RegisterJob(w, j))
+
+	s := w.Submitter()
+	assert.NoError(t, Submit(ctx, s, TestTimeArgs{T0: time.Now()}, Params{DelayS: time.Second * 0}))
+	assert.NoError(t, Submit(ctx, s, TestTimeArgs{T0: time.Now()}, Params{DelayS: time.Second * 1}))
+	assert.NoError(t, Submit(ctx, s, TestTimeArgs{T0: time.Now()}, Params{DelayS: time.Second * 2}))
+	w.RunInBackground(ctx)
+
+	delays := slurp(j.c, time.Second*4)
+	delaysS := durationsToS(delays)
+	assert.Equal(t, []int{0, 1, 2}, delaysS)
+}
+
+func TestRunJobsBackoff(t *testing.T) {
+	d := db.GetTestDB(t)
+	defer d.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	ctx = logg.WithDiscardHandler(ctx)
+	c := Config{
+		MaxParallel: 2,
+	}
+	defer cancel()
+
+	w, err := NewWorkers(ctx, d, c)
+	assert.NoError(t, err)
+	j := newTestTimeJob()
+	assert.NoError(t, RegisterJob(w, j))
+
+	s := w.Submitter()
+	args := TestTimeArgs{T0: time.Now(), Fail: "failed"}
+	params := Params{MaxRetries: 3, BackofFactorS: time.Second * 1}
+	assert.NoError(t, Submit(ctx, s, args, params))
+	w.RunInBackground(ctx)
+
+	delays := slurp(j.c, time.Second*8)
+	delaysS := durationsToS(delays)
+	assert.Equal(t, []int{0, 1, 3, 7}, delaysS)
 }

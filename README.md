@@ -22,8 +22,8 @@ go tool air
 
 - [x] Jobs: Delay, exponential backoff
 - [x] Make BackofFactorS configurable per Job
+- [x] Tests for job delay and backoff
 - [ ] Email job
-- [ ] Tests for job delay and backoff
 - [ ] Forms/templates
 - [ ] Unified error handling and rendering
 - [ ] Clean up endpoints
