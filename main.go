@@ -26,6 +26,7 @@ type config struct {
 	logg.LoggConfig
 	jobs.JobsConfig
 	session.SessionConfig
+	mail.MailerConfig
 
 	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8050"`
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
@@ -115,14 +116,15 @@ func main() {
 		}
 
 		jobs.MustRegisterJob(w, session.NewCleaner(d))
-		jobs.MustRegisterJob(w, &mail.Mailer{})
+		jobs.MustRegisterJob(w, mail.NewMailer(c.MailerConfig))
 
 		jobs.Periodic(ctx, w.Submitter(), c.GetCleanerArgs(), time.Minute)
 		err = jobs.Submit(ctx, w.Submitter(), mail.Args{
-			To: "Myself",
+			To:      []string{"test0@example.org", "test1@example.org"},
+			Subject: "Test",
+			Body:    "Hello, world!",
 		}, jobs.Params{
 			MaxRetries:    5,
-			DelayS:        time.Second * 5,
 			BackofFactorS: time.Second * 2,
 		})
 		if err != nil {

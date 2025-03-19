@@ -4,6 +4,7 @@
 go get -tool github.com/pressly/goose/v3/cmd/goose
 go get -tool github.com/sqlc-dev/sqlc/cmd/sqlc
 go get -tool github.com/valyala/quicktemplate/qtc
+go get -tool github.com/mailhog/MailHog
 
 make check
 
@@ -18,12 +19,19 @@ go tool sqlc vet
 go tool air
 ```
 
+# Email
+
+```bash
+# http://127.0.0.1:8025/
+go tool MailHog
+```
+
 # TODOs
 
 - [x] Jobs: Delay, exponential backoff
 - [x] Make BackofFactorS configurable per Job
 - [x] Tests for job delay and backoff
-- [ ] Email job
+- [x] Email job
 - [ ] Forms/templates
 - [ ] Unified error handling and rendering
 - [ ] Clean up endpoints
