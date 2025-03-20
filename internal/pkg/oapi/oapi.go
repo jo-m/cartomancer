@@ -2,7 +2,9 @@
 package oapi
 
 import (
+	"context"
 	_ "embed"
+	"goweb/internal/pkg/logg"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
@@ -25,4 +27,14 @@ func init() {
 // Schema gives access to the OpenAPI schema at runtime.
 func Schema() *openapi3.T {
 	return schema
+}
+
+func PrintRoutes(ctx context.Context) {
+	for path, item := range Schema().Paths.Map() {
+		methods := []string{}
+		for method, _ := range item.Operations() {
+			methods = append(methods, method)
+		}
+		logg.Debug(ctx, "Endpoint", "path", path, "methods", methods)
+	}
 }

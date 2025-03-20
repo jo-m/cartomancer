@@ -8,6 +8,7 @@ import (
 	"goweb/internal/pkg/jobs"
 	"goweb/internal/pkg/logg"
 	"goweb/internal/pkg/mail"
+	"goweb/internal/pkg/oapi"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
 	"log/slog"
@@ -83,6 +84,7 @@ func main() {
 	logger := slog.New(logg.NewHandler(c.LoggConfig))
 	slog.SetDefault(logger)
 	ctx := logg.WithLogger(context.Background(), logger)
+	oapi.PrintRoutes(ctx)
 
 	// Migrations.
 	d, err := db.Open(ctx, c.DBPath)
