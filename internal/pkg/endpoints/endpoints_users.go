@@ -8,8 +8,6 @@ import (
 	"errors"
 	"goweb/internal/pkg/endpoints/tpl"
 	"goweb/internal/pkg/oapi"
-	"goweb/internal/pkg/session"
-	"io"
 
 	"github.com/oapi-codegen/runtime/types"
 )
@@ -49,11 +47,11 @@ func (s *Server) GetApiV1UsersId(ctx context.Context, request oapi.GetApiV1Users
 	}
 
 	p := tpl.MainPage{
-		BasePage: tpl.BasePage{User: session.GetUser(ctx)},
-		Email:    user.Email,
+		BasePage: BasePage(ctx),
+		Content:  user.Email,
 	}
 
-	return oapi.GetApiV1UsersId200TexthtmlResponse{Body: Body(func(w io.Writer) { tpl.WritePageTemplate(w, &p) })}, nil
+	return oapi.GetApiV1UsersId200TexthtmlResponse{Body: RenderPage(&p)}, nil
 }
 
 func (s *Server) PostApiV1Users(ctx context.Context, request oapi.PostApiV1UsersRequestObject) (oapi.PostApiV1UsersResponseObject, error) {

@@ -21,6 +21,11 @@ type Server struct {
 // Compile time interface check.
 var _ oapi.StrictServerInterface = (*Server)(nil)
 
+// Get implements oapi.StrictServerInterface.
+func (s *Server) Get(ctx context.Context, request oapi.GetRequestObject) (oapi.GetResponseObject, error) {
+	panic("unimplemented")
+}
+
 func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.AuthenticationInput) error {
 	if a.SecuritySchemeName != "CookieAuth" {
 		return errors.New("unknown security scheme")

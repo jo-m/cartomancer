@@ -3,6 +3,16 @@ info:
   title: User API
   version: 1.0.0
 paths:
+  /:
+    get:
+      tags: [sessions]
+      responses:
+        '200':
+          description: Main page
+          content:
+            text/html:
+              schema:
+                type: string
   /api/v1/sessions/login:
     get:
       tags: [sessions]

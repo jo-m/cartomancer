@@ -11,9 +11,6 @@ import (
 	"goweb/internal/pkg/oapi"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
-	"io"
-
-	"github.com/go-chi/chi/v5/middleware"
 )
 
 /*
@@ -22,22 +19,9 @@ import (
 */
 func (s *Server) GetApiV1SessionsLogin(ctx context.Context, request oapi.GetApiV1SessionsLoginRequestObject) (oapi.GetApiV1SessionsLoginResponseObject, error) {
 	p := tpl.LoginPage{
-		BasePage: tpl.BasePage{User: session.GetUser(ctx)},
+		BasePage: BasePage(ctx),
 	}
 	return oapi.GetApiV1SessionsLogin200TexthtmlResponse{Body: RenderPage(&p)}, nil
-}
-
-// TODO: improve wrapper
-func RenderError500(ctx context.Context) io.Reader {
-	p := tpl.Error500Page{
-		RequestID: middleware.GetReqID(ctx),
-	}
-	return Body(func(w io.Writer) { tpl.WritePageTemplate(w, &p) })
-}
-
-// TODO: improve wrapper
-func RenderPage(p tpl.Page) io.Reader {
-	return Body(func(w io.Writer) { tpl.WritePageTemplate(w, p) })
 }
 
 /*
@@ -48,7 +32,7 @@ func RenderPage(p tpl.Page) io.Reader {
 */
 func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request oapi.PostApiV1SessionsLoginRequestObject) (oapi.PostApiV1SessionsLoginResponseObject, error) {
 	p := tpl.LoginPage{
-		BasePage:  tpl.BasePage{User: session.GetUser(ctx)},
+		BasePage:  BasePage(ctx),
 		LoginData: *request.Body,
 	}
 	p.LoginData.Password = ""
@@ -96,7 +80,7 @@ func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request oapi.PostAp
 */
 func (s *Server) GetApiV1SessionsLogout(ctx context.Context, request oapi.GetApiV1SessionsLogoutRequestObject) (oapi.GetApiV1SessionsLogoutResponseObject, error) {
 	p := tpl.LogoutPage{
-		BasePage: tpl.BasePage{User: session.GetUser(ctx)},
+		BasePage: BasePage(ctx),
 	}
 	return oapi.GetApiV1SessionsLogout200TexthtmlResponse{Body: RenderPage(&p)}, nil
 }
