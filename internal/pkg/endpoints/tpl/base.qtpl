@@ -1,6 +1,8 @@
+{% import "goweb/internal/pkg/db" %}
 {%
 interface Page {
 	Title()
+	UserInfo()
 	Body()
 }
 %}
@@ -16,12 +18,12 @@ interface Page {
 		<nav>
 			<h1>Navigation</h1>
 			<ol>
-			  <li><a href="/">return to main page</a></li>
-			  <li><a href="/api/v1/sessions/logout">logout</a></li>
-			  <li><a href="/api/v1/sessions/login">login</a></li>
+				<li><a href="/">return to main page</a></li>
+				<li><a href="/api/v1/sessions/logout">logout</a></li>
+				<li><a href="/api/v1/sessions/login">login</a></li>
 			</ol>
-		  </nav>
-		<div>
+			{%= p.UserInfo() %}
+		</nav>
 		<main>
 			{%= p.Body() %}
 		</main>
@@ -30,13 +32,19 @@ interface Page {
 {% endfunc %}
 
 {% code type BasePage struct {
-	CurrentUserName string
+	User *db.User
 } %}
 
 {% func (p *BasePage) Title() %}
-This is the base title
+	{% code panic("not implemented") %}
+{% endfunc %}
+
+{% func (p *BasePage) UserInfo() %}
+	{% if p.User != nil %}
+		<p>Logged in as: {%s p.User.Email %}</p>
+	{% endif %}
 {% endfunc %}
 
 {% func (p *BasePage) Body() %}
-This is the base body
+	{% code panic("not implemented") %}
 {% endfunc %}

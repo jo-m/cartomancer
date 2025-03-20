@@ -22,6 +22,7 @@ func NewHandler(c LoggConfig) slog.Handler {
 	if c.LogPretty {
 		return tint.NewHandler(os.Stderr, &tint.Options{
 			// TODO: Skip levels!
+			// https://github.com/golang/go/issues/59145#issuecomment-1481920720
 			AddSource:  true,
 			Level:      c.LogLevel,
 			TimeFormat: time.Kitchen,

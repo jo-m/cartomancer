@@ -6,7 +6,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"goweb/internal/pkg/endpoints/tpl"
 	"goweb/internal/pkg/oapi"
 	"goweb/internal/pkg/session"
@@ -50,7 +49,7 @@ func (s *Server) GetApiV1UsersId(ctx context.Context, request oapi.GetApiV1Users
 	}
 
 	p := tpl.MainPage{
-		BasePage: tpl.BasePage{CurrentUserName: fmt.Sprint(session.MustGetUser(ctx).Email)},
+		BasePage: tpl.BasePage{User: session.GetUser(ctx)},
 		Email:    user.Email,
 	}
 

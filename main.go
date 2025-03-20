@@ -119,19 +119,7 @@ func main() {
 
 		jobs.MustRegisterJob(w, session.NewCleaner(d))
 		jobs.MustRegisterJob(w, mail.NewMailer(c.MailerConfig))
-
 		jobs.Periodic(ctx, w.Submitter(), c.GetCleanerArgs(), time.Minute)
-		err = jobs.Submit(ctx, w.Submitter(), mail.Args{
-			To:      []string{"test0@example.org", "test1@example.org"},
-			Subject: "Test",
-			Body:    "Hello, world!",
-		}, jobs.Params{
-			MaxRetries:    5,
-			BackofFactorS: time.Second * 2,
-		})
-		if err != nil {
-			logg.Panic(ctx, "Failed to submit", "err", err)
-		}
 
 		// TODO: clean shutdown via context.
 		w.RunInBackground(ctx)

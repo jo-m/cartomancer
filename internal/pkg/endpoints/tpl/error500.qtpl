@@ -1,0 +1,22 @@
+{% code
+type Error500Page struct {
+	BasePage
+    RequestID string
+}
+
+// Compile time interface check.
+var _ Page = (*Error500Page)(nil)
+%}
+
+{% func (p *Error500Page) Title() %}
+	Internal sever error
+{% endfunc %}
+
+{% func (p *Error500Page) Body() %}
+	<h1>{%s p.Title() %}</h1>
+	<div>
+        There was an internal server error.
+        Please try again.
+        Request ID: {%s p.RequestID %}
+	</div>
+{% endfunc %}

@@ -6,13 +6,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"goweb/internal/pkg/endpoints/tpl"
 	"goweb/internal/pkg/logg"
 	"goweb/internal/pkg/oapi"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
 	"io"
+
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 /*
@@ -20,8 +21,23 @@ import (
 		--cookie-jar cookies.txt --cookie cookies.txt
 */
 func (s *Server) GetApiV1SessionsLogin(ctx context.Context, request oapi.GetApiV1SessionsLoginRequestObject) (oapi.GetApiV1SessionsLoginResponseObject, error) {
-	p := tpl.LoginPage{}
-	return oapi.GetApiV1SessionsLogin200TexthtmlResponse{Body: Body(func(w io.Writer) { tpl.WritePageTemplate(w, &p) })}, nil
+	p := tpl.LoginPage{
+		BasePage: tpl.BasePage{User: session.GetUser(ctx)},
+	}
+	return oapi.GetApiV1SessionsLogin200TexthtmlResponse{Body: RenderPage(&p)}, nil
+}
+
+// TODO: improve wrapper
+func RenderError500(ctx context.Context) io.Reader {
+	p := tpl.Error500Page{
+		RequestID: middleware.GetReqID(ctx),
+	}
+	return Body(func(w io.Writer) { tpl.WritePageTemplate(w, &p) })
+}
+
+// TODO: improve wrapper
+func RenderPage(p tpl.Page) io.Reader {
+	return Body(func(w io.Writer) { tpl.WritePageTemplate(w, p) })
 }
 
 /*
@@ -31,19 +47,28 @@ func (s *Server) GetApiV1SessionsLogin(ctx context.Context, request oapi.GetApiV
 		-d "email=test@example.org&password=asdf"
 */
 func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request oapi.PostApiV1SessionsLoginRequestObject) (oapi.PostApiV1SessionsLoginResponseObject, error) {
+	p := tpl.LoginPage{
+		BasePage:  tpl.BasePage{User: session.GetUser(ctx)},
+		LoginData: *request.Body,
+	}
+	p.LoginData.Password = ""
+
 	user, err := s.d.QueryRO().GetUserByEmail(ctx, request.Body.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return oapi.PostApiV1SessionsLogin401TexthtmlResponse{}, err
+			p.Message = "User not found"
+			return oapi.PostApiV1SessionsLogin401TexthtmlResponse{Body: RenderPage(&p)}, nil
 		}
 
-		return oapi.PostApiV1SessionsLogin500TexthtmlResponse{}, err
+		logg.Warn(ctx, "Error fetching user", "email", user.Email, "err", err)
+		return oapi.PostApiV1SessionsLogin500TexthtmlResponse{Body: RenderError500(ctx)}, nil
 	}
 
 	// Check password.
 	if !password.Check(request.Body.Password, user.PasswordHash) {
 		logg.Warn(ctx, "Authentication failed", "email", user.Email)
-		return oapi.PostApiV1SessionsLogin401TexthtmlResponse{}, nil
+		p.Message = "Authentication failed"
+		return oapi.PostApiV1SessionsLogin401TexthtmlResponse{Body: RenderPage(&p)}, nil
 	}
 	logg.Info(ctx, "Login succeeded", "user", user.ID)
 
@@ -52,11 +77,17 @@ func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request oapi.PostAp
 	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: user.ID}, &oldSess)
 	if err != nil {
 		logg.Warn(ctx, "Creating session failed", "err", err)
-		return oapi.PostApiV1SessionsLogin500TexthtmlResponse{}, nil
+		return oapi.PostApiV1SessionsLogin500TexthtmlResponse{Body: RenderError500(ctx)}, nil
 	}
 	logg.Debug(ctx, "Created new session", "id", sess.ID)
 
-	return oapi.PostApiV1SessionsLogin200TexthtmlResponse{}, nil
+	// TODO: session message/flash
+	// TODO: better redirection target
+	return oapi.PostApiV1SessionsLogin302Response{
+		Headers: oapi.PostApiV1SessionsLogin302ResponseHeaders{
+			Location: "/",
+		},
+	}, nil
 }
 
 /*
@@ -64,8 +95,10 @@ func (s *Server) PostApiV1SessionsLogin(ctx context.Context, request oapi.PostAp
 		--cookie-jar cookies.txt --cookie cookies.txt
 */
 func (s *Server) GetApiV1SessionsLogout(ctx context.Context, request oapi.GetApiV1SessionsLogoutRequestObject) (oapi.GetApiV1SessionsLogoutResponseObject, error) {
-	p := tpl.LogoutPage{BasePage: tpl.BasePage{CurrentUserName: fmt.Sprint(session.MustGetUser(ctx).Email)}}
-	return oapi.GetApiV1SessionsLogout200TexthtmlResponse{Body: Body(func(w io.Writer) { tpl.WritePageTemplate(w, &p) })}, nil
+	p := tpl.LogoutPage{
+		BasePage: tpl.BasePage{User: session.GetUser(ctx)},
+	}
+	return oapi.GetApiV1SessionsLogout200TexthtmlResponse{Body: RenderPage(&p)}, nil
 }
 
 /*
@@ -77,9 +110,15 @@ func (s *Server) PostApiV1SessionsLogout(ctx context.Context, request oapi.PostA
 	err := session.Delete(ctx, &sess)
 	if err != nil {
 		logg.Warn(ctx, "Logout failed", "err", err)
-		return oapi.PostApiV1SessionsLogout500TexthtmlResponse{}, nil
+		return oapi.PostApiV1SessionsLogout500TexthtmlResponse{Body: RenderError500(ctx)}, nil
 	}
 	logg.Info(ctx, "Logout succeeded", "session", sess.ID)
 
-	return oapi.PostApiV1SessionsLogout204Response{}, nil
+	// TODO: session message/flash
+	// TODO: better redirection target
+	return oapi.PostApiV1SessionsLogout302Response{
+		Headers: oapi.PostApiV1SessionsLogout302ResponseHeaders{
+			Location: "/",
+		},
+	}, nil
 }

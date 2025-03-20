@@ -14,8 +14,8 @@ var _ Page = (*LogoutPage)(nil)
 {% func (p *LogoutPage) Body() %}
 	<h1>{%s p.Title() %}</h1>
 	<div>
-        <form action="" method="POST">
-            <button type="submit">Logout</button>
-        </form>
+		<form action="" method="POST">
+			<button type="submit">Logout</button>
+		</form>
 	</div>
 {% endfunc %}
