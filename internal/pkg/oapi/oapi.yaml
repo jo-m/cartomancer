@@ -85,6 +85,8 @@ paths:
       tags: [users]
       security:
         - CookieAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AcceptHeader"
       responses:
         '200':
           description: List of users
@@ -127,6 +129,7 @@ paths:
       security:
         - CookieAuth: []
       parameters:
+        - $ref: "#/components/parameters/AcceptHeader"
         - name: id
           in: path
           required: true
@@ -150,6 +153,7 @@ paths:
       security:
         - CookieAuth: []
       parameters:
+        - $ref: "#/components/parameters/AcceptHeader"
         - name: id
           in: path
           required: true
