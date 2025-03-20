@@ -13,6 +13,7 @@ import (
 
 /*
 	curl -v 'http://127.0.0.1:8050/api/v1/users' \
+		--compressed \
 		--cookie-jar cookies.txt --cookie cookies.txt
 */
 func (s *Server) GetApiV1Users(ctx context.Context, request oapi.GetApiV1UsersRequestObject) (oapi.GetApiV1UsersResponseObject, error) {
