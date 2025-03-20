@@ -1,6 +1,7 @@
 # Commands
 
 ```bash
+go get -tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 go get -tool github.com/pressly/goose/v3/cmd/goose
 go get -tool github.com/sqlc-dev/sqlc/cmd/sqlc
 go get -tool github.com/valyala/quicktemplate/qtc
@@ -32,6 +33,7 @@ go tool MailHog
 - [x] Make BackofFactorS configurable per Job
 - [x] Tests for job delay and backoff
 - [x] Email job
+- [ ] Maybe keep session ID in signed JWT
 - [ ] Forms/templates
 - [ ] Unified error handling and rendering
 - [ ] Clean up endpoints
@@ -52,6 +54,7 @@ go tool MailHog
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)
 - Goose because: can do both SQL and Go migrations
 - We always try to store as little as possible in the database, and delete it right away. For investigations and debugging, we keep the logs instead.
+- JSON API endpoints should always require the `Accept` header to ensure errors are rendered correctly.
 
 # Various
 - https://betterstack.com/community/guides/logging/golang-contextual-logging/#using-context-context-with-slog
