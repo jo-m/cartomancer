@@ -6,7 +6,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"goweb/internal/pkg/endpoints/tpl"
 	"goweb/internal/pkg/oapi"
 
 	"github.com/oapi-codegen/runtime/types"
@@ -25,17 +24,14 @@ func (s *Server) GetApiV1Users(ctx context.Context, request oapi.GetApiV1UsersRe
 	ret := oapi.GetApiV1Users200JSONResponse{}
 	for _, u := range users {
 		ret = append(ret, oapi.User{
+			Id:    Ptr(u.ID),
 			Email: types.Email(u.Email),
+			Name:  u.Name,
 		})
 	}
 
 	return ret, nil
 }
-
-/*
-curl 'http://127.0.0.1:8050/api/v1/users/1' \
-	--cookie-jar cookies.txt --cookie cookies.txt
-*/
 
 func (s *Server) GetApiV1UsersId(ctx context.Context, request oapi.GetApiV1UsersIdRequestObject) (oapi.GetApiV1UsersIdResponseObject, error) {
 	user, err := s.d.QueryRO().GetUser(ctx, request.Id)
@@ -46,12 +42,11 @@ func (s *Server) GetApiV1UsersId(ctx context.Context, request oapi.GetApiV1Users
 		return oapi.GetApiV1UsersId500JSONResponse{}, nil
 	}
 
-	p := tpl.MainPage{
-		BasePage: BasePage(ctx),
-		Content:  user.Email,
-	}
-
-	return oapi.GetApiV1UsersId200TexthtmlResponse{Body: RenderPage(&p)}, nil
+	return oapi.GetApiV1UsersId200JSONResponse{
+		Id:    Ptr(user.ID),
+		Email: types.Email(user.Email),
+		Name:  user.Name,
+	}, nil
 }
 
 func (s *Server) PostApiV1Users(ctx context.Context, request oapi.PostApiV1UsersRequestObject) (oapi.PostApiV1UsersResponseObject, error) {

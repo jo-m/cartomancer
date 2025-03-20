@@ -43,3 +43,7 @@ func RenderError500(ctx context.Context) io.Reader {
 func BasePage(ctx context.Context) tpl.BasePage {
 	return tpl.BasePage{User: session.GetUser(ctx)}
 }
+
+func Ptr[T any](v T) *T {
+	return &v
+}

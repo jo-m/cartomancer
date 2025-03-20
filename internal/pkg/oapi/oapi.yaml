@@ -5,7 +5,6 @@ info:
 paths:
   /:
     get:
-      tags: [sessions]
       responses:
         '200':
           description: Main page
@@ -95,8 +94,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/User'
-        '401':
-          $ref: '#/components/responses/401Unauthorized'
         '500':
           $ref: '#/components/responses/500InternalServerError'
     post:
@@ -108,16 +105,18 @@ paths:
       requestBody:
         required: true
         content:
-          application/x-www-form-urlencoded:
+          application/json:
             schema:
               $ref: '#/components/schemas/User'
       responses:
         '201':
-          $ref: '#/components/responses/201Created'
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '400':
           $ref: '#/components/responses/400BadRequest'
-        '401':
-          $ref: '#/components/responses/401Unauthorized'
         '409':
           $ref: '#/components/responses/409Conflict'
         '500':
@@ -137,9 +136,9 @@ paths:
         '200':
           description: User
           content:
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/User'
         '401':
           $ref: '#/components/responses/401Unauthorized'
         '404':
@@ -159,12 +158,16 @@ paths:
       requestBody:
         required: true
         content:
-          application/x-www-form-urlencoded:
+          application/json:
             schema:
               $ref: '#/components/schemas/User'
       responses:
         '200':
-          $ref: '#/components/responses/200OK'
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '401':
