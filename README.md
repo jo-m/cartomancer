@@ -33,11 +33,14 @@ go tool MailHog
 - [x] Make BackofFactorS configurable per Job
 - [x] Tests for job delay and backoff
 - [x] Email job
+- [ ] Allow submitting jobs in a transaction
+- [ ] Clean up jobs with min age
+- [ ] Frameworkeize/factor out was much as possible
 - [ ] Maybe keep session ID in signed JWT
-- [ ] Forms/templates
 - [ ] Unified error handling and rendering
 - [ ] Clean up endpoints
 - [ ] Code TODOs
+- [ ] TS Oapi generator: https://www.npmjs.com/package/openapi-typescript
 - [ ] XSRF protection
 - [ ] Clean up/refactor svc package
 - [ ] CRUD users, self-registration
@@ -57,4 +60,8 @@ go tool MailHog
 - JSON API endpoints should always require the `Accept` header to ensure errors are rendered correctly.
 
 # Various
-- https://betterstack.com/community/guides/logging/golang-contextual-logging/#using-context-context-with-slog
+
+App ideas:
+- Shopping list
+- Dashboard/feed reader
+- Bookmarks
