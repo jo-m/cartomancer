@@ -11,6 +11,7 @@ import (
 	"goweb/internal/pkg/oapi"
 	"goweb/internal/pkg/password"
 	"goweb/internal/pkg/session"
+	"goweb/internal/pkg/utl"
 	"log/slog"
 	"net/http"
 	"os"
@@ -121,6 +122,14 @@ func main() {
 		jobs.MustRegisterJob(w, session.NewCleaner(d))
 		jobs.MustRegisterJob(w, mail.NewMailer(c.MailerConfig))
 		jobs.Periodic(ctx, w.Submitter(), c.GetCleanerArgs(), time.Minute)
+
+		for range 10 {
+			jobs.Submit(ctx, w.Submitter(), mail.Args{
+				To:      []string{gofakeit.Email(), gofakeit.Email(), gofakeit.Email()},
+				Subject: gofakeit.Phrase(),
+				Body:    utl.Must(gofakeit.EmailText(&gofakeit.EmailOptions{})),
+			}, jobs.Params{})
+		}
 
 		// TODO: clean shutdown via context.
 		w.RunInBackground(ctx)

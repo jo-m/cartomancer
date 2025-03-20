@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"goweb/internal/pkg/oapi"
+	"goweb/internal/pkg/utl"
 
 	"github.com/oapi-codegen/runtime/types"
 )
@@ -25,7 +26,7 @@ func (s *Server) GetApiV1Users(ctx context.Context, request oapi.GetApiV1UsersRe
 	ret := oapi.GetApiV1Users200JSONResponse{}
 	for _, u := range users {
 		ret = append(ret, oapi.User{
-			Id:    Ptr(u.ID),
+			Id:    utl.Ptr(u.ID),
 			Email: types.Email(u.Email),
 			Name:  u.Name,
 		})
@@ -44,7 +45,7 @@ func (s *Server) GetApiV1UsersId(ctx context.Context, request oapi.GetApiV1Users
 	}
 
 	return oapi.GetApiV1UsersId200JSONResponse{
-		Id:    Ptr(user.ID),
+		Id:    utl.Ptr(user.ID),
 		Email: types.Email(user.Email),
 		Name:  user.Name,
 	}, nil
