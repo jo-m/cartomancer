@@ -18,11 +18,10 @@ interface Page {
 		<nav>
 			<h1>Navigation</h1>
 			<ol>
-				<li><a href="/">return to main page</a></li>
-				<li><a href="/api/v1/sessions/logout">logout</a></li>
-				<li><a href="/api/v1/sessions/login">login</a></li>
+				<!-- TODO: Get URLs from OpenAPI spec. -->
+				<li><a href="/">Main page</a></li>
+				{%= p.UserInfo() %}
 			</ol>
-			{%= p.UserInfo() %}
 		</nav>
 		<main>
 			{%= p.Body() %}
@@ -41,7 +40,10 @@ interface Page {
 
 {% func (p *BasePage) UserInfo() %}
 	{% if p.User != nil %}
-		<p>Logged in as: {%s p.User.Email %}</p>
+		<li>Logged in as: {%s p.User.Email %}</li>
+		<li><a href="/sessions/logout">logout</a></li>
+	{% else %}
+		<li><a href="/sessions/login">login</a></li>
 	{% endif %}
 {% endfunc %}
 

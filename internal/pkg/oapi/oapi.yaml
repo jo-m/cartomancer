@@ -13,7 +13,7 @@ paths:
             text/html:
               schema:
                 type: string
-  /api/v1/sessions/login:
+  /sessions/login:
     get:
       tags: [sessions]
       responses:
@@ -51,7 +51,7 @@ paths:
             text/html:
               schema:
                 type: string
-  /api/v1/sessions/logout:
+  /sessions/logout:
     get:
       tags: [sessions]
       security:
