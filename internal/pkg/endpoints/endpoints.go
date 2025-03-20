@@ -3,6 +3,7 @@ package endpoints
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/endpoints/tpl"
@@ -25,23 +26,46 @@ var _ oapi.StrictServerInterface = (*Server)(nil)
 // Get implements oapi.StrictServerInterface.
 func (s *Server) Get(ctx context.Context, request oapi.GetRequestObject) (oapi.GetResponseObject, error) {
 	p := tpl.MainPage{
-		BasePage: BasePage(ctx),
+		BasePage: basePage(ctx),
 		Content:  "Hello, world!",
 	}
-	return oapi.Get200TexthtmlResponse{Body: RenderPage(&p)}, nil
+	return oapi.Get200TexthtmlResponse{Body: renderPage(&p)}, nil
 }
+
+var (
+	errUnknownSecurityScheme = errors.New("unknown security scheme")
+	errNotAuthenticated      = errors.New("not authenticated, no user id in session")
+)
 
 func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.AuthenticationInput) error {
 	if a.SecuritySchemeName != "CookieAuth" {
-		return errors.New("unknown security scheme")
+		return errUnknownSecurityScheme
 	}
 
 	sess := session.MustGet(ctx)
 	if !sess.UserID.Valid {
-		return errors.New("not authenticated")
+		return errNotAuthenticated
 	}
 
 	return nil
+}
+
+func errorHandler(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set(headerContentType, applicationJSON)
+	w.WriteHeader(statusCode)
+
+	if statusCode == http.StatusUnauthorized {
+		toSend := mkErr("unauthorized", "")
+		_ = json.NewEncoder(w).Encode(toSend)
+		return
+	}
+
+	if message == "" {
+		message = http.StatusText(statusCode)
+	}
+
+	toSend := mkErr(message, "")
+	_ = json.NewEncoder(w).Encode(toSend)
 }
 
 func New(d *db.DB, sess *session.Store) http.Handler {
@@ -54,11 +78,12 @@ func New(d *db.DB, sess *session.Store) http.Handler {
 		ExcludeRequestBody:    false,
 		ExcludeResponseBody:   false,
 		IncludeResponseStatus: true,
-		MultiError:            true,
+		MultiError:            false,
 	}
 
 	middlewareOptions := netmiddleware.Options{
-		Options: filterOptions,
+		Options:      filterOptions,
+		ErrorHandler: errorHandler,
 	}
 	middleware := netmiddleware.OapiRequestValidatorWithOptions(oapi.Schema(), &middlewareOptions)
 

@@ -33,11 +33,14 @@ go tool MailHog
 - [x] Make BackofFactorS configurable per Job
 - [x] Tests for job delay and backoff
 - [x] Email job
+- [ ] Test for 500 error handling
+- [ ] Test for 401 error handling
+- [ ] Test for 400 error handling
 - [ ] Allow submitting jobs in a transaction
 - [ ] Clean up jobs with min age
 - [ ] Frameworkeize/factor out was much as possible
 - [ ] Maybe keep session ID in signed JWT
-- [ ] Unified error handling and rendering
+- [x] Unified error handling
 - [ ] Clean up endpoints
 - [ ] Code TODOs
 - [ ] TS Oapi generator: https://www.npmjs.com/package/openapi-typescript
@@ -57,7 +60,7 @@ go tool MailHog
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)
 - Goose because: can do both SQL and Go migrations
 - We always try to store as little as possible in the database, and delete it right away. For investigations and debugging, we keep the logs instead.
-- JSON API endpoints should always require the `Accept` header to ensure errors are rendered correctly.
+- Server handlers should never return (nil, err)
 
 # Various
 

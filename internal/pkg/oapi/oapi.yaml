@@ -85,8 +85,6 @@ paths:
       tags: [users]
       security:
         - CookieAuth: []
-      parameters:
-        - $ref: "#/components/parameters/AcceptHeader"
       responses:
         '200':
           description: List of users
@@ -103,7 +101,6 @@ paths:
       security:
         - CookieAuth: []
       parameters:
-        - $ref: "#/components/parameters/AcceptHeader"
       requestBody:
         required: true
         content:
@@ -129,7 +126,6 @@ paths:
       security:
         - CookieAuth: []
       parameters:
-        - $ref: "#/components/parameters/AcceptHeader"
         - name: id
           in: path
           required: true
@@ -153,7 +149,6 @@ paths:
       security:
         - CookieAuth: []
       parameters:
-        - $ref: "#/components/parameters/AcceptHeader"
         - name: id
           in: path
           required: true
@@ -213,24 +208,17 @@ components:
     ErrorJSON:
       type: object
       properties:
-        message:
+        error:
           type: string
-        errors:
-          type: object
-          nullable: true
-          additionalProperties:
+        scope:
+          type: string
+        details:
+          type: array
+          items:
             $ref: '#/components/schemas/ErrorJSON'
       required:
-        - message
-        - errors
+        - error
 
-  parameters:
-    AcceptHeader:
-      in: header
-      name: Accept
-      required: true
-      schema:
-        type: string
   responses:
     200OK:
       description: OK
