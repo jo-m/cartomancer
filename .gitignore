@@ -3,7 +3,7 @@
 /cookies.txt
 
 # Do not yet check in all the generated files.
-*.qtpl.go
+*_templ.go
 *.gen.go
 
 /tmp

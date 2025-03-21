@@ -4,8 +4,8 @@
 go get -tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 go get -tool github.com/pressly/goose/v3/cmd/goose
 go get -tool github.com/sqlc-dev/sqlc/cmd/sqlc
-go get -tool github.com/valyala/quicktemplate/qtc
 go get -tool github.com/mailhog/MailHog
+go get -tool github.com/a-h/templ/cmd/templ
 
 make check
 
@@ -33,6 +33,12 @@ go tool MailHog
 - [x] Make BackofFactorS configurable per Job
 - [x] Tests for job delay and backoff
 - [x] Email job
+- [x] Maybe use https://github.com/a-h/templ instead
+- [x] Consider https://github.com/a-h/rest --> No.
+- [x] Remove qtpl
+- [ ] Test new templates
+- [ ] Separate endpoints into HTTP + Service layer
+- [ ] Make auto-restart work with templ
 - [ ] Test for 500 error handling
 - [ ] Test for 401 error handling
 - [ ] Test for 400 error handling

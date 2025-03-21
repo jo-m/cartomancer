@@ -8,11 +8,11 @@ bin = "tmp/main"
 log = "./tmp/air.log"
 
 include_dir = []
-include_ext = ["go", "qtpl", "sql"]
+include_ext = ["go", "sql", "templ"]
 include_file = []
 exclude_dir = ["tmp", "data"]
 exclude_file = []
-exclude_regex = ["_test\\.go", "\\.gen\\.go", "\\.qtpl\\.go"]
+exclude_regex = ["_test\\.go", "\\.gen\\.go", ".*_templ\\.go"]
 
 
 delay = 500

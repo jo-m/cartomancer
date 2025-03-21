@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"goweb/internal/pkg/db"
-	"goweb/internal/pkg/endpoints/tpl"
+	"goweb/internal/pkg/endpoints/tmpl"
 	"goweb/internal/pkg/oapi"
 	"goweb/internal/pkg/session"
 	"net/http"
@@ -24,11 +24,8 @@ var _ oapi.StrictServerInterface = (*Server)(nil)
 
 // Get implements oapi.StrictServerInterface.
 func (s *Server) Get(ctx context.Context, request oapi.GetRequestObject) (oapi.GetResponseObject, error) {
-	p := tpl.MainPage{
-		BasePage: tpl.NewBasePage(ctx),
-		Content:  "Hello, world!",
-	}
-	return tpl.RenderPage[oapi.Get200TexthtmlResponse](&p)
+	c := tmpl.MainPage(session.GetUser(ctx), "Hello, world!")
+	return tmpl.RenderPage[oapi.Get200TexthtmlResponse](ctx, c)
 }
 
 var (

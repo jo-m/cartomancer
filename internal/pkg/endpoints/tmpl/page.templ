@@ -1,0 +1,35 @@
+package tmpl
+
+import "goweb/internal/pkg/db"
+
+templ PageTemplate(title string, user *db.User) {
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<meta charset="utf-8"/>
+			<title>{ title }</title>
+		</head>
+		<body>
+			<nav>
+				<h1>Navigation</h1>
+				<ol>
+					<!-- TODO: Get URLs from OpenAPI spec. -->
+					<li><a href="/">Main page</a></li>
+					@userInfo(user)
+				</ol>
+			</nav>
+			<main>
+				{ children... }
+			</main>
+		</body>
+	</html>
+}
+
+templ userInfo(user *db.User) {
+	if user != nil {
+		<li>Logged in as: { user.Email }</li>
+		<li><a href="/sessions/logout">logout</a></li>
+	} else {
+		<li><a href="/sessions/login">login</a></li>
+	}
+}

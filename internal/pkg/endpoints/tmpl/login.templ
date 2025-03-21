@@ -1,0 +1,21 @@
+package tmpl
+
+import (
+	"goweb/internal/pkg/db"
+	"goweb/internal/pkg/oapi"
+)
+
+templ LoginPage(user *db.User, message string, loginData oapi.Login) {
+	@PageTemplate("Login", user) {
+		<div>
+			{ message }
+			<form action="" method="POST">
+				<label for="email">Email:</label>
+				<input type="email" id="email" name="email" required value={ loginData.Email }/>
+				<label for="password">Password:</label>
+				<input type="password" id="password" name="password" required value={ loginData.Password }/>
+				<button type="submit">Login</button>
+			</form>
+		</div>
+	}
+}

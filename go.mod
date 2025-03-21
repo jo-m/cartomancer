@@ -3,6 +3,7 @@ module goweb
 go 1.24.0
 
 tool (
+	github.com/a-h/templ/cmd/templ
 	github.com/air-verse/air
 	github.com/mailhog/MailHog
 	github.com/mgechev/revive
@@ -10,12 +11,12 @@ tool (
 	github.com/pressly/goose/v3/cmd/goose
 	github.com/securego/gosec/v2/cmd/gosec
 	github.com/sqlc-dev/sqlc/cmd/sqlc
-	github.com/valyala/quicktemplate/qtc
 	golang.org/x/vuln/cmd/govulncheck
 	honnef.co/go/tools/cmd/staticcheck
 )
 
 require (
+	github.com/a-h/templ v0.3.833
 	github.com/alexflint/go-arg v1.5.1
 	github.com/brianvoe/gofakeit/v7 v7.2.1
 	github.com/getkin/kin-openapi v0.127.0
@@ -26,7 +27,6 @@ require (
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/pressly/goose/v3 v3.24.1
 	github.com/stretchr/testify v1.10.0
-	github.com/valyala/quicktemplate v1.8.0
 	github.com/wneessen/go-mail v0.6.2
 	golang.org/x/crypto v0.35.0
 	modernc.org/sqlite v1.34.5
@@ -45,9 +45,12 @@ require (
 	github.com/BurntSushi/toml v1.4.1-0.20240526193622-a339e1f7089c // indirect
 	github.com/ClickHouse/ch-go v0.61.5 // indirect
 	github.com/ClickHouse/clickhouse-go/v2 v2.30.0 // indirect
+	github.com/PuerkitoBio/goquery v1.10.1 // indirect
+	github.com/a-h/parse v0.0.0-20250122154542-74294addb73e // indirect
 	github.com/air-verse/air v1.61.7 // indirect
 	github.com/alexflint/go-scalar v1.2.0 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
+	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/bep/godartsass v1.2.0 // indirect
@@ -55,7 +58,9 @@ require (
 	github.com/bep/golibsass v1.2.0 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/ccojocar/zxcvbn-go v1.0.2 // indirect
+	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
+	github.com/cli/browser v1.3.0 // indirect
 	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/coder/websocket v1.8.12 // indirect
 	github.com/creack/pty v1.1.23 // indirect
@@ -126,6 +131,7 @@ require (
 	github.com/mgechev/revive v1.7.0 // indirect
 	github.com/microsoft/go-mssqldb v1.8.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
+	github.com/natefinch/atomic v1.0.1 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.1 // indirect
 	github.com/ogier/pflag v0.0.1 // indirect
@@ -165,7 +171,6 @@ require (
 	github.com/tetratelabs/wazero v1.8.2 // indirect
 	github.com/tinylib/msgp v1.2.5 // indirect
 	github.com/tursodatabase/libsql-client-go v0.0.0-20240902231107-85af5b9d094d // indirect
-	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/vertica/vertica-sql-go v1.3.3 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	github.com/wasilibs/go-pgquery v0.0.0-20240606042535-c0843d6592cc // indirect

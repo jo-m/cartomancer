@@ -1,6 +1,6 @@
 .PHONY: clean
 clean:
-	find . -name '*.qtpl.go' -delete
+	find . -name '*_templ.go' -delete
 	find . -name '*.gen.go' -delete
 
 .PHONY: db_reset
@@ -15,6 +15,7 @@ gen: clean
 .PHONY: format
 format:
 	gofmt -w .
+	go tool templ fmt .
 	go mod tidy
 
 .PHONY: lint
