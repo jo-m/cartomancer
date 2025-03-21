@@ -41,7 +41,8 @@ func makeStatusErrorJSON(statusCode int) ErrorJSON {
 	return makeErrorJSON(text, scopeRequest)
 }
 
-func MakeJSONError[T any]() T {
+// TODO: Offer variant with custom error message.
+func MakeJSONError[T any]() (T, error) {
 	var ret T
 	typ := reflect.TypeOf(ret)
 
@@ -69,7 +70,7 @@ func MakeJSONError[T any]() T {
 	ptr := reflect.ValueOf(&ret).Elem().Field(0)
 	ptr.Set(reflect.ValueOf(embed))
 
-	return ret
+	return ret, nil
 }
 
 func ErrorHandler(w http.ResponseWriter, message string, statusCode int) {
