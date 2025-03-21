@@ -15,44 +15,50 @@ import (
 
 /*
 	curl -v http://127.0.0.1:8050/sessions/login \
+		--compressed \
 		--cookie-jar cookies.txt --cookie cookies.txt
 */
 func (s *Server) GetSessionsLogin(ctx context.Context, request oapi.GetSessionsLoginRequestObject) (oapi.GetSessionsLoginResponseObject, error) {
 	p := tpl.LoginPage{
-		BasePage: basePage(ctx),
+		BasePage: tpl.NewBasePage(ctx),
 	}
-	return oapi.GetSessionsLogin200TexthtmlResponse{Body: renderPage(&p)}, nil
+	return tpl.RenderPage[oapi.GetSessionsLogin200TexthtmlResponse](&p)
 }
 
 /*
 	curl -v -X POST http://127.0.0.1:8050/sessions/login \
+		--compressed \
 		--cookie-jar cookies.txt --cookie cookies.txt \
 		-H "Content-Type: application/x-www-form-urlencoded" \
 		-d "email=test@example.org&password=asdf"
 */
 func (s *Server) PostSessionsLogin(ctx context.Context, request oapi.PostSessionsLoginRequestObject) (oapi.PostSessionsLoginResponseObject, error) {
 	p := tpl.LoginPage{
-		BasePage:  basePage(ctx),
+		BasePage:  tpl.NewBasePage(ctx),
 		LoginData: *request.Body,
 	}
-	p.LoginData.Password = ""
+
+	if session.GetUser(ctx) != nil {
+		p.Message = "Already logged in"
+		return tpl.RenderPage[oapi.PostSessionsLogin409TexthtmlResponse](&p)
+	}
 
 	user, err := s.d.QueryRO().GetUserByEmail(ctx, request.Body.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			p.Message = "User not found"
-			return oapi.PostSessionsLogin401TexthtmlResponse{Body: renderPage(&p)}, nil
+			return tpl.RenderPage[oapi.PostSessionsLogin401TexthtmlResponse](&p)
 		}
 
 		logg.Warn(ctx, "Error fetching user", "email", user.Email, "err", err)
-		return oapi.PostSessionsLogin500TexthtmlResponse{Body: renderError(ctx, 500)}, nil
+		return tpl.RenderErrorPage[oapi.PostSessionsLogin500TexthtmlResponse](ctx, 500)
 	}
 
 	// Check password.
 	if !password.Check(request.Body.Password, user.PasswordHash) {
-		logg.Warn(ctx, "Authentication failed", "email", user.Email)
-		p.Message = "Authentication failed"
-		return oapi.PostSessionsLogin401TexthtmlResponse{Body: renderPage(&p)}, nil
+		logg.Warn(ctx, "Invalid password", "email", user.Email)
+		p.Message = "Invalid password"
+		return tpl.RenderPage[oapi.PostSessionsLogin401TexthtmlResponse](&p)
 	}
 	logg.Info(ctx, "Login succeeded", "user", user.ID)
 
@@ -61,7 +67,7 @@ func (s *Server) PostSessionsLogin(ctx context.Context, request oapi.PostSession
 	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: user.ID}, &oldSess)
 	if err != nil {
 		logg.Warn(ctx, "Creating session failed", "err", err)
-		return oapi.PostSessionsLogin500TexthtmlResponse{Body: renderError(ctx, 500)}, nil
+		return tpl.RenderErrorPage[oapi.PostSessionsLogin500TexthtmlResponse](ctx, 500)
 	}
 	logg.Debug(ctx, "Created new session", "id", sess.ID)
 
@@ -76,13 +82,14 @@ func (s *Server) PostSessionsLogin(ctx context.Context, request oapi.PostSession
 
 /*
 	curl -v http://127.0.0.1:8050/sessions/logout \
+		--compressed \
 		--cookie-jar cookies.txt --cookie cookies.txt
 */
 func (s *Server) GetSessionsLogout(ctx context.Context, request oapi.GetSessionsLogoutRequestObject) (oapi.GetSessionsLogoutResponseObject, error) {
 	p := tpl.LogoutPage{
-		BasePage: basePage(ctx),
+		BasePage: tpl.NewBasePage(ctx),
 	}
-	return oapi.GetSessionsLogout200TexthtmlResponse{Body: renderPage(&p)}, nil
+	return tpl.RenderPage[oapi.GetSessionsLogout200TexthtmlResponse](&p)
 }
 
 /*
@@ -94,7 +101,7 @@ func (s *Server) PostSessionsLogout(ctx context.Context, request oapi.PostSessio
 	err := session.Delete(ctx, &sess)
 	if err != nil {
 		logg.Warn(ctx, "Logout failed", "err", err)
-		return oapi.PostSessionsLogout500TexthtmlResponse{Body: renderError(ctx, 500)}, nil
+		return tpl.RenderErrorPage[oapi.PostSessionsLogout500TexthtmlResponse](ctx, 500)
 	}
 	logg.Info(ctx, "Logout succeeded", "session", sess.ID)
 

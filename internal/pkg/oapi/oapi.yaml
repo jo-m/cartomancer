@@ -44,6 +44,12 @@ paths:
             text/html:
               schema:
                 type: string
+        '409':
+          description: Already logged in
+          content:
+            text/html:
+              schema:
+                type: string
         '500':
           description: Internal server error
           content:

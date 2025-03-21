@@ -41,7 +41,7 @@ go tool MailHog
 - [ ] Frameworkeize/factor out was much as possible
 - [ ] Maybe keep session ID in signed JWT
 - [x] Unified error handling
-- [ ] Clean up endpoints
+- [x] Clean up endpoints
 - [ ] Code TODOs
 - [ ] TS Oapi generator: https://www.npmjs.com/package/openapi-typescript
 - [ ] XSRF protection

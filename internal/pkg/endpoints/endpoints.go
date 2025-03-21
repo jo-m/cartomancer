@@ -25,10 +25,10 @@ var _ oapi.StrictServerInterface = (*Server)(nil)
 // Get implements oapi.StrictServerInterface.
 func (s *Server) Get(ctx context.Context, request oapi.GetRequestObject) (oapi.GetResponseObject, error) {
 	p := tpl.MainPage{
-		BasePage: basePage(ctx),
+		BasePage: tpl.NewBasePage(ctx),
 		Content:  "Hello, world!",
 	}
-	return oapi.Get200TexthtmlResponse{Body: renderPage(&p)}, nil
+	return tpl.RenderPage[oapi.Get200TexthtmlResponse](&p)
 }
 
 var (
