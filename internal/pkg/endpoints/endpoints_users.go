@@ -22,7 +22,7 @@ func (s *Server) GetApiV1Users(ctx context.Context, request oapi.GetApiV1UsersRe
 	users, err := s.d.QueryRO().GetUsers(ctx)
 	if err != nil {
 		logg.Error(ctx, "Failed to query", "err", err)
-		return mk500[oapi.GetApiV1Users500JSONResponse](), nil
+		return oapi.MakeJSONError[oapi.GetApiV1Users500JSONResponse](), nil
 	}
 
 	ret := oapi.GetApiV1Users200JSONResponse{}
@@ -45,10 +45,10 @@ func (s *Server) GetApiV1Users(ctx context.Context, request oapi.GetApiV1UsersRe
 func (s *Server) GetApiV1UsersId(ctx context.Context, request oapi.GetApiV1UsersIdRequestObject) (oapi.GetApiV1UsersIdResponseObject, error) {
 	user, err := s.d.QueryRO().GetUser(ctx, request.Id)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return mk404[oapi.GetApiV1UsersId404JSONResponse](), nil
+		return oapi.MakeJSONError[oapi.GetApiV1UsersId404JSONResponse](), nil
 	}
 	if err != nil {
-		return mk500[oapi.GetApiV1UsersId500JSONResponse](), nil
+		return oapi.MakeJSONError[oapi.GetApiV1UsersId500JSONResponse](), nil
 	}
 
 	return oapi.GetApiV1UsersId200JSONResponse{

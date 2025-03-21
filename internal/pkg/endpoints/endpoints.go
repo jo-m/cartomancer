@@ -3,7 +3,6 @@ package endpoints
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/endpoints/tpl"
@@ -50,24 +49,6 @@ func (s *Server) authenticationFunc(ctx context.Context, a *openapi3filter.Authe
 	return nil
 }
 
-func errorHandler(w http.ResponseWriter, message string, statusCode int) {
-	w.Header().Set(headerContentType, applicationJSON)
-	w.WriteHeader(statusCode)
-
-	if statusCode == http.StatusUnauthorized {
-		toSend := mkErr("unauthorized", "")
-		_ = json.NewEncoder(w).Encode(toSend)
-		return
-	}
-
-	if message == "" {
-		message = http.StatusText(statusCode)
-	}
-
-	toSend := mkErr(message, "")
-	_ = json.NewEncoder(w).Encode(toSend)
-}
-
 func New(d *db.DB, sess *session.Store) http.Handler {
 	sv := Server{
 		d: d,
@@ -83,7 +64,7 @@ func New(d *db.DB, sess *session.Store) http.Handler {
 
 	middlewareOptions := netmiddleware.Options{
 		Options:      filterOptions,
-		ErrorHandler: errorHandler,
+		ErrorHandler: oapi.ErrorHandler,
 	}
 	middleware := netmiddleware.OapiRequestValidatorWithOptions(oapi.Schema(), &middlewareOptions)
 

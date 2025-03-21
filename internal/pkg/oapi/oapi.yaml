@@ -100,7 +100,6 @@ paths:
       tags: [users]
       security:
         - CookieAuth: []
-      parameters:
       requestBody:
         required: true
         content:
