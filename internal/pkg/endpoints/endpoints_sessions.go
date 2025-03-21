@@ -45,7 +45,7 @@ func (s *Server) PostSessionsLogin(ctx context.Context, request oapi.PostSession
 		}
 
 		logg.Warn(ctx, "Error fetching user", "email", user.Email, "err", err)
-		return oapi.PostSessionsLogin500TexthtmlResponse{Body: renderError500(ctx)}, nil
+		return oapi.PostSessionsLogin500TexthtmlResponse{Body: renderError(ctx, 500)}, nil
 	}
 
 	// Check password.
@@ -61,7 +61,7 @@ func (s *Server) PostSessionsLogin(ctx context.Context, request oapi.PostSession
 	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: user.ID}, &oldSess)
 	if err != nil {
 		logg.Warn(ctx, "Creating session failed", "err", err)
-		return oapi.PostSessionsLogin500TexthtmlResponse{Body: renderError500(ctx)}, nil
+		return oapi.PostSessionsLogin500TexthtmlResponse{Body: renderError(ctx, 500)}, nil
 	}
 	logg.Debug(ctx, "Created new session", "id", sess.ID)
 
@@ -94,7 +94,7 @@ func (s *Server) PostSessionsLogout(ctx context.Context, request oapi.PostSessio
 	err := session.Delete(ctx, &sess)
 	if err != nil {
 		logg.Warn(ctx, "Logout failed", "err", err)
-		return oapi.PostSessionsLogout500TexthtmlResponse{Body: renderError500(ctx)}, nil
+		return oapi.PostSessionsLogout500TexthtmlResponse{Body: renderError(ctx, 500)}, nil
 	}
 	logg.Info(ctx, "Logout succeeded", "session", sess.ID)
 

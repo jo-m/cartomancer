@@ -17,6 +17,7 @@ const (
 	scopeRequest    = "request"
 )
 
+// TODO: include request ID.
 func makeErrorJSON(err, scope string, details ...ErrorJSON) ErrorJSON {
 	scp := &scope
 	if scope == "" {
@@ -35,8 +36,8 @@ func makeErrorJSON(err, scope string, details ...ErrorJSON) ErrorJSON {
 	}
 }
 
-func makeStatusErrorJSON(status int) ErrorJSON {
-	text := strings.ToLower(http.StatusText(status))
+func makeStatusErrorJSON(statusCode int) ErrorJSON {
+	text := strings.ToLower(http.StatusText(statusCode))
 	return makeErrorJSON(text, scopeRequest)
 }
 

@@ -5,6 +5,7 @@ import (
 	"goweb/internal/pkg/endpoints/tpl"
 	"goweb/internal/pkg/session"
 	"io"
+	"net/http"
 
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -26,9 +27,11 @@ func renderPage(p tpl.Page) io.Reader {
 }
 
 // TODO: rename
-func renderError500(ctx context.Context) io.Reader {
-	p := tpl.Error500Page{
-		RequestID: middleware.GetReqID(ctx),
+func renderError(ctx context.Context, statusCode int) io.Reader {
+	p := tpl.ErrorPage{
+		RequestID:  middleware.GetReqID(ctx),
+		StatusCode: statusCode,
+		Error:      http.StatusText(statusCode),
 	}
 	return readerFrom(func(w io.Writer) { tpl.WritePageTemplate(w, &p) })
 }

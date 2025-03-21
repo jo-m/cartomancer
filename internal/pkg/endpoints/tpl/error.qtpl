@@ -1,0 +1,23 @@
+{% code
+type ErrorPage struct {
+	BasePage
+    RequestID string
+	StatusCode int
+	Error string
+}
+
+// Compile time interface check.
+var _ Page = (*ErrorPage)(nil)
+%}
+
+{% func (p *ErrorPage) Title() %}
+	{%d p.StatusCode %} {%s p.Error %}
+{% endfunc %}
+
+{% func (p *ErrorPage) Body() %}
+	<h1>{%s p.Title() %}</h1>
+	<div>
+        There was an error: {%d p.StatusCode %} {%s p.Error %}.
+        Request ID: {%s p.RequestID %}
+	</div>
+{% endfunc %}
