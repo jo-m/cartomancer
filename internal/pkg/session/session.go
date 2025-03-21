@@ -21,6 +21,8 @@ import (
 
 // SessionConfig options for a session store.
 // It has struct tags compatible with github.com/alexflint/go-arg.
+//
+//revive:disable:exported Naming necessary for struct embedding.
 type SessionConfig struct {
 	// Required.
 	IdleTimeout     time.Duration `arg:"--session-idle-timeout,env:SESSION_IDLE_TIMEOUT" default:"0" help:"Session idle timeout" placeholder:"DUR"`
@@ -33,6 +35,7 @@ type SessionConfig struct {
 	insecureUseOnlyForTests bool
 }
 
+// Validate the session config.
 func (c *SessionConfig) Validate() error {
 	if c.IdleTimeout <= 0 {
 		return errors.New("idle timeout must be positive")
@@ -49,6 +52,9 @@ func (c *SessionConfig) Validate() error {
 	return nil
 }
 
+// GetCleanerArgs returns the arguments for the session cleaner job.
+//
+//revive:disable:unexported-return
 func (c *SessionConfig) GetCleanerArgs() cleanerArgs {
 	return cleanerArgs{
 		IdleTimeout:     c.IdleTimeout,

@@ -24,7 +24,7 @@ type cleaner struct {
 var _ Job[cleanerArgs] = (*cleaner)(nil)
 
 // Run implements Job.
-func (c *cleaner) Run(ctx context.Context, args cleanerArgs) error {
+func (c *cleaner) Run(ctx context.Context, _ cleanerArgs) error {
 	n, err := c.d.QueryRW().CleanupJobs(ctx)
 	if n > 0 {
 		logg.Debug(ctx, "Cleaned up jobs", "count", n)

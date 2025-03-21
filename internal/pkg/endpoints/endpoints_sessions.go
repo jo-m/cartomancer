@@ -1,6 +1,8 @@
 package endpoints
 
 //lint:file-ignore ST1020,ST1003 Ignore generated method names.
+//revive:disable:unused-parameter Ignore generated code.
+//revive:disable:exported Ignore generated code.
 
 import (
 	"context"

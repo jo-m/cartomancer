@@ -174,7 +174,7 @@ func newTestIntJob() *TestIntJob {
 	}
 }
 
-func (j *TestIntJob) Run(ctx context.Context, args TestIntArgs) error {
+func (j *TestIntJob) Run(_ context.Context, args TestIntArgs) error {
 	time.Sleep(args.Sleep)
 
 	if args.ErrMsg != "" {
@@ -398,7 +398,7 @@ func newTestTimeJob() *TestTimeJob {
 	}
 }
 
-func (j *TestTimeJob) Run(ctx context.Context, args TestTimeArgs) error {
+func (j *TestTimeJob) Run(_ context.Context, args TestTimeArgs) error {
 	j.c <- time.Since(args.T0)
 	if args.Fail != "" {
 		return errors.New(args.Fail)

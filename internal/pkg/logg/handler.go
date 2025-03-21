@@ -10,6 +10,8 @@ import (
 
 // LoggConfig is the logging configuration.
 // It has struct tags compatible with github.com/alexflint/go-arg.
+//
+//revive:disable:exported Naming necessary for struct embedding.
 type LoggConfig struct {
 	// LogPretty enables pretty logging.
 	// Default is false (JSON logging).

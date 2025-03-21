@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math"
 
 	"golang.org/x/crypto/argon2"
 )
@@ -74,6 +75,12 @@ func Check(password, hashed string) bool {
 		return false
 	}
 
-	computedKey := argon2.IDKey([]byte(password), []byte(salt), h.Time, h.Memory, h.Threads, uint32(len(key)))
+	if len(key) > math.MaxUint32 {
+		return false
+	}
+	// #nosec G115 This is fine.
+	keyLen := uint32(len(key))
+
+	computedKey := argon2.IDKey([]byte(password), []byte(salt), h.Time, h.Memory, h.Threads, keyLen)
 	return subtle.ConstantTimeCompare([]byte(key), []byte(computedKey)) == 1
 }

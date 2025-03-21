@@ -10,7 +10,7 @@ import (
 
 // randomID uniquely identifies this process.
 // We use a random number instead of os.Getpid() because PIDs can be recycled.
-var randomID int64 = genRandInt64()
+var randomID = genRandInt64()
 
 func genRandInt64() int64 {
 	var b [8]byte
@@ -18,6 +18,7 @@ func genRandInt64() int64 {
 	if err != nil {
 		panic("rand.Read() cannot return err")
 	}
+	// #nosec G115 This is fine.
 	return int64(binary.BigEndian.Uint64(b[:]))
 }
 

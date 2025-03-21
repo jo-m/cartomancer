@@ -29,10 +29,11 @@ func Schema() *openapi3.T {
 	return schema
 }
 
+// PrintRoutes logs all routes defined in the OpenAPI schema.
 func PrintRoutes(ctx context.Context) {
 	for path, item := range Schema().Paths.Map() {
 		methods := []string{}
-		for method, _ := range item.Operations() {
+		for method := range item.Operations() {
 			methods = append(methods, method)
 		}
 		logg.Debug(ctx, "Endpoint", "path", path, "methods", methods)

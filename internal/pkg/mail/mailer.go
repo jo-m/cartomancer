@@ -1,3 +1,4 @@
+// Package mail provides a job that sends emails.
 package mail
 
 import (
@@ -13,6 +14,8 @@ import (
 
 // MailerConfig is the configuration for a mailer.
 // It has struct tags compatible with github.com/alexflint/go-arg.
+//
+//revive:disable:exported Naming necessary for struct embedding.
 type MailerConfig struct {
 	SMTPHost  string `arg:"--mail-smtp-host,env:MAIL_SMTP_HOST" default:"localhost" help:"SMTP server host" placeholder:"HOST"`
 	SMTPPort  uint16 `arg:"--mail-smtp-port,env:MAIL_SMTP_PORT" default:"25" help:"SMTP server port" placeholder:"PORT"`
@@ -70,7 +73,7 @@ func (l *mailLogger) Errorf(msg log.Log) {
 	l.l.Error(fmt.Sprintf(msg.Format, msg.Messages...), "dir", msg.Direction)
 }
 
-func (m *Mailer) configureClient(args Args, logger *slog.Logger) (*mail.Client, error) {
+func (m *Mailer) configureClient(logger *slog.Logger) (*mail.Client, error) {
 	opts := []mail.Option{
 		mail.WithDSN(),
 		mail.WithLogger(&mailLogger{l: logger}),
@@ -92,7 +95,7 @@ func (m *Mailer) configureClient(args Args, logger *slog.Logger) (*mail.Client, 
 
 // Run implements jobs.Job.
 func (m *Mailer) Run(ctx context.Context, args Args) error {
-	client, err := m.configureClient(args, logg.GetLogger(ctx))
+	client, err := m.configureClient(logg.GetLogger(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to configure SMTP client: %w", err)
 	}

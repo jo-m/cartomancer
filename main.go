@@ -1,3 +1,4 @@
+// Package main runs the web server and job runner.
 package main
 
 import (
@@ -34,7 +35,7 @@ type config struct {
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
 }
 
-func NewHandler(d *db.DB, logger *slog.Logger, sessConfig session.SessionConfig) http.Handler {
+func newHandler(d *db.DB, logger *slog.Logger, sessConfig session.SessionConfig) http.Handler {
 	logger = logger.With("mod", "svc")
 
 	sess, err := session.NewStore(d, sessConfig)
@@ -97,12 +98,12 @@ func main() {
 	// Insert users.
 	{
 		err := d.WithTx(ctx, func(tx *db.Queries) error {
-			createUser(ctx, tx, "test@example.org", "asdf")
+			_ = createUser(ctx, tx, "test@example.org", "asdf")
 			if err != nil {
 				logg.Error(ctx, "CreateUser failed", "err", err)
 			}
 			for range 3 {
-				createUser(ctx, tx, gofakeit.Email(), password.GenRandPrintableString(32))
+				_ = createUser(ctx, tx, gofakeit.Email(), password.GenRandPrintableString(32))
 			}
 			return nil
 		})
@@ -124,7 +125,7 @@ func main() {
 		jobs.Periodic(ctx, w.Submitter(), c.GetCleanerArgs(), time.Minute)
 
 		for range 10 {
-			jobs.Submit(ctx, w.Submitter(), mail.Args{
+			_ = jobs.Submit(ctx, w.Submitter(), mail.Args{
 				To:      []string{gofakeit.Email(), gofakeit.Email(), gofakeit.Email()},
 				Subject: gofakeit.Phrase(),
 				Body:    utl.Must(gofakeit.EmailText(&gofakeit.EmailOptions{})),
@@ -138,7 +139,7 @@ func main() {
 	{
 		s := &http.Server{
 			Addr:              c.HTTPListenAddr,
-			Handler:           NewHandler(d, logger, c.SessionConfig),
+			Handler:           newHandler(d, logger, c.SessionConfig),
 			ReadHeaderTimeout: 20 * time.Second,
 			ReadTimeout:       10 * time.Second,
 			WriteTimeout:      10 * time.Second,

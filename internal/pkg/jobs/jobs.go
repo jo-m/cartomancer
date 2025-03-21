@@ -38,6 +38,8 @@ type Job[T Args] interface {
 
 // JobsConfig is the configuration for Workers.
 // It has struct tags compatible with github.com/alexflint/go-arg.
+//
+//revive:disable:exported Naming necessary for struct embedding.
 type JobsConfig struct {
 	// MaxParallel is the maximum number of jobs that can run in parallel.
 	// It defaults to `runtime.NumCPU()` if zero.
@@ -62,7 +64,7 @@ func sqlTimeNow() sql.NullTime {
 	return sql.NullTime{Time: time.Now(), Valid: true}
 }
 
-// NewWorkers() creates a new workers instance.
+// NewWorkers creates a new workers instance.
 // There can only be one instance per process and database.
 // Use jobs.RegisterJob() to register new jobs on the worker.
 // Use jobs.Submit() and jobs.Periodic() on a submitter (w.Submitter()) to submit jobs to be run.
@@ -239,15 +241,16 @@ func (w *Workers) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
 				FinishedAt: sqlTimeNow(),
 				ID:         job.ID,
 			}))
-	} else {
-		next, err := w.d.QueryRW().SetJobError(ctx, db.SetJobErrorParams{
-			FinishedAt: sqlTimeNow(),
-			Error:      sql.NullString{Valid: true, String: jobErr.Error()},
-			ID:         job.ID,
-		})
-		logger.Error("Job failed", "err", jobErr, "next", next)
-		return true, err
 	}
+
+	next, err := w.d.QueryRW().SetJobError(ctx, db.SetJobErrorParams{
+		FinishedAt: sqlTimeNow(),
+		Error:      sql.NullString{Valid: true, String: jobErr.Error()},
+		ID:         job.ID,
+	})
+	logger.Error("Job failed", "err", jobErr, "next", next)
+	return true, err
+
 }
 
 const waitWhenIdle = time.Second
@@ -263,6 +266,7 @@ func (w *Workers) RunInBackground(ctx context.Context) {
 
 	nParallel := w.c.MaxParallel
 	if nParallel == 0 {
+		// #nosec G115 This is fine..
 		nParallel = uint(runtime.NumCPU())
 	}
 
@@ -306,7 +310,7 @@ type Submitter struct {
 type Params struct {
 	// How many times the job should be retried on failure.
 	// 0 means the job will be run once and not retried on failure.
-	MaxRetries uint
+	MaxRetries uint8
 	// DelayS is the delay before the job is run.
 	// It must be in whole seconds (X * time.Second).
 	DelayS time.Duration
