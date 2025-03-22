@@ -37,7 +37,7 @@ go tool MailHog
 - [x] Consider https://github.com/a-h/rest --> No.
 - [x] Remove qtpl
 - [ ] Get URLs from OpenAPI spec in templates
-- [ ] Static files
+- [x] Static files
 - [ ] Separate endpoints into HTTP + Service layer
 - [x] Make auto-restart work with templ
 - [ ] Allow submitting jobs in a transaction
@@ -57,6 +57,7 @@ go tool MailHog
 - [ ] TS Oapi generator: https://www.npmjs.com/package/openapi-typescript
 - [ ] Check in the generated files
 - [ ] Rate limiting for sensitive endpoints
+- [ ] (pre)compress static files
 - [ ] TOTP Login
 - [ ] VACUUM
 
