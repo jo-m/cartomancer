@@ -43,6 +43,8 @@ func newHandler(d *db.DB, logger *slog.Logger, sessConfig session.SessionConfig)
 		logg.Panic(context.Background(), "Failed to create session store", "err", err)
 	}
 	mux := chi.NewRouter()
+
+	// TODO: most middleware is not needed for static files.
 	mux.Use(middleware.RequestID)
 	mux.Use(logg.AttachLogger(logger))
 	mux.Use(logg.RequestLogger)
@@ -51,6 +53,13 @@ func newHandler(d *db.DB, logger *slog.Logger, sessConfig session.SessionConfig)
 	mux.Use(middleware.RedirectSlashes)
 	mux.Use(sess.Middleware)
 	mux.Use(middleware.Recoverer)
+
+	// TODO: compress static files.
+	staticFS, err := getStaticFS()
+	if err != nil {
+		logg.Panic(context.Background(), "Failed to get static files", "err", err)
+	}
+	mux.Mount("/static", http.StripPrefix("/static2", http.FileServerFS(staticFS)))
 
 	mux.Mount("/", endpoints.New(d, sess))
 

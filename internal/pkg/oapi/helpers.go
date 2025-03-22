@@ -43,7 +43,6 @@ func makeStatusErrorJSON(statusCode int) ErrorJSON {
 
 // MakeJSONError returns a OpenAPI response of the given type,
 // with the body set to the error JSON given by its HTTP status code.
-// TODO: Offer variant with custom error message.
 func MakeJSONError[T any]() (T, error) {
 	var ret T
 	typ := reflect.TypeOf(ret)

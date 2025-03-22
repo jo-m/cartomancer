@@ -47,7 +47,6 @@ func RenderPage[T any](ctx context.Context, c templ.Component) (T, error) {
 
 // RenderErrorPage returns a OpenAPI response of the given type,
 // rendering the error page with the given status code.
-// TODO: offer variant with custom message
 func RenderErrorPage[T any](ctx context.Context, statusCode int) (T, error) {
 	p := ErrorPage(session.GetUser(ctx), middleware.GetReqID(ctx), statusCode, http.StatusText(statusCode))
 	return RenderPage[T](ctx, p)

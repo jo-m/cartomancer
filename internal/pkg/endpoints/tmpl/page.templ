@@ -13,7 +13,6 @@ templ PageTemplate(title string, user *db.User) {
 			<nav>
 				<h1>Navigation</h1>
 				<ol>
-					<!-- TODO: Get URLs from OpenAPI spec. -->
 					<li><a href="/">Main page</a></li>
 					@userInfo(user)
 				</ol>

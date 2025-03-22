@@ -36,27 +36,25 @@ go tool MailHog
 - [x] Maybe use https://github.com/a-h/templ instead
 - [x] Consider https://github.com/a-h/rest --> No.
 - [x] Remove qtpl
-- [ ] Test new templates
+- [ ] Get URLs from OpenAPI spec in templates
+- [ ] Static files
 - [ ] Separate endpoints into HTTP + Service layer
-- [ ] Make auto-restart work with templ
-- [ ] Test for 500 error handling
-- [ ] Test for 401 error handling
-- [ ] Test for 400 error handling
+- [x] Make auto-restart work with templ
 - [ ] Allow submitting jobs in a transaction
-- [ ] Clean up jobs with min age
-- [ ] Frameworkeize/factor out was much as possible
 - [ ] Maybe keep session ID in signed JWT
 - [x] Unified error handling
 - [x] Clean up endpoints
 - [ ] Code TODOs
-- [ ] TS Oapi generator: https://www.npmjs.com/package/openapi-typescript
 - [ ] XSRF protection
-- [ ] Clean up/refactor svc package
 - [ ] CRUD users, self-registration
-- [ ] Templates and static files
+- [ ] Try https://hotwired.dev/ and HTMX
+- [ ] Jobs: Cleanup with min age
+- [ ] Jobs: execution timeouts
 
 # Later TODOs
 
+- [ ] Frameworkeize/factor out as much as possible
+- [ ] TS Oapi generator: https://www.npmjs.com/package/openapi-typescript
 - [ ] Check in the generated files
 - [ ] Rate limiting for sensitive endpoints
 - [ ] TOTP Login
