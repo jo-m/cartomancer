@@ -1,8 +1,8 @@
 -- name: CreateSession :one
 INSERT INTO sessions (
-  id, created_at, last_active_at, secret_hash, user_id
+  id, created_at, last_active_at, user_id
 ) VALUES (
-  ?, ?, ?, ?, ?
+  ?, ?, ?, ?
 )
 RETURNING *;
 

@@ -28,11 +28,6 @@ func TestContext(t *testing.T) {
 	assert.Equal(t, user, MustGetUser(ctx))
 }
 
-func TestHash(t *testing.T) {
-	s := "asdf"
-	assert.Equal(t, len(hash(s)), sessionSecretBytes, "Secret hash length must be equal to sessionSecretBytes")
-}
-
 const (
 	userID     = "testid"
 	userEmail  = "test@example.org"
@@ -236,6 +231,7 @@ func TestSessionExpiry(t *testing.T) {
 	}
 	store, err := NewStore(d, conf)
 	assert.NoError(t, err)
+	assert.Len(t, store.c.JWTSecret, jwtSecretLenBytes)
 
 	// Create a session.
 	cookieVal := createSession(t, d, store)

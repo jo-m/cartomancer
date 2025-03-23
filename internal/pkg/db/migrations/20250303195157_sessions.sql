@@ -6,7 +6,6 @@ CREATE TABLE sessions (
     created_at DATETIME NOT NULL,
     last_active_at DATETIME NOT NULL,
 
-    secret_hash BLOB NOT NULL,
     user_id TEXT,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );

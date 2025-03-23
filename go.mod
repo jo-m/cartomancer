@@ -21,6 +21,7 @@ require (
 	github.com/brianvoe/gofakeit/v7 v7.2.1
 	github.com/getkin/kin-openapi v0.127.0
 	github.com/go-chi/chi/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/lmittmann/tint v1.0.7
 	github.com/oapi-codegen/nethttp-middleware v1.0.2

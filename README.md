@@ -41,7 +41,7 @@ go tool MailHog
 - [ ] Separate endpoints into HTTP + Service layer
 - [x] Make auto-restart work with templ
 - [x] Allow submitting jobs in a transaction
-- [ ] Maybe keep session ID in signed JWT
+- [x] Keep session ID in signed JWT
 - [x] Unified error handling
 - [x] Clean up endpoints
 - [ ] Code TODOs

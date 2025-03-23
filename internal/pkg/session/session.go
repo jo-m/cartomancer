@@ -2,20 +2,17 @@
 package session
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/logg"
 	"goweb/internal/pkg/password"
 	"net/http"
-	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -29,6 +26,7 @@ type SessionConfig struct {
 	AbsoluteTimeout time.Duration `arg:"--session-abs-timeout,env:SESSION_ABS_TIMEOUT" default:"0" help:"Session absolute timeout" placeholder:"DUR"`
 	CookieName      string        `arg:"--session-cookie-name,env:SESSION_COOKIE_NAME" default:"" help:"Session cookie name" placeholder:"NAME"`
 	// Optional.
+	JWTSecret    string `arg:"--session-jwt-secret,env:SESSION_JWT_SECRET" help:"Secret to sign JWT, generated on startup if not set" placeholder:"SECRET"`
 	CookieDomain string `arg:"--session-cookie-domain,env:SESSION_COOKIE_DOMAIN" default:"" help:"Session cookie domain" placeholder:"HOST"`
 	CookiePath   string `arg:"--session-cookie-path,env:SESSION_COOKIE_PATH" default:"/" help:"Session cookie path" placeholder:"PATH"`
 	// Default is safe.
@@ -49,6 +47,7 @@ func (c *SessionConfig) Validate() error {
 	if c.CookieName == "" {
 		return errors.New("cookie name must not be empty")
 	}
+
 	return nil
 }
 
@@ -75,6 +74,12 @@ func NewStore(d *db.DB, c SessionConfig) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid session config: %w", err)
 	}
+	if len(c.JWTSecret) == 0 {
+		c.JWTSecret = string(password.GenRandBytes(jwtSecretLenBytes))
+	}
+	if len(c.JWTSecret) != jwtSecretLenBytes {
+		return nil, fmt.Errorf("JWT secret must be %d bytes but is %d", jwtSecretLenBytes, len(c.JWTSecret))
+	}
 
 	return &Store{
 		d: d,
@@ -82,45 +87,39 @@ func NewStore(d *db.DB, c SessionConfig) (*Store, error) {
 	}, nil
 }
 
-const (
-	// 64 bits are recommended, we have 32 * 8 = 256 bits here.
-	// https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#session-id-entropy
-	sessionSecretBytes = 32
+var (
+	ErrNoSuchSession          = errors.New("no such session")
+	ErrSessionExpiredIdle     = errors.New("session expired (idle)")
+	ErrSessionExpiredAbsolute = errors.New("session expired (absolute)")
 )
-
-func hash(s string) []byte {
-	h := sha256.New()
-	h.Write([]byte(s))
-	return h.Sum(nil)
-}
 
 func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 	cookie, err := r.Cookie(s.c.CookieName)
 	if err != nil {
-		return nil, fmt.Errorf("no session id: %w", err)
-	}
-
-	parts := strings.SplitN(cookie.Value, ":", 2)
-	if len(parts) != 2 {
-		return nil, errors.New("invalid session string")
-	}
-
-	sess, err := tx.GetSession(r.Context(), parts[0])
-	if err != nil {
-		return nil, errors.New("no such session")
-	}
-
-	if !bytes.Equal(hash(parts[1]), sess.SecretHash) {
-		return nil, errors.New("invalid secret")
+		return nil, fmt.Errorf("missing session id: %w", err)
 	}
 
 	now := time.Now()
+	claims, err := jwtParseAndVerify(cookie.Value, now, []byte(s.c.JWTSecret))
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, ErrSessionExpiredAbsolute
+		}
+
+		return nil, fmt.Errorf("invalid JWT: %w", err)
+	}
+
+	sess, err := tx.GetSession(r.Context(), claims.ID)
+	if err != nil {
+		return nil, ErrNoSuchSession
+	}
+
 	if now.Sub(sess.CreatedAt) > s.c.AbsoluteTimeout {
-		return nil, errors.New("session expired (absolute)")
+		return nil, ErrSessionExpiredAbsolute
 	}
 
 	if now.Sub(sess.LastActiveAt) > s.c.IdleTimeout {
-		return nil, errors.New("session expired (idle)")
+		return nil, ErrSessionExpiredIdle
 	}
 
 	err = db.EnsureOneRowChanged(tx.UpdateSessionLastActive(r.Context(), db.UpdateSessionLastActiveParams{
@@ -166,8 +165,6 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 	}
 
 	// Create new.
-	secretBytes := password.GenRandBytes(sessionSecretBytes)
-	secret := base64.URLEncoding.EncodeToString(secretBytes)
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate uuid: %w", err)
@@ -176,21 +173,23 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 		ID:           id.String(),
 		CreatedAt:    now,
 		LastActiveAt: now,
-		SecretHash:   hash(secret),
 		UserID:       userID,
-	}
-	if len(params.SecretHash) != sessionSecretBytes {
-		logg.Panic(r.Context(), "Secret hash length must be equal to sessionSecretBytes")
 	}
 	session, err := tx.CreateSession(r.Context(), params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session in db: %w", err)
 	}
 
+	claims := claimsForSession(id.String(), now, s.c.AbsoluteTimeout)
+	token, err := jwtSign(claims, []byte(s.c.JWTSecret))
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign JWT: %w", err)
+	}
+
 	// And send the cookie.
 	cookie := http.Cookie{
 		Name:     s.c.CookieName,
-		Value:    fmt.Sprintf("%s:%s", session.ID, secret),
+		Value:    token,
 		MaxAge:   int(s.c.AbsoluteTimeout.Seconds()),
 		Secure:   !s.c.insecureUseOnlyForTests,
 		HttpOnly: true,
