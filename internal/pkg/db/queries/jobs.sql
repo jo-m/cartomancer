@@ -54,8 +54,8 @@ WHERE
 -- name: CleanupJobs :execrows
 DELETE FROM jobs
 WHERE
-  status = 'S'
-  OR (status IN ('E', 'A') AND attempts >= max_attempts);
+  (status = 'S' OR (status IN ('E', 'A') AND attempts >= max_attempts))
+  AND Datetime(jobs.finished_at) <= Datetime(@maxFinishedAt);
 
 -- name: GetJobs :many
 SELECT * FROM jobs;

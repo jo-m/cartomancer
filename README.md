@@ -48,7 +48,7 @@ go tool MailHog
 - [ ] XSRF protection
 - [ ] CRUD users, self-registration
 - [ ] Try https://hotwired.dev/ and HTMX
-- [ ] Jobs: Cleanup with min age
+- [x] Jobs: Cleanup with min age
 - [x] Jobs: execution timeouts
 
 # Later TODOs

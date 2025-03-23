@@ -11,7 +11,9 @@ import (
 
 const jobNameCleaner = "_jobs.cleaner"
 
-type cleanerArgs struct{}
+type cleanerArgs struct {
+	MinAge time.Duration
+}
 
 var _ Args = (*cleanerArgs)(nil)
 
@@ -25,10 +27,12 @@ type cleaner struct {
 var _ Job[cleanerArgs] = (*cleaner)(nil)
 
 // Run implements Job.
-func (c *cleaner) Run(ctx context.Context, _ cleanerArgs) error {
+func (c *cleaner) Run(ctx context.Context, args cleanerArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
-	n, err := c.d.QueryRW().CleanupJobs(ctx)
+
+	maxFinishedAt := time.Now().Add(args.MinAge)
+	n, err := c.d.QueryRW().CleanupJobs(ctx, maxFinishedAt)
 	if n > 0 {
 		logg.Debug(ctx, "Cleaned up jobs", "count", n)
 	}

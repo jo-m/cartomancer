@@ -48,6 +48,8 @@ type JobsConfig struct {
 	// AutoCleanupPeriod is the period at which old jobs will be cleared from the database.
 	// Disabled if set to 0.
 	AutoCleanupPeriod time.Duration `arg:"--jobs-auto-cleanup-period,env:JOBS_AUTO_CLEANUP_PERIOD" default:"0" help:"Period at which old jobs will be cleared from the database" placeholder:"DUR"`
+	// AutoCleanupMinAge is the time to wait until jobs are cleared from the database.
+	AutoCleanupMinAge time.Duration `arg:"--jobs-auto-cleanup-min-age,env:JOBS_AUTO_CLEANUP_MIN_AGE" default:"0" help:"Time to wait after a job has finished to clear it from the database" placeholder:"DUR"`
 }
 
 type decodeAndWorkFunc func(ctx context.Context, args json.RawMessage) error
@@ -94,7 +96,9 @@ func NewWorkers(ctx context.Context, d *db.DB, c JobsConfig) (*Workers, error) {
 	if c.AutoCleanupPeriod != 0 {
 		MustRegisterJob(w, &cleaner{d: d})
 		s := w.Submitter()
-		Periodic(ctx, s, cleanerArgs{}, c.AutoCleanupPeriod)
+		Periodic(ctx, s, cleanerArgs{
+			MinAge: c.AutoCleanupMinAge,
+		}, c.AutoCleanupPeriod)
 	}
 
 	return w, nil
