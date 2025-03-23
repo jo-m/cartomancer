@@ -40,7 +40,7 @@ go tool MailHog
 - [x] Static files
 - [ ] Separate endpoints into HTTP + Service layer
 - [x] Make auto-restart work with templ
-- [ ] Allow submitting jobs in a transaction
+- [x] Allow submitting jobs in a transaction
 - [ ] Maybe keep session ID in signed JWT
 - [x] Unified error handling
 - [x] Clean up endpoints

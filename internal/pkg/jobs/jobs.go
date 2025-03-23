@@ -343,8 +343,9 @@ func (c *Params) validate() error {
 	return nil
 }
 
-// Submit posts a job to the job queue with given args, to be scheduled with the given params.
-func Submit[T Args](ctx context.Context, s *Submitter, jobArgs T, params Params) error {
+// SubmitTx posts a job to the job queue with given args in the given database transaction,
+// to be scheduled with the given params.
+func SubmitTx[T Args](ctx context.Context, s *Submitter, tx *db.Queries, jobArgs T, params Params) error {
 	if err := params.validate(); err != nil {
 		return err
 	}
@@ -360,7 +361,7 @@ func Submit[T Args](ctx context.Context, s *Submitter, jobArgs T, params Params)
 		return fmt.Errorf("failed to marshal job args: %w", err)
 	}
 
-	_, err = s.w.d.QueryRW().CreateJob(ctx, db.CreateJobParams{
+	_, err = tx.CreateJob(ctx, db.CreateJobParams{
 		CreatedAt:      time.Now(),
 		MaxAttempts:    int64(params.MaxRetries) + 1,
 		DelayS:         int64(params.DelayS / time.Second),
@@ -369,6 +370,11 @@ func Submit[T Args](ctx context.Context, s *Submitter, jobArgs T, params Params)
 		ArgsJson:       string(argsJSON),
 	})
 	return err
+}
+
+// Submit posts a job to the job queue with given args, to be scheduled with the given params.
+func Submit[T Args](ctx context.Context, s *Submitter, jobArgs T, params Params) error {
+	return SubmitTx(ctx, s, s.w.d.QueryRW(), jobArgs, params)
 }
 
 // Periodic schedules a job for periodic submission to the queue.
