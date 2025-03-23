@@ -7,6 +7,7 @@ import (
 	"goweb/internal/pkg/jobs"
 	"goweb/internal/pkg/logg"
 	"log/slog"
+	"time"
 
 	"github.com/wneessen/go-mail"
 	"github.com/wneessen/go-mail/log"
@@ -95,6 +96,9 @@ func (m *Mailer) configureClient(logger *slog.Logger) (*mail.Client, error) {
 
 // Run implements jobs.Job.
 func (m *Mailer) Run(ctx context.Context, args Args) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
 	client, err := m.configureClient(logg.GetLogger(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to configure SMTP client: %w", err)

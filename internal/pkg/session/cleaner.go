@@ -33,6 +33,9 @@ var _ jobs.Job[cleanerArgs] = (*Cleaner)(nil)
 
 // Run implements jobs.Job.
 func (c *Cleaner) Run(ctx context.Context, args cleanerArgs) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+
 	now := time.Now()
 	n, err := c.d.QueryRW().CleanupSessions(ctx, db.CleanupSessionsParams{
 		CreatedBefore: now.Add(-args.AbsoluteTimeout),

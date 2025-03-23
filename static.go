@@ -2,7 +2,6 @@ package main
 
 import (
 	"embed"
-	"fmt"
 	"io/fs"
 )
 
@@ -16,10 +15,5 @@ func getStaticFS() (fs.FS, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO: remove
-	fmt.Println(staticEmbed.Open("static/test.html"))
-	fmt.Println(sub.Open("test.html"))
-
 	return sub, nil
 }

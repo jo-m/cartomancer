@@ -33,6 +33,7 @@ type Job[T Args] interface {
 	// Run must be implemented to run the job once.
 	// Returning nil means successful execution.
 	// Returning an error means that the job will be retried (if maxAttemps is set to > 1).
+	// Jobs are responsible to set a reasonable timeout for execution.
 	Run(ctx context.Context, args T) error
 }
 

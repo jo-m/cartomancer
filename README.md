@@ -49,7 +49,7 @@ go tool MailHog
 - [ ] CRUD users, self-registration
 - [ ] Try https://hotwired.dev/ and HTMX
 - [ ] Jobs: Cleanup with min age
-- [ ] Jobs: execution timeouts
+- [x] Jobs: execution timeouts
 
 # Later TODOs
 

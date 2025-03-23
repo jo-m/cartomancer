@@ -4,6 +4,7 @@ import (
 	"context"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/logg"
+	"time"
 )
 
 // Builtin periodic job to cleanup old jobs from the database.
@@ -25,6 +26,8 @@ var _ Job[cleanerArgs] = (*cleaner)(nil)
 
 // Run implements Job.
 func (c *cleaner) Run(ctx context.Context, _ cleanerArgs) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
 	n, err := c.d.QueryRW().CleanupJobs(ctx)
 	if n > 0 {
 		logg.Debug(ctx, "Cleaned up jobs", "count", n)
