@@ -49,6 +49,7 @@ go tool MailHog
 - [ ] CRUD users, self-registration
 - [ ] Try https://hotwired.dev/ and HTMX
 - [x] Jobs: Cleanup with min age
+- [ ] https://silky.github.io/posts/htmx-haskell-interview.html
 - [x] Jobs: execution timeouts
 
 # Later TODOs

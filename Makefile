@@ -31,5 +31,9 @@ lint:
 test:
 	go test -count 1 -v ./...
 
+.PHONY: bench
+bench:
+	go test -count 1 -v -bench=. -run=Bench ./...
+
 .PHONY: check
 check: gen lint test
