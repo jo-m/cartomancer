@@ -7,7 +7,7 @@ func GenRandBytes(n uint32) []byte {
 	b := make([]byte, n)
 	_, err := rand.Read(b)
 	if err != nil {
-		panic("rand.Read() cannot return err")
+		panic("rand.Read() cannot return err (see https://github.com/golang/go/issues/66821)")
 	}
 	return b
 }
