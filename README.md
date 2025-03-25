@@ -36,24 +36,26 @@ go tool MailHog
 - [x] Maybe use https://github.com/a-h/templ instead
 - [x] Consider https://github.com/a-h/rest --> No.
 - [x] Remove qtpl
-- [ ] Get URLs from OpenAPI spec in templates
 - [x] Static files
-- [ ] Separate endpoints into HTTP + Service layer
 - [x] Make auto-restart work with templ
 - [x] Allow submitting jobs in a transaction
 - [x] Keep session ID in signed JWT
 - [x] Unified error handling
 - [x] Clean up endpoints
+- [ ] Get URLs from OpenAPI spec in templates
+- [ ] CRUD users, self-registration
+- [ ] Separate endpoints into HTTP + Service layer
 - [ ] Code TODOs
 - [ ] XSRF protection
-- [ ] CRUD users, self-registration
 - [ ] Try https://hotwired.dev/ and HTMX
 - [x] Jobs: Cleanup with min age
 - [ ] https://silky.github.io/posts/htmx-haskell-interview.html
 - [x] Jobs: execution timeouts
+- [ ] Rename db pkgs and datastructures
 
 # Later TODOs
 
+- [ ] https://brandur.org/two-phase-render
 - [ ] Frameworkeize/factor out as much as possible
 - [ ] TS Oapi generator: https://www.npmjs.com/package/openapi-typescript
 - [ ] Check in the generated files
