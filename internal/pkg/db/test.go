@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // GetTestDB returns a new temporary test database.
@@ -15,6 +15,6 @@ func GetTestDB(t *testing.T) *DB {
 	dir := t.TempDir()
 	ctx := logg.WithDiscardHandler(context.Background())
 	d, err := Open(ctx, filepath.Join(dir, "db"))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	return d
 }

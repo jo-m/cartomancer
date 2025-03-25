@@ -11,6 +11,7 @@ import (
 	"goweb/internal/pkg/logg"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // To enable debug logging per test:
@@ -106,7 +107,7 @@ func TestUniqueWorkers(t *testing.T) {
 	defer cancel()
 
 	_, err := NewWorkers(ctx, d, c)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	_, err = NewWorkers(ctx, d, c)
 	assert.ErrorContains(t, err, "only one instance allowed")
@@ -128,7 +129,7 @@ func TestRunnerRunOnlyOnce(t *testing.T) {
 	defer cancel()
 
 	w, err := NewWorkers(ctx, d, c)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	w.RunInBackground(ctx)
 	assert.Panics(t, func() {
@@ -202,9 +203,9 @@ func TestRunJobsParallel(t *testing.T) {
 	defer cancel()
 
 	w, err := NewWorkers(ctx, d, c)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	j := newTestIntJob()
-	assert.NoError(t, RegisterJob(w, j))
+	require.NoError(t, RegisterJob(w, j))
 
 	s0 := w.Submitter()
 	s1 := w.Submitter()
@@ -212,8 +213,8 @@ func TestRunJobsParallel(t *testing.T) {
 		args := TestIntArgs{Val: i, Sleep: time.Millisecond * 100}
 		err0 := Submit(ctx, s0, args, Params{})
 		err1 := Submit(ctx, s1, args, Params{})
-		assert.NoError(t, err0)
-		assert.NoError(t, err1)
+		require.NoError(t, err0)
+		require.NoError(t, err1)
 	}
 
 	// Nothing executed yet.
@@ -243,16 +244,16 @@ func TestRunJobsMaxRetries(t *testing.T) {
 	defer cancel()
 
 	w, err := NewWorkers(ctx, d, c)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	j := newTestIntJob()
-	assert.NoError(t, RegisterJob(w, j))
+	require.NoError(t, RegisterJob(w, j))
 
 	// Submit 15 failing jobs, each with 2 retries.
 	s := w.Submitter()
 	for i := range 15 {
 		args := TestIntArgs{Val: i, ErrMsg: "this failed"}
 		err := Submit(ctx, s, args, Params{MaxRetries: 2})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 	w.RunInBackground(ctx)
 
@@ -283,16 +284,16 @@ func TestRunJobsPanicMaxRetries(t *testing.T) {
 	defer cancel()
 
 	w, err := NewWorkers(ctx, d, c)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	j := newTestIntJob()
-	assert.NoError(t, RegisterJob(w, j))
+	require.NoError(t, RegisterJob(w, j))
 
 	// Submit 15 panicked jobs, each with 3 retries.
 	s := w.Submitter()
 	for i := range 15 {
 		args := TestIntArgs{Val: i, PanicMsg: "this panicked"}
 		err := Submit(ctx, s, args, Params{MaxRetries: 2})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 	w.RunInBackground(ctx)
 
@@ -323,15 +324,15 @@ func TestRunJobsAutoCleanup(t *testing.T) {
 	defer cancel()
 
 	w, err := NewWorkers(ctx, d, c)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	j := newTestIntJob()
-	assert.NoError(t, RegisterJob(w, j))
+	require.NoError(t, RegisterJob(w, j))
 
 	s := w.Submitter()
 	for i := range 5 {
-		assert.NoError(t, Submit(ctx, s, TestIntArgs{Val: i}, Params{MaxRetries: 2}))
-		assert.NoError(t, Submit(ctx, s, TestIntArgs{Val: i, ErrMsg: "err msg"}, Params{MaxRetries: 2}))
-		assert.NoError(t, Submit(ctx, s, TestIntArgs{Val: i, PanicMsg: "panic msg"}, Params{MaxRetries: 2}))
+		require.NoError(t, Submit(ctx, s, TestIntArgs{Val: i}, Params{MaxRetries: 2}))
+		require.NoError(t, Submit(ctx, s, TestIntArgs{Val: i, ErrMsg: "err msg"}, Params{MaxRetries: 2}))
+		require.NoError(t, Submit(ctx, s, TestIntArgs{Val: i, PanicMsg: "panic msg"}, Params{MaxRetries: 2}))
 	}
 	w.RunInBackground(ctx)
 
@@ -362,9 +363,9 @@ func TestRunJobsPeriodic(t *testing.T) {
 	defer cancel()
 
 	w, err := NewWorkers(ctx, d, c)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	j := newTestIntJob()
-	assert.NoError(t, RegisterJob(w, j))
+	require.NoError(t, RegisterJob(w, j))
 
 	// Run.
 	s := w.Submitter()
@@ -425,14 +426,14 @@ func TestRunJobsDelay(t *testing.T) {
 	defer cancel()
 
 	w, err := NewWorkers(ctx, d, c)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	j := newTestTimeJob()
-	assert.NoError(t, RegisterJob(w, j))
+	require.NoError(t, RegisterJob(w, j))
 
 	s := w.Submitter()
-	assert.NoError(t, Submit(ctx, s, TestTimeArgs{T0: time.Now()}, Params{DelayS: time.Second * 0}))
-	assert.NoError(t, Submit(ctx, s, TestTimeArgs{T0: time.Now()}, Params{DelayS: time.Second * 1}))
-	assert.NoError(t, Submit(ctx, s, TestTimeArgs{T0: time.Now()}, Params{DelayS: time.Second * 2}))
+	require.NoError(t, Submit(ctx, s, TestTimeArgs{T0: time.Now()}, Params{DelayS: time.Second * 0}))
+	require.NoError(t, Submit(ctx, s, TestTimeArgs{T0: time.Now()}, Params{DelayS: time.Second * 1}))
+	require.NoError(t, Submit(ctx, s, TestTimeArgs{T0: time.Now()}, Params{DelayS: time.Second * 2}))
 	w.RunInBackground(ctx)
 
 	delays := slurp(j.c, time.Second*4)
@@ -451,14 +452,14 @@ func TestRunJobsBackoff(t *testing.T) {
 	defer cancel()
 
 	w, err := NewWorkers(ctx, d, c)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	j := newTestTimeJob()
-	assert.NoError(t, RegisterJob(w, j))
+	require.NoError(t, RegisterJob(w, j))
 
 	s := w.Submitter()
 	args := TestTimeArgs{T0: time.Now(), Fail: "failed"}
 	params := Params{MaxRetries: 3, BackofFactorS: time.Second * 1}
-	assert.NoError(t, Submit(ctx, s, args, params))
+	require.NoError(t, Submit(ctx, s, args, params))
 	w.RunInBackground(ctx)
 
 	delays := slurp(j.c, time.Second*8)

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestContext(t *testing.T) {
@@ -44,7 +45,7 @@ type testClient struct {
 
 func newTestClient(t *testing.T) *testClient {
 	jar, err := cookiejar.New(nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	return &testClient{
 		t:      t,
 		client: &http.Client{Jar: jar},
@@ -54,19 +55,19 @@ func newTestClient(t *testing.T) *testClient {
 
 func (c *testClient) doRequest(method, url string, body io.Reader, expectedStatus int) (string, []*http.Cookie, http.Header) {
 	req, err := http.NewRequest(method, url, body)
-	assert.NoError(c.t, err)
+	require.NoError(c.t, err)
 	resp, err := c.client.Do(req)
-	assert.NoError(c.t, err)
-	assert.Equal(c.t, expectedStatus, resp.StatusCode)
+	require.NoError(c.t, err)
+	require.Equal(c.t, expectedStatus, resp.StatusCode)
 	respBody, err := io.ReadAll(resp.Body)
-	assert.NoError(c.t, err)
+	require.NoError(c.t, err)
 	return string(respBody), resp.Cookies(), resp.Header
 }
 
 func createUser(t *testing.T, d *db.DB) {
 	ctx := context.Background()
 	tx, err := d.BeginTX(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer tx.Rollback()
 	_, err = tx.CreateUser(ctx, db.CreateUserParams{
 		ID:           userID,
@@ -76,8 +77,8 @@ func createUser(t *testing.T, d *db.DB) {
 		Name:         "test",
 		PasswordHash: password.Hash(userPass),
 	})
-	assert.NoError(t, err)
-	assert.NoError(t, tx.Commit())
+	require.NoError(t, err)
+	require.NoError(t, tx.Commit())
 }
 
 func sessionHandler(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +139,7 @@ func TestSessionMiddleware(t *testing.T) {
 		AppName: "testapp",
 	}
 	sessionStore, err := NewStore(d, conf, appConf)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Setup test server.
 	mux := http.NewServeMux()
@@ -185,16 +186,16 @@ func TestSessionMiddleware(t *testing.T) {
 func createSession(t *testing.T, d *db.DB, store *Store) string {
 	ctx := context.Background()
 	tx, err := d.BeginTX(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer tx.Rollback()
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	_, err = store.create(w, r, tx, sql.NullString{}, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = tx.Commit()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	cookieVal := w.Result().Cookies()[0].Value
 	return cookieVal
@@ -203,7 +204,7 @@ func createSession(t *testing.T, d *db.DB, store *Store) string {
 func pokeSession(t *testing.T, d *db.DB, store *Store, cookieVal string) error {
 	ctx := context.Background()
 	tx, err := d.BeginTX(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer tx.Rollback()
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -213,7 +214,7 @@ func pokeSession(t *testing.T, d *db.DB, store *Store, cookieVal string) error {
 	})
 	_, err = store.get(r, tx)
 	txErr := tx.Commit()
-	assert.NoError(t, txErr)
+	require.NoError(t, txErr)
 
 	return err
 }
@@ -237,14 +238,14 @@ func TestSessionExpiry(t *testing.T) {
 		AppName: "testapp",
 	}
 	store, err := NewStore(d, conf, appConf)
-	assert.NoError(t, err)
-	assert.Len(t, store.c.JWTSecret, jwtSecretLenBytes)
+	require.NoError(t, err)
+	require.Len(t, store.c.JWTSecret, jwtSecretLenBytes)
 
 	// Create a session.
 	cookieVal := createSession(t, d, store)
 	// And it remains valid.
 	for range 35 {
-		assert.NoError(t, pokeSession(t, d, store, cookieVal))
+		require.NoError(t, pokeSession(t, d, store, cookieVal))
 		time.Sleep(time.Millisecond * 10)
 	}
 	time.Sleep(time.Millisecond * 100)
