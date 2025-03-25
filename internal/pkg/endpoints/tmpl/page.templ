@@ -8,9 +8,9 @@ import (
 	"goweb/internal/pkg/session"
 )
 
-type PageContext struct{
+type PageContext struct {
 	User *db.User
-	L oapi.Links
+	L    oapi.Links
 }
 
 func GetPageContext(ctx context.Context) PageContext {

@@ -31,6 +31,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/wneessen/go-mail v0.6.2
 	golang.org/x/crypto v0.36.0
+	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.34.5
 )
 
@@ -211,7 +212,6 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.6.1 // indirect
 	howett.net/plist v1.0.0 // indirect
 	modernc.org/libc v1.55.3 // indirect

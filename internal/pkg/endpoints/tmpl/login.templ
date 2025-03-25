@@ -1,8 +1,6 @@
 package tmpl
 
-import (
-	"goweb/internal/pkg/oapi"
-)
+import "goweb/internal/pkg/oapi"
 
 templ LoginPage(p PageContext, message string, loginData oapi.Login) {
 	@PageTemplate(p, "Login") {

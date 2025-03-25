@@ -1,8 +1,6 @@
 package tmpl
 
-import (
-	"fmt"
-)
+import "fmt"
 
 templ title(statusCode int, errMsg string) {
 	{ fmt.Sprint(statusCode) } { errMsg }
