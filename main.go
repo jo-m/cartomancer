@@ -37,15 +37,15 @@ type config struct {
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
 }
 
-func newHandler(d *db.DB, logger *slog.Logger, sessConfig session.SessionConfig, appConfig app.AppConfig) http.Handler {
+func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig, appConfig app.AppConfig) http.Handler {
+	logger := logg.GetLogger(ctx).With("mod", "svc")
 	mux := chi.NewRouter()
 
 	{
-		logger = logger.With("mod", "svc")
 
 		sess, err := session.NewStore(d, sessConfig, appConfig)
 		if err != nil {
-			logg.Panic(context.Background(), "Failed to create session store", "err", err)
+			logg.Panic(ctx, "Failed to create session store", "err", err)
 		}
 
 		svcMux := chi.NewRouter()
@@ -57,6 +57,9 @@ func newHandler(d *db.DB, logger *slog.Logger, sessConfig session.SessionConfig,
 		svcMux.Use(middleware.RedirectSlashes)
 		svcMux.Use(sess.Middleware)
 		svcMux.Use(middleware.Recoverer)
+		svcMux.Use(oapi.AttachLinks(oapi.Links{
+			Base: appConfig.ExternalBaseURL,
+		}))
 
 		svcMux.Mount("/", endpoints.New(d, sess))
 		mux.Mount("/", svcMux)
@@ -65,7 +68,7 @@ func newHandler(d *db.DB, logger *slog.Logger, sessConfig session.SessionConfig,
 	{
 		staticFS, err := getStaticFS()
 		if err != nil {
-			logg.Panic(context.Background(), "Failed to get static files", "err", err)
+			logg.Panic(ctx, "Failed to get static files", "err", err)
 		}
 
 		staticMux := chi.NewRouter()
@@ -162,7 +165,7 @@ func main() {
 	{
 		s := &http.Server{
 			Addr:              c.HTTPListenAddr,
-			Handler:           newHandler(d, logger, c.SessionConfig, c.AppConfig),
+			Handler:           newHandler(ctx, d, c.SessionConfig, c.AppConfig),
 			ReadHeaderTimeout: 20 * time.Second,
 			ReadTimeout:       10 * time.Second,
 			WriteTimeout:      10 * time.Second,

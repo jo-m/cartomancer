@@ -1,12 +1,11 @@
 package tmpl
 
 import (
-	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/oapi"
 )
 
-templ LoginPage(user *db.User, message string, loginData oapi.Login) {
-	@PageTemplate("Login", user) {
+templ LoginPage(p PageContext, message string, loginData oapi.Login) {
+	@PageTemplate(p, "Login") {
 		<div>
 			{ message }
 			<form action="" method="POST">

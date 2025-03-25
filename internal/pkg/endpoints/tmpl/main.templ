@@ -1,11 +1,9 @@
 package tmpl
 
-import "goweb/internal/pkg/db"
-
 const mainTitle = "Main page"
 
-templ MainPage(user *db.User, content string) {
-	@PageTemplate(mainTitle, user) {
+templ MainPage(p PageContext, content string) {
+	@PageTemplate(p, mainTitle) {
 		<h1>{ mainTitle }</h1>
 		<div>
 			{ content }

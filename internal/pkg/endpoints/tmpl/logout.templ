@@ -1,9 +1,7 @@
 package tmpl
 
-import "goweb/internal/pkg/db"
-
-templ LogoutPage(user *db.User) {
-	@PageTemplate("Logout", user) {
+templ LogoutPage(p PageContext) {
+	@PageTemplate(p, "Logout") {
 		<div>
 			<form action="" method="POST">
 				<button type="submit">Logout</button>

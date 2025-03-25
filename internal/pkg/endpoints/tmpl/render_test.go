@@ -10,7 +10,12 @@ import (
 )
 
 func TestRenderPage(t *testing.T) {
-	p := LoginPage(nil, "", oapi.Login{})
+	pCtx := PageContext{
+		User: nil,
+		L:    oapi.Links{},
+	}
+
+	p := LoginPage(pCtx, "", oapi.Login{})
 	renderer, _ := RenderPage[oapi.GetSessionsLogin200TexthtmlResponse](context.Background(), p)
 	content, err := io.ReadAll(renderer.Body)
 	assert.NoError(t, err)

@@ -10,6 +10,7 @@ import (
 )
 
 //go:generate go tool oapi-codegen -config oapi-cfg.yaml oapi.yaml
+//go:generate go run ../../cmd/links/ -infile oapi.yaml -outfile links.gen.go -pkgname oapi
 
 //go:embed oapi.yaml
 var schemaBytes []byte

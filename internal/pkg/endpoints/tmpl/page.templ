@@ -1,8 +1,26 @@
 package tmpl
 
-import "goweb/internal/pkg/db"
+import (
+	"context"
 
-templ PageTemplate(title string, user *db.User) {
+	"goweb/internal/pkg/db"
+	"goweb/internal/pkg/oapi"
+	"goweb/internal/pkg/session"
+)
+
+type PageContext struct{
+	User *db.User
+	L oapi.Links
+}
+
+func GetPageContext(ctx context.Context) PageContext {
+	return PageContext{
+		User: session.GetUser(ctx),
+		L:    oapi.MustGetLinks(ctx),
+	}
+}
+
+templ PageTemplate(p PageContext, title string) {
 	<!DOCTYPE html>
 	<html>
 		<head>
@@ -14,7 +32,7 @@ templ PageTemplate(title string, user *db.User) {
 				<h1>Navigation</h1>
 				<ol>
 					<li><a href="/">Main page</a></li>
-					@userInfo(user)
+					@userInfo(p)
 				</ol>
 			</nav>
 			<main>
@@ -24,9 +42,9 @@ templ PageTemplate(title string, user *db.User) {
 	</html>
 }
 
-templ userInfo(user *db.User) {
-	if user != nil {
-		<li>Logged in as: { user.Email }</li>
+templ userInfo(p PageContext) {
+	if p.User != nil {
+		<li>Logged in as: { p.User.Email }</li>
 		<li><a href="/sessions/logout">logout</a></li>
 	} else {
 		<li><a href="/sessions/login">login</a></li>

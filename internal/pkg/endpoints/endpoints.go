@@ -28,7 +28,7 @@ var _ oapi.StrictServerInterface = (*Server)(nil)
 
 // Get implements oapi.StrictServerInterface.
 func (s *Server) Get(ctx context.Context, request oapi.GetRequestObject) (oapi.GetResponseObject, error) {
-	c := tmpl.MainPage(session.GetUser(ctx), "Hello, world!")
+	c := tmpl.MainPage(tmpl.GetPageContext(ctx), "Hello, world!")
 	return tmpl.RenderPage[oapi.Get200TexthtmlResponse](ctx, c)
 }
 
