@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"goweb/internal/pkg/app"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/password"
 	"io"
@@ -133,7 +134,10 @@ func TestSessionMiddleware(t *testing.T) {
 		CookieName:              cookieName,
 		insecureUseOnlyForTests: true,
 	}
-	sessionStore, err := NewStore(d, conf)
+	appConf := app.AppConfig{
+		AppName: "testapp",
+	}
+	sessionStore, err := NewStore(d, conf, appConf)
 	assert.NoError(t, err)
 
 	// Setup test server.
@@ -229,7 +233,10 @@ func TestSessionExpiry(t *testing.T) {
 		CookieName:              cookieName,
 		insecureUseOnlyForTests: true,
 	}
-	store, err := NewStore(d, conf)
+	appConf := app.AppConfig{
+		AppName: "testapp",
+	}
+	store, err := NewStore(d, conf, appConf)
 	assert.NoError(t, err)
 	assert.Len(t, store.c.JWTSecret, jwtSecretLenBytes)
 

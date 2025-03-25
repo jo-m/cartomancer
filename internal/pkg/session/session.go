@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"goweb/internal/pkg/app"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/logg"
 	"goweb/internal/pkg/password"
@@ -64,12 +65,13 @@ func (c *SessionConfig) GetCleanerArgs() cleanerArgs {
 // Store manages sessions.
 // Use NewStore() to create an instance.
 type Store struct {
-	d *db.DB
-	c SessionConfig
+	d  *db.DB
+	c  SessionConfig
+	ac app.AppConfig
 }
 
 // NewStore creates a new session store.
-func NewStore(d *db.DB, c SessionConfig) (*Store, error) {
+func NewStore(d *db.DB, c SessionConfig, ac app.AppConfig) (*Store, error) {
 	err := c.Validate()
 	if err != nil {
 		return nil, fmt.Errorf("invalid session config: %w", err)
@@ -100,7 +102,7 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 	}
 
 	now := time.Now()
-	claims, err := jwtParseAndVerify(cookie.Value, now, []byte(s.c.JWTSecret))
+	claims, err := jwtParseAndVerify(cookie.Value, now, []byte(s.c.JWTSecret), s.ac.AppName)
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			return nil, ErrSessionExpiredAbsolute
@@ -180,7 +182,7 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 		return nil, fmt.Errorf("failed to create session in db: %w", err)
 	}
 
-	claims := claimsForSession(id.String(), now, s.c.AbsoluteTimeout)
+	claims := claimsForSession(id.String(), now, s.c.AbsoluteTimeout, s.ac.AppName)
 	token, err := jwtSign(claims, []byte(s.c.JWTSecret))
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign JWT: %w", err)

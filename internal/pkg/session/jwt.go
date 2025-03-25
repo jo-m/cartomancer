@@ -24,7 +24,7 @@ type jwtClaims struct {
 	jwt.RegisteredClaims
 }
 
-func claimsForSession(id string, now time.Time, expires time.Duration) jwtClaims {
+func claimsForSession(id string, now time.Time, expires time.Duration, issuer string) jwtClaims {
 	return jwtClaims{
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(expires)),
@@ -32,6 +32,7 @@ func claimsForSession(id string, now time.Time, expires time.Duration) jwtClaims
 			NotBefore: jwt.NewNumericDate(now),
 			Subject:   jwtClaimSubject,
 			ID:        id,
+			Issuer:    issuer,
 		},
 	}
 }
@@ -43,7 +44,7 @@ func jwtSign(claims jwtClaims, key []byte) (string, error) {
 
 var ErrInvalidSubject = errors.New("invalid subject")
 
-func jwtParseAndVerify(token string, now time.Time, key []byte) (*jwtClaims, error) {
+func jwtParseAndVerify(token string, now time.Time, key []byte, issuer string) (*jwtClaims, error) {
 	// This also validates notbefore/expires.
 	parsed, err := jwt.ParseWithClaims(token, &jwtClaims{},
 		func(token *jwt.Token) (any, error) {
@@ -52,6 +53,7 @@ func jwtParseAndVerify(token string, now time.Time, key []byte) (*jwtClaims, err
 		jwt.WithValidMethods([]string{jwtAlg.Alg()}),
 		jwt.WithSubject(jwtClaimSubject),
 		jwt.WithTimeFunc(func() time.Time { return now }),
+		jwt.WithIssuer(issuer),
 	)
 	if err != nil {
 		return nil, err

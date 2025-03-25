@@ -10,10 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const issuer = "ACME corp"
+
 func makeTestClaimsAndKey(tb testing.TB) (jwtClaims, []byte) {
 	id, err := uuid.NewV7()
 	require.NoError(tb, err)
-	return claimsForSession(id.String(), time.Now(), time.Hour), password.GenRandBytes(jwtSecretLenBytes / 8)
+	return claimsForSession(id.String(), time.Now(), time.Hour, issuer), password.GenRandBytes(jwtSecretLenBytes / 8)
 }
 
 func TestSimple(t *testing.T) {
@@ -22,7 +24,7 @@ func TestSimple(t *testing.T) {
 	token, err := jwtSign(claims, key)
 	assert.NoError(t, err)
 
-	parsed, err := jwtParseAndVerify(token, time.Now(), key)
+	parsed, err := jwtParseAndVerify(token, time.Now(), key, issuer)
 	assert.NoError(t, err)
 
 	assert.Equal(t, claims.ID, parsed.ID)
@@ -47,7 +49,7 @@ func BenchmarkJWTParse(b *testing.B) {
 	now := time.Now()
 
 	for b.Loop() {
-		parsed, err := jwtParseAndVerify(token, now, key)
+		parsed, err := jwtParseAndVerify(token, now, key, issuer)
 		require.NoError(b, err)
 		require.Equal(b, claims.ID, parsed.ID)
 	}

@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"goweb/internal/pkg/app"
 	"goweb/internal/pkg/db"
 	"goweb/internal/pkg/endpoints"
 	"goweb/internal/pkg/jobs"
@@ -30,18 +31,19 @@ type config struct {
 	jobs.JobsConfig
 	session.SessionConfig
 	mail.MailerConfig
+	app.AppConfig
 
 	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8050"`
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
 }
 
-func newHandler(d *db.DB, logger *slog.Logger, sessConfig session.SessionConfig) http.Handler {
+func newHandler(d *db.DB, logger *slog.Logger, sessConfig session.SessionConfig, appConfig app.AppConfig) http.Handler {
 	mux := chi.NewRouter()
 
 	{
 		logger = logger.With("mod", "svc")
 
-		sess, err := session.NewStore(d, sessConfig)
+		sess, err := session.NewStore(d, sessConfig, appConfig)
 		if err != nil {
 			logg.Panic(context.Background(), "Failed to create session store", "err", err)
 		}
@@ -160,7 +162,7 @@ func main() {
 	{
 		s := &http.Server{
 			Addr:              c.HTTPListenAddr,
-			Handler:           newHandler(d, logger, c.SessionConfig),
+			Handler:           newHandler(d, logger, c.SessionConfig, c.AppConfig),
 			ReadHeaderTimeout: 20 * time.Second,
 			ReadTimeout:       10 * time.Second,
 			WriteTimeout:      10 * time.Second,
