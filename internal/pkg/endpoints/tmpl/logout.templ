@@ -3,7 +3,7 @@ package tmpl
 templ LogoutPage(p PageContext) {
 	@PageTemplate(p, "Logout") {
 		<div>
-			<form action="" method="POST">
+			<form action={ S(p.L.PostSessionsLogout()) } method="POST">
 				<button type="submit">Logout</button>
 			</form>
 		</div>

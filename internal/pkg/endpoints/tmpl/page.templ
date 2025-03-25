@@ -16,7 +16,7 @@ type PageContext struct {
 func GetPageContext(ctx context.Context) PageContext {
 	return PageContext{
 		User: session.GetUser(ctx),
-		L:    oapi.MustGetLinks(ctx),
+		L:    *oapi.MustGetLinks(ctx),
 	}
 }
 
@@ -30,10 +30,10 @@ templ PageTemplate(p PageContext, title string) {
 		<body>
 			<nav>
 				<h1>Navigation</h1>
-				<ol>
-					<li><a href="/">Main page</a></li>
+				<ul>
+					<li><a href={ S(p.L.Get()) }>Main page</a></li>
 					@userInfo(p)
-				</ol>
+				</ul>
 			</nav>
 			<main>
 				{ children... }
@@ -45,8 +45,8 @@ templ PageTemplate(p PageContext, title string) {
 templ userInfo(p PageContext) {
 	if p.User != nil {
 		<li>Logged in as: { p.User.Email }</li>
-		<li><a href="/sessions/logout">logout</a></li>
+		<li><a href={ S(p.L.GetSessionsLogout()) }>logout</a></li>
 	} else {
-		<li><a href="/sessions/login">login</a></li>
+		<li><a href={ S(p.L.GetSessionsLogin()) }>login</a></li>
 	}
 }

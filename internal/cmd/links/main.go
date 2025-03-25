@@ -137,10 +137,10 @@ func GetLinks(ctx context.Context) *Links {
 	return nil
 }
 
-func MustGetLinks(ctx context.Context) Links {
+func MustGetLinks(ctx context.Context) *Links {
 	links := GetLinks(ctx)
 	if links != nil {
-		return *links
+		return links
 	}
 
 	panic("no Links attached to context")

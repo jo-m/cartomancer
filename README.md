@@ -42,7 +42,7 @@ go tool MailHog
 - [x] Keep session ID in signed JWT
 - [x] Unified error handling
 - [x] Clean up endpoints
-- [ ] Get URLs from OpenAPI spec in templates WIP, now have to actually use (p.L.PostSessionsLogin())
+- [x] Get URLs from OpenAPI spec
 - [ ] CRUD users, self-registration
 - [ ] Separate endpoints into HTTP + Service layer
 - [ ] Code TODOs
