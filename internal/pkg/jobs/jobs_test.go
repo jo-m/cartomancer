@@ -81,7 +81,7 @@ func TestCheckArgsType(t *testing.T) {
 func TestUniqueKind(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx := logg.WithDiscardHandler(context.Background())
+	ctx := logg.WithDiscardHandler(t.Context())
 	c := JobsConfig{
 		MaxParallel:       1,
 		AutoCleanupPeriod: 0,
@@ -98,7 +98,7 @@ func TestUniqueKind(t *testing.T) {
 func TestUniqueWorkers(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	ctx = logg.WithDiscardHandler(ctx)
 	c := JobsConfig{
 		MaxParallel:       1,
@@ -120,7 +120,7 @@ func TestUniqueWorkers(t *testing.T) {
 func TestRunnerRunOnlyOnce(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	ctx = logg.WithDiscardHandler(ctx)
 	c := JobsConfig{
 		MaxParallel:       1,
@@ -194,7 +194,7 @@ func (j *TestIntJob) Run(_ context.Context, args TestIntArgs) error {
 func TestRunJobsParallel(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	ctx = logg.WithDiscardHandler(ctx)
 	c := JobsConfig{
 		MaxParallel:       15,
@@ -235,7 +235,7 @@ func TestRunJobsParallel(t *testing.T) {
 func TestRunJobsMaxRetries(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	ctx = logg.WithDiscardHandler(ctx)
 	c := JobsConfig{
 		MaxParallel:       15,
@@ -275,7 +275,7 @@ func TestRunJobsMaxRetries(t *testing.T) {
 func TestRunJobsPanicMaxRetries(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	ctx = logg.WithDiscardHandler(ctx)
 	c := JobsConfig{
 		MaxParallel:       15,
@@ -315,7 +315,7 @@ func TestRunJobsPanicMaxRetries(t *testing.T) {
 func TestRunJobsAutoCleanup(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	ctx = logg.WithDiscardHandler(ctx)
 	c := JobsConfig{
 		MaxParallel:       30,
@@ -354,7 +354,7 @@ func TestRunJobsAutoCleanup(t *testing.T) {
 func TestRunJobsPeriodic(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	ctx = logg.WithDiscardHandler(ctx)
 	c := JobsConfig{
 		MaxParallel:       15,
@@ -418,7 +418,7 @@ func durationsToS(d []time.Duration) []int {
 func TestRunJobsDelay(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	ctx = logg.WithDiscardHandler(ctx)
 	c := JobsConfig{
 		MaxParallel: 2,
@@ -444,7 +444,7 @@ func TestRunJobsDelay(t *testing.T) {
 func TestRunJobsBackoff(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	ctx = logg.WithDiscardHandler(ctx)
 	c := JobsConfig{
 		MaxParallel: 2,

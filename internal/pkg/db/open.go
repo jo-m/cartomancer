@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"goweb/internal/pkg/logg"
 	"io/fs"
+	"log/slog"
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/pressly/goose/v3"
@@ -53,25 +53,6 @@ func buildDSN(path string, readOnly bool, busyTimeout time.Duration) string {
 	return fmt.Sprintf("file:%s?%s", path, query.Encode())
 }
 
-type gooseLogger struct {
-	ctx context.Context
-}
-
-// Fatalf implements goose.Logger.
-func (g *gooseLogger) Fatalf(format string, v ...interface{}) {
-	msg := fmt.Sprintf(format, v...)
-	msg = strings.TrimSpace(msg)
-	logg.Panic(g.ctx, msg)
-}
-
-// Printf implements goose.Logger.
-func (g *gooseLogger) Printf(format string, v ...interface{}) {
-	msg := fmt.Sprintf(format, v...)
-	logg.Info(g.ctx, strings.TrimSpace(msg))
-}
-
-var _ goose.Logger = (*gooseLogger)(nil)
-
 // DB contains both a rw and a ro database conn.
 type DB struct {
 	// Read/write conn.
@@ -103,6 +84,7 @@ func (d *DB) BeginTX(ctx context.Context) (*Queries, error) {
 // WithTx runs the given function in a transaction.
 // If the function returns an error, the transaction is rolled back.
 func (d *DB) WithTx(_ context.Context, fn func(q *Queries) error) error {
+	// TODO: use ctx here?
 	tx, err := d.BeginTX(context.Background())
 	if err != nil {
 		return err
@@ -176,8 +158,10 @@ func Open(ctx context.Context, path string) (db *DB, err error) {
 	if err != nil {
 		return nil, errors.New("no migrations")
 	}
+
+	dbLogger := slog.NewLogLogger(logg.GetLogger(ctx).Handler(), slog.LevelInfo)
 	provider, err := goose.NewProvider(dialect, rw, files,
-		goose.WithLogger(&gooseLogger{ctx: ctx}),
+		goose.WithLogger(dbLogger),
 		goose.WithVerbose(true),
 	)
 	if err != nil {

@@ -4,6 +4,8 @@ package logg
 import (
 	"context"
 	"log/slog"
+	"runtime"
+	"time"
 )
 
 const (
@@ -36,38 +38,65 @@ func GetLogger(ctx context.Context) *slog.Logger {
 	return slog.Default()
 }
 
-// Log forwards to the logger in the context.
+// Copied and adapted from the stdlib slog package.
+func log(ctx context.Context, logger *slog.Logger, level slog.Level, msg string, args ...any) {
+	if !logger.Enabled(ctx, level) {
+		return
+	}
+	var pc uintptr
+	var pcs [1]uintptr
+	runtime.Callers(3, pcs[:])
+	pc = pcs[0]
+
+	r := slog.NewRecord(time.Now(), level, msg, pc)
+	r.Add(args...)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	_ = logger.Handler().Handle(ctx, r)
+
+	if level == LevelPanic {
+		panic(msg)
+	}
+}
+
+// Log logs via the logger in the context.
 func Log(ctx context.Context, level slog.Level, msg string, attrs ...any) {
-	GetLogger(ctx).Log(ctx, level, msg, attrs...)
+	log(ctx, GetLogger(ctx), level, msg, attrs...)
 }
 
-// Info forwards to the logger in the context.
-func Info(ctx context.Context, msg string, attrs ...any) {
-	Log(ctx, slog.LevelInfo, msg, attrs...)
-}
-
-// Warn forwards to the logger in the context.
-func Warn(ctx context.Context, msg string, attrs ...any) {
-	Log(ctx, slog.LevelWarn, msg, attrs...)
-}
-
-// Error forwards to the logger in the context.
-func Error(ctx context.Context, msg string, attrs ...any) {
-	Log(ctx, slog.LevelError, msg, attrs...)
-}
-
-// Debug forwards to the logger in the context.
-func Debug(ctx context.Context, msg string, attrs ...any) {
-	Log(ctx, slog.LevelDebug, msg, attrs...)
-}
-
-// Trace forwards to the logger in the context.
+// Trace logs via the logger in the context.
 func Trace(ctx context.Context, msg string, attrs ...any) {
-	Log(ctx, LevelTrace, msg, attrs...)
+	log(ctx, GetLogger(ctx), LevelTrace, msg, attrs...)
 }
 
-// Panic forwards to the logger in the context and panics.
+// Debug logs via the logger in the context.
+func Debug(ctx context.Context, msg string, attrs ...any) {
+	log(ctx, GetLogger(ctx), slog.LevelDebug, msg, attrs...)
+}
+
+// Info logs via the logger in the context.
+func Info(ctx context.Context, msg string, attrs ...any) {
+	log(ctx, GetLogger(ctx), slog.LevelInfo, msg, attrs...)
+}
+
+// Warn logs via the logger in the context.
+func Warn(ctx context.Context, msg string, attrs ...any) {
+	log(ctx, GetLogger(ctx), slog.LevelWarn, msg, attrs...)
+}
+
+// Error logs via the logger in the context.
+func Error(ctx context.Context, msg string, attrs ...any) {
+	log(ctx, GetLogger(ctx), slog.LevelError, msg, attrs...)
+}
+
+// Err logs via the logger in the context.
+func Err(ctx context.Context, msg string, err error, attrs ...any) {
+	attrs = append(attrs, "err", err)
+	log(ctx, GetLogger(ctx), slog.LevelError, msg, attrs...)
+}
+
+// Panic logs via the logger in the context and panics.
 func Panic(ctx context.Context, msg string, attrs ...any) {
-	Log(ctx, LevelPanic, msg, attrs...)
-	panic(msg)
+	log(ctx, GetLogger(ctx), LevelPanic, msg, attrs...)
 }

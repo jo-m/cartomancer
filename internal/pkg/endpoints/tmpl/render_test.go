@@ -1,7 +1,6 @@
 package tmpl
 
 import (
-	"context"
 	"goweb/internal/pkg/oapi"
 	"io"
 	"testing"
@@ -16,7 +15,7 @@ func TestRenderPage(t *testing.T) {
 	}
 
 	p := LoginPage(pCtx, "", oapi.Login{})
-	renderer, _ := RenderPage[oapi.GetSessionsLogin200TexthtmlResponse](context.Background(), p)
+	renderer, _ := RenderPage[oapi.GetSessionsLogin200TexthtmlResponse](t.Context(), p)
 	content, err := io.ReadAll(renderer.Body)
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, len(content), 10)

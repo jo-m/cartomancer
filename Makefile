@@ -3,8 +3,8 @@ clean:
 	find . -name '*_templ.go' -delete
 	find . -name '*.gen.go' -delete
 
-.PHONY: db_reset
-db_reset:
+.PHONY: reset_data
+reset_data:
 	rm -f data/db.sqlite
 
 .PHONY: gen

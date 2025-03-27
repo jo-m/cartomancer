@@ -1,7 +1,6 @@
 package session
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"goweb/internal/pkg/app"
@@ -19,7 +18,7 @@ import (
 )
 
 func TestContext(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	sess := db.Session{ID: "asdf"}
 	ctx = withSession(ctx, sess)
@@ -65,11 +64,10 @@ func (c *testClient) doRequest(method, url string, body io.Reader, expectedStatu
 }
 
 func createUser(t *testing.T, d *db.DB) {
-	ctx := context.Background()
-	tx, err := d.BeginTX(ctx)
+	tx, err := d.BeginTX(t.Context())
 	require.NoError(t, err)
 	defer tx.Rollback()
-	_, err = tx.CreateUser(ctx, db.CreateUserParams{
+	_, err = tx.CreateUser(t.Context(), db.CreateUserParams{
 		ID:           userID,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
@@ -116,8 +114,7 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func assertSessionsCount(t *testing.T, d *db.DB, expected int64) {
-	ctx := context.Background()
-	c, err := d.QueryRO().GetSessionsCount(ctx)
+	c, err := d.QueryRO().GetSessionsCount(t.Context())
 	assert.NoError(t, err)
 	assert.Equal(t, expected, c)
 }
@@ -184,8 +181,7 @@ func TestSessionMiddleware(t *testing.T) {
 }
 
 func createSession(t *testing.T, d *db.DB, store *Store) string {
-	ctx := context.Background()
-	tx, err := d.BeginTX(ctx)
+	tx, err := d.BeginTX(t.Context())
 	require.NoError(t, err)
 	defer tx.Rollback()
 
@@ -202,8 +198,7 @@ func createSession(t *testing.T, d *db.DB, store *Store) string {
 }
 
 func pokeSession(t *testing.T, d *db.DB, store *Store, cookieVal string) error {
-	ctx := context.Background()
-	tx, err := d.BeginTX(ctx)
+	tx, err := d.BeginTX(t.Context())
 	require.NoError(t, err)
 	defer tx.Rollback()
 
@@ -220,8 +215,6 @@ func pokeSession(t *testing.T, d *db.DB, store *Store, cookieVal string) error {
 }
 
 func TestSessionExpiry(t *testing.T) {
-	ctx := context.Background()
-
 	// Setup database and create user.
 	d := db.GetTestDB(t)
 	defer d.Close()
@@ -254,7 +247,7 @@ func TestSessionExpiry(t *testing.T) {
 
 	// Cleanup.
 	assertSessionsCount(t, d, 1)
-	store.cleanup(ctx, time.Now())
+	store.cleanup(t.Context(), time.Now())
 	assertSessionsCount(t, d, 0)
 
 	// Create a new session.
@@ -265,6 +258,6 @@ func TestSessionExpiry(t *testing.T) {
 
 	// Cleanup.
 	assertSessionsCount(t, d, 1)
-	store.cleanup(ctx, time.Now())
+	store.cleanup(t.Context(), time.Now())
 	assertSessionsCount(t, d, 0)
 }

@@ -1,7 +1,6 @@
 package db
 
 import (
-	"context"
 	"goweb/internal/pkg/logg"
 	"path/filepath"
 	"testing"
@@ -13,7 +12,7 @@ import (
 // You must call `Close()` on the returned `DB` when done.
 func GetTestDB(t *testing.T) *DB {
 	dir := t.TempDir()
-	ctx := logg.WithDiscardHandler(context.Background())
+	ctx := logg.WithDiscardHandler(t.Context())
 	d, err := Open(ctx, filepath.Join(dir, "db"))
 	require.NoError(t, err)
 	return d

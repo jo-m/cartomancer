@@ -1,4 +1,4 @@
-// Package main runs the web server and job runner.
+// Goweb runs the web server and job runner.
 package main
 
 import (
@@ -40,6 +40,8 @@ type config struct {
 func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig, appConfig app.AppConfig) http.Handler {
 	logger := logg.GetLogger(ctx).With("mod", "svc")
 	mux := chi.NewRouter()
+
+	oapi.PrintRoutes(ctx)
 
 	{
 
@@ -100,19 +102,24 @@ func createUser(ctx context.Context, q *db.Queries, email, pass string) error {
 }
 
 func main() {
+	ctx := context.Background()
+
 	// Parse args.
 	c := config{}
-	p, err := arg.NewParser(arg.Config{Out: os.Stderr}, &c)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create parser: %s", err))
+	if p, err := arg.NewParser(arg.Config{Out: os.Stderr}, &c); err != nil {
+		panic(err)
+	} else {
+		p.MustParse(os.Args[1:])
 	}
-	p.MustParse(os.Args[1:])
 
 	// Initialize logging.
-	logger := slog.New(logg.NewHandler(c.LoggConfig))
-	slog.SetDefault(logger)
-	ctx := logg.WithLogger(context.Background(), logger)
-	oapi.PrintRoutes(ctx)
+	logger := logg.New(c.LoggConfig)
+	if c.DevelopmentMode {
+		logg.DisableDefaultLogger() // TODO: Maybe also set for tests?
+	} else {
+		slog.SetDefault(logger)
+	}
+	ctx = logg.WithLogger(ctx, logg.New(c.LoggConfig))
 
 	// Migrations.
 	d, err := db.Open(ctx, c.DBPath)

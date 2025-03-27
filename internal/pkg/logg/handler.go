@@ -1,6 +1,7 @@
 package logg
 
 import (
+	"io"
 	"log/slog"
 	"os"
 	"time"
@@ -20,19 +21,21 @@ type LoggConfig struct {
 	LogLevel slog.Level `arg:"--log-level,env:LOG_LEVEL" default:"INFO" help:"Log level" placeholder:"LEVEL"`
 }
 
-func NewHandler(c LoggConfig) slog.Handler {
+func NewHandler(c LoggConfig, w io.Writer) slog.Handler {
 	if c.LogPretty {
-		return tint.NewHandler(os.Stderr, &tint.Options{
-			// TODO: Skip levels!
-			// https://github.com/golang/go/issues/59145#issuecomment-1481920720
+		return tint.NewHandler(w, &tint.Options{
 			AddSource:  true,
 			Level:      c.LogLevel,
-			TimeFormat: time.Kitchen,
+			TimeFormat: time.TimeOnly,
 		})
 	}
 
-	return slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+	return slog.NewJSONHandler(w, &slog.HandlerOptions{
 		AddSource: true,
 		Level:     c.LogLevel,
 	})
+}
+
+func New(c LoggConfig) *slog.Logger {
+	return slog.New(NewHandler(c, os.Stderr))
 }

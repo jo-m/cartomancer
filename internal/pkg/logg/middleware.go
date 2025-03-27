@@ -26,11 +26,11 @@ func AttachLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 	return f
 }
 
-func getLevel(code int) slog.Level {
-	if code >= 500 {
+func levelFor(statusCode int) slog.Level {
+	if statusCode >= 500 {
 		return slog.LevelError
 	}
-	if code >= 400 {
+	if statusCode >= 400 {
 		return slog.LevelWarn
 	}
 	return slog.LevelInfo
@@ -50,7 +50,7 @@ func RequestLogger(next http.Handler) http.Handler {
 			}
 			url := fmt.Sprintf("%s %s://%s%s", r.Proto, scheme, r.Host, r.RequestURI)
 			msg := fmt.Sprintf("%s %s %d", r.Method, url, ww.Status())
-			Log(r.Context(), getLevel(ww.Status()), msg, "url", r.URL, "method", r.Method, "status", ww.Status(), "duration", time.Since(t0))
+			Log(r.Context(), levelFor(ww.Status()), msg, "url", r.URL, "method", r.Method, "status", ww.Status(), "duration", time.Since(t0))
 		}()
 
 		next.ServeHTTP(ww, r)
