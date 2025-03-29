@@ -96,6 +96,10 @@ var (
 	timeLongRe = regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.[^"]+`)
 	// 11:22:17
 	timeShortRe = regexp.MustCompile(`\d{2}:\d{2}:\d{2}`)
+	// .go:89
+	prettyLineNoRe = regexp.MustCompile(`\.go:\d{1,} `)
+	// "line":89
+	jsonLineNoRe = regexp.MustCompile(`"line":\d{1,}`)
 )
 
 func replaceTime(s string) string {
@@ -106,6 +110,10 @@ func replaceCwd(t *testing.T, s string) string {
 	dir, err := os.Getwd()
 	require.NoError(t, err)
 	return regexp.MustCompile(regexp.QuoteMeta(dir)).ReplaceAllString(s, "")
+}
+
+func replaceLineNo(s string) string {
+	return prettyLineNoRe.ReplaceAllString(jsonLineNoRe.ReplaceAllString(s, `"line":0`), ".go:0 ")
 }
 
 func TestLoggLoggingJSON(t *testing.T) {
@@ -119,19 +127,18 @@ func TestLoggLoggingJSON(t *testing.T) {
 		testLog(ctx, logger)
 	})
 
-	deterministic := replaceCwd(t, replaceTime(buf.String()))
-	assert.Equal(t, `
-{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":75},"msg":"hello","from":"slog","via":"slog.Info"}
-{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":76},"msg":"hello","from":"slog","via":"slog.Log"}
-{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":78},"msg":"hello","logger":"slog","via":"logger.Info"}
-{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":79},"msg":"hello","logger":"slog","via":"logger.Log"}
-{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":81},"msg":"hello","logger":"logg","via":"Info","no":"logger"}
-{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":82},"msg":"hello","logger":"logg","via":"Log","no":"logger"}
-{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":86},"msg":"hello","logger":"logg","via":"Info"}
-{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":87},"msg":"hello","logger":"logg","via":"Log"}
-{"time":"0000-11-22T33:44:55.666Z","level":"ERROR","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":88},"msg":"hello","logger":"logg","via":"Error"}
-{"time":"0000-11-22T33:44:55.666Z","level":"ERROR","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":89},"msg":"hello","logger":"logg","via":"Err","err":"error"}
-{"time":"0000-11-22T33:44:55.666Z","level":"ERROR+2","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":90},"msg":"hello","logger":"logg","via":"Panic"}
+	deterministic := replaceLineNo(replaceCwd(t, replaceTime(buf.String())))
+	assert.Equal(t, `{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","from":"slog","via":"slog.Info"}
+{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","from":"slog","via":"slog.Log"}
+{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"slog","via":"logger.Info"}
+{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"slog","via":"logger.Log"}
+{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Info","no":"logger"}
+{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Log","no":"logger"}
+{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Info"}
+{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Log"}
+{"time":"0000-11-22T33:44:55.666Z","level":"ERROR","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Error"}
+{"time":"0000-11-22T33:44:55.666Z","level":"ERROR","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Err","err":"error"}
+{"time":"0000-11-22T33:44:55.666Z","level":"ERROR+2","source":{"function":"goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Panic"}
 `, deterministic)
 }
 
@@ -146,17 +153,17 @@ func TestLoggLoggingPretty(t *testing.T) {
 		testLog(ctx, logger)
 	})
 
-	deterministic := replaceTime(stripAnsi(buf.String()))
-	assert.Equal(t, `00:11:22 INF logg/logg_test.go:75 hello from=slog via=slog.Info
-00:11:22 WRN logg/logg_test.go:76 hello from=slog via=slog.Log
-00:11:22 INF logg/logg_test.go:78 hello logger=slog via=logger.Info
-00:11:22 WRN logg/logg_test.go:79 hello logger=slog via=logger.Log
-00:11:22 INF logg/logg_test.go:81 hello logger=logg via=Info no=logger
-00:11:22 WRN logg/logg_test.go:82 hello logger=logg via=Log no=logger
-00:11:22 INF logg/logg_test.go:86 hello logger=logg via=Info
-00:11:22 WRN logg/logg_test.go:87 hello logger=logg via=Log
-00:11:22 ERR logg/logg_test.go:88 hello logger=logg via=Error
-00:11:22 ERR logg/logg_test.go:89 hello logger=logg via=Err err=error
-00:11:22 ERR+2 logg/logg_test.go:90 hello logger=logg via=Panic
+	deterministic := replaceLineNo(replaceTime(stripAnsi(buf.String())))
+	assert.Equal(t, `00:11:22 INF logg/logg_test.go:0 hello from=slog via=slog.Info
+00:11:22 WRN logg/logg_test.go:0 hello from=slog via=slog.Log
+00:11:22 INF logg/logg_test.go:0 hello logger=slog via=logger.Info
+00:11:22 WRN logg/logg_test.go:0 hello logger=slog via=logger.Log
+00:11:22 INF logg/logg_test.go:0 hello logger=logg via=Info no=logger
+00:11:22 WRN logg/logg_test.go:0 hello logger=logg via=Log no=logger
+00:11:22 INF logg/logg_test.go:0 hello logger=logg via=Info
+00:11:22 WRN logg/logg_test.go:0 hello logger=logg via=Log
+00:11:22 ERR logg/logg_test.go:0 hello logger=logg via=Error
+00:11:22 ERR logg/logg_test.go:0 hello logger=logg via=Err err=error
+00:11:22 ERR+2 logg/logg_test.go:0 hello logger=logg via=Panic
 `, deterministic)
 }

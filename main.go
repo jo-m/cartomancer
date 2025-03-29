@@ -115,7 +115,7 @@ func main() {
 	// Initialize logging.
 	logger := logg.New(c.LoggConfig)
 	if c.DevelopmentMode {
-		logg.DisableDefaultLogger() // TODO: Maybe also set for tests?
+		logg.DisableDefaultLogger()
 	} else {
 		slog.SetDefault(logger)
 	}
