@@ -99,4 +99,5 @@ func Err(ctx context.Context, msg string, err error, attrs ...any) {
 // Panic logs via the logger in the context and panics.
 func Panic(ctx context.Context, msg string, attrs ...any) {
 	log(ctx, GetLogger(ctx), LevelPanic, msg, attrs...)
+	panic(msg)
 }
