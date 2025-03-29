@@ -43,7 +43,7 @@ go tool MailHog
 - [x] Unified error handling
 - [x] Clean up endpoints
 - [x] Get URLs from OpenAPI spec
-- [ ] Modify generated links to return safe URLs (but escape string params)
+- [x] Modify generated links to return safe URLs (but escape string params)
 - [ ] CRUD users, self-registration
 - [ ] Separate endpoints into HTTP + Service layer
 - [ ] Code TODOs
@@ -52,7 +52,7 @@ go tool MailHog
 - [x] Jobs: Cleanup with min age
 - [ ] https://silky.github.io/posts/htmx-haskell-interview.html
 - [x] Jobs: execution timeouts
-- [ ] Rename db pkgs and datastructuresF
+- [ ] Rename db pkgs and datastructures
 - [ ] Go doc links `[]` https://tip.golang.org/doc/comment, `go run golang.org/x/pkgsite/cmd/pkgsite@latest -open`
 
 # Later TODOs

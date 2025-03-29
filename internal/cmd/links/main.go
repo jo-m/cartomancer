@@ -63,10 +63,11 @@ func makeArgs(params []parameter) (string, string, map[string]string) {
 		if !param.Required {
 			panic("path param not required")
 		}
-		args = append(args, fmt.Sprintf("%s %s", param.Name, param.Schema.Type))
-		names = append(names, param.Name)
+
 		switch param.Schema.Type {
 		case "string":
+			args = append(args, fmt.Sprintf("%s string", param.Name))
+			names = append(names, fmt.Sprintf("url.QueryEscape(%s)", param.Name))
 			fstrings[param.Name] = `%s`
 		default:
 			panic(fmt.Sprintf("not implemented: type %s", param.Schema.Type))
@@ -115,9 +116,12 @@ func main() {
 	fmt.Fprintln(outf, "package", *pkgname)
 	fmt.Fprint(outf, `
 		import (
-			"fmt"
 			"context"
+			"fmt"
 			"net/http"
+			"net/url"
+
+			"github.com/a-h/templ"
 		)
 
 		type Links struct {
@@ -172,8 +176,9 @@ func AttachLinks(links Links) func(http.Handler) http.Handler {
 			})
 			fstr := `%s` + pathFstr
 
-			fmt.Fprintf(outf, "func (l *Links) %s(%s) string {\n", fname, args)
-			fmt.Fprintf(outf, `return fmt.Sprintf("%s", l.Base, %s)`, fstr, names)
+			fmt.Fprintf(outf, "func (l *Links) %s(%s) templ.SafeURL {\n", fname, args)
+			fmt.Fprintf(outf, `url := fmt.Sprintf("%s", l.Base, %s)`, fstr, names)
+			fmt.Fprintf(outf, "\nreturn templ.URL(url)")
 			fmt.Fprintf(outf, "\n}\n\n")
 		}
 	}

@@ -70,7 +70,7 @@ func (s *Server) PostSessionsLogin(ctx context.Context, request oapi.PostSession
 	// TODO: better redirection target
 	return oapi.PostSessionsLogin302Response{
 		Headers: oapi.PostSessionsLogin302ResponseHeaders{
-			Location: oapi.MustGetLinks(ctx).Get(),
+			Location: string(oapi.MustGetLinks(ctx).Get()),
 		},
 	}, nil
 }
@@ -102,7 +102,7 @@ func (s *Server) PostSessionsLogout(ctx context.Context, request oapi.PostSessio
 	// TODO: better redirection target
 	return oapi.PostSessionsLogout302Response{
 		Headers: oapi.PostSessionsLogout302ResponseHeaders{
-			Location: oapi.MustGetLinks(ctx).Get(),
+			Location: string(oapi.MustGetLinks(ctx).Get()),
 		},
 	}, nil
 }

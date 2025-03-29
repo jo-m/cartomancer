@@ -31,7 +31,7 @@ templ PageTemplate(d PageData, title string) {
 			<nav>
 				<h1>Navigation</h1>
 				<ul>
-					<li><a href={ S(d.L.Get()) }>Main page</a></li>
+					<li><a href={ d.L.Get() }>Main page</a></li>
 					@userInfo(d)
 				</ul>
 			</nav>
@@ -45,8 +45,8 @@ templ PageTemplate(d PageData, title string) {
 templ userInfo(d PageData) {
 	if d.User != nil {
 		<li>Logged in as: { d.User.Email }</li>
-		<li><a href={ S(d.L.GetSessionsLogout()) }>logout</a></li>
+		<li><a href={ d.L.GetSessionsLogout() }>logout</a></li>
 	} else {
-		<li><a href={ S(d.L.GetSessionsLogin()) }>login</a></li>
+		<li><a href={ d.L.GetSessionsLogin() }>login</a></li>
 	}
 }

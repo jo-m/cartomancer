@@ -50,7 +50,3 @@ func RenderErrorPage[T any](ctx context.Context, statusCode int) (T, error) {
 	d := ErrorPage(GetPageData(ctx), middleware.GetReqID(ctx), statusCode, http.StatusText(statusCode))
 	return RenderPage[T](ctx, d)
 }
-
-func S(url string) templ.SafeURL {
-	return templ.URL(url)
-}

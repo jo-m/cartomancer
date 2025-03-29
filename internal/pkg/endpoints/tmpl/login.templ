@@ -6,7 +6,7 @@ templ LoginPage(d PageData, message string, loginData oapi.Login) {
 	@PageTemplate(d, "Login") {
 		<div>
 			{ message }
-			<form action={ S(d.L.PostSessionsLogin()) } method="POST">
+			<form action={ d.L.PostSessionsLogin() } method="POST">
 				<label for="email">Email:</label>
 				<input type="email" id="email" name="email" required value={ loginData.Email }/>
 				<label for="password">Password:</label>
