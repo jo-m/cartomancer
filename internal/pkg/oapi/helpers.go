@@ -1,11 +1,14 @@
 package oapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 var (
@@ -14,13 +17,12 @@ var (
 
 const (
 	applicationJSON = "application/json"
-	scopeRequest    = "request"
+	onRequest       = "request"
 )
 
-// TODO: include request ID.
-func makeErrorJSON(err, scope string, details ...ErrorJSON) ErrorJSON {
-	scp := &scope
-	if scope == "" {
+func makeErrorJSON(msg, on string, details ...ErrorJSON) ErrorJSON {
+	scp := &on
+	if on == "" {
 		scp = nil
 	}
 
@@ -30,20 +32,30 @@ func makeErrorJSON(err, scope string, details ...ErrorJSON) ErrorJSON {
 	}
 
 	return ErrorJSON{
-		Error:   err,
+		Msg:     msg,
 		Details: det,
-		Scope:   scp,
+		On:      scp,
 	}
 }
 
-func makeStatusErrorJSON(statusCode int) ErrorJSON {
+func makeRequestIdErrorJSON(ctx context.Context) []ErrorJSON {
+	id := middleware.GetReqID(ctx)
+	if id == "" {
+		return nil
+	}
+	return []ErrorJSON{
+		makeErrorJSON(id, "reqID"),
+	}
+}
+
+func makeStatusErrorJSON(ctx context.Context, statusCode int) ErrorJSON {
 	text := strings.ToLower(http.StatusText(statusCode))
-	return makeErrorJSON(text, scopeRequest)
+	return makeErrorJSON(text, onRequest, makeRequestIdErrorJSON(ctx)...)
 }
 
 // MakeJSONError returns a OpenAPI response of the given type,
 // with the body set to the error JSON given by its HTTP status code.
-func MakeJSONError[T any]() (T, error) {
+func MakeJSONError[T any](ctx context.Context) (T, error) {
 	var ret T
 	typ := reflect.TypeOf(ret)
 
@@ -55,15 +67,15 @@ func MakeJSONError[T any]() (T, error) {
 	var embed any
 	switch field.Type {
 	case reflect.TypeOf(N400BadRequestJSONResponse{}):
-		embed = N400BadRequestJSONResponse(makeStatusErrorJSON(400))
+		embed = N400BadRequestJSONResponse(makeStatusErrorJSON(ctx, 400))
 	case reflect.TypeOf(N401UnauthorizedJSONResponse{}):
-		embed = N401UnauthorizedJSONResponse(makeStatusErrorJSON(401))
+		embed = N401UnauthorizedJSONResponse(makeStatusErrorJSON(ctx, 401))
 	case reflect.TypeOf(N404NotFoundJSONResponse{}):
-		embed = N404NotFoundJSONResponse(makeStatusErrorJSON(404))
+		embed = N404NotFoundJSONResponse(makeStatusErrorJSON(ctx, 404))
 	case reflect.TypeOf(N409ConflictJSONResponse{}):
-		embed = N409ConflictJSONResponse(makeStatusErrorJSON(409))
+		embed = N409ConflictJSONResponse(makeStatusErrorJSON(ctx, 409))
 	case reflect.TypeOf(N500InternalServerErrorJSONResponse{}):
-		embed = N500InternalServerErrorJSONResponse(makeStatusErrorJSON(500))
+		embed = N500InternalServerErrorJSONResponse(makeStatusErrorJSON(ctx, 500))
 	default:
 		panic(fmt.Sprintf("unexpected field type %s", field.Type))
 	}
@@ -80,7 +92,7 @@ func ErrorHandler(w http.ResponseWriter, message string, statusCode int) {
 	w.WriteHeader(statusCode)
 
 	if statusCode == http.StatusUnauthorized {
-		toSend := makeStatusErrorJSON(http.StatusUnauthorized)
+		toSend := makeStatusErrorJSON(nil, http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(toSend)
 		return
 	}
@@ -89,6 +101,6 @@ func ErrorHandler(w http.ResponseWriter, message string, statusCode int) {
 		message = strings.ToLower(http.StatusText(statusCode))
 	}
 
-	toSend := makeErrorJSON(message, scopeRequest)
+	toSend := makeErrorJSON(message, onRequest)
 	_ = json.NewEncoder(w).Encode(toSend)
 }

@@ -213,16 +213,16 @@ components:
     ErrorJSON:
       type: object
       properties:
-        error:
+        msg:
           type: string
-        scope:
+        on:
           type: string
         details:
           type: array
           items:
             $ref: '#/components/schemas/ErrorJSON'
       required:
-        - error
+        - msg
 
   responses:
     200OK:

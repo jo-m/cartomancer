@@ -16,7 +16,7 @@ func AttachLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			reqID := middleware.GetReqID(ctx)
-			reqLogger := logger.With("reqId", reqID)
+			reqLogger := logger.With("reqID", reqID)
 			ctx = WithLogger(ctx, reqLogger)
 			h.ServeHTTP(w, r.WithContext(ctx))
 		}

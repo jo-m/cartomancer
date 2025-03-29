@@ -21,7 +21,7 @@ import (
 		--cookie-jar cookies.txt --cookie cookies.txt
 */
 func (s *Server) GetSessionsLogin(ctx context.Context, request oapi.GetSessionsLoginRequestObject) (oapi.GetSessionsLoginResponseObject, error) {
-	c := tmpl.LoginPage(tmpl.GetPageContext(ctx), "", oapi.Login{})
+	c := tmpl.LoginPage(tmpl.GetPageData(ctx), "", oapi.Login{})
 	return tmpl.RenderPage[oapi.GetSessionsLogin200TexthtmlResponse](ctx, c)
 }
 
@@ -34,14 +34,14 @@ func (s *Server) GetSessionsLogin(ctx context.Context, request oapi.GetSessionsL
 */
 func (s *Server) PostSessionsLogin(ctx context.Context, request oapi.PostSessionsLoginRequestObject) (oapi.PostSessionsLoginResponseObject, error) {
 	if session.GetUser(ctx) != nil {
-		p := tmpl.LoginPage(tmpl.GetPageContext(ctx), "Already logged in", *request.Body)
+		p := tmpl.LoginPage(tmpl.GetPageData(ctx), "Already logged in", *request.Body)
 		return tmpl.RenderPage[oapi.PostSessionsLogin409TexthtmlResponse](ctx, p)
 	}
 
 	user, err := s.d.QueryRO().GetUserByEmail(ctx, request.Body.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			p := tmpl.LoginPage(tmpl.GetPageContext(ctx), "User not found", *request.Body)
+			p := tmpl.LoginPage(tmpl.GetPageData(ctx), "User not found", *request.Body)
 			return tmpl.RenderPage[oapi.PostSessionsLogin409TexthtmlResponse](ctx, p)
 		}
 
@@ -52,7 +52,7 @@ func (s *Server) PostSessionsLogin(ctx context.Context, request oapi.PostSession
 	// Check password.
 	if !password.Check(request.Body.Password, user.PasswordHash) {
 		logg.Warn(ctx, "Invalid password", "email", user.Email)
-		p := tmpl.LoginPage(tmpl.GetPageContext(ctx), "Invalid password", *request.Body)
+		p := tmpl.LoginPage(tmpl.GetPageData(ctx), "Invalid password", *request.Body)
 		return tmpl.RenderPage[oapi.PostSessionsLogin409TexthtmlResponse](ctx, p)
 	}
 	logg.Info(ctx, "Login succeeded", "user", user.ID)
@@ -81,7 +81,7 @@ func (s *Server) PostSessionsLogin(ctx context.Context, request oapi.PostSession
 		--cookie-jar cookies.txt --cookie cookies.txt
 */
 func (s *Server) GetSessionsLogout(ctx context.Context, request oapi.GetSessionsLogoutRequestObject) (oapi.GetSessionsLogoutResponseObject, error) {
-	c := tmpl.LogoutPage(tmpl.GetPageContext(ctx))
+	c := tmpl.LogoutPage(tmpl.GetPageData(ctx))
 	return tmpl.RenderPage[oapi.GetSessionsLogout200TexthtmlResponse](ctx, c)
 }
 
