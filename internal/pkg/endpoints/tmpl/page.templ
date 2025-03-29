@@ -8,19 +8,19 @@ import (
 	"goweb/internal/pkg/session"
 )
 
-type PageContext struct {
+type PageData struct {
 	User *db.User
 	L    oapi.Links
 }
 
-func GetPageContext(ctx context.Context) PageContext {
-	return PageContext{
+func GetPageData(ctx context.Context) PageData {
+	return PageData{
 		User: session.GetUser(ctx),
 		L:    *oapi.MustGetLinks(ctx),
 	}
 }
 
-templ PageTemplate(p PageContext, title string) {
+templ PageTemplate(d PageData, title string) {
 	<!DOCTYPE html>
 	<html>
 		<head>
@@ -31,8 +31,8 @@ templ PageTemplate(p PageContext, title string) {
 			<nav>
 				<h1>Navigation</h1>
 				<ul>
-					<li><a href={ S(p.L.Get()) }>Main page</a></li>
-					@userInfo(p)
+					<li><a href={ S(d.L.Get()) }>Main page</a></li>
+					@userInfo(d)
 				</ul>
 			</nav>
 			<main>
@@ -42,11 +42,11 @@ templ PageTemplate(p PageContext, title string) {
 	</html>
 }
 
-templ userInfo(p PageContext) {
-	if p.User != nil {
-		<li>Logged in as: { p.User.Email }</li>
-		<li><a href={ S(p.L.GetSessionsLogout()) }>logout</a></li>
+templ userInfo(d PageData) {
+	if d.User != nil {
+		<li>Logged in as: { d.User.Email }</li>
+		<li><a href={ S(d.L.GetSessionsLogout()) }>logout</a></li>
 	} else {
-		<li><a href={ S(p.L.GetSessionsLogin()) }>login</a></li>
+		<li><a href={ S(d.L.GetSessionsLogin()) }>login</a></li>
 	}
 }

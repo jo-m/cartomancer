@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"goweb/internal/pkg/logg"
-	"goweb/internal/pkg/oapi"
-	"goweb/internal/pkg/session"
 	"io"
 	"net/http"
 	"reflect"
@@ -49,12 +47,8 @@ func RenderPage[T any](ctx context.Context, c templ.Component) (T, error) {
 // RenderErrorPage returns a OpenAPI response of the given type,
 // rendering the error page with the given status code.
 func RenderErrorPage[T any](ctx context.Context, statusCode int) (T, error) {
-	pCtx := PageContext{
-		User: session.GetUser(ctx),
-		L:    oapi.Links{}, // TODO: get with base url
-	}
-	p := ErrorPage(pCtx, middleware.GetReqID(ctx), statusCode, http.StatusText(statusCode))
-	return RenderPage[T](ctx, p)
+	d := ErrorPage(GetPageData(ctx), middleware.GetReqID(ctx), statusCode, http.StatusText(statusCode))
+	return RenderPage[T](ctx, d)
 }
 
 func S(url string) templ.SafeURL {

@@ -1,9 +1,9 @@
 package tmpl
 
-templ LogoutPage(p PageContext) {
-	@PageTemplate(p, "Logout") {
+templ LogoutPage(d PageData) {
+	@PageTemplate(d, "Logout") {
 		<div>
-			<form action={ S(p.L.PostSessionsLogout()) } method="POST">
+			<form action={ S(d.L.PostSessionsLogout()) } method="POST">
 				<button type="submit">Logout</button>
 			</form>
 		</div>
