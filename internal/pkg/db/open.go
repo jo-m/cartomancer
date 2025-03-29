@@ -83,9 +83,8 @@ func (d *DB) BeginTX(ctx context.Context) (*Queries, error) {
 
 // WithTx runs the given function in a transaction.
 // If the function returns an error, the transaction is rolled back.
-func (d *DB) WithTx(_ context.Context, fn func(q *Queries) error) error {
-	// TODO: use ctx here?
-	tx, err := d.BeginTX(context.Background())
+func (d *DB) WithTx(ctx context.Context, fn func(q *Queries) error) error {
+	tx, err := d.BeginTX(ctx)
 	if err != nil {
 		return err
 	}
