@@ -1,5 +1,5 @@
 // Package jobs implements an async job queue.
-// The db package is used for persistence between restarts.
+// The [db] package is used for persistence between restarts.
 // Periodically scheduled jobs are also supported.
 // Jobs are run according to at-least-once semantics.
 //
@@ -34,17 +34,17 @@ type Job[T Args] interface {
 	// Run must be implemented to run the job once.
 	// Returning nil means successful execution.
 	// Returning an error means that the job will be retried (if maxAttemps is set to > 1).
-	// Jobs are responsible to set a reasonable timeout for execution.
+	// Implementations are responsible maintain reasonable timeout for execution themselves.
 	Run(ctx context.Context, args T) error
 }
 
-// JobsConfig is the configuration for Workers.
-// It has struct tags compatible with github.com/alexflint/go-arg.
+// JobsConfig is the configuration for [Workers].
+// It has struct tags compatible with [github.com/alexflint/go-arg].
 //
 //revive:disable:exported Naming necessary for struct embedding.
 type JobsConfig struct {
 	// MaxParallel is the maximum number of jobs that can run in parallel.
-	// It defaults to `runtime.NumCPU()` if zero.
+	// It defaults to runtime.NumCPU() if zero.
 	MaxParallel uint `arg:"--jobs-max-parallel,env:JOBS_MAX_PARALLEL" default:"0" help:"Maximum number of parallel jobs" placeholder:"N"`
 	// AutoCleanupPeriod is the period at which old jobs will be cleared from the database.
 	// Disabled if set to 0.
@@ -56,7 +56,7 @@ type JobsConfig struct {
 type decodeAndWorkFunc func(ctx context.Context, args json.RawMessage) error
 
 // Workers runs jobs.
-// Use NewWorkers() create an instance.
+// Use [NewWorkers] create an instance.
 type Workers struct {
 	d       *db.DB
 	c       JobsConfig
@@ -70,8 +70,8 @@ func sqlTimeNow() sql.NullTime {
 
 // NewWorkers creates a new workers instance.
 // There can only be one instance per process and database.
-// Use jobs.RegisterJob() to register new jobs on the worker.
-// Use jobs.Submit() and jobs.Periodic() on a submitter (w.Submitter()) to submit jobs to be run.
+// Use [jobs.RegisterJob] to register new jobs on the worker.
+// Use [jobs.Submit] and [jobs.Periodic] on a submitter (see [*Workers.Submitter]) to submit jobs to be run.
 func NewWorkers(ctx context.Context, d *db.DB, c JobsConfig) (*Workers, error) {
 	if err := ensureSingleInstance(ctx, d); err != nil {
 		return nil, err
@@ -183,7 +183,7 @@ func RegisterJob[T Args](w *Workers, worker Job[T]) error {
 	return nil
 }
 
-// MustRegisterJob is like RegisterJob() but panics on error.
+// MustRegisterJob is like [RegisterJob] but panics on error.
 func MustRegisterJob[T Args](w *Workers, worker Job[T]) {
 	err := RegisterJob(w, worker)
 	if err != nil {
@@ -311,20 +311,20 @@ type Submitter struct {
 	w *Workers
 }
 
-// Params are the scheduling parameters for Submit().
+// Params are the scheduling parameters for [Submit].
 // The zero value is valid and means no delay and no retries.
 type Params struct {
 	// How many times the job should be retried on failure.
 	// 0 means the job will be run once and not retried on failure.
 	MaxRetries uint8
 	// DelayS is the delay before the job is run.
-	// It must be in whole seconds (X * time.Second).
+	// It must be in whole seconds (X * [time.Second]).
 	DelayS time.Duration
 	// BackofFactorS is the factor applied when calculating the exponential backoff delay:
 	//
 	// 	factor * (pow(2, retries) - 1)
 	//
-	// It must be in whole seconds (X * time.Second).
+	// It must be in whole seconds (X * [time.Second]).
 	// Exponential backoff can be disabled by setting this value to 0.
 	BackofFactorS time.Duration
 }

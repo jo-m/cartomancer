@@ -17,7 +17,9 @@ func GenRandBytes(n uint32) []byte {
 //	python3 -c 'print("".join([chr(i) for i in range(35, 127)]))'
 const printable = "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~"
 
-// GenRandPrintableString returns a random string which may contain all printable ASCII chars except '\!"'.
+// GenRandPrintableString returns a random string which may contain all printable ASCII chars except
+//
+//	\!"
 func GenRandPrintableString(n uint32) string {
 	bytes := GenRandBytes(n)
 	for i, b := range bytes {

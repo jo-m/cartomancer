@@ -38,6 +38,7 @@ type argonHash struct {
 
 // Hash salts and hashes a password.
 // The salt and the hash params are serialized in to the returned string.
+// Use [Check] to check a generated hash against a password.
 func Hash(password string) string {
 	params := defaultparams
 
@@ -58,7 +59,7 @@ func Hash(password string) string {
 	return string(ret)
 }
 
-// Check if a password matches a hash which was previously generated via Hash().
+// Check if a password matches a hash which was previously generated via [Hash].
 func Check(password, hashed string) bool {
 	var h argonHash
 	err := json.Unmarshal([]byte(hashed), &h)

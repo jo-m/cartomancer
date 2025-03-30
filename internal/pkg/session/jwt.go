@@ -42,12 +42,13 @@ func jwtSign(claims jwtClaims, key []byte) (string, error) {
 	return token.SignedString(key)
 }
 
+// ErrInvalidSubject means that a JWT does not contain a subject we consider valid.
 var ErrInvalidSubject = errors.New("invalid subject")
 
 func jwtParseAndVerify(token string, now time.Time, key []byte, issuer string) (*jwtClaims, error) {
 	// This also validates notbefore/expires.
 	parsed, err := jwt.ParseWithClaims(token, &jwtClaims{},
-		func(token *jwt.Token) (any, error) {
+		func(_ *jwt.Token) (any, error) {
 			return key, nil
 		},
 		jwt.WithValidMethods([]string{jwtAlg.Alg()}),

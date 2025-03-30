@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	// LevelTrace is below LevelDebug.
+	// LevelTrace is below [slog.LevelDebug].
 	LevelTrace = slog.Level(-8)
-	// LevelPanic is above LevelError, and additionally terminates the program.
+	// LevelPanic is above [slog.LevelError], and additionally terminates the program.
 	LevelPanic = slog.Level(10)
 )
 

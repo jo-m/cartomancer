@@ -10,7 +10,7 @@ import (
 )
 
 // randomID uniquely identifies this process.
-// We use a random number instead of os.Getpid() because PIDs can be recycled.
+// We use a random number instead of [os.Getpid] because PIDs might get recycled by the OS.
 var randomID = genRandInt64()
 
 func genRandInt64() int64 {

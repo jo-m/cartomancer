@@ -61,18 +61,18 @@ type DB struct {
 	ro *sql.DB
 }
 
-// QueryRO returns a Queries object, with a read only connection.
+// QueryRO returns a [Queries] object, with a read only connection.
 func (d *DB) QueryRO() *Queries {
 	return New(d.ro)
 }
 
-// QueryRW returns a Queries object, with a read/write connection.
+// QueryRW returns a [Queries] object, with a read/write connection.
 func (d *DB) QueryRW() *Queries {
 	return New(d.rw)
 }
 
 // BeginTX returns a Queries object, with a read/write transaction connection.
-// You must call Commit() or Rollback() on the returned object when done.
+// You must call [Commit] or [Rollback] on the returned object when done.
 func (d *DB) BeginTX(ctx context.Context) (*Queries, error) {
 	tx, err := d.rw.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
@@ -126,10 +126,10 @@ func (d *DB) Close() error {
 }
 
 // Open opens the database.
-// To deal with SQLite concurrency, we maintain both a read-only connection pool,
-// and a read/write pool with only one connection in it.
-// You should maintain only one DB object at a time in your application.
-// You must call Close() on the returned DB object when done.
+// To deal with concurrency efficiently, we maintain both a read-only connection pool,
+// and a read/write "pool" with only one connection in it.
+// You should maintain only a single [*DB] object per SQlite file at a time in your application.
+// You must call [*DB.Close] when the conn is no longer needed.
 func Open(ctx context.Context, path string) (db *DB, err error) {
 	dir := filepath.Dir(path)
 	err = os.MkdirAll(dir, 0750)

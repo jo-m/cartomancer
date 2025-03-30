@@ -8,26 +8,26 @@ import (
 
 type panicHandler struct{}
 
-// ErrNotAllowed is [panic()] message when the default logger is used when [DisableDefaultLogger] was called before.
+// ErrNotAllowed is a panic() message for when [slog.Default] is used when [DisableDefaultLogger] was called before.
 var ErrNotAllowed = errors.New("using the default logger is not allowed")
 
-// Enabled implements slog.Handler.
+// Enabled implements [slog.Handler].
 func (p *panicHandler) Enabled(context.Context, slog.Level) bool {
 	panic(ErrNotAllowed)
 }
 
-// Handle implements slog.Handler.
+// Handle implements [slog.Handler].
 func (p *panicHandler) Handle(context.Context, slog.Record) error {
 	panic(ErrNotAllowed)
 }
 
-// WithAttrs implements slog.Handler.
-func (p *panicHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+// WithAttrs implements [slog.Handler].
+func (p *panicHandler) WithAttrs([]slog.Attr) slog.Handler {
 	panic(ErrNotAllowed)
 }
 
-// WithGroup implements slog.Handler.
-func (p *panicHandler) WithGroup(name string) slog.Handler {
+// WithGroup implements [slog.Handler].
+func (p *panicHandler) WithGroup(string) slog.Handler {
 	panic(ErrNotAllowed)
 }
 

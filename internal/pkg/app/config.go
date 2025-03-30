@@ -2,6 +2,9 @@
 package app
 
 // AppConfig contains application-wide configuration.
+// It has struct tags compatible with [github.com/alexflint/go-arg].
+//
+//revive:disable:exported Naming necessary for struct embedding.
 type AppConfig struct {
 	// AppName is the name of the application.
 	// Used e.g. as issuer name for tokens.

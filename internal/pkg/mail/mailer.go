@@ -14,7 +14,7 @@ import (
 )
 
 // MailerConfig is the configuration for a mailer.
-// It has struct tags compatible with github.com/alexflint/go-arg.
+// It has struct tags compatible with [github.com/alexflint/go-arg].
 //
 //revive:disable:exported Naming necessary for struct embedding.
 type MailerConfig struct {
@@ -34,18 +34,18 @@ type Args struct {
 	Body    string
 }
 
-// Kind implements jobs.Args.
+// Kind implements [jobs.Args].
 func (a Args) Kind() string { return "main.mailer" }
 
 var _ jobs.Args = (*Args)(nil)
 
 // Mailer is a job that sends emails.
-// Use NewMailer to create a new instance.
+// Use [NewMailer] to create a new instance.
 type Mailer struct {
 	c MailerConfig
 }
 
-// NewMailer creates a new Mailer.
+// NewMailer creates a new [*Mailer].
 func NewMailer(c MailerConfig) *Mailer {
 	return &Mailer{c: c}
 }
@@ -94,7 +94,7 @@ func (m *Mailer) configureClient(logger *slog.Logger) (*mail.Client, error) {
 	return mail.NewClient(m.c.SMTPHost, opts...)
 }
 
-// Run implements jobs.Job.
+// Run implements [jobs.Job].
 func (m *Mailer) Run(ctx context.Context, args Args) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()

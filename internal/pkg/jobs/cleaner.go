@@ -18,7 +18,7 @@ type cleanerArgs struct {
 
 var _ Args = (*cleanerArgs)(nil)
 
-// Kind implements Args.
+// Kind implements [Args].
 func (a cleanerArgs) Kind() string { return jobNameCleaner }
 
 type cleaner struct {
@@ -27,7 +27,7 @@ type cleaner struct {
 
 var _ Job[cleanerArgs] = (*cleaner)(nil)
 
-// Run implements Job.
+// Run implements [Job].
 func (c *cleaner) Run(ctx context.Context, args cleanerArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()

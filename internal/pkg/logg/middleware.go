@@ -10,7 +10,7 @@ import (
 )
 
 // AttachLogger is a net/http middleware which attaches a logger with the request ID attribute to the request context.
-// Use GetLogger() to retrieve it.
+// Use [GetLogger] to retrieve it.
 func AttachLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 	f := func(h http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,7 @@ func levelFor(statusCode int) slog.Level {
 }
 
 // RequestLogger is a net/http middleware which logs each request.
-// It expects the AttachLogger() middleware above in the stack.
+// It expects the [AttachLogger] middleware above in the stack.
 func RequestLogger(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)

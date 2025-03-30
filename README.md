@@ -53,7 +53,7 @@ go tool MailHog
 - [ ] https://silky.github.io/posts/htmx-haskell-interview.html
 - [x] Jobs: execution timeouts
 - [ ] Rename db pkgs and datastructures
-- [ ] Go doc links `[]` https://tip.golang.org/doc/comment, `go run golang.org/x/pkgsite/cmd/pkgsite@latest -open`
+- [x] Go doc links `[]` https://tip.golang.org/doc/comment, `go run golang.org/x/pkgsite/cmd/pkgsite@latest -open`
 
 # Later TODOs
 

@@ -18,7 +18,7 @@ import (
 )
 
 // SessionConfig options for a session store.
-// It has struct tags compatible with github.com/alexflint/go-arg.
+// It has struct tags compatible with [github.com/alexflint/go-arg].
 //
 //revive:disable:exported Naming necessary for struct embedding.
 type SessionConfig struct {
@@ -63,7 +63,7 @@ func (c *SessionConfig) GetCleanerArgs() cleanerArgs {
 }
 
 // Store manages sessions.
-// Use NewStore() to create an instance.
+// Use [NewStore] to create an instance.
 type Store struct {
 	d  *db.DB
 	c  SessionConfig
@@ -84,8 +84,9 @@ func NewStore(d *db.DB, c SessionConfig, ac app.AppConfig) (*Store, error) {
 	}
 
 	return &Store{
-		d: d,
-		c: c,
+		d:  d,
+		c:  c,
+		ac: ac,
 	}, nil
 }
 

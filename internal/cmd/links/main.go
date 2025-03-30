@@ -1,3 +1,8 @@
+// Links is a code generation tool to make OpenAPI endpoint paths available as methods on a generated struct.
+//
+// Usage:
+//
+//	links -infile oapi.yaml -outfile links.gen.go -pkgname oapi
 package main
 
 import (
@@ -185,6 +190,7 @@ func AttachLinks(links Links) func(http.Handler) http.Handler {
 			})
 			fstr := `%s` + pathFstr
 
+			fmt.Fprintf(outf, "// %s returns %s.\n", fname, path)
 			fmt.Fprintf(outf, "func (l *Links) %s(%s) templ.SafeURL {\n", fname, args)
 			fmt.Fprintf(outf, `url := fmt.Sprintf("%s", l.Base, %s)`, fstr, names)
 			fmt.Fprintf(outf, "\nreturn templ.URL(url)")
