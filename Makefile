@@ -29,11 +29,11 @@ lint:
 
 .PHONY: test
 test:
-	go test -count 1 -v ./...
+	go test -v ./...
 
 .PHONY: bench
 bench:
-	go test -count 1 -v -bench=. -run=Bench ./...
+	go test -v -bench=. -run=Bench ./...
 
 .PHONY: check
-check: gen lint test
+check: gen format lint test
