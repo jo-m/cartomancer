@@ -8,6 +8,7 @@ import (
 
 type panicHandler struct{}
 
+// ErrNotAllowed is [panic()] message when the default logger is used when [DisableDefaultLogger] was called before.
 var ErrNotAllowed = errors.New("using the default logger is not allowed")
 
 // Enabled implements slog.Handler.

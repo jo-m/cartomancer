@@ -7,10 +7,6 @@ import (
 	"log/slog"
 )
 
-type config struct {
-	logg.LoggConfig
-}
-
 // go run ./internal/cmd/logtest/main.go
 func main() {
 	ctx := context.Background()

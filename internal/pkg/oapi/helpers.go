@@ -38,7 +38,9 @@ func makeErrorJSON(msg, on string, details ...ErrorJSON) ErrorJSON {
 	}
 }
 
-func makeRequestIdErrorJSON(ctx context.Context) []ErrorJSON {
+// Returns an ErrorJSON containing the request ID, if one could be found in the context passed.
+// Otherwise nil.
+func makeRequestIDErrorJSON(ctx context.Context) []ErrorJSON {
 	id := middleware.GetReqID(ctx)
 	if id == "" {
 		return nil
@@ -48,9 +50,10 @@ func makeRequestIdErrorJSON(ctx context.Context) []ErrorJSON {
 	}
 }
 
+// Create an ErrorJSON from a HTTP status code.
 func makeStatusErrorJSON(ctx context.Context, statusCode int) ErrorJSON {
 	text := strings.ToLower(http.StatusText(statusCode))
-	return makeErrorJSON(text, onRequest, makeRequestIdErrorJSON(ctx)...)
+	return makeErrorJSON(text, onRequest, makeRequestIDErrorJSON(ctx)...)
 }
 
 // MakeJSONError returns a OpenAPI response of the given type,
@@ -92,7 +95,7 @@ func ErrorHandler(w http.ResponseWriter, message string, statusCode int) {
 	w.WriteHeader(statusCode)
 
 	if statusCode == http.StatusUnauthorized {
-		toSend := makeStatusErrorJSON(nil, http.StatusUnauthorized)
+		toSend := makeStatusErrorJSON(context.TODO(), http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(toSend)
 		return
 	}

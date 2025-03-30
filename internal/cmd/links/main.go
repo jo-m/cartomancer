@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"gopkg.in/yaml.v3"
 )
 
@@ -36,6 +38,8 @@ var acronyms = []string{
 	"api", "id",
 }
 
+var caser cases.Caser = cases.Title(language.English)
+
 func makeName(path, method string) string {
 	noParens := regexp.MustCompile(`[{}]`).ReplaceAllString(path, "")
 	words := []string{method}
@@ -45,7 +49,7 @@ func makeName(path, method string) string {
 		if slices.Contains(acronyms, word) {
 			words[i] = strings.ToUpper(word)
 		} else {
-			words[i] = strings.Title(word)
+			words[i] = caser.String(word)
 		}
 	}
 
@@ -124,16 +128,19 @@ func main() {
 			"github.com/a-h/templ"
 		)
 
+		// Links is a code-generated type with a method returning a URL for each OpenAPI endpoint.
 		type Links struct {
 			Base string
 		}
 
 type ctxKeyLinks struct{}
 
+// WithLinks attaches the given [Links] to a context.
 func WithLinks(ctx context.Context, links Links) context.Context {
 	return context.WithValue(ctx, ctxKeyLinks{}, links)
 }
 
+// GetLinks retrieves [Links] from a context.
 func GetLinks(ctx context.Context) *Links {
 	if ret, ok := ctx.Value(ctxKeyLinks{}).(Links); ok {
 		return &ret
@@ -141,6 +148,7 @@ func GetLinks(ctx context.Context) *Links {
 	return nil
 }
 
+// MustGetLinks is like [GetLinks] but panics if no [Links] is attached.
 func MustGetLinks(ctx context.Context) *Links {
 	links := GetLinks(ctx)
 	if links != nil {
@@ -150,6 +158,7 @@ func MustGetLinks(ctx context.Context) *Links {
 	panic("no Links attached to context")
 }
 
+// AttachLinks is a middleware to attach [Links] to incoming request contexts.
 func AttachLinks(links Links) func(http.Handler) http.Handler {
 	f := func(h http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {

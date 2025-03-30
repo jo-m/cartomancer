@@ -1,3 +1,4 @@
+// Package app contains configuration relating to the entire application.
 package app
 
 // AppConfig contains application-wide configuration.
