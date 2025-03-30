@@ -2,9 +2,10 @@ package session
 
 import (
 	"context"
-	"goweb/internal/pkg/db"
-	"goweb/internal/pkg/logg"
 	"net/http"
+
+	"github.com/jo-m/goweb/internal/pkg/db"
+	"github.com/jo-m/goweb/internal/pkg/logg"
 )
 
 type ctxKeyUser struct{}

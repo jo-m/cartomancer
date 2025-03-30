@@ -4,16 +4,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"goweb/internal/pkg/app"
-	"goweb/internal/pkg/db"
-	"goweb/internal/pkg/endpoints"
-	"goweb/internal/pkg/jobs"
-	"goweb/internal/pkg/logg"
-	"goweb/internal/pkg/mail"
-	"goweb/internal/pkg/oapi"
-	"goweb/internal/pkg/password"
-	"goweb/internal/pkg/session"
-	"goweb/internal/pkg/utl"
 	"log/slog"
 	"net/http"
 	"os"
@@ -24,6 +14,16 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
+	"github.com/jo-m/goweb/internal/pkg/app"
+	"github.com/jo-m/goweb/internal/pkg/db"
+	"github.com/jo-m/goweb/internal/pkg/endpoints"
+	"github.com/jo-m/goweb/internal/pkg/jobs"
+	"github.com/jo-m/goweb/internal/pkg/logg"
+	"github.com/jo-m/goweb/internal/pkg/mail"
+	"github.com/jo-m/goweb/internal/pkg/oapi"
+	"github.com/jo-m/goweb/internal/pkg/password"
+	"github.com/jo-m/goweb/internal/pkg/session"
+	"github.com/jo-m/goweb/internal/pkg/utl"
 )
 
 type config struct {

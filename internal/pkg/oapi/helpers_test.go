@@ -3,10 +3,10 @@ package oapi
 import (
 	"context"
 	"encoding/json"
-	"goweb/internal/pkg/utl"
 	"testing"
 
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jo-m/goweb/internal/pkg/utl"
 	"github.com/stretchr/testify/assert"
 )
 

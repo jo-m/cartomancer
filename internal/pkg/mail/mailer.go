@@ -4,11 +4,11 @@ package mail
 import (
 	"context"
 	"fmt"
-	"goweb/internal/pkg/jobs"
-	"goweb/internal/pkg/logg"
 	"log/slog"
 	"time"
 
+	"github.com/jo-m/goweb/internal/pkg/jobs"
+	"github.com/jo-m/goweb/internal/pkg/logg"
 	"github.com/wneessen/go-mail"
 	"github.com/wneessen/go-mail/log"
 )

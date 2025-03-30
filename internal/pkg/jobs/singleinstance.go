@@ -5,7 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"goweb/internal/pkg/db"
+
+	"github.com/jo-m/goweb/internal/pkg/db"
 )
 
 // randomID uniquely identifies this process.

@@ -8,11 +8,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"goweb/internal/pkg/endpoints/tmpl"
-	"goweb/internal/pkg/logg"
-	"goweb/internal/pkg/oapi"
-	"goweb/internal/pkg/password"
-	"goweb/internal/pkg/session"
+
+	"github.com/jo-m/goweb/internal/pkg/endpoints/tmpl"
+	"github.com/jo-m/goweb/internal/pkg/logg"
+	"github.com/jo-m/goweb/internal/pkg/oapi"
+	"github.com/jo-m/goweb/internal/pkg/password"
+	"github.com/jo-m/goweb/internal/pkg/session"
 )
 
 /*

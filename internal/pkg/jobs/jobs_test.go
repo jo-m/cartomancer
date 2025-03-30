@@ -7,9 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"goweb/internal/pkg/db"
-	"goweb/internal/pkg/logg"
-
+	"github.com/jo-m/goweb/internal/pkg/db"
+	"github.com/jo-m/goweb/internal/pkg/logg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

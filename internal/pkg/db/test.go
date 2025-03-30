@@ -1,10 +1,10 @@
 package db
 
 import (
-	"goweb/internal/pkg/logg"
 	"path/filepath"
 	"testing"
 
+	"github.com/jo-m/goweb/internal/pkg/logg"
 	"github.com/stretchr/testify/require"
 )
 

@@ -1,10 +1,10 @@
 package tmpl
 
 import (
-	"goweb/internal/pkg/oapi"
 	"io"
 	"testing"
 
+	"github.com/jo-m/goweb/internal/pkg/oapi"
 	"github.com/stretchr/testify/assert"
 )
 

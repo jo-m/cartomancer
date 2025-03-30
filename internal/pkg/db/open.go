@@ -6,7 +6,6 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	"goweb/internal/pkg/logg"
 	"io/fs"
 	"log/slog"
 	"net/url"
@@ -14,6 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/jo-m/goweb/internal/pkg/logg"
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite" // Database driver.
 )

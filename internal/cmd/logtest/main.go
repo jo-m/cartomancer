@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"goweb/internal/pkg/logg"
 	"log/slog"
+
+	"github.com/jo-m/goweb/internal/pkg/logg"
 )
 
 // go run ./internal/cmd/logtest/main.go

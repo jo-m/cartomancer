@@ -1,11 +1,11 @@
 package session
 
 import (
-	"goweb/internal/pkg/password"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jo-m/goweb/internal/pkg/password"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

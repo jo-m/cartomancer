@@ -12,12 +12,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"goweb/internal/pkg/db"
-	"goweb/internal/pkg/logg"
 	"reflect"
 	"runtime"
 	"sync/atomic"
 	"time"
+
+	"github.com/jo-m/goweb/internal/pkg/db"
+	"github.com/jo-m/goweb/internal/pkg/logg"
 )
 
 // Args is the interface job args have to implement.

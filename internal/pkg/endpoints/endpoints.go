@@ -8,14 +8,14 @@ package endpoints
 import (
 	"context"
 	"errors"
-	"goweb/internal/pkg/db"
-	"goweb/internal/pkg/endpoints/tmpl"
-	"goweb/internal/pkg/oapi"
-	"goweb/internal/pkg/session"
 	"net/http"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
+	"github.com/jo-m/goweb/internal/pkg/db"
+	"github.com/jo-m/goweb/internal/pkg/endpoints/tmpl"
+	"github.com/jo-m/goweb/internal/pkg/oapi"
+	"github.com/jo-m/goweb/internal/pkg/session"
 	netmiddleware "github.com/oapi-codegen/nethttp-middleware"
 )
 

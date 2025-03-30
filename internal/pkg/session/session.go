@@ -6,15 +6,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"goweb/internal/pkg/app"
-	"goweb/internal/pkg/db"
-	"goweb/internal/pkg/logg"
-	"goweb/internal/pkg/password"
 	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/jo-m/goweb/internal/pkg/app"
+	"github.com/jo-m/goweb/internal/pkg/db"
+	"github.com/jo-m/goweb/internal/pkg/logg"
+	"github.com/jo-m/goweb/internal/pkg/password"
 )
 
 // SessionConfig options for a session store.

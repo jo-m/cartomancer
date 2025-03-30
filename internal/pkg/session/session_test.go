@@ -3,9 +3,6 @@ package session
 import (
 	"database/sql"
 	"fmt"
-	"goweb/internal/pkg/app"
-	"goweb/internal/pkg/db"
-	"goweb/internal/pkg/password"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -13,6 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jo-m/goweb/internal/pkg/app"
+	"github.com/jo-m/goweb/internal/pkg/db"
+	"github.com/jo-m/goweb/internal/pkg/password"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -3,13 +3,13 @@ package tmpl
 import (
 	"context"
 	"fmt"
-	"goweb/internal/pkg/logg"
 	"io"
 	"net/http"
 	"reflect"
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jo-m/goweb/internal/pkg/logg"
 )
 
 func readerFrom(w func(io.Writer)) io.Reader {

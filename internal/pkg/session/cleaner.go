@@ -2,10 +2,11 @@ package session
 
 import (
 	"context"
-	"goweb/internal/pkg/db"
-	"goweb/internal/pkg/jobs"
-	"goweb/internal/pkg/logg"
 	"time"
+
+	"github.com/jo-m/goweb/internal/pkg/db"
+	"github.com/jo-m/goweb/internal/pkg/jobs"
+	"github.com/jo-m/goweb/internal/pkg/logg"
 )
 
 type cleanerArgs struct {

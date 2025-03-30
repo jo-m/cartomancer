@@ -4,9 +4,9 @@ package oapi
 import (
 	"context"
 	_ "embed"
-	"goweb/internal/pkg/logg"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/jo-m/goweb/internal/pkg/logg"
 )
 
 //go:generate go tool oapi-codegen -config oapi-cfg.yaml oapi.yaml
