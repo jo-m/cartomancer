@@ -13,12 +13,16 @@ import (
 const issuer = "ACME corp"
 
 func makeTestClaimsAndKey(tb testing.TB) (jwtClaims, []byte) {
+	tb.Helper()
+
 	id, err := uuid.NewV7()
 	require.NoError(tb, err)
 	return claimsForSession(id.String(), time.Now(), time.Hour, issuer), password.GenRandBytes(jwtSecretLenBytes / 8)
 }
 
 func TestSimple(t *testing.T) {
+	t.Helper()
+
 	claims, key := makeTestClaimsAndKey(t)
 
 	token, err := jwtSign(claims, key)

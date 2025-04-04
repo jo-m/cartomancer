@@ -107,6 +107,8 @@ func replaceTime(s string) string {
 }
 
 func replaceCwd(t *testing.T, s string) string {
+	t.Helper()
+
 	dir, err := os.Getwd()
 	require.NoError(t, err)
 	return regexp.MustCompile(regexp.QuoteMeta(dir)).ReplaceAllString(s, "")

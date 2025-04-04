@@ -43,6 +43,8 @@ type testClient struct {
 }
 
 func newTestClient(t *testing.T) *testClient {
+	t.Helper()
+
 	jar, err := cookiejar.New(nil)
 	require.NoError(t, err)
 	return &testClient{
@@ -64,6 +66,8 @@ func (c *testClient) doRequest(method, url string, body io.Reader, expectedStatu
 }
 
 func createUser(t *testing.T, d *db.DB) {
+	t.Helper()
+
 	tx, err := d.BeginTX(t.Context())
 	require.NoError(t, err)
 	defer tx.Rollback()
@@ -114,6 +118,8 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func assertSessionsCount(t *testing.T, d *db.DB, expected int64) {
+	t.Helper()
+
 	c, err := d.QueryRO().GetSessionsCount(t.Context())
 	assert.NoError(t, err)
 	assert.Equal(t, expected, c)
@@ -181,6 +187,8 @@ func TestSessionMiddleware(t *testing.T) {
 }
 
 func createSession(t *testing.T, d *db.DB, store *Store) string {
+	t.Helper()
+
 	tx, err := d.BeginTX(t.Context())
 	require.NoError(t, err)
 	defer tx.Rollback()
@@ -198,6 +206,8 @@ func createSession(t *testing.T, d *db.DB, store *Store) string {
 }
 
 func pokeSession(t *testing.T, d *db.DB, store *Store, cookieVal string) error {
+	t.Helper()
+
 	tx, err := d.BeginTX(t.Context())
 	require.NoError(t, err)
 	defer tx.Rollback()

@@ -11,6 +11,8 @@ import (
 // GetTestDB returns a new temporary test database.
 // You must call [Close] on the returned [DB] when done.
 func GetTestDB(t *testing.T) *DB {
+	t.Helper()
+
 	dir := t.TempDir()
 	ctx := logg.WithDiscardHandler(t.Context())
 	d, err := Open(ctx, filepath.Join(dir, "db"))
