@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jo-m/goweb/internal/pkg/logg"
 	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/goweb/internal/pkg/logg"
 )
 
 // GetTestDB returns a new temporary test database.

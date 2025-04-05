@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jo-m/goweb/internal/pkg/db"
-	"github.com/jo-m/goweb/internal/pkg/logg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/goweb/internal/pkg/db"
+	"jo-m.ch/go/goweb/internal/pkg/logg"
 )
 
 // To enable debug logging per test:

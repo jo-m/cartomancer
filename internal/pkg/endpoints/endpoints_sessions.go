@@ -9,11 +9,11 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/jo-m/goweb/internal/pkg/endpoints/tmpl"
-	"github.com/jo-m/goweb/internal/pkg/logg"
-	"github.com/jo-m/goweb/internal/pkg/oapi"
-	"github.com/jo-m/goweb/internal/pkg/password"
-	"github.com/jo-m/goweb/internal/pkg/session"
+	"jo-m.ch/go/goweb/internal/pkg/endpoints/tmpl"
+	"jo-m.ch/go/goweb/internal/pkg/logg"
+	"jo-m.ch/go/goweb/internal/pkg/oapi"
+	"jo-m.ch/go/goweb/internal/pkg/password"
+	"jo-m.ch/go/goweb/internal/pkg/session"
 )
 
 /*

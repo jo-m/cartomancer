@@ -11,10 +11,10 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/jo-m/goweb/internal/pkg/app"
-	"github.com/jo-m/goweb/internal/pkg/db"
-	"github.com/jo-m/goweb/internal/pkg/logg"
-	"github.com/jo-m/goweb/internal/pkg/password"
+	"jo-m.ch/go/goweb/internal/pkg/app"
+	"jo-m.ch/go/goweb/internal/pkg/db"
+	"jo-m.ch/go/goweb/internal/pkg/logg"
+	"jo-m.ch/go/goweb/internal/pkg/password"
 )
 
 // SessionConfig options for a session store.

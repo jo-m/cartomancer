@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/jo-m/goweb/internal/pkg/db"
-	"github.com/jo-m/goweb/internal/pkg/logg"
+	"jo-m.ch/go/goweb/internal/pkg/db"
+	"jo-m.ch/go/goweb/internal/pkg/logg"
 )
 
 type ctxKeyUser struct{}

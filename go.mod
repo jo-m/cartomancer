@@ -1,4 +1,4 @@
-module github.com/jo-m/goweb
+module jo-m.ch/go/goweb
 
 go 1.24.0
 

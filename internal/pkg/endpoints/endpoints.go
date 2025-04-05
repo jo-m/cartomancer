@@ -12,11 +12,11 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
-	"github.com/jo-m/goweb/internal/pkg/db"
-	"github.com/jo-m/goweb/internal/pkg/endpoints/tmpl"
-	"github.com/jo-m/goweb/internal/pkg/oapi"
-	"github.com/jo-m/goweb/internal/pkg/session"
 	netmiddleware "github.com/oapi-codegen/nethttp-middleware"
+	"jo-m.ch/go/goweb/internal/pkg/db"
+	"jo-m.ch/go/goweb/internal/pkg/endpoints/tmpl"
+	"jo-m.ch/go/goweb/internal/pkg/oapi"
+	"jo-m.ch/go/goweb/internal/pkg/session"
 )
 
 type Server struct {

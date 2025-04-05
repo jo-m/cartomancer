@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/jo-m/goweb/internal/pkg/db"
-	"github.com/jo-m/goweb/internal/pkg/logg"
+	"jo-m.ch/go/goweb/internal/pkg/db"
+	"jo-m.ch/go/goweb/internal/pkg/logg"
 )
 
 // Builtin periodic job to cleanup old jobs from the database.

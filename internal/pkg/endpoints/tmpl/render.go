@@ -9,7 +9,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/jo-m/goweb/internal/pkg/logg"
+	"jo-m.ch/go/goweb/internal/pkg/logg"
 )
 
 func readerFrom(w func(io.Writer)) io.Reader {

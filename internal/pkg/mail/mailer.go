@@ -7,10 +7,10 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/jo-m/goweb/internal/pkg/jobs"
-	"github.com/jo-m/goweb/internal/pkg/logg"
 	"github.com/wneessen/go-mail"
 	"github.com/wneessen/go-mail/log"
+	"jo-m.ch/go/goweb/internal/pkg/jobs"
+	"jo-m.ch/go/goweb/internal/pkg/logg"
 )
 
 // MailerConfig is the configuration for a mailer.

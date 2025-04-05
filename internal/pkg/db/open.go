@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/jo-m/goweb/internal/pkg/logg"
 	"github.com/pressly/goose/v3"
+	"jo-m.ch/go/goweb/internal/pkg/logg"
 	_ "modernc.org/sqlite" // Database driver.
 )
 

@@ -10,10 +10,10 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/jo-m/goweb/internal/pkg/logg"
-	"github.com/jo-m/goweb/internal/pkg/oapi"
-	"github.com/jo-m/goweb/internal/pkg/utl"
 	"github.com/oapi-codegen/runtime/types"
+	"jo-m.ch/go/goweb/internal/pkg/logg"
+	"jo-m.ch/go/goweb/internal/pkg/oapi"
+	"jo-m.ch/go/goweb/internal/pkg/utl"
 )
 
 /*
