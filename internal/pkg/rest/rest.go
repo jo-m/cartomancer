@@ -2,7 +2,6 @@
 package rest
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -13,32 +12,26 @@ import (
 
 type server struct {
 	d            *db.DB
+	sessions     *session.Store
 	jobSubmitter *jobs.Submitter
 }
 
 // New creates a new API handler.
-func New(d *db.DB, _ *session.Store, submitter *jobs.Submitter) http.Handler {
+func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter) http.Handler {
 	sv := server{
 		d:            d,
+		sessions:     sessions,
 		jobSubmitter: submitter,
 	}
 
 	mux := chi.NewRouter()
-	mux.Get("/status", sv.handleStatus)
+
+	mux.Group(func(r chi.Router) {
+		r.Use(sessions.Middleware)
+		r.Post("/sessions/login", sv.handleLogin)
+		r.Post("/sessions/logout", sv.handleLogout)
+		r.Get("/sessions/me", sv.handleGetSession)
+	})
 
 	return mux
-}
-
-// TODO: Remove this again.
-func (s *server) handleStatus(w http.ResponseWriter, r *http.Request) {
-	count, err := s.d.QueryRO().GetSessionsCount(r.Context())
-	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]int64{
-		"active_sessions": count,
-	})
 }
