@@ -1,7 +1,6 @@
 # Commands
 
 ```bash
-go get -tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 go get -tool github.com/pressly/goose/v3/cmd/goose
 go get -tool github.com/sqlc-dev/sqlc/cmd/sqlc
 go get -tool github.com/mailhog/MailHog
@@ -45,36 +44,22 @@ go tool MailHog
 - [x] Get URLs from OpenAPI spec
 - [x] Modify generated links to return safe URLs (but escape string params)
 - [ ] CRUD users, self-registration
-- [ ] Separate endpoints into HTTP + Service layer
 - [ ] Code TODOs
 - [ ] XSRF protection
-- [ ] Try https://hotwired.dev/ and HTMX
 - [x] Jobs: Cleanup with min age
-- [ ] https://silky.github.io/posts/htmx-haskell-interview.html
 - [x] Jobs: execution timeouts
-- [ ] Rename db pkgs and datastructures
 - [x] Go doc links `[]` https://tip.golang.org/doc/comment, `go run golang.org/x/pkgsite/cmd/pkgsite@latest -open`
 
 # Later TODOs
 
 - [ ] https://brandur.org/two-phase-render
-- [ ] Frameworkeize/factor out as much as possible
 - [ ] TS Oapi generator: https://www.npmjs.com/package/openapi-typescript
 - [ ] Check in the generated files
 - [ ] Rate limiting for sensitive endpoints
 - [ ] (pre)compress static files
-- [ ] TOTP Login
 - [ ] VACUUM
 
 # Hints
 - Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)
 - Goose because: can do both SQL and Go migrations
 - We always try to store as little as possible in the database, and delete it right away. For investigations and debugging, we keep the logs instead.
-- Server handlers should never return (nil, err)
-
-# Various
-
-App ideas:
-- Shopping list
-- Dashboard/feed reader
-- Bookmarks

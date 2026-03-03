@@ -1,4 +1,4 @@
-// Goweb runs the web server and job runner.
+// Detour runs the web server and job runner.
 package main
 
 import (
@@ -16,14 +16,12 @@ import (
 	"github.com/google/uuid"
 	"jo-m.ch/go/detour/internal/pkg/app"
 	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/endpoints"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 	"jo-m.ch/go/detour/internal/pkg/mail"
-	"jo-m.ch/go/detour/internal/pkg/oapi"
 	"jo-m.ch/go/detour/internal/pkg/password"
+	"jo-m.ch/go/detour/internal/pkg/rest"
 	"jo-m.ch/go/detour/internal/pkg/session"
-	"jo-m.ch/go/detour/internal/pkg/utl"
 )
 
 type config struct {
@@ -33,15 +31,13 @@ type config struct {
 	mail.MailerConfig
 	app.AppConfig
 
-	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8050"`
+	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8080"`
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
 }
 
-func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig, appConfig app.AppConfig) http.Handler {
+func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter) http.Handler {
 	logger := logg.GetLogger(ctx).With("mod", "svc")
 	mux := chi.NewRouter()
-
-	oapi.PrintRoutes(ctx)
 
 	{
 
@@ -59,11 +55,8 @@ func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig,
 		svcMux.Use(middleware.RedirectSlashes)
 		svcMux.Use(sess.Middleware)
 		svcMux.Use(middleware.Recoverer)
-		svcMux.Use(oapi.AttachLinks(oapi.Links{
-			Base: appConfig.ExternalBaseURL,
-		}))
 
-		svcMux.Mount("/", endpoints.New(d, sess))
+		svcMux.Mount("/", rest.New(d, sess, jobSubmitter))
 		mux.Mount("/", svcMux)
 	}
 
@@ -106,6 +99,7 @@ func main() {
 
 	// Parse args.
 	c := config{}
+	//revive:disable:superfluous-else
 	if p, err := arg.NewParser(arg.Config{Out: os.Stderr}, &c); err != nil {
 		panic(err)
 	} else {
@@ -131,12 +125,9 @@ func main() {
 	// Insert users.
 	{
 		err := d.WithTx(ctx, func(tx *db.Queries) error {
-			_ = createUser(ctx, tx, "test@example.org", "asdf")
+			_ = createUser(ctx, tx, "test@example.org", "asdf") // TODO: Make this configurable.
 			if err != nil {
 				logg.Error(ctx, "CreateUser failed", "err", err)
-			}
-			for range 3 {
-				_ = createUser(ctx, tx, gofakeit.Email(), password.GenRandPrintableString(32))
 			}
 			return nil
 		})
@@ -146,33 +137,23 @@ func main() {
 	}
 
 	// Jobs.
-	{
-		ctx := logg.WithLogger(ctx, logger.With("mod", "jobs"))
-		w, err := jobs.NewWorkers(ctx, d, c.JobsConfig)
-		if err != nil {
-			logg.Panic(ctx, "Failed to initialize workers", "err", err)
-		}
-
-		jobs.MustRegisterJob(w, session.NewCleaner(d))
-		jobs.MustRegisterJob(w, mail.NewMailer(c.MailerConfig))
-		jobs.Periodic(ctx, w.Submitter(), c.GetCleanerArgs(), time.Minute)
-
-		for range 10 {
-			_ = jobs.Submit(ctx, w.Submitter(), mail.Args{
-				To:      []string{gofakeit.Email(), gofakeit.Email(), gofakeit.Email()},
-				Subject: gofakeit.Phrase(),
-				Body:    utl.Must(gofakeit.EmailText(&gofakeit.EmailOptions{})),
-			}, jobs.Params{})
-		}
-
-		// TODO: clean shutdown via context.
-		w.RunInBackground(ctx)
+	ctxJobs := logg.WithLogger(ctx, logger.With("mod", "jobs"))
+	w, err := jobs.NewWorkers(ctxJobs, d, c.JobsConfig)
+	if err != nil {
+		logg.Panic(ctx, "Failed to initialize workers", "err", err)
 	}
+
+	jobs.MustRegisterJob(w, session.NewCleaner(d))
+	jobs.MustRegisterJob(w, mail.NewMailer(c.MailerConfig))
+	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute)
+
+	// TODO: clean shutdown via context.
+	w.RunInBackground(ctxJobs)
 
 	{
 		s := &http.Server{
 			Addr:              c.HTTPListenAddr,
-			Handler:           newHandler(ctx, d, c.SessionConfig, c.AppConfig),
+			Handler:           newHandler(ctx, d, c.SessionConfig, c.AppConfig, w.Submitter()),
 			ReadHeaderTimeout: 20 * time.Second,
 			ReadTimeout:       10 * time.Second,
 			WriteTimeout:      10 * time.Second,
