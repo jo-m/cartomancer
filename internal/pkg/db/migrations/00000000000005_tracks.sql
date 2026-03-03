@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE tracks (
-    id TEXT PRIMARY KEY,
+    uuid TEXT PRIMARY KEY,
 
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
@@ -28,13 +28,13 @@ CREATE TABLE tracks (
 
     original_created_at DATETIME,
 
-    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY(blob_id) REFERENCES blobs(id) ON DELETE RESTRICT
+    FOREIGN KEY(user_id) REFERENCES users(uuid) ON DELETE CASCADE,
+    FOREIGN KEY(blob_id) REFERENCES blobs(uuid) ON DELETE RESTRICT
 );
 -- When a track is deleted, delete its blob (unless another track still references it).
 CREATE TRIGGER tracks_delete_blob AFTER DELETE ON tracks
 BEGIN
-    DELETE FROM blobs WHERE id = OLD.blob_id
+    DELETE FROM blobs WHERE uuid = OLD.blob_id
     AND NOT EXISTS (SELECT 1 FROM tracks WHERE blob_id = OLD.blob_id);
 END;
 -- +goose StatementEnd

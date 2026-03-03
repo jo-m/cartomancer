@@ -37,7 +37,7 @@ func Create(ctx context.Context, q *db.Queries, id, filename string, content []b
 	}
 
 	_, err := q.CreateBlob(ctx, db.CreateBlobParams{
-		ID:          id,
+		Uuid:        id,
 		Filename:    filename,
 		Compression: int64(compression),
 		Content:     stored,
@@ -69,7 +69,7 @@ func Get(ctx context.Context, q *db.Queries, id string) (Blob, error) {
 	}
 
 	return Blob{
-		ID:       raw.ID,
+		ID:       raw.Uuid,
 		Filename: raw.Filename,
 		Content:  content,
 	}, nil

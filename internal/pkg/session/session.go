@@ -126,7 +126,7 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 	}
 
 	err = db.EnsureOneRowChanged(tx.UpdateSessionLastActive(r.Context(), db.UpdateSessionLastActiveParams{
-		ID:           sess.ID,
+		Uuid:         sess.Uuid,
 		LastActiveAt: now,
 	}))
 	if err != nil {
@@ -135,7 +135,7 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 
 	if sess.UserID.Valid {
 		err := db.EnsureOneRowChanged(tx.UpdateUserLastActive(r.Context(), db.UpdateUserLastActiveParams{
-			ID:           sess.UserID.String,
+			Uuid:         sess.UserID.String,
 			LastActiveAt: sql.NullTime{Valid: true, Time: now},
 		}))
 		if err != nil {
@@ -148,7 +148,7 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 
 func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, userID sql.NullString, oldToDelete *db.Session) (*db.Session, error) {
 	if oldToDelete != nil {
-		err := db.EnsureOneRowChanged(tx.DeleteSession(r.Context(), oldToDelete.ID))
+		err := db.EnsureOneRowChanged(tx.DeleteSession(r.Context(), oldToDelete.Uuid))
 		if err != nil {
 			return nil, fmt.Errorf("failed to delete existing session: %w", err)
 		}
@@ -158,7 +158,7 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 	now := time.Now()
 	if userID.Valid {
 		err := db.EnsureOneRowChanged(tx.UpdateUserLastLogin(r.Context(), db.UpdateUserLastLoginParams{
-			ID:           userID.String,
+			Uuid:         userID.String,
 			LastLoginAt:  sql.NullTime{Valid: true, Time: now},
 			LastActiveAt: sql.NullTime{Valid: true, Time: now},
 		}))
@@ -173,7 +173,7 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 		return nil, fmt.Errorf("failed to generate uuid: %w", err)
 	}
 	params := db.CreateSessionParams{
-		ID:           id.String(),
+		Uuid:         id.String(),
 		CreatedAt:    now,
 		LastActiveAt: now,
 		UserID:       userID,
@@ -237,7 +237,7 @@ func (s *Store) delete(w http.ResponseWriter, r *http.Request, tx *db.Queries, s
 	}
 	http.SetCookie(w, &deleteCookie)
 
-	return db.EnsureOneRowChanged(tx.DeleteSession(r.Context(), sess.ID))
+	return db.EnsureOneRowChanged(tx.DeleteSession(r.Context(), sess.Uuid))
 }
 
 // Delete a session from the database and delete the session cookie.
@@ -283,7 +283,7 @@ func (s *Store) Middleware(next http.Handler) http.Handler {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			logg.Debug(ctx, "Created session", "id", newSession.ID)
+			logg.Debug(ctx, "Created session", "id", newSession.Uuid)
 			sess = newSession
 		}
 		if sess == nil {
@@ -291,7 +291,7 @@ func (s *Store) Middleware(next http.Handler) http.Handler {
 		}
 
 		// Attach to context.
-		logg.Debug(ctx, "Attaching session", "id", sess.ID)
+		logg.Debug(ctx, "Attaching session", "id", sess.Uuid)
 		ctx = withSession(ctx, *sess)
 		ctx = withRequest(ctx, requestCtx{w: w, r: r, s: s})
 
@@ -303,7 +303,7 @@ func (s *Store) Middleware(next http.Handler) http.Handler {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			logg.Debug(ctx, "Attaching user", "id", user.ID)
+			logg.Debug(ctx, "Attaching user", "id", user.Uuid)
 			ctx = withUser(ctx, user)
 		}
 

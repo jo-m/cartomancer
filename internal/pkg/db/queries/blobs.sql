@@ -1,6 +1,6 @@
 -- name: CreateBlob :one
 INSERT INTO blobs (
-  id, filename, compression, content
+  uuid, filename, compression, content
 ) VALUES (
   ?, ?, ?, ?
 )
@@ -8,4 +8,4 @@ RETURNING *;
 
 -- name: GetBlob :one
 SELECT * FROM blobs
-WHERE id = ? LIMIT 1;
+WHERE uuid = ? LIMIT 1;

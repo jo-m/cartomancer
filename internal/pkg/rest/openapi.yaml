@@ -132,9 +132,9 @@ components:
     SessionResponse:
       type: object
       required:
-        - sessionId
+        - sessionUuid
       properties:
-        sessionId:
+        sessionUuid:
           type: string
         user:
           $ref: "#/components/schemas/User"
@@ -142,11 +142,11 @@ components:
     User:
       type: object
       required:
-        - id
+        - uuid
         - email
         - name
       properties:
-        id:
+        uuid:
           type: string
         email:
           type: string
@@ -157,7 +157,7 @@ components:
     TrackResponse:
       type: object
       required:
-        - id
+        - uuid
         - name
         - fileFormat
         - trackType
@@ -168,7 +168,7 @@ components:
         - createdAt
         - updatedAt
       properties:
-        id:
+        uuid:
           type: string
         name:
           type: string

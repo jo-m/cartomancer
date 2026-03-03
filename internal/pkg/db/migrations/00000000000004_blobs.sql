@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE blobs (
-    id TEXT PRIMARY KEY,
+    uuid TEXT PRIMARY KEY,
 
     filename TEXT NOT NULL,
     compression INTEGER NOT NULL,

@@ -32,6 +32,7 @@ go tool goose create REPLACEME sql
 go tool goose up
 go tool goose validate
 ```
+Most tables must use `uuid TEXT PRIMARY KEY`, only internal ones can use `id INTEGER PRIMARY KEY`. Populated with uuid.NewV7().
 DO NOT explicitly annotate cols with NULL if they are nullable, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out).
 Always store timestamps with timezone.
 Simple internal enums, where the logic/state is managed from within SQL queries only, are strings with CHECK, example: `status TEXT CHECK(status IN ('C', 'R', 'A', 'E', 'S') ) NOT NULL DEFAULT 'C'`.

@@ -1,6 +1,6 @@
 -- name: CreateSession :one
 INSERT INTO sessions (
-  id, created_at, last_active_at, user_id
+  uuid, created_at, last_active_at, user_id
 ) VALUES (
   ?, ?, ?, ?
 )
@@ -8,16 +8,16 @@ RETURNING *;
 
 -- name: GetSession :one
 SELECT * FROM sessions
-WHERE id = ? LIMIT 1;
+WHERE uuid = ? LIMIT 1;
 
 -- name: DeleteSession :execrows
 DELETE FROM sessions
-WHERE id = ?;
+WHERE uuid = ?;
 
 -- name: UpdateSessionLastActive :execrows
 UPDATE sessions
 SET last_active_at = ?
-WHERE id = ?;
+WHERE uuid = ?;
 
 -- name: UpdateSessionData :one
 INSERT INTO sessions_data (
@@ -25,7 +25,7 @@ INSERT INTO sessions_data (
 ) VALUES (
   ?, ?, ?
 )
-ON CONFLICT(session_id, key) 
+ON CONFLICT(session_id, key)
 DO UPDATE SET data = excluded.data
 RETURNING *;
 

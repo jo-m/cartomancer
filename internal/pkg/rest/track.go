@@ -20,7 +20,7 @@ import (
 )
 
 type trackResponse struct {
-	ID                string  `json:"id"`
+	UUID              string  `json:"uuid"`
 	Name              string  `json:"name"`
 	Description       string  `json:"description,omitempty"`
 	Source            string  `json:"source,omitempty"`
@@ -61,7 +61,7 @@ func nullStringVal(ns sql.NullString) string {
 
 func trackResponseFromDB(t db.Track) trackResponse {
 	resp := trackResponse{
-		ID:             t.ID,
+		UUID:           t.Uuid,
 		Name:           t.Name,
 		Description:    nullStringVal(t.Description),
 		Source:         nullStringVal(t.Source),
@@ -165,10 +165,10 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		}
 
 		created, err = q.CreateTrack(ctx, db.CreateTrackParams{
-			ID:                trackID.String(),
+			Uuid:              trackID.String(),
 			CreatedAt:         now,
 			UpdatedAt:         now,
-			UserID:            user.ID,
+			UserID:            user.Uuid,
 			BlobID:            blobID.String(),
 			FileFormat:        int64(fileFormatFromExt(header.Filename)),
 			Name:              meta.Name,

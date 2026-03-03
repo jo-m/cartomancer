@@ -20,11 +20,11 @@ import (
 func TestContext(t *testing.T) {
 	ctx := t.Context()
 
-	sess := db.Session{ID: "asdf"}
+	sess := db.Session{Uuid: "asdf"}
 	ctx = withSession(ctx, sess)
 	assert.Equal(t, sess, MustGet(ctx))
 
-	user := db.User{ID: "asdf"}
+	user := db.User{Uuid: "asdf"}
 	ctx = withUser(ctx, user)
 	assert.Equal(t, user, MustGetUser(ctx))
 }
@@ -72,7 +72,7 @@ func createUser(t *testing.T, d *db.DB) {
 	require.NoError(t, err)
 	defer tx.Rollback()
 	_, err = tx.CreateUser(t.Context(), db.CreateUserParams{
-		ID:           userID,
+		Uuid:         userID,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 		Email:        userEmail,
@@ -86,14 +86,14 @@ func createUser(t *testing.T, d *db.DB) {
 func sessionHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	sess := MustGet(r.Context())
-	fmt.Fprint(w, "session ", sess.ID)
+	fmt.Fprint(w, "session ", sess.Uuid)
 }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	user := GetUser(r.Context())
 	if user != nil {
-		fmt.Fprint(w, "user ", user.ID)
+		fmt.Fprint(w, "user ", user.Uuid)
 	} else {
 		fmt.Fprint(w, "user nil")
 	}

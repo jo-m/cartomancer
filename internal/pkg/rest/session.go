@@ -16,12 +16,12 @@ type loginRequest struct {
 }
 
 type sessionResponse struct {
-	SessionID string        `json:"sessionId"`
-	User      *userResponse `json:"user,omitempty"`
+	SessionUUID string        `json:"sessionUuid"`
+	User        *userResponse `json:"user,omitempty"`
 }
 
 type userResponse struct {
-	ID    string `json:"id"`
+	UUID  string `json:"uuid"`
 	Email string `json:"email"`
 	Name  string `json:"name"`
 }
@@ -56,21 +56,21 @@ func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
-	logg.Info(ctx, "login succeeded", "user", user.ID)
+	logg.Info(ctx, "login succeeded", "user", user.Uuid)
 
 	oldSess := session.MustGet(ctx)
-	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: user.ID}, &oldSess)
+	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: user.Uuid}, &oldSess)
 	if err != nil {
 		logg.Error(ctx, "creating session failed", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
-	logg.Debug(ctx, "created new session", "id", sess.ID)
+	logg.Debug(ctx, "created new session", "id", sess.Uuid)
 
 	writeJSON(w, http.StatusOK, sessionResponse{
-		SessionID: sess.ID,
+		SessionUUID: sess.Uuid,
 		User: &userResponse{
-			ID:    user.ID,
+			UUID:  user.Uuid,
 			Email: user.Email,
 			Name:  user.Name,
 		},
@@ -87,7 +87,7 @@ func (sv *server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
-	logg.Info(ctx, "logout succeeded", "session", sess.ID)
+	logg.Info(ctx, "logout succeeded", "session", sess.Uuid)
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -97,12 +97,12 @@ func (sv *server) handleGetSession(w http.ResponseWriter, r *http.Request) {
 
 	sess := session.MustGet(ctx)
 	resp := sessionResponse{
-		SessionID: sess.ID,
+		SessionUUID: sess.Uuid,
 	}
 
 	if user := session.GetUser(ctx); user != nil {
 		resp.User = &userResponse{
-			ID:    user.ID,
+			UUID:  user.Uuid,
 			Email: user.Email,
 			Name:  user.Name,
 		}

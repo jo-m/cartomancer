@@ -84,7 +84,7 @@ func createUser(ctx context.Context, q *db.Queries, email, pass string) error {
 		return fmt.Errorf("failed to create uuid: %w", err)
 	}
 	_, err = q.CreateUser(ctx, db.CreateUserParams{
-		ID:           uid.String(),
+		Uuid:         uid.String(),
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 		Email:        email,
