@@ -14,6 +14,7 @@ tool (
 )
 
 require (
+	github.com/DataDog/zstd v1.5.7
 	github.com/alexflint/go-arg v1.6.1
 	github.com/brianvoe/gofakeit/v7 v7.14.1
 	github.com/go-chi/chi/v5 v5.2.5

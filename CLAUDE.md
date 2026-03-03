@@ -32,9 +32,11 @@ go tool goose create REPLACEME sql
 go tool goose up
 go tool goose validate
 ```
-DO NOT annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out).
+DO NOT explicitly annotate cols with NULL if they are nullable, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out).
 Always store timestamps with timezone.
-Enum are strings with CHECK, example: `status TEXT CHECK(status IN ('C', 'R', 'A', 'E', 'S') ) NOT NULL DEFAULT 'C'`.
+Simple internal enums, where the logic/state is managed from within SQL queries only, are strings with CHECK, example: `status TEXT CHECK(status IN ('C', 'R', 'A', 'E', 'S') ) NOT NULL DEFAULT 'C'`.
+"App" enums which are managed from Go code are integers, declared with iota.
+Most tables have created_at, updated_at, created_by.
 
 ## Queries
 
