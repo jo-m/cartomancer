@@ -2,30 +2,45 @@
 package load
 
 import (
-	"log/slog"
+	"errors"
+	"fmt"
+	"io"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"jo-m.ch/go/detour/internal/pkg/track"
 )
 
-type LoadFn func(path string) (track.TrackSource, error)
+var (
+	ErrUnsupportedFileExtension = errors.New("unsupported file extension")
+)
+
+type LoadFn func(filename string, contents io.Reader) (track.TrackSource, error)
 
 var loaders map[string]LoadFn = map[string]LoadFn{
 	".fit": loadFit,
 	".gpx": loadGpx,
 }
 
-func One(path string) (track.TrackSource, error) {
-	loader, ok := loaders[filepath.Ext(path)]
+func Blob(filename string, contents io.Reader) (track.TrackSource, error) {
+	ext := strings.ToLower(filepath.Ext(filename))
+	loader, ok := loaders[ext]
 	if !ok {
-		slog.Info("skipping", "path", path)
-		return nil, nil
+		return nil, ErrUnsupportedFileExtension
 	}
 
-	src, err := loader(path)
+	return loader(filename, contents)
+}
+
+func Path(path string) (track.TrackSource, error) {
+	filename := filepath.Base(path)
+
+	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open '%s': %w", path, err)
 	}
+	defer f.Close()
 
-	return src, nil
+	return Blob(filename, f)
 }

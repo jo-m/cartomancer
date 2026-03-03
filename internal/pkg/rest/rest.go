@@ -31,6 +31,8 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter) http.Hand
 		r.Post("/sessions/login", sv.handleLogin)
 		r.Post("/sessions/logout", sv.handleLogout)
 		r.Get("/sessions/me", sv.handleGetSession)
+
+		r.Post("/tracks", sv.handleUploadTrack)
 	})
 
 	return mux

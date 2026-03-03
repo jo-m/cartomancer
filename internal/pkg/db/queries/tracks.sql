@@ -1,0 +1,15 @@
+-- name: CreateTrack :one
+INSERT INTO tracks (
+  id, created_at, updated_at, user_id, blob_id, file_format,
+  name, description, source, author, author_link_url,
+  track_type, link_url,
+  sport, sub_sport,
+  total_distance_m, total_ascent_m
+) VALUES (
+  ?, ?, ?, ?, ?, ?,
+  ?, ?, ?, ?, ?,
+  ?, ?,
+  ?, ?,
+  ?, ?
+)
+RETURNING *;

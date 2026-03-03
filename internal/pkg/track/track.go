@@ -1,7 +1,6 @@
 package track
 
 import (
-	"fmt"
 	"iter"
 )
 
@@ -39,7 +38,7 @@ const (
 type FileFormat int
 
 const (
-	FileFormatGPX TrackType = iota
+	FileFormatGPX FileFormat = iota
 	FileFormatFIT
 )
 
@@ -90,14 +89,11 @@ func (t *Track) computeAscentM() float64 {
 
 // TODO: Make those configurable per user.
 const (
-	guessBikeMinDistM   = 20_000
-	guessRunMinDistM    = 1_000
 	defaultBikeSubSport = SubSportCyclingRoad
 	defaultRunSubSport  = SubSportRunningOutdoor
 )
 
 // EnhancedMetadata returns Metadata with some additional guessed information if it is missing from the original.
-// TODO: Not sure if needed.
 func (t *Track) EnhancedMetadata() Metadata {
 	ret := t.meta
 
@@ -109,23 +105,12 @@ func (t *Track) EnhancedMetadata() Metadata {
 		ret.TotalAscentM = t.computeAscentM()
 	}
 
-	if ret.Sport == SportUnknown {
-		if ret.TotalDistanceM > guessBikeMinDistM {
-			ret.Sport = SportCycling
-			ret.SubSport = SubSportCyclingRoad
-		} else if ret.TotalDistanceM > guessRunMinDistM {
-			ret.Sport = SportRunning
-		}
-	}
-
 	if ret.SubSport == SubSportUnknown {
 		switch ret.Sport {
 		case SportCycling:
 			ret.SubSport = defaultBikeSubSport
 		case SportRunning:
 			ret.SubSport = defaultRunSubSport
-		default:
-			panic(fmt.Sprintf("unknown sport %d", ret.Sport))
 		}
 	}
 
@@ -137,7 +122,7 @@ type TrackSource interface {
 	All() iter.Seq[Point]
 }
 
-func New(src TrackSource, resolution int) (*Track, error) {
+func New(src TrackSource, resolution int) *Track {
 	pts := []Point{}
 	for p := range src.All() {
 		pts = append(pts, p)
@@ -148,5 +133,5 @@ func New(src TrackSource, resolution int) (*Track, error) {
 		pts:  pts,
 	}
 
-	return &track, nil
+	return &track
 }

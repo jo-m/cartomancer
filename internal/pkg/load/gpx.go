@@ -3,8 +3,8 @@ package load
 import (
 	"encoding/xml"
 	"fmt"
+	"io"
 	"iter"
-	"os"
 	"time"
 
 	"jo-m.ch/go/detour/internal/pkg/track"
@@ -68,17 +68,11 @@ type GPX struct {
 // Compile time interface check.
 var _ track.TrackSource = (*GPX)(nil)
 
-func loadGpx(filename string) (track.TrackSource, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, fmt.Errorf("error opening file: %v", err)
-	}
-	defer f.Close()
-
+func loadGpx(filename string, contents io.Reader) (track.TrackSource, error) {
 	g := GPX{
 		filename: filename,
 	}
-	err = xml.NewDecoder(f).Decode(&g)
+	err := xml.NewDecoder(contents).Decode(&g)
 	if err != nil {
 		return nil, fmt.Errorf("error decoding XML: %v", err)
 	}

@@ -1,12 +1,12 @@
 package load
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"iter"
 	"log/slog"
 	"math"
-	"os"
 	"path/filepath"
 	"regexp"
 
@@ -16,26 +16,20 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/track"
 )
 
-func parseFitActivity(path string) (*filedef.Activity, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open '%s': %w", path, err)
-	}
-	defer f.Close()
-
+func parseFitActivity(filename string, r io.ReadSeeker) (*filedef.Activity, error) {
 	lis := filedef.NewListener()
 	defer lis.Close()
 
-	dec := decoder.New(f,
+	dec := decoder.New(r,
 		decoder.WithMesgListener(lis),
 		decoder.WithBroadcastOnly(),
 	)
 
 	if _, err := dec.CheckIntegrity(); err != nil {
-		return nil, fmt.Errorf("integrity check failed on '%s': %w", path, err)
+		return nil, fmt.Errorf("integrity check failed on '%s': %w", filename, err)
 	}
 
-	_, err = f.Seek(0, io.SeekStart)
+	_, err := r.Seek(0, io.SeekStart)
 	if err != nil {
 		return nil, fmt.Errorf("seek failed: %w", err)
 	}
@@ -49,19 +43,19 @@ func parseFitActivity(path string) (*filedef.Activity, error) {
 
 		_, err := dec.Decode()
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode '%s': %w", path, err)
+			return nil, fmt.Errorf("failed to decode '%s': %w", filename, err)
 		}
 
 		var ok bool
 		file, ok = lis.File().(*filedef.Activity)
 		if !ok {
-			return nil, fmt.Errorf("'%s' is not an activity file", path)
+			return nil, fmt.Errorf("'%s' is not an activity file", filename)
 		}
 		i++
 	}
 
 	if file == nil {
-		return nil, fmt.Errorf("failed to find FIT data in '%s'", path)
+		return nil, fmt.Errorf("failed to find FIT data in '%s'", filename)
 	}
 
 	return file, nil
@@ -76,8 +70,13 @@ func (f *Activity) Filename() string {
 	return f.filename
 }
 
-func loadFit(filename string) (track.TrackSource, error) {
-	activity, err := parseFitActivity(filename)
+func loadFit(filename string, contents io.Reader) (track.TrackSource, error) {
+	data, err := io.ReadAll(contents)
+	if err != nil {
+		return nil, fmt.Errorf("error reading FIT data: %v", err)
+	}
+
+	activity, err := parseFitActivity(filename, bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("error parsing FIT file: %v", err)
 	}
