@@ -20,21 +20,22 @@ import (
 )
 
 type trackResponse struct {
-	ID             string  `json:"id"`
-	Name           string  `json:"name"`
-	Description    string  `json:"description,omitempty"`
-	Source         string  `json:"source,omitempty"`
-	Author         string  `json:"author,omitempty"`
-	AuthorLinkURL  string  `json:"authorLinkUrl,omitempty"`
-	FileFormat     int     `json:"fileFormat"`
-	TrackType      int     `json:"trackType"`
-	LinkURL        string  `json:"linkUrl,omitempty"`
-	Sport          int     `json:"sport"`
-	SubSport       int     `json:"subSport"`
-	TotalDistanceM float64 `json:"totalDistanceM"`
-	TotalAscentM   float64 `json:"totalAscentM"`
-	CreatedAt      string  `json:"createdAt"`
-	UpdatedAt      string  `json:"updatedAt"`
+	ID                string  `json:"id"`
+	Name              string  `json:"name"`
+	Description       string  `json:"description,omitempty"`
+	Source            string  `json:"source,omitempty"`
+	Author            string  `json:"author,omitempty"`
+	AuthorLinkURL     string  `json:"authorLinkUrl,omitempty"`
+	FileFormat        int     `json:"fileFormat"`
+	TrackType         int     `json:"trackType"`
+	LinkURL           string  `json:"linkUrl,omitempty"`
+	Sport             int     `json:"sport"`
+	SubSport          int     `json:"subSport"`
+	TotalDistanceM    float64 `json:"totalDistanceM"`
+	TotalAscentM      float64 `json:"totalAscentM"`
+	OriginalCreatedAt string  `json:"originalCreatedAt,omitempty"`
+	CreatedAt         string  `json:"createdAt"`
+	UpdatedAt         string  `json:"updatedAt"`
 }
 
 func toNullString(s string) sql.NullString {
@@ -42,6 +43,13 @@ func toNullString(s string) sql.NullString {
 		return sql.NullString{}
 	}
 	return sql.NullString{Valid: true, String: s}
+}
+
+func toNullTime(t *time.Time) sql.NullTime {
+	if t == nil {
+		return sql.NullTime{}
+	}
+	return sql.NullTime{Valid: true, Time: *t}
 }
 
 func nullStringVal(ns sql.NullString) string {
@@ -52,7 +60,7 @@ func nullStringVal(ns sql.NullString) string {
 }
 
 func trackResponseFromDB(t db.Track) trackResponse {
-	return trackResponse{
+	resp := trackResponse{
 		ID:             t.ID,
 		Name:           t.Name,
 		Description:    nullStringVal(t.Description),
@@ -69,6 +77,10 @@ func trackResponseFromDB(t db.Track) trackResponse {
 		CreatedAt:      t.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:      t.UpdatedAt.Format(time.RFC3339),
 	}
+	if t.OriginalCreatedAt.Valid {
+		resp.OriginalCreatedAt = t.OriginalCreatedAt.Time.Format(time.RFC3339)
+	}
+	return resp
 }
 
 func fileFormatFromExt(filename string) track.FileFormat {
@@ -153,23 +165,24 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		}
 
 		created, err = q.CreateTrack(ctx, db.CreateTrackParams{
-			ID:             trackID.String(),
-			CreatedAt:      now,
-			UpdatedAt:      now,
-			UserID:         user.ID,
-			BlobID:         blobID.String(),
-			FileFormat:     int64(fileFormatFromExt(header.Filename)),
-			Name:           meta.Name,
-			Description:    toNullString(meta.Description),
-			Source:         toNullString(meta.Source),
-			Author:         toNullString(meta.Author),
-			AuthorLinkUrl:  toNullString(meta.AuthorLinkURL),
-			TrackType:      int64(meta.TrackType),
-			LinkUrl:        toNullString(meta.LinkURL),
-			Sport:          int64(meta.Sport),
-			SubSport:       int64(meta.SubSport),
-			TotalDistanceM: meta.TotalDistanceM,
-			TotalAscentM:   meta.TotalAscentM,
+			ID:                trackID.String(),
+			CreatedAt:         now,
+			UpdatedAt:         now,
+			UserID:            user.ID,
+			BlobID:            blobID.String(),
+			FileFormat:        int64(fileFormatFromExt(header.Filename)),
+			Name:              meta.Name,
+			Description:       toNullString(meta.Description),
+			Source:            toNullString(meta.Source),
+			Author:            toNullString(meta.Author),
+			AuthorLinkUrl:     toNullString(meta.AuthorLinkURL),
+			TrackType:         int64(meta.TrackType),
+			LinkUrl:           toNullString(meta.LinkURL),
+			Sport:             int64(meta.Sport),
+			SubSport:          int64(meta.SubSport),
+			TotalDistanceM:    meta.TotalDistanceM,
+			TotalAscentM:      meta.TotalAscentM,
+			OriginalCreatedAt: toNullTime(meta.OriginalCreatedAt),
 		})
 		return err
 	})

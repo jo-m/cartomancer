@@ -126,12 +126,23 @@ func (f *Activity) Metadata() track.Metadata {
 		TrackType: track.TrackTypeRecorded,
 	}
 
+	if f.act.FileId.TimeCreated.IsZero() {
+		slog.Error("no time_created in FIT file", "filename", f.filename)
+	} else {
+		t := f.act.FileId.TimeCreated
+		ret.OriginalCreatedAt = &t
+	}
+
 	if len(f.act.Sessions) != 1 {
 		slog.Error("no session in activity", "filename", f.filename)
 		return ret
 	}
 
 	sess := f.act.Sessions[0]
+
+	if !sess.StartTime.IsZero() {
+		ret.OriginalCreatedAt = &sess.StartTime
+	}
 
 	switch sess.Sport {
 	case typedef.SportRunning:

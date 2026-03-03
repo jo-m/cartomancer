@@ -2,6 +2,7 @@ package track
 
 import (
 	"iter"
+	"time"
 )
 
 type Sport int
@@ -58,6 +59,9 @@ type Metadata struct {
 
 	TotalDistanceM float64
 	TotalAscentM   float64
+
+	// OriginalCreatedAt is the recording/creation timestamp from the original file.
+	OriginalCreatedAt *time.Time
 }
 
 type Track struct {

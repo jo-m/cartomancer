@@ -196,6 +196,9 @@ components:
         totalAscentM:
           type: number
           format: double
+        originalCreatedAt:
+          type: string
+          format: date-time
         createdAt:
           type: string
           format: date-time

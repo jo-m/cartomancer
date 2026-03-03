@@ -4,12 +4,14 @@ INSERT INTO tracks (
   name, description, source, author, author_link_url,
   track_type, link_url,
   sport, sub_sport,
-  total_distance_m, total_ascent_m
+  total_distance_m, total_ascent_m,
+  original_created_at
 ) VALUES (
   ?, ?, ?, ?, ?, ?,
   ?, ?, ?, ?, ?,
   ?, ?,
   ?, ?,
-  ?, ?
+  ?, ?,
+  ?
 )
 RETURNING *;

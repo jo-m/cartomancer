@@ -119,6 +119,10 @@ func (g *GPX) Metadata() track.Metadata {
 		panic(fmt.Sprintf("unknown sport %s", t.Type))
 	}
 
+	if g.XMetadata.Time != nil {
+		ret.OriginalCreatedAt = g.XMetadata.Time
+	}
+
 	// Strava route.
 	if g.XMetadata.Link != nil {
 		ret.LinkURL = g.XMetadata.Link.Href

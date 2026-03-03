@@ -26,6 +26,8 @@ CREATE TABLE tracks (
     total_distance_m REAL NOT NULL,
     total_ascent_m REAL NOT NULL,
 
+    original_created_at DATETIME,
+
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY(blob_id) REFERENCES blobs(id) ON DELETE RESTRICT
 );
