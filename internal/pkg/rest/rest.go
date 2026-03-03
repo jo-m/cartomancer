@@ -27,7 +27,6 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter) http.Hand
 	mux := chi.NewRouter()
 
 	mux.Group(func(r chi.Router) {
-		r.Use(sessions.Middleware)
 		r.Post("/sessions/login", sv.handleLogin)
 		r.Post("/sessions/logout", sv.handleLogout)
 		r.Get("/sessions/me", sv.handleGetSession)
