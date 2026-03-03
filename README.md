@@ -49,6 +49,7 @@ go tool MailHog
 - [x] Jobs: Cleanup with min age
 - [x] Jobs: execution timeouts
 - [x] Go doc links `[]` https://tip.golang.org/doc/comment, `go run golang.org/x/pkgsite/cmd/pkgsite@latest -open`
+- [ ] Skills/subagents
 
 # Later TODOs
 
