@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/stretchr/testify/assert"
-	"jo-m.ch/go/goweb/internal/pkg/utl"
+	"jo-m.ch/go/detour/internal/pkg/utl"
 )
 
 func TestMakeJSONError(t *testing.T) {

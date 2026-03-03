@@ -1,4 +1,4 @@
-module jo-m.ch/go/goweb
+module jo-m.ch/go/detour
 
 go 1.24.0
 

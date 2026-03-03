@@ -17,8 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"jo-m.ch/go/goweb/internal/pkg/db"
-	"jo-m.ch/go/goweb/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/detour/internal/pkg/logg"
 )
 
 // Args is the interface job args have to implement.

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"jo-m.ch/go/goweb/internal/pkg/oapi"
+	"jo-m.ch/go/detour/internal/pkg/oapi"
 )
 
 func TestRenderPage(t *testing.T) {

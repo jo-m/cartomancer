@@ -130,17 +130,17 @@ func TestLoggLoggingJSON(t *testing.T) {
 	})
 
 	deterministic := replaceLineNo(replaceCwd(t, replaceTime(buf.String())))
-	assert.Equal(t, `{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"jo-m.ch/go/goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","from":"slog","via":"slog.Info"}
-{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"jo-m.ch/go/goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","from":"slog","via":"slog.Log"}
-{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"jo-m.ch/go/goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"slog","via":"logger.Info"}
-{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"jo-m.ch/go/goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"slog","via":"logger.Log"}
-{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"jo-m.ch/go/goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Info","no":"logger"}
-{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"jo-m.ch/go/goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Log","no":"logger"}
-{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"jo-m.ch/go/goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Info"}
-{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"jo-m.ch/go/goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Log"}
-{"time":"0000-11-22T33:44:55.666Z","level":"ERROR","source":{"function":"jo-m.ch/go/goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Error"}
-{"time":"0000-11-22T33:44:55.666Z","level":"ERROR","source":{"function":"jo-m.ch/go/goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Err","err":"error"}
-{"time":"0000-11-22T33:44:55.666Z","level":"ERROR+2","source":{"function":"jo-m.ch/go/goweb/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Panic"}
+	assert.Equal(t, `{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"jo-m.ch/go/detour/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","from":"slog","via":"slog.Info"}
+{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"jo-m.ch/go/detour/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","from":"slog","via":"slog.Log"}
+{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"jo-m.ch/go/detour/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"slog","via":"logger.Info"}
+{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"jo-m.ch/go/detour/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"slog","via":"logger.Log"}
+{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"jo-m.ch/go/detour/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Info","no":"logger"}
+{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"jo-m.ch/go/detour/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Log","no":"logger"}
+{"time":"0000-11-22T33:44:55.666Z","level":"INFO","source":{"function":"jo-m.ch/go/detour/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Info"}
+{"time":"0000-11-22T33:44:55.666Z","level":"WARN","source":{"function":"jo-m.ch/go/detour/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Log"}
+{"time":"0000-11-22T33:44:55.666Z","level":"ERROR","source":{"function":"jo-m.ch/go/detour/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Error"}
+{"time":"0000-11-22T33:44:55.666Z","level":"ERROR","source":{"function":"jo-m.ch/go/detour/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Err","err":"error"}
+{"time":"0000-11-22T33:44:55.666Z","level":"ERROR+2","source":{"function":"jo-m.ch/go/detour/internal/pkg/logg.testLog","file":"/logg_test.go","line":0},"msg":"hello","logger":"logg","via":"Panic"}
 `, deterministic)
 }
 

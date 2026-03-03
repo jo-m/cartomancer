@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/pressly/goose/v3"
-	"jo-m.ch/go/goweb/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/logg"
 	_ "modernc.org/sqlite" // Database driver.
 )
 

@@ -11,9 +11,9 @@ import (
 	"errors"
 
 	"github.com/oapi-codegen/runtime/types"
-	"jo-m.ch/go/goweb/internal/pkg/logg"
-	"jo-m.ch/go/goweb/internal/pkg/oapi"
-	"jo-m.ch/go/goweb/internal/pkg/utl"
+	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/oapi"
+	"jo-m.ch/go/detour/internal/pkg/utl"
 )
 
 /*

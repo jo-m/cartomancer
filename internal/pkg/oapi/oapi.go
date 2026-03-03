@@ -6,7 +6,7 @@ import (
 	_ "embed"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"jo-m.ch/go/goweb/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/logg"
 )
 
 //go:generate go tool oapi-codegen -config oapi-cfg.yaml oapi.yaml

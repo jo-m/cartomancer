@@ -9,11 +9,11 @@ import (
 	"database/sql"
 	"errors"
 
-	"jo-m.ch/go/goweb/internal/pkg/endpoints/tmpl"
-	"jo-m.ch/go/goweb/internal/pkg/logg"
-	"jo-m.ch/go/goweb/internal/pkg/oapi"
-	"jo-m.ch/go/goweb/internal/pkg/password"
-	"jo-m.ch/go/goweb/internal/pkg/session"
+	"jo-m.ch/go/detour/internal/pkg/endpoints/tmpl"
+	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/oapi"
+	"jo-m.ch/go/detour/internal/pkg/password"
+	"jo-m.ch/go/detour/internal/pkg/session"
 )
 
 /*
