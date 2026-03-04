@@ -15,3 +15,6 @@ INSERT INTO tracks (
   ?
 )
 RETURNING *;
+
+-- name: GetTrackByUUID :one
+SELECT * FROM tracks WHERE uuid = ?;

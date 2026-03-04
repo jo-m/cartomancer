@@ -20,22 +20,23 @@ import (
 )
 
 type trackResponse struct {
-	UUID              string  `json:"uuid"`
-	Name              string  `json:"name"`
-	Description       string  `json:"description,omitempty"`
-	Source            string  `json:"source,omitempty"`
-	Author            string  `json:"author,omitempty"`
-	AuthorLinkURL     string  `json:"authorLinkUrl,omitempty"`
-	FileFormat        int     `json:"fileFormat"`
-	TrackType         int     `json:"trackType"`
-	LinkURL           string  `json:"linkUrl,omitempty"`
-	Sport             int     `json:"sport"`
-	SubSport          int     `json:"subSport"`
-	TotalDistanceM    float64 `json:"totalDistanceM"`
-	TotalAscentM      float64 `json:"totalAscentM"`
-	OriginalCreatedAt string  `json:"originalCreatedAt,omitempty"`
-	CreatedAt         string  `json:"createdAt"`
-	UpdatedAt         string  `json:"updatedAt"`
+	UUID              string   `json:"uuid"`
+	Name              string   `json:"name"`
+	Description       string   `json:"description,omitempty"`
+	Source            string   `json:"source,omitempty"`
+	Author            string   `json:"author,omitempty"`
+	AuthorLinkURL     string   `json:"authorLinkUrl,omitempty"`
+	FileFormat        int      `json:"fileFormat"`
+	TrackType         int      `json:"trackType"`
+	LinkURL           string   `json:"linkUrl,omitempty"`
+	Sport             int      `json:"sport"`
+	SubSport          int      `json:"subSport"`
+	TotalDistanceM    float64  `json:"totalDistanceM"`
+	TotalAscentM      float64  `json:"totalAscentM"`
+	OriginalCreatedAt string   `json:"originalCreatedAt,omitempty"`
+	CreatedAt         string   `json:"createdAt"`
+	UpdatedAt         string   `json:"updatedAt"`
+	Tags              []string `json:"tags"`
 }
 
 func toNullString(s string) sql.NullString {
@@ -59,7 +60,10 @@ func nullStringVal(ns sql.NullString) string {
 	return ""
 }
 
-func trackResponseFromDB(t db.Track) trackResponse {
+func trackResponseFromDB(t db.Track, tags []string) trackResponse {
+	if tags == nil {
+		tags = []string{}
+	}
 	resp := trackResponse{
 		UUID:           t.Uuid,
 		Name:           t.Name,
@@ -76,6 +80,7 @@ func trackResponseFromDB(t db.Track) trackResponse {
 		TotalAscentM:   t.TotalAscentM,
 		CreatedAt:      t.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:      t.UpdatedAt.Format(time.RFC3339),
+		Tags:           tags,
 	}
 	if t.OriginalCreatedAt.Valid {
 		resp.OriginalCreatedAt = t.OriginalCreatedAt.Time.Format(time.RFC3339)
@@ -192,5 +197,5 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, trackResponseFromDB(created))
+	writeJSON(w, http.StatusCreated, trackResponseFromDB(created, nil))
 }

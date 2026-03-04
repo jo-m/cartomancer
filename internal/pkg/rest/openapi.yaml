@@ -115,6 +115,95 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/{uuid}/tags:
+    put:
+      summary: Set tags for a track
+      operationId: setTrackTags
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+                minLength: 2
+                maxLength: 32
+      responses:
+        "200":
+          description: Tags updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackResponse"
+        "400":
+          description: Invalid tags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Track not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tags:
+    get:
+      summary: Suggest tags by prefix
+      operationId: suggestTags
+      parameters:
+        - name: prefix
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+      responses:
+        "200":
+          description: Tag suggestions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagSuggestionResponse"
+        "400":
+          description: Prefix too short
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   schemas:
     LoginRequest:
@@ -167,6 +256,7 @@ components:
         - totalAscentM
         - createdAt
         - updatedAt
+        - tags
       properties:
         uuid:
           type: string
@@ -205,6 +295,20 @@ components:
         updatedAt:
           type: string
           format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+
+    TagSuggestionResponse:
+      type: object
+      required:
+        - tags
+      properties:
+        tags:
+          type: array
+          items:
+            type: string
 
     Error:
       type: object
