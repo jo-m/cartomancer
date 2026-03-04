@@ -24,7 +24,7 @@ info:
     anonymous, or `403` if the user is not an admin.
 
 servers:
-  - url: /
+  - url: /api
     description: Same-origin
 
 security:

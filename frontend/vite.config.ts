@@ -10,12 +10,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/app_config": "http://localhost:8080",
-      "/sessions": "http://localhost:8080",
-      "/tracks": "http://localhost:8080",
-      "/tags": "http://localhost:8080",
-      "/account": "http://localhost:8080",
-      "/admin": "http://localhost:8080",
+      "/api": "http://localhost:8080",
     },
   },
 });

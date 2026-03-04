@@ -13,5 +13,5 @@ async function fetchJSON<T>(url: string): Promise<T> {
 }
 
 export function getAppConfig(): Promise<AppConfig> {
-  return fetchJSON<AppConfig>("/app_config")
+  return fetchJSON<AppConfig>("/api/app_config")
 }
