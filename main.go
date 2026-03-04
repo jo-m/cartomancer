@@ -56,7 +56,7 @@ func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig,
 		svcMux.Use(sess.Middleware)
 		svcMux.Use(middleware.Recoverer)
 
-		svcMux.Mount("/", rest.New(d, sess, jobSubmitter))
+		svcMux.Mount("/", rest.New(d, sess, jobSubmitter, appConfig))
 		mux.Mount("/", svcMux)
 	}
 

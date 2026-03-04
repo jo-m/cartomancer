@@ -70,7 +70,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	mux.Use(middleware.RequestID)
 	mux.Use(logg.AttachLogger(logger))
 	mux.Use(sess.Middleware)
-	mux.Mount("/", rest.New(d, sess, workers.Submitter()))
+	mux.Mount("/", rest.New(d, sess, workers.Submitter(), app.AppConfig{AppName: "test"}))
 
 	ts := httptest.NewTLSServer(mux)
 	t.Cleanup(ts.Close)

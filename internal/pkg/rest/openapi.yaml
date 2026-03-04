@@ -31,6 +31,19 @@ security:
   - cookieAuth: []
 
 paths:
+  /app_config:
+    get:
+      summary: Get public application configuration
+      operationId: getAppConfig
+      security: []
+      responses:
+        "200":
+          description: Application configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppConfig"
+
   /sessions/login:
     post:
       summary: Log in
@@ -994,6 +1007,17 @@ components:
         to an authenticated one. The cookie is HTTP-only, SameSite=Strict.
 
   schemas:
+    AppConfig:
+      type: object
+      required:
+        - externalBaseUrl
+        - appName
+      properties:
+        externalBaseUrl:
+          type: string
+        appName:
+          type: string
+
     LoginRequest:
       type: object
       required:

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"jo-m.ch/go/detour/internal/pkg/app"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/session"
@@ -25,17 +26,21 @@ type server struct {
 	d            *db.DB
 	sessions     *session.Store
 	jobSubmitter *jobs.Submitter
+	appConfig    app.AppConfig
 }
 
 // New creates a new API handler.
-func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter) http.Handler {
+func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig app.AppConfig) http.Handler {
 	sv := server{
 		d:            d,
 		sessions:     sessions,
 		jobSubmitter: submitter,
+		appConfig:    appConfig,
 	}
 
 	mux := chi.NewRouter()
+
+	mux.Get("/app_config", sv.handleGetAppConfig)
 
 	mux.Group(func(r chi.Router) {
 		r.Post("/sessions/login", sv.handleLogin)
