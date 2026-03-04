@@ -43,7 +43,7 @@ go tool MailHog
 - [x] Clean up endpoints
 - [x] Get URLs from OpenAPI spec
 - [x] Modify generated links to return safe URLs (but escape string params)
-- [ ] CRUD users, self-registration
+- [ ] Users self-registration, password reset, email confirm
 - [ ] Code TODOs
 - [ ] XSRF protection
 - [x] Jobs: Cleanup with min age
@@ -59,8 +59,3 @@ go tool MailHog
 - [ ] Rate limiting for sensitive endpoints
 - [ ] (pre)compress static files
 - [ ] VACUUM
-
-# Hints
-- Do not annotate cols with NULL, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out)
-- Goose because: can do both SQL and Go migrations
-- We always try to store as little as possible in the database, and delete it right away. For investigations and debugging, we keep the logs instead.
