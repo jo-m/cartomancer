@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -9,6 +10,8 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/password"
 	"jo-m.ch/go/detour/internal/pkg/session"
 )
+
+var errLastAdmin = errors.New("cannot delete the last admin account")
 
 type updateMeRequest struct {
 	Name string `json:"name"`
@@ -59,26 +62,32 @@ func (sv *server) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 	user := session.GetUser(ctx)
 	sess := session.MustGet(ctx)
 
-	if user.Admin != 0 {
-		adminCount, err := sv.d.QueryRO().CountAdmins(ctx)
-		if err != nil {
-			logg.Error(ctx, "failed to count admins", "err", err)
-			writeError(w, http.StatusInternalServerError, "internal server error")
-			return
-		}
-		if adminCount <= 1 {
-			writeError(w, http.StatusConflict, "cannot delete the last admin account")
-			return
-		}
-	}
-
+	// Delete session first (uses its own tx; cannot be nested inside the user-deletion tx).
 	if err := session.Delete(ctx, &sess); err != nil {
 		logg.Error(ctx, "failed to delete session", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	_, err := sv.d.QueryRW().DeleteUser(ctx, user.Uuid)
+	// Admin count check and user deletion must be atomic to prevent a race where two
+	// admins both pass the guard and both delete themselves, leaving no admins.
+	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+		if user.Admin != 0 {
+			adminCount, txErr := q.CountAdmins(ctx)
+			if txErr != nil {
+				return txErr
+			}
+			if adminCount <= 1 {
+				return errLastAdmin
+			}
+		}
+		_, txErr := q.DeleteUser(ctx, user.Uuid)
+		return txErr
+	})
+	if errors.Is(err, errLastAdmin) {
+		writeError(w, http.StatusConflict, "cannot delete the last admin account")
+		return
+	}
 	if err != nil {
 		logg.Error(ctx, "failed to delete user", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")

@@ -17,6 +17,8 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/session"
 )
 
+var errTargetIsAdmin = errors.New("cannot modify admin accounts")
+
 const generatedPasswordLen = 20
 
 type adminUserResponse struct {
@@ -192,34 +194,38 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	existing, err := sv.d.QueryRO().GetUser(ctx, userUUID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "user not found")
-			return
-		}
-		logg.Error(ctx, "failed to get user", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
-		return
-	}
-	if existing.Admin != 0 {
-		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
-		return
-	}
-
 	now := time.Now().UTC()
 	var admin int64
 	if req.Admin {
 		admin = 1
 	}
 
-	_, err = sv.d.QueryRW().UpdateUser(ctx, db.UpdateUserParams{
-		UpdatedAt: now,
-		Email:     req.Email,
-		Name:      req.Name,
-		Admin:     admin,
-		Uuid:      userUUID,
+	// Admin guard check and update must be atomic to prevent TOCTOU races.
+	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+		existing, txErr := q.GetUser(ctx, userUUID)
+		if txErr != nil {
+			return txErr
+		}
+		if existing.Admin != 0 {
+			return errTargetIsAdmin
+		}
+		_, txErr = q.UpdateUser(ctx, db.UpdateUserParams{
+			UpdatedAt: now,
+			Email:     req.Email,
+			Name:      req.Name,
+			Admin:     admin,
+			Uuid:      userUUID,
+		})
+		return txErr
 	})
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "user not found")
+		return
+	}
+	if errors.Is(err, errTargetIsAdmin) {
+		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
+		return
+	}
 	if err != nil {
 		logg.Error(ctx, "failed to update user", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
@@ -241,22 +247,26 @@ func (sv *server) handleAdminDeleteUser(w http.ResponseWriter, r *http.Request) 
 
 	userUUID := chi.URLParam(r, "uuid")
 
-	target, err := sv.d.QueryRO().GetUser(ctx, userUUID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "user not found")
-			return
+	// Admin guard check and deletion must be atomic to prevent TOCTOU races.
+	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+		target, txErr := q.GetUser(ctx, userUUID)
+		if txErr != nil {
+			return txErr
 		}
-		logg.Error(ctx, "failed to get user", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		if target.Admin != 0 {
+			return errTargetIsAdmin
+		}
+		_, txErr = q.DeleteUser(ctx, userUUID)
+		return txErr
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "user not found")
 		return
 	}
-	if target.Admin != 0 {
+	if errors.Is(err, errTargetIsAdmin) {
 		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
 		return
 	}
-
-	_, err = sv.d.QueryRW().DeleteUser(ctx, userUUID)
 	if err != nil {
 		logg.Error(ctx, "failed to delete user", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
@@ -285,28 +295,35 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	u, err := sv.d.QueryRO().GetUser(ctx, userUUID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "user not found")
-			return
+	newPassword := password.GenRandPrintableString(generatedPasswordLen)
+
+	// Admin guard check and password update must be atomic to prevent TOCTOU races.
+	// Capture u for use in the email job below.
+	var u db.User
+	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+		var txErr error
+		u, txErr = q.GetUser(ctx, userUUID)
+		if txErr != nil {
+			return txErr
 		}
-		logg.Error(ctx, "failed to get user", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		if u.Admin != 0 {
+			return errTargetIsAdmin
+		}
+		_, txErr = q.UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
+			UpdatedAt:    time.Now().UTC(),
+			PasswordHash: password.Hash(newPassword),
+			Uuid:         userUUID,
+		})
+		return txErr
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "user not found")
 		return
 	}
-	if u.Admin != 0 {
+	if errors.Is(err, errTargetIsAdmin) {
 		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
 		return
 	}
-
-	newPassword := password.GenRandPrintableString(generatedPasswordLen)
-
-	_, err = sv.d.QueryRW().UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
-		UpdatedAt:    time.Now().UTC(),
-		PasswordHash: password.Hash(newPassword),
-		Uuid:         userUUID,
-	})
 	if err != nil {
 		logg.Error(ctx, "failed to reset password", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")

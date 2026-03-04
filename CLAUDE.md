@@ -94,6 +94,30 @@ d.WithTx(ctx, func(tx *db.Queries) error { ... })  // auto commit/rollback
 tx, err := d.BeginTX(ctx)                           // manual
 ```
 
+## Transactions in REST handlers
+
+Use `WithTx` whenever a handler performs a guard check followed by a mutation, to prevent TOCTOU races.
+Example: fetching a row to check permissions and then deleting/updating it must be a single tx.
+
+Use sentinel errors to distinguish business-logic failures (which map to 4xx) from unexpected errors inside `WithTx`:
+
+```go
+var errSomething = errors.New("...")
+
+err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+    row, txErr := q.GetFoo(ctx, id)
+    if txErr != nil { return txErr }
+    if row.SomeCondition { return errSomething }
+    _, txErr = q.DeleteFoo(ctx, id)
+    return txErr
+})
+if errors.Is(err, sql.ErrNoRows) { writeError(w, 404, "not found"); return }
+if errors.Is(err, errSomething) { writeError(w, 409, "..."); return }
+if err != nil { logg.Error(...); writeError(w, 500, "..."); return }
+```
+
+Note: `session.Create` and `session.Delete` open their own `WithTx` internally and cannot be nested inside another `WithTx`. Perform those calls before or after the handler's own transaction.
+
 ## Queries
 
 No ORM.
