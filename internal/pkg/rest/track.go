@@ -240,26 +240,19 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	existing, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "track not found")
-			return
-		}
-		logg.Error(ctx, "failed to get track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	if existing.UserID != user.Uuid {
-		writeStatusError(w, http.StatusForbidden)
-		return
-	}
+	var errForbidden = errors.New("forbidden")
 
 	now := time.Now().UTC()
 	var updated db.Track
-	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
-		var txErr error
+	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+		existing, txErr := q.GetTrackByUUID(ctx, trackUUID)
+		if txErr != nil {
+			return txErr
+		}
+		if existing.UserID != user.Uuid {
+			return errForbidden
+		}
+
 		var public int64
 		if req.Public {
 			public = 1
@@ -299,6 +292,14 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 		}
 		return nil
 	})
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "track not found")
+		return
+	}
+	if errors.Is(err, errForbidden) {
+		writeStatusError(w, http.StatusForbidden)
+		return
+	}
 	if err != nil {
 		logg.Error(ctx, "failed to update track", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
