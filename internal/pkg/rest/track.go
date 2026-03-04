@@ -586,6 +586,64 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+const maxBulkEditUUIDs = 1000
+
+type bulkEditTracksRequest struct {
+	UUIDs         []string `json:"uuids"`
+	Public        *bool    `json:"public"`
+	Source        *string  `json:"source"`
+	Author        *string  `json:"author"`
+	AuthorLinkURL *string  `json:"authorLinkUrl"`
+	TrackType     *int64   `json:"trackType"`
+	LinkURL       *string  `json:"linkUrl"`
+	Sport         *int64   `json:"sport"`
+	SubSport      *int64   `json:"subSport"`
+}
+
+func (sv *server) handleBulkEditTracks(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.MustGetUser(ctx)
+
+	var req bulkEditTracksRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeDecodeError(w, err)
+		return
+	}
+
+	if len(req.UUIDs) == 0 {
+		writeError(w, http.StatusBadRequest, "uuids is required and must not be empty")
+		return
+	}
+	if len(req.UUIDs) > maxBulkEditUUIDs {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("at most %d uuids allowed", maxBulkEditUUIDs))
+		return
+	}
+
+	err := sv.d.BulkUpdateTracks(ctx, db.BulkUpdateTracksParams{
+		UUIDs:         req.UUIDs,
+		UserID:        user.Uuid,
+		Public:        req.Public,
+		Source:        req.Source,
+		Author:        req.Author,
+		AuthorLinkURL: req.AuthorLinkURL,
+		TrackType:     req.TrackType,
+		LinkURL:       req.LinkURL,
+		Sport:         req.Sport,
+		SubSport:      req.SubSport,
+	})
+	if errors.Is(err, db.ErrBulkUpdateMismatch) {
+		writeError(w, http.StatusNotFound, "one or more tracks not found or not owned by you")
+		return
+	}
+	if err != nil {
+		logg.Error(ctx, "failed to bulk update tracks", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func boolToInt(b bool) int {
 	if b {
 		return 1
