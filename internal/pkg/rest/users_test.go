@@ -1,7 +1,9 @@
 package rest_test
 
 import (
+	"crypto/tls"
 	"net/http"
+	"net/http/cookiejar"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -88,6 +90,52 @@ func TestChangePassword_Unauthenticated(t *testing.T) {
 		"oldPassword": "x",
 		"newPassword": "y",
 	}, nil)
+	assert.Equal(t, http.StatusUnauthorized, status)
+}
+
+func TestChangePassword_InvalidatesOtherSessions(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "oldpass", false)
+
+	// Use isolated transports to avoid HTTP/2 cookie leaking between clients.
+	newIsolatedClient := func() *http.Client {
+		jar, err := cookiejar.New(nil)
+		require.NoError(t, err)
+		return &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // test only
+			},
+			Jar: jar,
+		}
+	}
+
+	// Log in from two separate clients (two sessions).
+	client1 := newIsolatedClient()
+	e.login(client1, "alice@example.com", "oldpass")
+
+	client2 := newIsolatedClient()
+	e.login(client2, "alice@example.com", "oldpass")
+
+	// Both sessions work.
+	status, _ := e.do(client1, http.MethodGet, "/tracks", nil, nil)
+	require.Equal(t, http.StatusOK, status)
+	status, _ = e.do(client2, http.MethodGet, "/tracks", nil, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	// Change password from client1.
+	status, _ = e.do(client1, http.MethodPost, "/account/change-password", map[string]string{
+		"oldPassword": "oldpass",
+		"newPassword": "newpass",
+	}, nil)
+	require.Equal(t, http.StatusNoContent, status)
+
+	// client1 session still works (current session preserved).
+	status, _ = e.do(client1, http.MethodGet, "/tracks", nil, nil)
+	assert.Equal(t, http.StatusOK, status)
+
+	// client2 session is invalidated (returns 401 because session is gone,
+	// middleware creates anonymous session).
+	status, _ = e.do(client2, http.MethodGet, "/tracks", nil, nil)
 	assert.Equal(t, http.StatusUnauthorized, status)
 }
 

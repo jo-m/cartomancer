@@ -39,6 +39,14 @@ WHERE session_id = ? AND key = ?;
 -- name: GetSessionData :many
 SELECT key, data FROM sessions_data WHERE session_id = ? ORDER BY key;
 
+-- name: DeleteOtherUserSessions :execrows
+DELETE FROM sessions
+WHERE user_id = ? AND uuid != ?;
+
+-- name: DeleteAllUserSessions :execrows
+DELETE FROM sessions
+WHERE user_id = ?;
+
 -- name: CleanupSessions :execrows
 DELETE FROM sessions
 WHERE

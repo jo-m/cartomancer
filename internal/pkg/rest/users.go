@@ -159,10 +159,21 @@ func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = sv.d.QueryRW().UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
-		UpdatedAt:    time.Now().UTC(),
-		PasswordHash: hash,
-		Uuid:         user.Uuid,
+	currentSession := session.MustGet(ctx)
+
+	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
+		if _, txErr := q.UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
+			UpdatedAt:    time.Now().UTC(),
+			PasswordHash: hash,
+			Uuid:         user.Uuid,
+		}); txErr != nil {
+			return txErr
+		}
+		_, txErr := q.DeleteOtherUserSessions(ctx, db.DeleteOtherUserSessionsParams{
+			UserID: currentSession.UserID,
+			Uuid:   currentSession.Uuid,
+		})
+		return txErr
 	})
 	if err != nil {
 		logg.Error(ctx, "failed to update password", "err", err)

@@ -328,6 +328,10 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 			PasswordHash: hash,
 			Uuid:         userUUID,
 		})
+		if txErr != nil {
+			return txErr
+		}
+		_, txErr = q.DeleteAllUserSessions(ctx, sql.NullString{Valid: true, String: userUUID})
 		return txErr
 	})
 	if errors.Is(err, sql.ErrNoRows) {

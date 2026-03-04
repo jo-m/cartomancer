@@ -1,7 +1,9 @@
 package rest_test
 
 import (
+	"crypto/tls"
 	"net/http"
+	"net/http/cookiejar"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -215,6 +217,44 @@ func TestAdminResetPassword_Success(t *testing.T) {
 		"password": newPass,
 	}, nil)
 	assert.Equal(t, http.StatusOK, status3)
+}
+
+func TestAdminResetPassword_InvalidatesSessions(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
+
+	// Use isolated transports to avoid HTTP/2 cookie leaking between clients.
+	newIsolatedClient := func() *http.Client {
+		jar, err := cookiejar.New(nil)
+		require.NoError(t, err)
+		return &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // test only
+			},
+			Jar: jar,
+		}
+	}
+
+	// Alice logs in.
+	aliceClient := newIsolatedClient()
+	e.login(aliceClient, "alice@example.com", "secret")
+
+	// Verify Alice's session works.
+	status, _ := e.do(aliceClient, http.MethodGet, "/tracks", nil, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	// Admin resets Alice's password.
+	adminClient := newIsolatedClient()
+	e.login(adminClient, "admin@example.com", "adminpass")
+	status, _ = e.do(adminClient, http.MethodPost, "/admin/users/"+uuid+"/reset-password", map[string]any{
+		"sendEmail": false,
+	}, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	// Alice's session is invalidated.
+	status, _ = e.do(aliceClient, http.MethodGet, "/tracks", nil, nil)
+	assert.Equal(t, http.StatusUnauthorized, status)
 }
 
 func TestAdminResetPassword_TargetIsAdmin(t *testing.T) {
