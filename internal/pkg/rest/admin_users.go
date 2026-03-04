@@ -192,7 +192,7 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	_, err := sv.d.QueryRO().GetUser(ctx, userUUID)
+	existing, err := sv.d.QueryRO().GetUser(ctx, userUUID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "user not found")
@@ -200,6 +200,10 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 		}
 		logg.Error(ctx, "failed to get user", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	if existing.Admin != 0 {
+		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
 		return
 	}
 
@@ -237,7 +241,7 @@ func (sv *server) handleAdminDeleteUser(w http.ResponseWriter, r *http.Request) 
 
 	userUUID := chi.URLParam(r, "uuid")
 
-	_, err := sv.d.QueryRO().GetUser(ctx, userUUID)
+	target, err := sv.d.QueryRO().GetUser(ctx, userUUID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "user not found")
@@ -245,6 +249,10 @@ func (sv *server) handleAdminDeleteUser(w http.ResponseWriter, r *http.Request) 
 		}
 		logg.Error(ctx, "failed to get user", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	if target.Admin != 0 {
+		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
 		return
 	}
 
@@ -285,6 +293,10 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 		}
 		logg.Error(ctx, "failed to get user", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	if u.Admin != 0 {
+		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
 		return
 	}
 
