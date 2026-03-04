@@ -62,7 +62,22 @@ func (sv *server) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 	user := session.GetUser(ctx)
 	sess := session.MustGet(ctx)
 
-	// Delete session first (uses its own tx; cannot be nested inside the user-deletion tx).
+	// Admin check must happen before session deletion (which is irreversible).
+	// The actual deletion tx below re-checks atomically to prevent TOCTOU races.
+	if user.Admin != 0 {
+		adminCount, err := sv.d.QueryRO().CountAdmins(ctx)
+		if err != nil {
+			logg.Error(ctx, "failed to count admins", "err", err)
+			writeStatusError(w, http.StatusInternalServerError)
+			return
+		}
+		if adminCount <= 1 {
+			writeError(w, http.StatusConflict, "cannot delete the last admin account")
+			return
+		}
+	}
+
+	// Delete session (uses its own tx; cannot be nested inside the user-deletion tx).
 	if err := session.Delete(ctx, &sess); err != nil {
 		logg.Error(ctx, "failed to delete session", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
