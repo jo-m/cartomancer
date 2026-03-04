@@ -35,4 +35,5 @@ bench:
 	go test -v -bench=. -run=Bench ./...
 
 .PHONY: check
-check: gen format lint test
+check: gen format lint
+	go test ./...
