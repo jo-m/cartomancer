@@ -90,6 +90,7 @@ func createUser(ctx context.Context, q *db.Queries, email, pass string) error {
 		Email:        email,
 		Name:         "test",
 		PasswordHash: password.Hash(pass),
+		Admin:        0,
 	})
 	return err
 }

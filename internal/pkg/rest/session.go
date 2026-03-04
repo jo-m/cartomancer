@@ -24,6 +24,7 @@ type userResponse struct {
 	UUID  string `json:"uuid"`
 	Email string `json:"email"`
 	Name  string `json:"name"`
+	Admin bool   `json:"admin"`
 }
 
 func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -73,6 +74,7 @@ func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			UUID:  user.Uuid,
 			Email: user.Email,
 			Name:  user.Name,
+			Admin: user.Admin != 0,
 		},
 	})
 }
@@ -105,6 +107,7 @@ func (sv *server) handleGetSession(w http.ResponseWriter, r *http.Request) {
 			UUID:  user.Uuid,
 			Email: user.Email,
 			Name:  user.Name,
+			Admin: user.Admin != 0,
 		}
 	}
 

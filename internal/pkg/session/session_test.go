@@ -78,6 +78,7 @@ func createUser(t *testing.T, d *db.DB) {
 		Email:        userEmail,
 		Name:         "test",
 		PasswordHash: password.Hash(userPass),
+		Admin:        0,
 	})
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())

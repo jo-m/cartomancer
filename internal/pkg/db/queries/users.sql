@@ -11,15 +11,15 @@ SELECT * FROM users ORDER BY uuid;
 
 -- name: CreateUser :one
 INSERT INTO users (
-  uuid, created_at, updated_at, email, name, password_hash
+  uuid, created_at, updated_at, email, name, password_hash, admin
 ) VALUES (
-  ?, ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?, ?
 )
 RETURNING *;
 
 -- name: UpdateUser :execrows
 UPDATE users
-SET updated_at = ?, email = ?, name = ?
+SET updated_at = ?, email = ?, name = ?, admin = ?
 WHERE uuid = ?;
 
 -- name: UpdateUserPassword :execrows

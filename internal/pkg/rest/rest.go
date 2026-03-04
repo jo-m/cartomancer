@@ -41,5 +41,15 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter) http.Hand
 		r.Get("/tags", sv.handleSuggestTags)
 	})
 
+	mux.Group(func(r chi.Router) {
+		r.Use(sv.requireAdmin)
+		r.Get("/admin/users", sv.handleAdminListUsers)
+		r.Post("/admin/users", sv.handleAdminCreateUser)
+		r.Get("/admin/users/{uuid}", sv.handleAdminGetUser)
+		r.Patch("/admin/users/{uuid}", sv.handleAdminUpdateUser)
+		r.Delete("/admin/users/{uuid}", sv.handleAdminDeleteUser)
+		r.Post("/admin/users/{uuid}/reset-password", sv.handleAdminResetUserPassword)
+	})
+
 	return mux
 }

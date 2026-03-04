@@ -12,7 +12,8 @@ CREATE TABLE users (
     email TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
-    otp_secret BLOB DEFAULT NULL
+    otp_secret BLOB DEFAULT NULL,
+    admin INTEGER NOT NULL DEFAULT 0
 );
 -- +goose StatementEnd
 
