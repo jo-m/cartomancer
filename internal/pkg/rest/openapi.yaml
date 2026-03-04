@@ -332,7 +332,7 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: A .gpx or .fit file
+                  description: A .gpx or .fit file (max 1 MiB)
       responses:
         "201":
           description: Track created
@@ -353,7 +353,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "422":
-          description: Track has fewer than 3 points
+          description: >
+            Track validation failed: fewer than 3 or more than 100000 points,
+            distance below 10 m or above 10000 km
           content:
             application/json:
               schema:

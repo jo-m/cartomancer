@@ -593,8 +593,13 @@ func boolToInt(b bool) int {
 	return 0
 }
 
-// TODO: Make configurable.
-const maxUploadSize = 50 << 20 // 50 MB
+const (
+	maxUploadSize  = 1 << 20 // 1 MiB
+	minTrackPoints = 3
+	maxTrackPoints = 100_000
+	minTrackDistM  = 10       // 10 m
+	maxTrackDistM  = 10_000e3 // 10 000 km
+)
 
 func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -633,12 +638,25 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t := track.New(src, 0)
-	if t.Len() < 3 {
+	if t.Len() < minTrackPoints {
 		writeError(w, http.StatusUnprocessableEntity, "track must have at least 3 points")
+		return
+	}
+	if t.Len() > maxTrackPoints {
+		writeError(w, http.StatusUnprocessableEntity, "track must have at most 100000 points")
 		return
 	}
 
 	meta := t.EnhancedMetadata()
+
+	if meta.TotalDistanceM < minTrackDistM {
+		writeError(w, http.StatusUnprocessableEntity, "track distance must be at least 10 m")
+		return
+	}
+	if meta.TotalDistanceM > maxTrackDistM {
+		writeError(w, http.StatusUnprocessableEntity, "track distance must be at most 10000 km")
+		return
+	}
 
 	blobID, err := uuid.NewV7()
 	if err != nil {
