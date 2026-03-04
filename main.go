@@ -155,9 +155,9 @@ func main() {
 		s := &http.Server{
 			Addr:              c.HTTPListenAddr,
 			Handler:           newHandler(ctx, d, c.SessionConfig, c.AppConfig, w.Submitter()),
-			ReadHeaderTimeout: 20 * time.Second,
-			ReadTimeout:       10 * time.Second,
-			WriteTimeout:      10 * time.Second,
+			ReadHeaderTimeout: 10 * time.Second,
+			ReadTimeout:       20 * time.Second,
+			WriteTimeout:      20 * time.Second,
 			MaxHeaderBytes:    1 << 20,
 		}
 		logg.Warn(ctx, gofakeit.HackerPhrase())
