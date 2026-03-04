@@ -20,6 +20,9 @@ INSERT INTO tracks (
 )
 RETURNING *;
 
+-- name: CountTracksByUser :one
+SELECT COUNT(*) FROM tracks WHERE user_id = ?;
+
 -- name: GetTrackByUUID :one
 SELECT * FROM tracks WHERE uuid = ?;
 

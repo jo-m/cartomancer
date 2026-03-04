@@ -652,12 +652,15 @@ func boolToInt(b bool) int {
 }
 
 const (
-	maxUploadSize  = 1 << 20 // 1 MiB
-	minTrackPoints = 3
-	maxTrackPoints = 100_000
-	minTrackDistM  = 10       // 10 m
-	maxTrackDistM  = 10_000e3 // 10 000 km
+	maxUploadSize    = 1 << 20 // 1 MiB
+	minTrackPoints   = 3
+	maxTrackPoints   = 100_000
+	minTrackDistM    = 10       // 10 m
+	maxTrackDistM    = 10_000e3 // 10 000 km
+	maxTracksPerUser = 10_000
 )
+
+var errUploadTrackLimitReached = errors.New("track limit reached")
 
 func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -733,12 +736,20 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()
 	var created db.Track
 	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
-		_, err := blob.Create(ctx, q, blobID.String(), header.Filename, content, blob.CompressionZstd)
-		if err != nil {
-			return err
+		count, txErr := q.CountTracksByUser(ctx, user.Uuid)
+		if txErr != nil {
+			return txErr
+		}
+		if count >= maxTracksPerUser {
+			return errUploadTrackLimitReached
 		}
 
-		created, err = q.CreateTrack(ctx, db.CreateTrackParams{
+		_, txErr = blob.Create(ctx, q, blobID.String(), header.Filename, content, blob.CompressionZstd)
+		if txErr != nil {
+			return txErr
+		}
+
+		created, txErr = q.CreateTrack(ctx, db.CreateTrackParams{
 			Uuid:              trackID.String(),
 			CreatedAt:         now,
 			UpdatedAt:         now,
@@ -763,8 +774,12 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			OriginalCreatedAt: toNullTime(meta.OriginalCreatedAt),
 			Public:            0,
 		})
-		return err
+		return txErr
 	})
+	if errors.Is(err, errUploadTrackLimitReached) {
+		writeError(w, http.StatusConflict, "track limit reached (max 10000)")
+		return
+	}
 	if err != nil {
 		logg.Error(ctx, "failed to store track", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
