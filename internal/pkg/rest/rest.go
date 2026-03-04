@@ -10,6 +10,17 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/session"
 )
 
+// requireUser is middleware that allows only authenticated (non-admin) users.
+func (sv *server) requireUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if session.GetUser(r.Context()) == nil {
+			writeError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 type server struct {
 	d            *db.DB
 	sessions     *session.Store
@@ -30,6 +41,10 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter) http.Hand
 		r.Post("/sessions/login", sv.handleLogin)
 		r.Post("/sessions/logout", sv.handleLogout)
 		r.Get("/sessions/me", sv.handleGetSession)
+	})
+
+	mux.Group(func(r chi.Router) {
+		r.Use(sv.requireUser)
 
 		r.Get("/tracks", sv.handleListTracks)
 		r.Post("/tracks", sv.handleUploadTrack)

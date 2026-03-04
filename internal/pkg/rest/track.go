@@ -129,7 +129,7 @@ func fileFormatFromExt(filename string) track.FileFormat {
 
 func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
+	user := session.MustGetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
 	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
@@ -143,7 +143,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
+	if t.Public == 0 && user.Uuid != t.UserID {
 		writeError(w, http.StatusNotFound, "track not found")
 		return
 	}
@@ -160,7 +160,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 
 func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
+	user := session.MustGetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
 	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
@@ -174,7 +174,7 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
+	if t.Public == 0 && user.Uuid != t.UserID {
 		writeError(w, http.StatusNotFound, "track not found")
 		return
 	}
@@ -219,13 +219,7 @@ type editTrackRequest struct {
 
 func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	user := session.GetUser(ctx)
-	if user == nil {
-		writeError(w, http.StatusUnauthorized, "authentication required")
-		return
-	}
-
+	user := session.MustGetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
 	var req editTrackRequest
@@ -371,14 +365,13 @@ func parseInt64Slice(q map[string][]string, key string) ([]int64, error) {
 
 func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
+	user := session.MustGetUser(ctx)
 
 	q := r.URL.Query()
 	qmap := map[string][]string(q)
 
-	params := db.ListTracksParams{}
-	if user != nil {
-		params.UserID = user.Uuid
+	params := db.ListTracksParams{
+		UserID: user.Uuid,
 	}
 
 	// Pagination.
@@ -604,12 +597,7 @@ const maxUploadSize = 50 << 20 // 50 MB
 
 func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	user := session.GetUser(ctx)
-	if user == nil {
-		writeError(w, http.StatusUnauthorized, "authentication required")
-		return
-	}
+	user := session.MustGetUser(ctx)
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {

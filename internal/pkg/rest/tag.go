@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/logg"
-	"jo-m.ch/go/detour/internal/pkg/session"
 )
 
 func validateTag(tag string) bool {
@@ -19,13 +18,6 @@ func validateTag(tag string) bool {
 
 func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	user := session.GetUser(ctx)
-	if user == nil {
-		writeError(w, http.StatusUnauthorized, "authentication required")
-		return
-	}
-
 	trackUUID := chi.URLParam(r, "uuid")
 
 	var tags []string
@@ -86,12 +78,6 @@ type tagSuggestionResponse struct {
 
 func (sv *server) handleSuggestTags(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	user := session.GetUser(ctx)
-	if user == nil {
-		writeError(w, http.StatusUnauthorized, "authentication required")
-		return
-	}
 
 	prefix := r.URL.Query().Get("prefix")
 	if utf8.RuneCountInString(prefix) < 2 {
