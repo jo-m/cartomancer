@@ -3,6 +3,7 @@ package blob
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/DataDog/zstd"
@@ -18,6 +19,14 @@ const (
 	CompressionZstd
 )
 
+// HashType represents the hash algorithm used for a blob.
+type HashType int
+
+// HashType enum values matching the DB schema.
+const (
+	HashTypeSHA256 HashType = iota
+)
+
 // Blob is a decompressed blob, ready to use.
 type Blob struct {
 	ID       string
@@ -27,6 +36,8 @@ type Blob struct {
 
 // Create inserts a blob, optionally compressing its content.
 func Create(ctx context.Context, q *db.Queries, id, filename string, content []byte, compression Compression) (Blob, error) {
+	hash := sha256.Sum256(content)
+
 	stored := content
 	if compression == CompressionZstd {
 		var err error
@@ -41,6 +52,8 @@ func Create(ctx context.Context, q *db.Queries, id, filename string, content []b
 		Filename:    filename,
 		Compression: int64(compression),
 		Content:     stored,
+		HashType:    int64(HashTypeSHA256),
+		Hash:        hash[:],
 	})
 	if err != nil {
 		return Blob{}, err

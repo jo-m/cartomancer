@@ -1,8 +1,8 @@
 -- name: CreateBlob :one
 INSERT INTO blobs (
-  uuid, filename, compression, content
+  uuid, filename, compression, content, hash_type, hash
 ) VALUES (
-  ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?
 )
 RETURNING *;
 

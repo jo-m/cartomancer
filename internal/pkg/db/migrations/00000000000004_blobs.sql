@@ -5,7 +5,10 @@ CREATE TABLE blobs (
 
     filename TEXT NOT NULL,
     compression INTEGER NOT NULL,
-    content BLOB NOT NULL
+    content BLOB NOT NULL,
+
+    hash_type INTEGER NOT NULL,
+    hash BLOB NOT NULL
 );
 -- +goose StatementEnd
 
