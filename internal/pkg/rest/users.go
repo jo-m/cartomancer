@@ -148,9 +148,20 @@ func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hash, err := password.Hash(req.NewPassword)
+	if errors.Is(err, password.ErrTooLong) {
+		writeError(w, http.StatusBadRequest, "password too long")
+		return
+	}
+	if err != nil {
+		logg.Error(ctx, "failed to hash password", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
 	_, err = sv.d.QueryRW().UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
 		UpdatedAt:    time.Now().UTC(),
-		PasswordHash: password.Hash(req.NewPassword),
+		PasswordHash: hash,
 		Uuid:         user.Uuid,
 	})
 	if err != nil {

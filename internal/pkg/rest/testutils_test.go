@@ -101,13 +101,16 @@ func (e *testEnv) createUser(email, name, pass string, admin bool) string {
 	require.NoError(e.t, err)
 
 	now := time.Now().UTC()
+	hash, err := password.Hash(pass)
+	require.NoError(e.t, err)
+
 	u, err := e.d.QueryRW().CreateUser(e.t.Context(), db.CreateUserParams{
 		Uuid:         id.String(),
 		CreatedAt:    now,
 		UpdatedAt:    now,
 		Email:        email,
 		Name:         name,
-		PasswordHash: password.Hash(pass),
+		PasswordHash: hash,
 		Admin:        adminVal,
 	})
 	require.NoError(e.t, err)

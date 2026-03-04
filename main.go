@@ -83,13 +83,17 @@ func createUser(ctx context.Context, q *db.Queries, email, pass string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create uuid: %w", err)
 	}
+	hash, err := password.Hash(pass)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
 	_, err = q.CreateUser(ctx, db.CreateUserParams{
 		Uuid:         uid.String(),
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 		Email:        email,
 		Name:         "test",
-		PasswordHash: password.Hash(pass),
+		PasswordHash: hash,
 		Admin:        0,
 	})
 	return err

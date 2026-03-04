@@ -15,6 +15,7 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/app"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/password"
+	"jo-m.ch/go/detour/internal/pkg/utl"
 )
 
 func TestContext(t *testing.T) {
@@ -77,7 +78,7 @@ func createUser(t *testing.T, d *db.DB) {
 		UpdatedAt:    time.Now(),
 		Email:        userEmail,
 		Name:         "test",
-		PasswordHash: password.Hash(userPass),
+		PasswordHash: utl.Must(password.Hash(userPass)),
 		Admin:        0,
 	})
 	require.NoError(t, err)

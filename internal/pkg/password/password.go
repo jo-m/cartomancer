@@ -5,11 +5,17 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 
 	"golang.org/x/crypto/argon2"
 )
+
+// MaxPasswordLen to avoid DOS via Argon2.
+const MaxPasswordLen = 512
+
+var ErrTooLong = errors.New("password exceeds maximum length")
 
 type argon2idparams struct {
 	Time    uint32 `json:"t"`
@@ -39,7 +45,12 @@ type argonHash struct {
 // Hash salts and hashes a password.
 // The salt and the hash params are serialized in to the returned string.
 // Use [Check] to check a generated hash against a password.
-func Hash(password string) string {
+// Returns [ErrTooLong] if the password exceeds [MaxPasswordLen] bytes.
+func Hash(password string) (string, error) {
+	if len(password) > MaxPasswordLen {
+		return "", ErrTooLong
+	}
+
 	params := defaultparams
 
 	salt := GenRandBytes(params.saltLenBytes)
@@ -53,14 +64,19 @@ func Hash(password string) string {
 
 	ret, err := json.Marshal(h)
 	if err != nil {
+		// This cannot happen.
 		panic(fmt.Sprintf("failed to marshal: %s", err))
 	}
 
-	return string(ret)
+	return string(ret), nil
 }
 
 // Check if a password matches a hash which was previously generated via [Hash].
 func Check(password, hashed string) bool {
+	if len(password) > MaxPasswordLen {
+		return false
+	}
+
 	var h argonHash
 	err := json.Unmarshal([]byte(hashed), &h)
 	if err != nil {

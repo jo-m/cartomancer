@@ -147,13 +147,20 @@ func (sv *server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) 
 		admin = 1
 	}
 
+	hash, err := password.Hash(initialPassword)
+	if err != nil {
+		logg.Error(ctx, "failed to hash password", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
 	u, err := sv.d.QueryRW().CreateUser(ctx, db.CreateUserParams{
 		Uuid:         id.String(),
 		CreatedAt:    now,
 		UpdatedAt:    now,
 		Email:        req.Email,
 		Name:         req.Name,
-		PasswordHash: password.Hash(initialPassword),
+		PasswordHash: hash,
 		Admin:        admin,
 	})
 	if err != nil {
@@ -297,10 +304,17 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 
 	newPassword := password.GenRandPrintableString(generatedPasswordLen)
 
+	hash, err := password.Hash(newPassword)
+	if err != nil {
+		logg.Error(ctx, "failed to hash password", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
 	// Admin guard check and password update must be atomic to prevent TOCTOU races.
 	// Capture u for use in the email job below.
 	var u db.User
-	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
 		var txErr error
 		u, txErr = q.GetUser(ctx, userUUID)
 		if txErr != nil {
@@ -311,7 +325,7 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 		}
 		_, txErr = q.UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
 			UpdatedAt:    time.Now().UTC(),
-			PasswordHash: password.Hash(newPassword),
+			PasswordHash: hash,
 			Uuid:         userUUID,
 		})
 		return txErr
