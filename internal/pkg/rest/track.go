@@ -273,6 +273,11 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t := track.New(src, 0)
+	if t.Len() < 3 {
+		writeError(w, http.StatusUnprocessableEntity, "track must have at least 3 points")
+		return
+	}
+
 	meta := t.EnhancedMetadata()
 
 	blobID, err := uuid.NewV7()

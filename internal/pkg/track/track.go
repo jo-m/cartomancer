@@ -73,6 +73,10 @@ type Track struct {
 	pts []Point
 }
 
+func (t *Track) Len() int {
+	return len(t.pts)
+}
+
 func (t *Track) computeDistanceM() float64 {
 	distM := 0.
 	for i, p1 := range t.pts[1:] {
