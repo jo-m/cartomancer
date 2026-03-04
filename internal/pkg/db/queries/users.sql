@@ -22,6 +22,11 @@ UPDATE users
 SET updated_at = ?, email = ?, name = ?, admin = ?
 WHERE uuid = ?;
 
+-- name: UpdateUserName :execrows
+UPDATE users
+SET updated_at = ?, name = ?
+WHERE uuid = ?;
+
 -- name: UpdateUserPassword :execrows
 UPDATE users
 SET updated_at = ?, password_hash = ?
@@ -36,6 +41,9 @@ WHERE uuid = ?;
 UPDATE users
 SET last_active_at = ?
 WHERE uuid = ?;
+
+-- name: CountAdmins :one
+SELECT COUNT(*) FROM users WHERE admin = 1;
 
 -- name: DeleteUser :execrows
 DELETE FROM users

@@ -1,0 +1,139 @@
+package rest
+
+import (
+	"net/http"
+	"time"
+
+	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/password"
+	"jo-m.ch/go/detour/internal/pkg/session"
+)
+
+type updateMeRequest struct {
+	Name string `json:"name"`
+}
+
+func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+
+	var req updateMeRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+
+	_, err := sv.d.QueryRW().UpdateUserName(ctx, db.UpdateUserNameParams{
+		UpdatedAt: time.Now().UTC(),
+		Name:      req.Name,
+		Uuid:      user.Uuid,
+	})
+	if err != nil {
+		logg.Error(ctx, "failed to update user name", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	u, err := sv.d.QueryRO().GetUser(ctx, user.Uuid)
+	if err != nil {
+		logg.Error(ctx, "failed to get updated user", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, userResponse{
+		UUID:  u.Uuid,
+		Email: u.Email,
+		Name:  u.Name,
+		Admin: u.Admin != 0,
+	})
+}
+
+func (sv *server) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+	sess := session.MustGet(ctx)
+
+	if user.Admin != 0 {
+		adminCount, err := sv.d.QueryRO().CountAdmins(ctx)
+		if err != nil {
+			logg.Error(ctx, "failed to count admins", "err", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+		if adminCount <= 1 {
+			writeError(w, http.StatusConflict, "cannot delete the last admin account")
+			return
+		}
+	}
+
+	if err := session.Delete(ctx, &sess); err != nil {
+		logg.Error(ctx, "failed to delete session", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	_, err := sv.d.QueryRW().DeleteUser(ctx, user.Uuid)
+	if err != nil {
+		logg.Error(ctx, "failed to delete user", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+type changePasswordRequest struct {
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
+}
+
+func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+
+	var req changePasswordRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.OldPassword == "" {
+		writeError(w, http.StatusBadRequest, "oldPassword is required")
+		return
+	}
+	if req.NewPassword == "" {
+		writeError(w, http.StatusBadRequest, "newPassword is required")
+		return
+	}
+
+	u, err := sv.d.QueryRO().GetUser(ctx, user.Uuid)
+	if err != nil {
+		logg.Error(ctx, "failed to get user", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	if !password.Check(req.OldPassword, u.PasswordHash) {
+		logg.Warn(ctx, "invalid old password for change-password", "user", user.Uuid)
+		writeError(w, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
+
+	_, err = sv.d.QueryRW().UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
+		UpdatedAt:    time.Now().UTC(),
+		PasswordHash: password.Hash(req.NewPassword),
+		Uuid:         user.Uuid,
+	})
+	if err != nil {
+		logg.Error(ctx, "failed to update password", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

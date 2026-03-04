@@ -60,7 +60,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /sessions/me:
+  /sessions:
     get:
       summary: Get current session
       operationId: getSession
@@ -768,6 +768,99 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /account:
+    patch:
+      summary: Update current user's profile
+      operationId: updateMe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeRequest"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      summary: Delete current user's account
+      operationId: deleteMe
+      responses:
+        "204":
+          description: Account deleted
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Cannot delete the last admin account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /account/change-password:
+    post:
+      summary: Change current user's password
+      operationId: changePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "204":
+          description: Password changed
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated or wrong old password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /tags:
     get:
       summary: Suggest tags by prefix
@@ -878,6 +971,25 @@ components:
         lastActiveAt:
           type: string
           format: date-time
+
+    UpdateMeRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - oldPassword
+        - newPassword
+      properties:
+        oldPassword:
+          type: string
+        newPassword:
+          type: string
 
     AdminCreateUserRequest:
       type: object

@@ -40,7 +40,7 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter) http.Hand
 	mux.Group(func(r chi.Router) {
 		r.Post("/sessions/login", sv.handleLogin)
 		r.Post("/sessions/logout", sv.handleLogout)
-		r.Get("/sessions/me", sv.handleGetSession)
+		r.Get("/sessions", sv.handleGetSession)
 	})
 
 	mux.Group(func(r chi.Router) {
@@ -54,6 +54,10 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter) http.Hand
 		r.Get("/tracks/{uuid}/blob", sv.handleDownloadTrackBlob)
 
 		r.Get("/tags", sv.handleSuggestTags)
+
+		r.Patch("/account", sv.handleUpdateAccount)
+		r.Delete("/account", sv.handleDeleteAccount)
+		r.Post("/account/change-password", sv.handleChangePassword)
 	})
 
 	mux.Group(func(r chi.Router) {
