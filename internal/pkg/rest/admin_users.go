@@ -119,7 +119,7 @@ func (sv *server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) 
 
 	var req adminCreateUserRequest
 	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeDecodeError(w, err)
 		return
 	}
 
@@ -181,7 +181,7 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 
 	var req adminUpdateUserRequest
 	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeDecodeError(w, err)
 		return
 	}
 
@@ -291,7 +291,7 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 
 	var req adminResetPasswordRequest
 	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeDecodeError(w, err)
 		return
 	}
 

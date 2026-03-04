@@ -224,7 +224,7 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 
 	var req editTrackRequest
 	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeDecodeError(w, err)
 		return
 	}
 

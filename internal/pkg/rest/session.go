@@ -37,7 +37,7 @@ func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	var req loginRequest
 	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeDecodeError(w, err)
 		return
 	}
 

@@ -23,7 +23,7 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 
 	var tags []string
 	if err := decodeJSON(r, &tags); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeDecodeError(w, err)
 		return
 	}
 

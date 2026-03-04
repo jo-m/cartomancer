@@ -23,7 +23,7 @@ func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 
 	var req updateMeRequest
 	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeDecodeError(w, err)
 		return
 	}
 	if req.Name == "" {
@@ -123,7 +123,7 @@ func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	var req changePasswordRequest
 	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeDecodeError(w, err)
 		return
 	}
 	if req.OldPassword == "" {
