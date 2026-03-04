@@ -6,6 +6,8 @@ CREATE TABLE tracks (
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
 
+    initial_editing_completed INTEGER NOT NULL DEFAULT 0 CHECK(initial_editing_completed IN (0, 1)),
+
     user_id TEXT NOT NULL,
     public INTEGER NOT NULL DEFAULT 0 CHECK(public IN (0, 1)),
 

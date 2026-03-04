@@ -23,28 +23,29 @@ import (
 )
 
 type trackResponse struct {
-	UUID              string   `json:"uuid"`
-	Name              string   `json:"name"`
-	Description       string   `json:"description,omitempty"`
-	Source            string   `json:"source,omitempty"`
-	Author            string   `json:"author,omitempty"`
-	AuthorLinkURL     string   `json:"authorLinkUrl,omitempty"`
-	FileFormat        int      `json:"fileFormat"`
-	TrackType         int      `json:"trackType"`
-	LinkURL           string   `json:"linkUrl,omitempty"`
-	Sport             int      `json:"sport"`
-	SubSport          int      `json:"subSport"`
-	TotalDistanceM    float64  `json:"totalDistanceM"`
-	TotalAscentM      float64  `json:"totalAscentM"`
-	StartLat          *float64 `json:"startLat,omitempty"`
-	StartLon          *float64 `json:"startLon,omitempty"`
-	EndLat            *float64 `json:"endLat,omitempty"`
-	EndLon            *float64 `json:"endLon,omitempty"`
-	OriginalCreatedAt string   `json:"originalCreatedAt,omitempty"`
-	CreatedAt         string   `json:"createdAt"`
-	UpdatedAt         string   `json:"updatedAt"`
-	Public            bool     `json:"public"`
-	Tags              []string `json:"tags"`
+	UUID                    string   `json:"uuid"`
+	Name                    string   `json:"name"`
+	Description             string   `json:"description,omitempty"`
+	Source                  string   `json:"source,omitempty"`
+	Author                  string   `json:"author,omitempty"`
+	AuthorLinkURL           string   `json:"authorLinkUrl,omitempty"`
+	FileFormat              int      `json:"fileFormat"`
+	TrackType               int      `json:"trackType"`
+	LinkURL                 string   `json:"linkUrl,omitempty"`
+	Sport                   int      `json:"sport"`
+	SubSport                int      `json:"subSport"`
+	TotalDistanceM          float64  `json:"totalDistanceM"`
+	TotalAscentM            float64  `json:"totalAscentM"`
+	StartLat                *float64 `json:"startLat,omitempty"`
+	StartLon                *float64 `json:"startLon,omitempty"`
+	EndLat                  *float64 `json:"endLat,omitempty"`
+	EndLon                  *float64 `json:"endLon,omitempty"`
+	OriginalCreatedAt       string   `json:"originalCreatedAt,omitempty"`
+	CreatedAt               string   `json:"createdAt"`
+	UpdatedAt               string   `json:"updatedAt"`
+	Public                  bool     `json:"public"`
+	InitialEditingCompleted bool     `json:"initialEditingCompleted"`
+	Tags                    []string `json:"tags"`
 }
 
 func toNullString(s string) sql.NullString {
@@ -87,27 +88,28 @@ func trackResponseFromDB(t db.Track, tags []string) trackResponse {
 		tags = []string{}
 	}
 	resp := trackResponse{
-		UUID:           t.Uuid,
-		Name:           t.Name,
-		Description:    nullStringVal(t.Description),
-		Source:         nullStringVal(t.Source),
-		Author:         nullStringVal(t.Author),
-		AuthorLinkURL:  nullStringVal(t.AuthorLinkUrl),
-		FileFormat:     int(t.FileFormat),
-		TrackType:      int(t.TrackType),
-		LinkURL:        nullStringVal(t.LinkUrl),
-		Sport:          int(t.Sport),
-		SubSport:       int(t.SubSport),
-		TotalDistanceM: t.TotalDistanceM,
-		TotalAscentM:   t.TotalAscentM,
-		StartLat:       nullFloat64Ptr(t.StartLat),
-		StartLon:       nullFloat64Ptr(t.StartLon),
-		EndLat:         nullFloat64Ptr(t.EndLat),
-		EndLon:         nullFloat64Ptr(t.EndLon),
-		CreatedAt:      t.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:      t.UpdatedAt.Format(time.RFC3339),
-		Public:         t.Public != 0,
-		Tags:           tags,
+		UUID:                    t.Uuid,
+		Name:                    t.Name,
+		Description:             nullStringVal(t.Description),
+		Source:                  nullStringVal(t.Source),
+		Author:                  nullStringVal(t.Author),
+		AuthorLinkURL:           nullStringVal(t.AuthorLinkUrl),
+		FileFormat:              int(t.FileFormat),
+		TrackType:               int(t.TrackType),
+		LinkURL:                 nullStringVal(t.LinkUrl),
+		Sport:                   int(t.Sport),
+		SubSport:                int(t.SubSport),
+		TotalDistanceM:          t.TotalDistanceM,
+		TotalAscentM:            t.TotalAscentM,
+		StartLat:                nullFloat64Ptr(t.StartLat),
+		StartLon:                nullFloat64Ptr(t.StartLon),
+		EndLat:                  nullFloat64Ptr(t.EndLat),
+		EndLon:                  nullFloat64Ptr(t.EndLon),
+		CreatedAt:               t.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:               t.UpdatedAt.Format(time.RFC3339),
+		Public:                  t.Public != 0,
+		InitialEditingCompleted: t.InitialEditingCompleted != 0,
+		Tags:                    tags,
 	}
 	if t.OriginalCreatedAt.Valid {
 		resp.OriginalCreatedAt = t.OriginalCreatedAt.Time.Format(time.RFC3339)
@@ -637,6 +639,77 @@ func (sv *server) handleBulkEditTracks(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		logg.Error(ctx, "failed to bulk update tracks", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (sv *server) handleListTracksForEditing(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.MustGetUser(ctx)
+
+	tracks, err := sv.d.QueryRO().ListTracksForEditing(ctx, user.Uuid)
+	if err != nil {
+		logg.Error(ctx, "failed to list tracks for editing", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	trackUUIDs := make([]string, len(tracks))
+	for i, t := range tracks {
+		trackUUIDs[i] = t.Uuid
+	}
+	tagsByTrack, err := sv.d.GetTagsForTracks(ctx, trackUUIDs)
+	if err != nil {
+		logg.Error(ctx, "failed to get tags for editing tracks", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	responses := make([]trackResponse, len(tracks))
+	for i, t := range tracks {
+		tags := tagsByTrack[t.Uuid]
+		if tags == nil {
+			tags = []string{}
+		}
+		responses[i] = trackResponseFromDB(t, tags)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"tracks": responses})
+}
+
+type editingCompleteRequest struct {
+	UUIDs []string `json:"uuids"`
+}
+
+func (sv *server) handleEditingComplete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.MustGetUser(ctx)
+
+	var req editingCompleteRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeDecodeError(w, err)
+		return
+	}
+
+	if len(req.UUIDs) == 0 {
+		writeError(w, http.StatusBadRequest, "uuids is required and must not be empty")
+		return
+	}
+	if len(req.UUIDs) > maxBulkEditUUIDs {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("at most %d uuids allowed", maxBulkEditUUIDs))
+		return
+	}
+
+	err := sv.d.CompleteEditing(ctx, user.Uuid, req.UUIDs)
+	if errors.Is(err, db.ErrBulkUpdateMismatch) {
+		writeError(w, http.StatusNotFound, "one or more tracks not found or not owned by you")
+		return
+	}
+	if err != nil {
+		logg.Error(ctx, "failed to complete editing", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}

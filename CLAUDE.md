@@ -78,6 +78,7 @@ Always store timestamps with timezone.
 Simple internal enums, where the logic/state is managed from within SQL queries only, are strings with CHECK, example: `status TEXT CHECK(status IN ('C', 'R', 'A', 'E', 'S') ) NOT NULL DEFAULT 'C'`.
 "App" enums which are managed from Go code are integers, declared with iota.
 Most tables have created_at, updated_at, created_by.
+IMPORTANT: When adding or changing columns in existing tables, you MUST ask the operator first if an existing migration should be edited, or a new one created.
 
 ## Connection model
 

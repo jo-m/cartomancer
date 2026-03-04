@@ -20,6 +20,9 @@ INSERT INTO tracks (
 )
 RETURNING *;
 
+-- name: ListTracksForEditing :many
+SELECT * FROM tracks WHERE user_id = ? AND initial_editing_completed = 0 ORDER BY created_at DESC;
+
 -- name: CountTracksByUser :one
 SELECT COUNT(*) FROM tracks WHERE user_id = ?;
 

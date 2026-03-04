@@ -600,6 +600,74 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/editing:
+    get:
+      summary: List tracks pending initial editing
+      operationId: listTracksForEditing
+      description: >
+        Returns all tracks belonging to the authenticated user where
+        initial_editing_completed is false, ordered by upload time (newest first).
+      responses:
+        "200":
+          description: List of active upload tracks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EditingResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tracks/editing-complete:
+    post:
+      summary: Mark tracks as initial editing completed
+      operationId: editingComplete
+      description: >
+        Sets initial_editing_completed to true for the given tracks.
+        All tracks must belong to the authenticated user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditingCompleteRequest"
+      responses:
+        "204":
+          description: Tracks marked as upload-editing completed
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: One or more tracks not found or not owned by the user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /admin/users:
     get:
       summary: List all users
@@ -1233,6 +1301,8 @@ components:
           format: date-time
         public:
           type: boolean
+        initialEditingCompleted:
+          type: boolean
         tags:
           type: array
           items:
@@ -1274,6 +1344,29 @@ components:
             type: string
             minLength: 2
             maxLength: 32
+
+    EditingResponse:
+      type: object
+      required:
+        - tracks
+      properties:
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackResponse"
+
+    EditingCompleteRequest:
+      type: object
+      required:
+        - uuids
+      properties:
+        uuids:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 1000
+          description: UUIDs of tracks to mark as upload-editing completed
 
     BulkEditTracksRequest:
       type: object
