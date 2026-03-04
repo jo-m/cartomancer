@@ -877,9 +877,7 @@ paths:
     post:
       summary: Reset a user's password
       description: >
-        Generates a new random password for the user.
-        If sendEmail is true, the password is emailed to the user and the response is 204.
-        If sendEmail is false, the password is returned in the response body (display once).
+        Generates a new random password for the user and returns it in the response body (display once).
       operationId: adminResetUserPassword
       parameters:
         - name: uuid
@@ -887,21 +885,13 @@ paths:
           required: true
           schema:
             type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminResetPasswordRequest"
       responses:
         "200":
-          description: Password reset; new password returned (only when sendEmail is false)
+          description: Password reset; new password returned
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminResetPasswordResponse"
-        "204":
-          description: Password reset and emailed to the user (only when sendEmail is true)
         "400":
           description: Invalid request body
           content:
@@ -1216,15 +1206,6 @@ components:
         admin:
           type: boolean
 
-    AdminResetPasswordRequest:
-      type: object
-      required:
-        - sendEmail
-      properties:
-        sendEmail:
-          type: boolean
-          description: If true, email the new password to the user instead of returning it
-
     AdminResetPasswordResponse:
       type: object
       required:
@@ -1232,7 +1213,7 @@ components:
       properties:
         password:
           type: string
-          description: The new generated password (only present when sendEmail is false)
+          description: The new generated password (display once)
 
     TrackResponse:
       type: object

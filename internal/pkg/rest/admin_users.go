@@ -3,16 +3,13 @@ package rest
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/logg"
-	"jo-m.ch/go/detour/internal/pkg/mail"
 	"jo-m.ch/go/detour/internal/pkg/password"
 	"jo-m.ch/go/detour/internal/pkg/session"
 )
@@ -283,9 +280,7 @@ func (sv *server) handleAdminDeleteUser(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-type adminResetPasswordRequest struct {
-	SendEmail bool `json:"sendEmail"`
-}
+type adminResetPasswordRequest struct{}
 
 type adminResetPasswordResponse struct {
 	Password string `json:"password"`
@@ -312,11 +307,9 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 	}
 
 	// Admin guard check and password update must be atomic to prevent TOCTOU races.
-	// Capture u for use in the email job below.
-	var u db.User
 	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
 		var txErr error
-		u, txErr = q.GetUser(ctx, userUUID)
+		u, txErr := q.GetUser(ctx, userUUID)
 		if txErr != nil {
 			return txErr
 		}
@@ -345,21 +338,6 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		logg.Error(ctx, "failed to reset password", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	if req.SendEmail {
-		err = jobs.Submit(ctx, sv.jobSubmitter, mail.Args{
-			To:      []string{u.Email},
-			Subject: "Your password has been reset",
-			Body:    fmt.Sprintf("Hello %s,\n\nAn administrator has reset your password.\n\nYour new password is: %s\n\nPlease change it after logging in.\n", u.Name, newPassword),
-		}, jobs.Params{MaxRetries: 3})
-		if err != nil {
-			logg.Error(ctx, "failed to submit password reset email job", "err", err)
-			writeStatusError(w, http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
