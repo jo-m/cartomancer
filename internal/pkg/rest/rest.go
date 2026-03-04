@@ -32,6 +32,7 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter) http.Hand
 		r.Get("/sessions/me", sv.handleGetSession)
 
 		r.Post("/tracks", sv.handleUploadTrack)
+		r.Patch("/tracks/{uuid}", sv.handleEditTrack)
 		r.Put("/tracks/{uuid}/tags", sv.handleSetTrackTags)
 
 		r.Get("/tags", sv.handleSuggestTags)

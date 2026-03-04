@@ -115,6 +115,60 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/{uuid}:
+    patch:
+      summary: Edit a track
+      operationId: editTrack
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditTrackRequest"
+      responses:
+        "200":
+          description: Track updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Track not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /tracks/{uuid}/tags:
     put:
       summary: Set tags for a track
@@ -299,6 +353,40 @@ components:
           type: array
           items:
             type: string
+
+    EditTrackRequest:
+      type: object
+      required:
+        - name
+        - trackType
+        - sport
+        - subSport
+        - tags
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        source:
+          type: string
+        author:
+          type: string
+        authorLinkUrl:
+          type: string
+        trackType:
+          type: integer
+        linkUrl:
+          type: string
+        sport:
+          type: integer
+        subSport:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+            minLength: 2
+            maxLength: 32
 
     TagSuggestionResponse:
       type: object

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
@@ -98,6 +99,111 @@ func fileFormatFromExt(filename string) track.FileFormat {
 	default:
 		return track.FileFormatGPX
 	}
+}
+
+type editTrackRequest struct {
+	Name          string   `json:"name"`
+	Description   string   `json:"description"`
+	Source        string   `json:"source"`
+	Author        string   `json:"author"`
+	AuthorLinkURL string   `json:"authorLinkUrl"`
+	TrackType     int64    `json:"trackType"`
+	LinkURL       string   `json:"linkUrl"`
+	Sport         int64    `json:"sport"`
+	SubSport      int64    `json:"subSport"`
+	Tags          []string `json:"tags"`
+}
+
+func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	user := session.GetUser(ctx)
+	if user == nil {
+		writeError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	trackUUID := chi.URLParam(r, "uuid")
+
+	var req editTrackRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.Name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+
+	for _, tag := range req.Tags {
+		if !validateTag(tag) {
+			writeError(w, http.StatusBadRequest, "each tag must be 2-32 characters")
+			return
+		}
+	}
+
+	existing, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "track not found")
+			return
+		}
+		logg.Error(ctx, "failed to get track", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	if existing.UserID != user.Uuid {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	now := time.Now().UTC()
+	var updated db.Track
+	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
+		var txErr error
+		updated, txErr = q.UpdateTrack(ctx, db.UpdateTrackParams{
+			UpdatedAt:     now,
+			Name:          req.Name,
+			Description:   toNullString(req.Description),
+			Source:        toNullString(req.Source),
+			Author:        toNullString(req.Author),
+			AuthorLinkUrl: toNullString(req.AuthorLinkURL),
+			TrackType:     req.TrackType,
+			LinkUrl:       toNullString(req.LinkURL),
+			Sport:         req.Sport,
+			SubSport:      req.SubSport,
+			Uuid:          trackUUID,
+		})
+		if txErr != nil {
+			return txErr
+		}
+
+		if txErr = q.DeleteTrackTags(ctx, trackUUID); txErr != nil {
+			return txErr
+		}
+		for _, tag := range req.Tags {
+			t, txErr := q.UpsertTag(ctx, tag)
+			if txErr != nil {
+				return txErr
+			}
+			if txErr = q.CreateTrackTag(ctx, db.CreateTrackTagParams{
+				TrackID: trackUUID,
+				TagID:   t.ID,
+			}); txErr != nil {
+				return txErr
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		logg.Error(ctx, "failed to update track", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, trackResponseFromDB(updated, req.Tags))
 }
 
 // TODO: Make configurable.

@@ -18,3 +18,18 @@ RETURNING *;
 
 -- name: GetTrackByUUID :one
 SELECT * FROM tracks WHERE uuid = ?;
+
+-- name: UpdateTrack :one
+UPDATE tracks
+SET updated_at = ?,
+    name = ?,
+    description = ?,
+    source = ?,
+    author = ?,
+    author_link_url = ?,
+    track_type = ?,
+    link_url = ?,
+    sport = ?,
+    sub_sport = ?
+WHERE uuid = ?
+RETURNING *;
