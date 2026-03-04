@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"database/sql"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -234,6 +236,291 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, trackResponseFromDB(updated, req.Tags))
+}
+
+type listTracksResponse struct {
+	Tracks     []trackResponse `json:"tracks"`
+	TotalCount int             `json:"totalCount"`
+	Page       int             `json:"page"`
+	PageSize   int             `json:"pageSize"`
+}
+
+func parseOptionalFloat64(q map[string][]string, key string) (*float64, error) {
+	vals, ok := q[key]
+	if !ok || len(vals) == 0 || vals[0] == "" {
+		return nil, nil
+	}
+	v, err := strconv.ParseFloat(vals[0], 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid value for %q: %w", key, err)
+	}
+	return &v, nil
+}
+
+func parseOptionalTime(q map[string][]string, key string) (*time.Time, error) {
+	vals, ok := q[key]
+	if !ok || len(vals) == 0 || vals[0] == "" {
+		return nil, nil
+	}
+	t, err := time.Parse(time.RFC3339, vals[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid value for %q: %w", key, err)
+	}
+	return &t, nil
+}
+
+func parseOptionalString(q map[string][]string, key string) *string {
+	vals, ok := q[key]
+	if !ok || len(vals) == 0 || vals[0] == "" {
+		return nil
+	}
+	return &vals[0]
+}
+
+func parseInt64Slice(q map[string][]string, key string) ([]int64, error) {
+	vals := q[key]
+	if len(vals) == 0 {
+		return nil, nil
+	}
+	result := make([]int64, 0, len(vals))
+	for _, v := range vals {
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid value for %q: %w", key, err)
+		}
+		result = append(result, n)
+	}
+	return result, nil
+}
+
+func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+
+	q := r.URL.Query()
+	qmap := map[string][]string(q)
+
+	params := db.ListTracksParams{}
+	if user != nil {
+		params.UserID = user.Uuid
+	}
+
+	// Pagination.
+	if v := q.Get("page"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 {
+			writeError(w, http.StatusBadRequest, "invalid value for 'page'")
+			return
+		}
+		params.Page = n
+	}
+	if v := q.Get("pageSize"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > 200 {
+			writeError(w, http.StatusBadRequest, "invalid value for 'pageSize': must be 1-200")
+			return
+		}
+		params.PageSize = n
+	}
+
+	// Public filter.
+	if v := q.Get("public"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid value for 'public'")
+			return
+		}
+		params.Public = &b
+	}
+
+	// Enum multi-value filters.
+	var err error
+	if params.FileFormats, err = parseInt64Slice(qmap, "fileFormat"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.TrackTypes, err = parseInt64Slice(qmap, "trackType"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.Sports, err = parseInt64Slice(qmap, "sport"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.SubSports, err = parseInt64Slice(qmap, "subSport"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Text filters.
+	params.Name = parseOptionalString(qmap, "name")
+	params.Description = parseOptionalString(qmap, "description")
+	params.Source = parseOptionalString(qmap, "source")
+
+	// Datetime range filters.
+	if params.CreatedAtMin, err = parseOptionalTime(qmap, "createdAtMin"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.CreatedAtMax, err = parseOptionalTime(qmap, "createdAtMax"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.UpdatedAtMin, err = parseOptionalTime(qmap, "updatedAtMin"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.UpdatedAtMax, err = parseOptionalTime(qmap, "updatedAtMax"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.OriginalCreatedAtMin, err = parseOptionalTime(qmap, "originalCreatedAtMin"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.OriginalCreatedAtMax, err = parseOptionalTime(qmap, "originalCreatedAtMax"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Numeric range filters.
+	if params.TotalDistanceMMin, err = parseOptionalFloat64(qmap, "totalDistanceMMin"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.TotalDistanceMMax, err = parseOptionalFloat64(qmap, "totalDistanceMMax"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.TotalAscentMMin, err = parseOptionalFloat64(qmap, "totalAscentMMin"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.TotalAscentMMax, err = parseOptionalFloat64(qmap, "totalAscentMMax"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Coordinate bounding box filters.
+	if params.StartLatMin, err = parseOptionalFloat64(qmap, "startLatMin"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.StartLatMax, err = parseOptionalFloat64(qmap, "startLatMax"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.StartLonMin, err = parseOptionalFloat64(qmap, "startLonMin"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.StartLonMax, err = parseOptionalFloat64(qmap, "startLonMax"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.EndLatMin, err = parseOptionalFloat64(qmap, "endLatMin"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.EndLatMax, err = parseOptionalFloat64(qmap, "endLatMax"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.EndLonMin, err = parseOptionalFloat64(qmap, "endLonMin"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.EndLonMax, err = parseOptionalFloat64(qmap, "endLonMax"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Radial filters.
+	if params.StartNearLat, err = parseOptionalFloat64(qmap, "startNearLat"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.StartNearLon, err = parseOptionalFloat64(qmap, "startNearLon"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.StartNearRadiusM, err = parseOptionalFloat64(qmap, "startNearRadiusM"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.EndNearLat, err = parseOptionalFloat64(qmap, "endNearLat"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.EndNearLon, err = parseOptionalFloat64(qmap, "endNearLon"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if params.EndNearRadiusM, err = parseOptionalFloat64(qmap, "endNearRadiusM"); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Validate radial filters: all three or none.
+	startNearCount := boolToInt(params.StartNearLat != nil) + boolToInt(params.StartNearLon != nil) + boolToInt(params.StartNearRadiusM != nil)
+	if startNearCount > 0 && startNearCount < 3 {
+		writeError(w, http.StatusBadRequest, "startNearLat, startNearLon, and startNearRadiusM must all be provided together")
+		return
+	}
+	endNearCount := boolToInt(params.EndNearLat != nil) + boolToInt(params.EndNearLon != nil) + boolToInt(params.EndNearRadiusM != nil)
+	if endNearCount > 0 && endNearCount < 3 {
+		writeError(w, http.StatusBadRequest, "endNearLat, endNearLon, and endNearRadiusM must all be provided together")
+		return
+	}
+
+	result, err := sv.d.ListTracks(ctx, params)
+	if err != nil {
+		logg.Error(ctx, "failed to list tracks", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	// Fetch tags for all returned tracks in a single query.
+	trackUUIDs := make([]string, len(result.Tracks))
+	for i, t := range result.Tracks {
+		trackUUIDs[i] = t.Uuid
+	}
+	tagsByTrack, err := sv.d.GetTagsForTracks(ctx, trackUUIDs)
+	if err != nil {
+		logg.Error(ctx, "failed to get tags for tracks", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	responses := make([]trackResponse, len(result.Tracks))
+	for i, t := range result.Tracks {
+		tags := tagsByTrack[t.Uuid]
+		if tags == nil {
+			tags = []string{}
+		}
+		responses[i] = trackResponseFromDB(t, tags)
+	}
+
+	if params.Page == 0 {
+		params.Page = 1
+	}
+	if params.PageSize == 0 {
+		params.PageSize = 25
+	}
+
+	writeJSON(w, http.StatusOK, listTracksResponse{
+		Tracks:     responses,
+		TotalCount: result.TotalCount,
+		Page:       params.Page,
+		PageSize:   params.PageSize,
+	})
+}
+
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // TODO: Make configurable.

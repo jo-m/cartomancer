@@ -73,6 +73,220 @@ paths:
                 $ref: "#/components/schemas/SessionResponse"
 
   /tracks:
+    get:
+      summary: List and filter tracks
+      operationId: listTracks
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 25
+        - name: public
+          in: query
+          schema:
+            type: boolean
+        - name: fileFormat
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+        - name: trackType
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+        - name: sport
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+        - name: subSport
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+        - name: name
+          in: query
+          schema:
+            type: string
+          description: Substring match on name
+        - name: description
+          in: query
+          schema:
+            type: string
+          description: Substring match on description
+        - name: source
+          in: query
+          schema:
+            type: string
+          description: Substring match on source
+        - name: createdAtMin
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: createdAtMax
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: updatedAtMin
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: updatedAtMax
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: originalCreatedAtMin
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: originalCreatedAtMax
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: totalDistanceMMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: totalDistanceMMax
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: totalAscentMMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: totalAscentMMax
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: startLatMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: startLatMax
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: startLonMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: startLonMax
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: endLatMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: endLatMax
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: endLonMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: endLonMax
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: startNearLat
+          in: query
+          schema:
+            type: number
+            format: double
+          description: "Radial filter: latitude of center point (requires startNearLon and startNearRadiusM)"
+        - name: startNearLon
+          in: query
+          schema:
+            type: number
+            format: double
+          description: "Radial filter: longitude of center point (requires startNearLat and startNearRadiusM)"
+        - name: startNearRadiusM
+          in: query
+          schema:
+            type: number
+            format: double
+          description: "Radial filter: radius in meters around the start point"
+        - name: endNearLat
+          in: query
+          schema:
+            type: number
+            format: double
+          description: "Radial filter: latitude of center point (requires endNearLon and endNearRadiusM)"
+        - name: endNearLon
+          in: query
+          schema:
+            type: number
+            format: double
+          description: "Radial filter: longitude of center point (requires endNearLat and endNearRadiusM)"
+        - name: endNearRadiusM
+          in: query
+          schema:
+            type: number
+            format: double
+          description: "Radial filter: radius in meters around the end point"
+      responses:
+        "200":
+          description: List of matching tracks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListTracksResponse"
+        "400":
+          description: Invalid filter parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
     post:
       summary: Upload a track file
       operationId: uploadTrack
@@ -405,6 +619,25 @@ components:
             type: string
             minLength: 2
             maxLength: 32
+
+    ListTracksResponse:
+      type: object
+      required:
+        - tracks
+        - totalCount
+        - page
+        - pageSize
+      properties:
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackResponse"
+        totalCount:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
 
     TagSuggestionResponse:
       type: object
