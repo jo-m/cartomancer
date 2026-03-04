@@ -20,8 +20,7 @@ func TestHashTooLong(t *testing.T) {
 	assert.ErrorIs(t, err, ErrTooLong)
 }
 
-// go test -bench=Bench ./...
-func BenchmarkPrimeNumbers(b *testing.B) {
+func BenchmarkHashCheck(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		h, _ := Hash("asdf")
 		Check("asdf", h)
