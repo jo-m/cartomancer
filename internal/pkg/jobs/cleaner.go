@@ -32,7 +32,7 @@ func (c *cleaner) Run(ctx context.Context, args cleanerArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
-	maxFinishedAt := time.Now().Add(args.MinAge)
+	maxFinishedAt := time.Now().Add(-args.MinAge)
 	n, err := c.d.QueryRW().CleanupJobs(ctx, maxFinishedAt)
 	if n > 0 {
 		logg.Debug(ctx, "Cleaned up jobs", "count", n)
