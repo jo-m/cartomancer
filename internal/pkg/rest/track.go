@@ -34,6 +34,10 @@ type trackResponse struct {
 	SubSport          int      `json:"subSport"`
 	TotalDistanceM    float64  `json:"totalDistanceM"`
 	TotalAscentM      float64  `json:"totalAscentM"`
+	StartLat          *float64 `json:"startLat,omitempty"`
+	StartLon          *float64 `json:"startLon,omitempty"`
+	EndLat            *float64 `json:"endLat,omitempty"`
+	EndLon            *float64 `json:"endLon,omitempty"`
 	OriginalCreatedAt string   `json:"originalCreatedAt,omitempty"`
 	CreatedAt         string   `json:"createdAt"`
 	UpdatedAt         string   `json:"updatedAt"`
@@ -52,6 +56,20 @@ func toNullTime(t *time.Time) sql.NullTime {
 		return sql.NullTime{}
 	}
 	return sql.NullTime{Valid: true, Time: *t}
+}
+
+func toNullFloat64(f *float64) sql.NullFloat64 {
+	if f == nil {
+		return sql.NullFloat64{}
+	}
+	return sql.NullFloat64{Valid: true, Float64: *f}
+}
+
+func nullFloat64Ptr(f sql.NullFloat64) *float64 {
+	if f.Valid {
+		return &f.Float64
+	}
+	return nil
 }
 
 func nullStringVal(ns sql.NullString) string {
@@ -79,6 +97,10 @@ func trackResponseFromDB(t db.Track, tags []string) trackResponse {
 		SubSport:       int(t.SubSport),
 		TotalDistanceM: t.TotalDistanceM,
 		TotalAscentM:   t.TotalAscentM,
+		StartLat:       nullFloat64Ptr(t.StartLat),
+		StartLon:       nullFloat64Ptr(t.StartLon),
+		EndLat:         nullFloat64Ptr(t.EndLat),
+		EndLon:         nullFloat64Ptr(t.EndLon),
 		CreatedAt:      t.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:      t.UpdatedAt.Format(time.RFC3339),
 		Tags:           tags,
@@ -293,6 +315,10 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			SubSport:          int64(meta.SubSport),
 			TotalDistanceM:    meta.TotalDistanceM,
 			TotalAscentM:      meta.TotalAscentM,
+			StartLat:          toNullFloat64(meta.StartLat),
+			StartLon:          toNullFloat64(meta.StartLon),
+			EndLat:            toNullFloat64(meta.EndLat),
+			EndLon:            toNullFloat64(meta.EndLon),
 			OriginalCreatedAt: toNullTime(meta.OriginalCreatedAt),
 		})
 		return err

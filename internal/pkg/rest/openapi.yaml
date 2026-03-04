@@ -340,6 +340,18 @@ components:
         totalAscentM:
           type: number
           format: double
+        startLat:
+          type: number
+          format: double
+        startLon:
+          type: number
+          format: double
+        endLat:
+          type: number
+          format: double
+        endLon:
+          type: number
+          format: double
         originalCreatedAt:
           type: string
           format: date-time

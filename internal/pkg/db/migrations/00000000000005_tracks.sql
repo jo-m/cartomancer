@@ -26,6 +26,11 @@ CREATE TABLE tracks (
     total_distance_m REAL NOT NULL,
     total_ascent_m REAL NOT NULL,
 
+    start_lat REAL,
+    start_lon REAL,
+    end_lat REAL,
+    end_lon REAL,
+
     original_created_at DATETIME,
 
     FOREIGN KEY(user_id) REFERENCES users(uuid) ON DELETE CASCADE,

@@ -5,6 +5,7 @@ INSERT INTO tracks (
   track_type, link_url,
   sport, sub_sport,
   total_distance_m, total_ascent_m,
+  start_lat, start_lon, end_lat, end_lon,
   original_created_at
 ) VALUES (
   ?, ?, ?, ?, ?, ?,
@@ -12,6 +13,7 @@ INSERT INTO tracks (
   ?, ?,
   ?, ?,
   ?, ?,
+  ?, ?, ?, ?,
   ?
 )
 RETURNING *;

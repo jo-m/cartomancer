@@ -60,6 +60,9 @@ type Metadata struct {
 	TotalDistanceM float64
 	TotalAscentM   float64
 
+	StartLat, StartLon *float64
+	EndLat, EndLon     *float64
+
 	// OriginalCreatedAt is the recording/creation timestamp from the original file.
 	OriginalCreatedAt *time.Time
 }
@@ -116,6 +119,15 @@ func (t *Track) EnhancedMetadata() Metadata {
 		case SportRunning:
 			ret.SubSport = defaultRunSubSport
 		}
+	}
+
+	if len(t.pts) > 0 {
+		first := t.pts[0]
+		last := t.pts[len(t.pts)-1]
+		ret.StartLat = &first.Lat
+		ret.StartLon = &first.Lon
+		ret.EndLat = &last.Lat
+		ret.EndLon = &last.Lon
 	}
 
 	return ret
