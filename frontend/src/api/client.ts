@@ -17,9 +17,8 @@ fetchClient.use({
         .clone()
         .json()
         .catch(() => null)
-      throw new Error(
-        (body as { msg?: string } | null)?.msg ?? response.statusText
-      )
+      const msg = (body as { msg?: string } | null)?.msg ?? response.statusText
+      throw new Error(`Error: ${msg}`)
     }
     return response
   },
