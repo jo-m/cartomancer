@@ -41,6 +41,7 @@ type trackResponse struct {
 	OriginalCreatedAt string   `json:"originalCreatedAt,omitempty"`
 	CreatedAt         string   `json:"createdAt"`
 	UpdatedAt         string   `json:"updatedAt"`
+	Public            bool     `json:"public"`
 	Tags              []string `json:"tags"`
 }
 
@@ -103,6 +104,7 @@ func trackResponseFromDB(t db.Track, tags []string) trackResponse {
 		EndLon:         nullFloat64Ptr(t.EndLon),
 		CreatedAt:      t.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:      t.UpdatedAt.Format(time.RFC3339),
+		Public:         t.Public != 0,
 		Tags:           tags,
 	}
 	if t.OriginalCreatedAt.Valid {
@@ -133,6 +135,7 @@ type editTrackRequest struct {
 	LinkURL       string   `json:"linkUrl"`
 	Sport         int64    `json:"sport"`
 	SubSport      int64    `json:"subSport"`
+	Public        bool     `json:"public"`
 	Tags          []string `json:"tags"`
 }
 
@@ -185,6 +188,10 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 	var updated db.Track
 	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
 		var txErr error
+		var public int64
+		if req.Public {
+			public = 1
+		}
 		updated, txErr = q.UpdateTrack(ctx, db.UpdateTrackParams{
 			UpdatedAt:     now,
 			Name:          req.Name,
@@ -196,6 +203,7 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 			LinkUrl:       toNullString(req.LinkURL),
 			Sport:         req.Sport,
 			SubSport:      req.SubSport,
+			Public:        public,
 			Uuid:          trackUUID,
 		})
 		if txErr != nil {
@@ -325,6 +333,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			EndLat:            toNullFloat64(meta.EndLat),
 			EndLon:            toNullFloat64(meta.EndLon),
 			OriginalCreatedAt: toNullTime(meta.OriginalCreatedAt),
+			Public:            0,
 		})
 		return err
 	})

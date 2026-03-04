@@ -7,6 +7,7 @@ CREATE TABLE tracks (
     updated_at DATETIME NOT NULL,
 
     user_id TEXT NOT NULL,
+    public INTEGER NOT NULL DEFAULT 0 CHECK(public IN (0, 1)),
 
     blob_id TEXT NOT NULL,
     file_format INTEGER NOT NULL,

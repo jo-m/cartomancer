@@ -310,6 +310,7 @@ components:
         - totalAscentM
         - createdAt
         - updatedAt
+        - public
         - tags
       properties:
         uuid:
@@ -361,6 +362,8 @@ components:
         updatedAt:
           type: string
           format: date-time
+        public:
+          type: boolean
         tags:
           type: array
           items:
@@ -373,6 +376,7 @@ components:
         - trackType
         - sport
         - subSport
+        - public
         - tags
       properties:
         name:
@@ -393,6 +397,8 @@ components:
           type: integer
         subSport:
           type: integer
+        public:
+          type: boolean
         tags:
           type: array
           items:

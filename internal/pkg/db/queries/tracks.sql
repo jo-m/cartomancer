@@ -6,7 +6,8 @@ INSERT INTO tracks (
   sport, sub_sport,
   total_distance_m, total_ascent_m,
   start_lat, start_lon, end_lat, end_lon,
-  original_created_at
+  original_created_at,
+  public
 ) VALUES (
   ?, ?, ?, ?, ?, ?,
   ?, ?, ?, ?, ?,
@@ -14,6 +15,7 @@ INSERT INTO tracks (
   ?, ?,
   ?, ?,
   ?, ?, ?, ?,
+  ?,
   ?
 )
 RETURNING *;
@@ -32,6 +34,7 @@ SET updated_at = ?,
     track_type = ?,
     link_url = ?,
     sport = ?,
-    sub_sport = ?
+    sub_sport = ?,
+    public = ?
 WHERE uuid = ?
 RETURNING *;
