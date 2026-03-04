@@ -139,7 +139,7 @@ At-least-once semantics; configure retries via `jobs.Params{MaxRetries: N}`.
 
 # Linting and code quality
 
-After every change, `make check` MUST run successfully.
+After every change, `make check` MUST run successfully. This already includes `go build ./...`.
 
 # Development
 
