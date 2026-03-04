@@ -34,6 +34,10 @@ test:
 bench:
 	go test -v -bench=. -run=Bench ./...
 
+.PHONY: frontend
+frontend:
+	cd frontend && npm ci && npm run build
+
 .PHONY: check
 check: gen format lint
 	go build ./...
