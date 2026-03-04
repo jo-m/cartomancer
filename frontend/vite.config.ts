@@ -1,7 +1,21 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
-})
+  plugins: [react(), tailwindcss()],
+  build: {
+    outDir: "../static",
+    emptyOutDir: true,
+  },
+  server: {
+    proxy: {
+      "/app_config": "http://localhost:8080",
+      "/sessions": "http://localhost:8080",
+      "/tracks": "http://localhost:8080",
+      "/tags": "http://localhost:8080",
+      "/account": "http://localhost:8080",
+      "/admin": "http://localhost:8080",
+    },
+  },
+});

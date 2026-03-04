@@ -4,3 +4,6 @@
 
 # CURL testing cookie jar
 /cookies.txt
+
+# Frontend build
+/static
