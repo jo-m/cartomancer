@@ -158,6 +158,6 @@ Use `github.com/stretchr/testify/require` for assertions.
 
 # Generic
 
-- All files with ending `.gen.go` are generated and MUST NOT EVER be edited manually.
+- All files with ending `.gen.go` are generated and MUST NOT EVER be edited manually. You should also not read them manually, instead use grep or LSP plugin.
 - Usually the logger instance is passed around in ctx.Context
 - Modules have config structs if applicable, compatible with github.com/alexflint/go-arg, example `internal/pkg/logg/handler.go`.
