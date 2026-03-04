@@ -9,6 +9,25 @@ The frontend does NOT exist yet.
 go run .
 ```
 
+# Package structure
+
+```
+internal/pkg/
+├── app/      # Application-level config
+├── blob/     # Blob storage for GPX/FIT files (zstd-compressed, SQLite)
+├── db/       # SQLite connection, migrations, sqlc-generated queries
+├── jobs/     # Persistent async job queue
+├── load/     # GPX/FIT file parsing → TrackSource
+├── logg/     # Structured logging (slog), middleware, context helpers
+├── mail/     # Email job handler (SMTP via go-mail)
+├── password/ # Argon2id hashing
+├── rest/     # HTTP handlers (Chi router)
+├── session/  # JWT+cookie session management, middleware
+├── track/    # Track types, enums, metadata calculations
+├── users/    # OTP (TOTP/HOTP) support
+└── utl/      # General utilities
+```
+
 # REST API
 
 Handlers are mounted in `internal/pkg/rest/rest.go`.
@@ -19,6 +38,27 @@ Follow RESTful API design guidelines, and use appropriate HTTP methods and statu
 Use camelCase for any JSON fields (e.g. "SessionID string `json:"sessionId"`").
 Use the helpers in `internal/pkg/rest/error.go`.
 In most cases where an error is returned from a handler, the details should be logged.
+
+## Middleware stack (applied in order in main.go)
+
+1. `chi.middleware.RequestID`
+2. `logg.AttachLogger` — attaches logger with request ID to context
+3. `logg.RequestLogger` — logs each request with duration/status
+4. `chi.middleware.RequestSize(1MB)`
+5. `chi.middleware.Compress(5)`
+6. `chi.middleware.RedirectSlashes`
+7. `sess.Middleware` — auto-creates/loads session for every request
+8. `chi.middleware.Recoverer`
+
+## Context access in handlers
+
+```go
+logg.Debug(ctx, "msg", "key", val)   // logger from context
+logg.Error(ctx, "msg", "err", err)
+
+session.MustGet(ctx)                 // current session (always set)
+session.GetUser(ctx)                 // *db.User, nil if anonymous
+```
 
 # Database
 
@@ -39,6 +79,21 @@ Simple internal enums, where the logic/state is managed from within SQL queries 
 "App" enums which are managed from Go code are integers, declared with iota.
 Most tables have created_at, updated_at, created_by.
 
+## Connection model
+
+Two connections are opened (`internal/pkg/db/open.go`):
+- `rw` — read/write, max 1 connection (SQLite requirement)
+- `ro` — read-only, connection pool
+
+WAL mode, foreign keys enabled, busy timeout 5s.
+
+## Transactions
+
+```go
+d.WithTx(ctx, func(tx *db.Queries) error { ... })  // auto commit/rollback
+tx, err := d.BeginTX(ctx)                           // manual
+```
+
 ## Queries
 
 No ORM.
@@ -46,9 +101,36 @@ Written in SQL in `internal/pkg/db/queries/*.sql`.
 Compiled to Go methods via sqlc.
 Run `make gen` after editing queries.
 
+# Job queue
+
+Async jobs are persisted in SQLite and executed by a worker pool (`internal/pkg/jobs/`).
+
+To add a new job type:
+1. Define an args struct implementing `Kind() string`
+2. Implement a `jobs.Job[MyArgs]` handler
+3. Register with `jobs.MustRegisterJob(workers, &MyHandler{})`
+4. Submit with `jobs.Submit(ctx, submitter, MyArgs{...}, jobs.Params{})`
+
+At-least-once semantics; configure retries via `jobs.Params{MaxRetries: N}`.
+
 # Linting and code quality
 
 After every change, `make check` MUST run successfully.
+
+# Development
+
+```bash
+air        # Hot-reload (pre-build runs make gen, watches .go/.sql)
+make gen   # Regenerate sqlc code (required after query changes)
+make check # Full quality gate: gen → format → lint → test
+```
+
+For email, run the bundled MailHog: `go tool MailHog` (UI at http://127.0.0.1:8025).
+
+# Testing
+
+Use `db.GetTestDB(t)` to get a temp SQLite DB with all migrations applied.
+Use `github.com/stretchr/testify/require` for assertions.
 
 # Generic
 
