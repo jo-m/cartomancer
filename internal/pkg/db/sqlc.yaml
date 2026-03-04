@@ -12,4 +12,4 @@ sql:
         out: "."
         emit_db_tags: false
         emit_prepared_queries: false
-        emit_json_tags: true
+        emit_json_tags: false
