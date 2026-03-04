@@ -40,7 +40,7 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		logg.Error(ctx, "failed to get track", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -65,7 +65,7 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logg.Error(ctx, "failed to set track tags", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -88,7 +88,7 @@ func (sv *server) handleSuggestTags(w http.ResponseWriter, r *http.Request) {
 	tags, err := sv.d.QueryRO().SuggestTags(ctx, prefix+"%")
 	if err != nil {
 		logg.Error(ctx, "failed to suggest tags", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 

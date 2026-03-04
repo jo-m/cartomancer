@@ -139,7 +139,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		logg.Error(ctx, "failed to get track", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -151,7 +151,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 	tags, err := sv.d.QueryRO().GetTagsByTrackID(ctx, trackUUID)
 	if err != nil {
 		logg.Error(ctx, "failed to get track tags", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -170,7 +170,7 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 			return
 		}
 		logg.Error(ctx, "failed to get track", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -182,7 +182,7 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
 	if err != nil {
 		logg.Error(ctx, "failed to get blob", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -247,12 +247,12 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		logg.Error(ctx, "failed to get track", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
 	if existing.UserID != user.Uuid {
-		writeError(w, http.StatusForbidden, "forbidden")
+		writeStatusError(w, http.StatusForbidden)
 		return
 	}
 
@@ -301,7 +301,7 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logg.Error(ctx, "failed to update track", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -545,7 +545,7 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 	result, err := sv.d.ListTracks(ctx, params)
 	if err != nil {
 		logg.Error(ctx, "failed to list tracks", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -557,7 +557,7 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 	tagsByTrack, err := sv.d.GetTagsForTracks(ctx, trackUUIDs)
 	if err != nil {
 		logg.Error(ctx, "failed to get tags for tracks", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -616,7 +616,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	content, err := io.ReadAll(file)
 	if err != nil {
 		logg.Error(ctx, "failed to read uploaded file", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -642,14 +642,14 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	blobID, err := uuid.NewV7()
 	if err != nil {
 		logg.Error(ctx, "failed to generate blob uuid", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
 	trackID, err := uuid.NewV7()
 	if err != nil {
 		logg.Error(ctx, "failed to generate track uuid", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -690,7 +690,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logg.Error(ctx, "failed to store track", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 

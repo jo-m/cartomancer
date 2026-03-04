@@ -3,6 +3,7 @@ package rest
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 var (
@@ -22,6 +23,10 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, ErrorJSON{Msg: msg})
+}
+
+func writeStatusError(w http.ResponseWriter, status int) {
+	writeError(w, status, strings.ToLower(http.StatusText(status)))
 }
 
 func decodeJSON(r *http.Request, v any) error {

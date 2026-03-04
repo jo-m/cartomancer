@@ -74,7 +74,7 @@ func (sv *server) handleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := sv.d.QueryRO().GetUsers(ctx)
 	if err != nil {
 		logg.Error(ctx, "failed to list users", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (sv *server) handleAdminGetUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		logg.Error(ctx, "failed to get user", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -135,7 +135,7 @@ func (sv *server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) 
 	id, err := uuid.NewV7()
 	if err != nil {
 		logg.Error(ctx, "failed to generate uuid", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -158,7 +158,7 @@ func (sv *server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) 
 	})
 	if err != nil {
 		logg.Error(ctx, "failed to create user", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -228,14 +228,14 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 	}
 	if err != nil {
 		logg.Error(ctx, "failed to update user", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
 	u, err := sv.d.QueryRO().GetUser(ctx, userUUID)
 	if err != nil {
 		logg.Error(ctx, "failed to get updated user", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -269,7 +269,7 @@ func (sv *server) handleAdminDeleteUser(w http.ResponseWriter, r *http.Request) 
 	}
 	if err != nil {
 		logg.Error(ctx, "failed to delete user", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -326,7 +326,7 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 	}
 	if err != nil {
 		logg.Error(ctx, "failed to reset password", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -338,7 +338,7 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 		}, jobs.Params{MaxRetries: 3})
 		if err != nil {
 			logg.Error(ctx, "failed to submit password reset email job", "err", err)
-			writeError(w, http.StatusInternalServerError, "internal server error")
+			writeStatusError(w, http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)

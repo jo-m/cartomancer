@@ -38,14 +38,14 @@ func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logg.Error(ctx, "failed to update user name", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
 	u, err := sv.d.QueryRO().GetUser(ctx, user.Uuid)
 	if err != nil {
 		logg.Error(ctx, "failed to get updated user", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -65,7 +65,7 @@ func (sv *server) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 	// Delete session first (uses its own tx; cannot be nested inside the user-deletion tx).
 	if err := session.Delete(ctx, &sess); err != nil {
 		logg.Error(ctx, "failed to delete session", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (sv *server) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		logg.Error(ctx, "failed to delete user", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -123,7 +123,7 @@ func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 	u, err := sv.d.QueryRO().GetUser(ctx, user.Uuid)
 	if err != nil {
 		logg.Error(ctx, "failed to get user", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -140,7 +140,7 @@ func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logg.Error(ctx, "failed to update password", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
