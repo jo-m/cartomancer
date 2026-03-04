@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/session"
 )
 
 func validateTag(tag string) bool {
@@ -33,6 +34,8 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	user := session.MustGetUser(ctx)
+
 	track, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -41,6 +44,11 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 		}
 		logg.Error(ctx, "failed to get track", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	if track.UserID != user.Uuid {
+		writeStatusError(w, http.StatusForbidden)
 		return
 	}
 
