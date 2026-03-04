@@ -37,43 +37,29 @@ type config struct {
 
 func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter) http.Handler {
 	logger := logg.GetLogger(ctx).With("mod", "svc")
+
+	sess, err := session.NewStore(d, sessConfig, appConfig)
+	if err != nil {
+		logg.Panic(ctx, "Failed to create session store", "err", err)
+	}
+
+	staticFS, err := getStaticFS(appConfig.DevelopmentMode)
+	if err != nil {
+		logg.Panic(ctx, "Failed to get static files", "err", err)
+	}
+
 	mux := chi.NewRouter()
+	mux.Use(middleware.RequestID)
+	mux.Use(logg.AttachLogger(logger))
+	mux.Use(logg.RequestLogger)
+	mux.Use(middleware.RequestSize(1024 * 1024))
+	mux.Use(middleware.Compress(5))
+	mux.Use(middleware.RedirectSlashes)
+	mux.Use(sess.Middleware)
+	mux.Use(middleware.Recoverer)
 
-	{
-
-		sess, err := session.NewStore(d, sessConfig, appConfig)
-		if err != nil {
-			logg.Panic(ctx, "Failed to create session store", "err", err)
-		}
-
-		svcMux := chi.NewRouter()
-		svcMux.Use(middleware.RequestID)
-		svcMux.Use(logg.AttachLogger(logger))
-		svcMux.Use(logg.RequestLogger)
-		svcMux.Use(middleware.RequestSize(1024 * 1024))
-		svcMux.Use(middleware.Compress(5))
-		svcMux.Use(middleware.RedirectSlashes)
-		svcMux.Use(sess.Middleware)
-		svcMux.Use(middleware.Recoverer)
-
-		svcMux.Mount("/api", rest.New(d, sess, jobSubmitter, appConfig))
-		mux.Mount("/", svcMux)
-	}
-
-	{
-		staticFS, err := getStaticFS()
-		if err != nil {
-			logg.Panic(ctx, "Failed to get static files", "err", err)
-		}
-
-		staticMux := chi.NewRouter()
-		staticMux.Use(middleware.RequestID)
-		staticMux.Use(logg.AttachLogger(logger))
-		staticMux.Use(logg.RequestLogger)
-
-		staticMux.Mount("/", http.StripPrefix("/static", http.FileServerFS(staticFS)))
-		mux.Mount("/static", staticMux)
-	}
+	mux.Mount("/api", rest.New(d, sess, jobSubmitter, appConfig))
+	mux.Handle("/*", spaHandler(staticFS))
 
 	return mux
 }
