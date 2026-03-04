@@ -1,11 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import type { ReactNode } from "react"
+import { fetchClient } from "../api/client"
 import type { User } from "../api/client"
-import {
-  getSession,
-  login as apiLogin,
-  logout as apiLogout,
-} from "../api/client"
 
 interface SessionState {
   user: User | null
@@ -22,19 +18,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getSession()
-      .then((s) => setUser(s.user ?? null))
+    fetchClient
+      .GET("/sessions")
+      .then(({ data }) => setUser(data?.user ?? null))
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
   }, [])
 
   async function login(email: string, password: string) {
-    const s = await apiLogin({ email, password })
-    setUser(s.user ?? null)
+    const { data } = await fetchClient.POST("/sessions/login", {
+      body: { email, password },
+    })
+    setUser(data?.user ?? null)
   }
 
   async function logout() {
-    await apiLogout()
+    await fetchClient.POST("/sessions/logout")
     setUser(null)
   }
 
