@@ -1,0 +1,21 @@
+{
+  "Metadata": {
+    "Author": "Dieter Jacobs",
+    "AuthorLinkURL": "https://www.strava.com/athletes/487763",
+    "Description": "",
+    "EndLat": null,
+    "EndLon": null,
+    "LinkURL": "https://www.strava.com/routes/14201305",
+    "Name": "Bike Point - Chio - Boca Tauce - Bike Point",
+    "OriginalCreatedAt": null,
+    "Source": "StravaGPX",
+    "Sport": 2,
+    "StartLat": null,
+    "StartLon": null,
+    "SubSport": 3,
+    "TotalAscentM": 0,
+    "TotalDistanceM": 0,
+    "TrackType": 1
+  },
+  "PointCount": 363
+}
