@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
@@ -93,7 +94,8 @@ func (sv *server) handleSuggestTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tags, err := sv.d.QueryRO().SuggestTags(ctx, prefix+"%")
+	escaped := strings.NewReplacer("%", `\%`, "_", `\_`).Replace(prefix)
+	tags, err := sv.d.QueryRO().SuggestTags(ctx, escaped+"%")
 	if err != nil {
 		logg.Error(ctx, "failed to suggest tags", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
