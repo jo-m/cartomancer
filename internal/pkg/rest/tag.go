@@ -58,7 +58,7 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		for _, tag := range tags {
-			t, err := q.UpsertTag(ctx, tag)
+			t, err := q.UpsertTag(ctx, db.UpsertTagParams{Tag: tag, UserID: user.Uuid})
 			if err != nil {
 				return err
 			}
@@ -94,8 +94,13 @@ func (sv *server) handleSuggestTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user := session.MustGetUser(ctx)
+
 	escaped := strings.NewReplacer("%", `\%`, "_", `\_`).Replace(prefix)
-	tags, err := sv.d.QueryRO().SuggestTags(ctx, escaped+"%")
+	tags, err := sv.d.QueryRO().SuggestTags(ctx, db.SuggestTagsParams{
+		UserID: user.Uuid,
+		Tag:    escaped + "%",
+	})
 	if err != nil {
 		logg.Error(ctx, "failed to suggest tags", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)

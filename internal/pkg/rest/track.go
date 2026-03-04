@@ -279,7 +279,7 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 			return txErr
 		}
 		for _, tag := range req.Tags {
-			t, txErr := q.UpsertTag(ctx, tag)
+			t, txErr := q.UpsertTag(ctx, db.UpsertTagParams{Tag: tag, UserID: user.Uuid})
 			if txErr != nil {
 				return txErr
 			}

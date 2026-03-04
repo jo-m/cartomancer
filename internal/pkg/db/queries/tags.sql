@@ -1,6 +1,6 @@
 -- name: UpsertTag :one
-INSERT INTO tags (tag) VALUES (?)
-ON CONFLICT (tag) DO UPDATE SET tag = tag
+INSERT INTO tags (tag, user_id) VALUES (?, ?)
+ON CONFLICT (tag, user_id) DO UPDATE SET tag = tag
 RETURNING *;
 
 -- name: GetTagsByTrackID :many
@@ -16,4 +16,4 @@ DELETE FROM track_tags WHERE track_id = ?;
 INSERT INTO track_tags (track_id, tag_id) VALUES (?, ?);
 
 -- name: SuggestTags :many
-SELECT tag FROM tags WHERE tag LIKE ? ESCAPE '\' ORDER BY tag LIMIT 5;
+SELECT tag FROM tags WHERE user_id = ? AND tag LIKE ? ORDER BY tag LIMIT 5;

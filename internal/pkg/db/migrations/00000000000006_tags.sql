@@ -1,7 +1,9 @@
 -- +goose Up
 CREATE TABLE tags (
     id INTEGER PRIMARY KEY,
-    tag TEXT NOT NULL UNIQUE
+    tag TEXT NOT NULL,
+    user_id TEXT NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
+    UNIQUE(tag, user_id)
 );
 
 CREATE TABLE track_tags (
