@@ -74,13 +74,14 @@ func createUser(ctx context.Context, q *db.Queries, email, pass string) error {
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 	_, err = q.CreateUser(ctx, db.CreateUserParams{
-		Uuid:         uid.String(),
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-		Email:        email,
-		Name:         "test",
-		PasswordHash: hash,
-		Admin:        0,
+		Uuid:           uid.String(),
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+		Email:          email,
+		Name:           "test",
+		PasswordHash:   hash,
+		Admin:          0,
+		EmailConfirmed: 1,
 	})
 	return err
 }

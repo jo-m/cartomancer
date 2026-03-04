@@ -13,11 +13,22 @@ CREATE TABLE users (
     name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     otp_secret BLOB DEFAULT NULL,
-    admin INTEGER NOT NULL DEFAULT 0
+    admin INTEGER NOT NULL DEFAULT 0,
+    email_confirmed INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE email_verifications (
+    uuid TEXT PRIMARY KEY,
+    created_at DATETIME NOT NULL,
+    expires_at DATETIME NOT NULL,
+    user_id TEXT NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
+    email TEXT NOT NULL,
+    token TEXT NOT NULL UNIQUE
 );
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
+DROP TABLE email_verifications;
 DROP TABLE users;
 -- +goose StatementEnd

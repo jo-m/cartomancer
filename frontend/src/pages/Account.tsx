@@ -10,12 +10,18 @@ const profileSchema = z.object({
   name: z.string().min(1, "Required"),
 })
 
+const changeEmailSchema = z.object({
+  newEmail: z.string().min(1, "Required").email("Invalid email"),
+  password: z.string().min(1, "Required"),
+})
+
 const passwordSchema = z.object({
   oldPassword: z.string().min(1, "Required"),
   newPassword: z.string().min(1, "Required"),
 })
 
 type ProfileData = z.infer<typeof profileSchema>
+type ChangeEmailData = z.infer<typeof changeEmailSchema>
 type PasswordData = z.infer<typeof passwordSchema>
 
 export default function Account() {
@@ -24,6 +30,7 @@ export default function Account() {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const updateMeMutation = $api.useMutation("patch", "/account")
+  const changeEmailMutation = $api.useMutation("post", "/account/change-email")
   const changePasswordMutation = $api.useMutation(
     "post",
     "/account/change-password"
@@ -33,6 +40,9 @@ export default function Account() {
   const profileForm = useForm<ProfileData>({
     resolver: zodResolver(profileSchema),
     values: { name: user?.name ?? "" },
+  })
+  const changeEmailForm = useForm<ChangeEmailData>({
+    resolver: zodResolver(changeEmailSchema),
   })
   const passwordForm = useForm<PasswordData>({
     resolver: zodResolver(passwordSchema),
@@ -50,6 +60,15 @@ export default function Account() {
       setUser(updated)
     } catch {
       // error displayed via updateMeMutation.error
+    }
+  }
+
+  async function onChangeEmail(data: ChangeEmailData) {
+    try {
+      await changeEmailMutation.mutateAsync({ body: data })
+      changeEmailForm.reset()
+    } catch {
+      // error displayed via changeEmailMutation.error
     }
   }
 
@@ -117,6 +136,68 @@ export default function Account() {
             className="cursor-pointer rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {profileForm.formState.isSubmitting ? "Saving…" : "Save"}
+          </button>
+        </form>
+      </section>
+
+      <section className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
+        <h2 className="mb-4 text-base font-medium text-gray-900">
+          Change Email
+        </h2>
+        <form
+          onSubmit={changeEmailForm.handleSubmit(onChangeEmail)}
+          className="space-y-4"
+        >
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              New email
+            </label>
+            <input
+              type="email"
+              autoComplete="email"
+              {...changeEmailForm.register("newEmail")}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+            />
+            {changeEmailForm.formState.errors.newEmail && (
+              <p className="mt-1 text-sm text-red-600">
+                {changeEmailForm.formState.errors.newEmail.message}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Current password
+            </label>
+            <input
+              type="password"
+              autoComplete="current-password"
+              {...changeEmailForm.register("password")}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+            />
+            {changeEmailForm.formState.errors.password && (
+              <p className="mt-1 text-sm text-red-600">
+                {changeEmailForm.formState.errors.password.message}
+              </p>
+            )}
+          </div>
+          {changeEmailMutation.error && (
+            <p className="text-sm text-red-600">
+              {(changeEmailMutation.error as unknown as Error).message}
+            </p>
+          )}
+          {changeEmailMutation.isSuccess && (
+            <p className="text-sm text-green-600">
+              Confirmation email sent. Check your inbox.
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={changeEmailForm.formState.isSubmitting}
+            className="cursor-pointer rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {changeEmailForm.formState.isSubmitting
+              ? "Sending…"
+              : "Change email"}
           </button>
         </form>
       </section>

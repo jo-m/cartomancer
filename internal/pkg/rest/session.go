@@ -57,6 +57,11 @@ func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
+
+	if user.EmailConfirmed == 0 {
+		writeError(w, http.StatusForbidden, "email not confirmed")
+		return
+	}
 	logg.Info(ctx, "login succeeded", "user", user.Uuid)
 
 	oldSess := session.MustGet(ctx)

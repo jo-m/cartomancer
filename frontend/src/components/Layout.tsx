@@ -36,9 +36,20 @@ export default function Layout() {
                   </button>
                 </>
               ) : (
-                <Link to="/login" className="text-gray-700 hover:text-gray-900">
-                  Login
-                </Link>
+                <>
+                  <Link
+                    to="/register"
+                    className="text-gray-700 hover:text-gray-900"
+                  >
+                    Register
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="text-gray-700 hover:text-gray-900"
+                  >
+                    Login
+                  </Link>
+                </>
               ))}
           </div>
         </div>

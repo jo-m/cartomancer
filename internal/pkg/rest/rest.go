@@ -43,6 +43,11 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 	mux.Get("/app_config", sv.handleGetAppConfig)
 
 	mux.Group(func(r chi.Router) {
+		r.Post("/register", sv.handleRegister)
+		r.Post("/register/confirm", sv.handleConfirmRegistration)
+	})
+
+	mux.Group(func(r chi.Router) {
 		r.Post("/sessions/login", sv.handleLogin)
 		r.Post("/sessions/logout", sv.handleLogout)
 		r.Get("/sessions", sv.handleGetSession)
@@ -66,6 +71,8 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 		r.Patch("/account", sv.handleUpdateAccount)
 		r.Delete("/account", sv.handleDeleteAccount)
 		r.Post("/account/change-password", sv.handleChangePassword)
+		r.Post("/account/change-email", sv.handleChangeEmail)
+		r.Post("/account/change-email/confirm", sv.handleConfirmChangeEmail)
 	})
 
 	mux.Group(func(r chi.Router) {

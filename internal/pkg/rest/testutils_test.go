@@ -105,13 +105,14 @@ func (e *testEnv) createUser(email, name, pass string, admin bool) string {
 	require.NoError(e.t, err)
 
 	u, err := e.d.QueryRW().CreateUser(e.t.Context(), db.CreateUserParams{
-		Uuid:         id.String(),
-		CreatedAt:    now,
-		UpdatedAt:    now,
-		Email:        email,
-		Name:         name,
-		PasswordHash: hash,
-		Admin:        adminVal,
+		Uuid:           id.String(),
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		Email:          email,
+		Name:           name,
+		PasswordHash:   hash,
+		Admin:          adminVal,
+		EmailConfirmed: 1,
 	})
 	require.NoError(e.t, err)
 	return u.Uuid
@@ -125,6 +126,14 @@ func (e *testEnv) login(client *http.Client, email, pass string) {
 		"password": pass,
 	}, nil)
 	require.Equal(e.t, http.StatusOK, status)
+}
+
+// getVerificationToken retrieves the email verification token for a given email directly from the DB.
+func (e *testEnv) getVerificationToken(t *testing.T, email string) string {
+	t.Helper()
+	ver, err := e.d.QueryRO().GetEmailVerificationByEmail(t.Context(), email)
+	require.NoError(t, err, "no verification token found for %s", email)
+	return ver.Token
 }
 
 // do sends a JSON request and returns the status code and raw response body.

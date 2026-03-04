@@ -152,13 +152,14 @@ func (sv *server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) 
 	}
 
 	u, err := sv.d.QueryRW().CreateUser(ctx, db.CreateUserParams{
-		Uuid:         id.String(),
-		CreatedAt:    now,
-		UpdatedAt:    now,
-		Email:        req.Email,
-		Name:         req.Name,
-		PasswordHash: hash,
-		Admin:        admin,
+		Uuid:           id.String(),
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		Email:          req.Email,
+		Name:           req.Name,
+		PasswordHash:   hash,
+		Admin:          admin,
+		EmailConfirmed: 1,
 	})
 	if err != nil {
 		logg.Error(ctx, "failed to create user", "err", err)

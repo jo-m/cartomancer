@@ -73,13 +73,14 @@ func createUser(t *testing.T, d *db.DB) {
 	require.NoError(t, err)
 	defer tx.Rollback()
 	_, err = tx.CreateUser(t.Context(), db.CreateUserParams{
-		Uuid:         userID,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-		Email:        userEmail,
-		Name:         "test",
-		PasswordHash: utl.Must(password.Hash(userPass)),
-		Admin:        0,
+		Uuid:           userID,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+		Email:          userEmail,
+		Name:           "test",
+		PasswordHash:   utl.Must(password.Hash(userPass)),
+		Admin:          0,
+		EmailConfirmed: 1,
 	})
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())

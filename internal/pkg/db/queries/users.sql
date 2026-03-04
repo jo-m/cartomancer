@@ -11,9 +11,9 @@ SELECT * FROM users ORDER BY uuid;
 
 -- name: CreateUser :one
 INSERT INTO users (
-  uuid, created_at, updated_at, email, name, password_hash, admin
+  uuid, created_at, updated_at, email, name, password_hash, admin, email_confirmed
 ) VALUES (
-  ?, ?, ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?, ?, ?
 )
 RETURNING *;
 
@@ -44,6 +44,16 @@ WHERE uuid = ?;
 
 -- name: CountAdmins :one
 SELECT COUNT(*) FROM users WHERE admin = 1;
+
+-- name: ConfirmUserEmail :execrows
+UPDATE users
+SET email_confirmed = 1, updated_at = ?
+WHERE uuid = ?;
+
+-- name: UpdateUserEmail :execrows
+UPDATE users
+SET email = ?, email_confirmed = 1, updated_at = ?
+WHERE uuid = ?;
 
 -- name: DeleteUser :execrows
 DELETE FROM users

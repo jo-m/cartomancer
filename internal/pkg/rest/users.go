@@ -1,12 +1,17 @@
 package rest
 
 import (
+	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/mail"
 	"jo-m.ch/go/detour/internal/pkg/password"
 	"jo-m.ch/go/detour/internal/pkg/session"
 )
@@ -182,4 +187,189 @@ func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type changeEmailRequest struct {
+	NewEmail string `json:"newEmail"`
+	Password string `json:"password"`
+}
+
+var errNewEmailTaken = errors.New("new email already taken")
+
+func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+
+	var req changeEmailRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeDecodeError(w, err)
+		return
+	}
+	if req.NewEmail == "" {
+		writeError(w, http.StatusBadRequest, "newEmail is required")
+		return
+	}
+	if req.Password == "" {
+		writeError(w, http.StatusBadRequest, "password is required")
+		return
+	}
+
+	u, err := sv.d.QueryRO().GetUser(ctx, user.Uuid)
+	if err != nil {
+		logg.Error(ctx, "failed to get user", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	if !password.Check(req.Password, u.PasswordHash) {
+		writeError(w, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
+
+	verID, err := uuid.NewV7()
+	if err != nil {
+		logg.Error(ctx, "failed to generate uuid", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	now := time.Now().UTC()
+	token := password.GenRandAlnumString(verificationTokenLen)
+
+	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
+		// Check if new email is taken.
+		_, txErr := q.GetUserByEmail(ctx, req.NewEmail)
+		if txErr == nil {
+			return errNewEmailTaken
+		}
+		if !errors.Is(txErr, sql.ErrNoRows) {
+			return txErr
+		}
+
+		// Delete any existing verifications for this user.
+		_, txErr = q.DeleteEmailVerificationsForUser(ctx, user.Uuid)
+		if txErr != nil {
+			return txErr
+		}
+
+		_, txErr = q.CreateEmailVerification(ctx, db.CreateEmailVerificationParams{
+			Uuid:      verID.String(),
+			CreatedAt: now,
+			ExpiresAt: now.Add(verificationExpiry),
+			UserID:    user.Uuid,
+			Email:     req.NewEmail,
+			Token:     token,
+		})
+		return txErr
+	})
+	if errors.Is(err, errNewEmailTaken) {
+		writeError(w, http.StatusConflict, "email already taken")
+		return
+	}
+	if err != nil {
+		logg.Error(ctx, "failed to create email change verification", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	confirmURL := fmt.Sprintf("%s/confirm-email?token=%s", sv.appConfig.ExternalBaseURL, token)
+	err = jobs.Submit(ctx, sv.jobSubmitter, mail.Args{
+		To:      []string{req.NewEmail},
+		Subject: "Confirm your new email",
+		Body:    fmt.Sprintf("Please confirm your new email by visiting:\n\n%s\n", confirmURL),
+	}, jobs.Params{MaxRetries: 3})
+	if err != nil {
+		logg.Error(ctx, "failed to submit email change confirmation job", "err", err)
+	}
+
+	writeJSON(w, http.StatusOK, msgResponse{Msg: "check your email"})
+}
+
+var errUserMismatch = errors.New("token does not belong to this user")
+
+func (sv *server) handleConfirmChangeEmail(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+
+	var req confirmTokenRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeDecodeError(w, err)
+		return
+	}
+	if req.Token == "" {
+		writeError(w, http.StatusBadRequest, "token is required")
+		return
+	}
+
+	var updatedUser db.User
+
+	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+		ver, txErr := q.GetEmailVerificationByToken(ctx, req.Token)
+		if txErr != nil {
+			return txErr
+		}
+
+		if ver.UserID != user.Uuid {
+			return errUserMismatch
+		}
+
+		if time.Now().UTC().After(ver.ExpiresAt) {
+			_, _ = q.DeleteEmailVerification(ctx, ver.Uuid)
+			return errTokenExpired
+		}
+
+		// Check the new email is still available.
+		_, txErr = q.GetUserByEmail(ctx, ver.Email)
+		if txErr == nil {
+			return errNewEmailTaken
+		}
+		if !errors.Is(txErr, sql.ErrNoRows) {
+			return txErr
+		}
+
+		_, txErr = q.UpdateUserEmail(ctx, db.UpdateUserEmailParams{
+			Email:     ver.Email,
+			UpdatedAt: time.Now().UTC(),
+			Uuid:      user.Uuid,
+		})
+		if txErr != nil {
+			return txErr
+		}
+
+		_, txErr = q.DeleteEmailVerification(ctx, ver.Uuid)
+		if txErr != nil {
+			return txErr
+		}
+
+		updatedUser, txErr = q.GetUser(ctx, user.Uuid)
+		return txErr
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "invalid token")
+		return
+	}
+	if errors.Is(err, errUserMismatch) {
+		writeError(w, http.StatusForbidden, "token does not belong to this user")
+		return
+	}
+	if errors.Is(err, errTokenExpired) {
+		writeError(w, http.StatusGone, "token expired")
+		return
+	}
+	if errors.Is(err, errNewEmailTaken) {
+		writeError(w, http.StatusConflict, "email already taken")
+		return
+	}
+	if err != nil {
+		logg.Error(ctx, "failed to confirm email change", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, userResponse{
+		UUID:  updatedUser.Uuid,
+		Email: updatedUser.Email,
+		Name:  updatedUser.Name,
+		Admin: updatedUser.Admin != 0,
+	})
 }

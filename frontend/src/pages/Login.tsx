@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -85,6 +85,12 @@ export default function Login() {
             {isSubmitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
+        <p className="mt-4 text-center text-sm text-gray-600">
+          Don&apos;t have an account?{" "}
+          <Link to="/register" className="text-gray-900 hover:underline">
+            Create one
+          </Link>
+        </p>
       </div>
     </div>
   )
