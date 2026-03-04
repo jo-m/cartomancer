@@ -330,6 +330,35 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /tracks/{uuid}:
+    get:
+      summary: Get a track by UUID
+      operationId: getTrack
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Track found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackResponse"
+        "404":
+          description: Track not found or not accessible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
     patch:
       summary: Edit a track
       operationId: editTrack
@@ -435,6 +464,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/{uuid}/blob:
+    get:
+      summary: Download the original track file
+      operationId: downloadTrackBlob
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Original track file (GPX or FIT)
+          content:
+            application/gpx+xml:
+              schema:
+                type: string
+                format: binary
+            application/vnd.ant.fit:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Track not found or not accessible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /tags:
     get:
       summary: Suggest tags by prefix

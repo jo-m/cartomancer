@@ -127,6 +127,82 @@ func fileFormatFromExt(filename string) track.FileFormat {
 	}
 }
 
+func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+	trackUUID := chi.URLParam(r, "uuid")
+
+	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "track not found")
+			return
+		}
+		logg.Error(ctx, "failed to get track", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
+		writeError(w, http.StatusNotFound, "track not found")
+		return
+	}
+
+	tags, err := sv.d.QueryRO().GetTagsByTrackID(ctx, trackUUID)
+	if err != nil {
+		logg.Error(ctx, "failed to get track tags", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, trackResponseFromDB(t, tags))
+}
+
+func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+	trackUUID := chi.URLParam(r, "uuid")
+
+	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "track not found")
+			return
+		}
+		logg.Error(ctx, "failed to get track", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
+		writeError(w, http.StatusNotFound, "track not found")
+		return
+	}
+
+	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
+	if err != nil {
+		logg.Error(ctx, "failed to get blob", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	var contentType string
+	switch track.FileFormat(t.FileFormat) {
+	case track.FileFormatGPX:
+		contentType = "application/gpx+xml"
+	case track.FileFormatFIT:
+		contentType = "application/vnd.ant.fit"
+	default:
+		contentType = "application/octet-stream"
+	}
+
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename=%q`, b.Filename))
+	w.Header().Set("Content-Length", strconv.Itoa(len(b.Content)))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(b.Content)
+}
+
 type editTrackRequest struct {
 	Name          string   `json:"name"`
 	Description   string   `json:"description"`
