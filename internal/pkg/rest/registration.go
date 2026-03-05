@@ -17,8 +17,6 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/session"
 )
 
-const verificationExpiry = 24 * time.Hour
-
 type registerRequest struct {
 	Email    string `json:"email"`
 	Name     string `json:"name"`
@@ -111,7 +109,7 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		_, txErr = q.CreateEmailVerification(ctx, db.CreateEmailVerificationParams{
 			Uuid:      verID.String(),
 			CreatedAt: now,
-			ExpiresAt: now.Add(verificationExpiry),
+			ExpiresAt: now.Add(sv.appConfig.EmailVerificationExpiry),
 			UserID:    userID.String(),
 			Email:     req.Email,
 		})
@@ -127,7 +125,7 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := signEmailToken(verID.String(), verificationExpiry, sv.emailJWTSecret, sv.appConfig.AppName)
+	token, err := signEmailToken(verID.String(), sv.appConfig.EmailVerificationExpiry, sv.emailJWTSecret, sv.appConfig.AppName)
 	if err != nil {
 		logg.Error(ctx, "failed to sign email verification token", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)

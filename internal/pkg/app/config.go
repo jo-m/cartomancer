@@ -1,6 +1,8 @@
 // Package app contains configuration relating to the entire application.
 package app
 
+import "time"
+
 // AppConfig contains application-wide configuration.
 // It has struct tags compatible with [github.com/alexflint/go-arg].
 //
@@ -16,4 +18,6 @@ type AppConfig struct {
 	// EmailJWTSecret is the secret used to sign email verification JWTs.
 	// Generated on startup if not set.
 	EmailJWTSecret string `arg:"--email-jwt-secret,env:EMAIL_JWT_SECRET" help:"Secret to sign email verification JWTs, generated on startup if not set" placeholder:"SECRET"`
+	// EmailVerificationExpiry is how long an email verification link remains valid.
+	EmailVerificationExpiry time.Duration `arg:"--email-verification-expiry,env:EMAIL_VERIFICATION_EXPIRY" default:"2h" help:"How long email verification links are valid"`
 }

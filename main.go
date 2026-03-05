@@ -22,6 +22,7 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/password"
 	"jo-m.ch/go/detour/internal/pkg/rest"
 	"jo-m.ch/go/detour/internal/pkg/session"
+	"jo-m.ch/go/detour/internal/pkg/users"
 )
 
 type config struct {
@@ -141,7 +142,9 @@ func main() {
 
 	jobs.MustRegisterJob(w, session.NewCleaner(d))
 	jobs.MustRegisterJob(w, mail.NewMailer(c.MailerConfig))
+	jobs.MustRegisterJob(w, users.NewEmailVerificationCleaner(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute)
+	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour)
 
 	// TODO: clean shutdown via context.
 	w.RunInBackground(ctxJobs)

@@ -21,3 +21,7 @@ WHERE uuid = ?;
 -- name: DeleteEmailVerificationsForUser :execrows
 DELETE FROM email_verifications
 WHERE user_id = ?;
+
+-- name: DeleteExpiredEmailVerifications :execrows
+DELETE FROM email_verifications
+WHERE expires_at < ?;
