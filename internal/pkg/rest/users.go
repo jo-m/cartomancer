@@ -254,6 +254,11 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.NewEmail == u.Email {
+		writeError(w, http.StatusBadRequest, "new email must differ from current email")
+		return
+	}
+
 	verID, err := uuid.NewV7()
 	if err != nil {
 		logg.Error(ctx, "failed to generate uuid", "err", err)
