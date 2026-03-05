@@ -25,7 +25,7 @@ type ChangeEmailData = z.infer<typeof changeEmailSchema>
 type PasswordData = z.infer<typeof passwordSchema>
 
 export default function Account() {
-  const { user, loading, setUser, logout } = useSession()
+  const { user, loading, invalidateSession, logout } = useSession()
   const navigate = useNavigate()
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -56,8 +56,8 @@ export default function Account() {
 
   async function onUpdateProfile(data: ProfileData) {
     try {
-      const updated = await updateMeMutation.mutateAsync({ body: data })
-      setUser(updated)
+      await updateMeMutation.mutateAsync({ body: data })
+      await invalidateSession()
     } catch {
       // error displayed via updateMeMutation.error
     }

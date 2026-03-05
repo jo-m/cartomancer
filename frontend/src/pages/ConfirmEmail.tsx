@@ -7,7 +7,7 @@ export default function ConfirmEmail() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get("token")
   const navigate = useNavigate()
-  const { setUser } = useSession()
+  const { invalidateSession } = useSession()
   const [error, setError] = useState<string | null>(null)
   const [confirming, setConfirming] = useState(true)
   const submitted = useRef(false)
@@ -18,17 +18,15 @@ export default function ConfirmEmail() {
 
     fetchClient
       .POST("/register/confirm", { body: { token } })
-      .then(({ data }) => {
-        if (data?.user) {
-          setUser(data.user)
-        }
+      .then(() => {
+        invalidateSession()
         navigate("/")
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : "Confirmation failed")
         setConfirming(false)
       })
-  }, [token, navigate, setUser])
+  }, [token, navigate, invalidateSession])
 
   if (!token) {
     return (

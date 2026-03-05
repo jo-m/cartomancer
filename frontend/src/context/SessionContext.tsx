@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useCallback } from "react"
 import type { ReactNode } from "react"
-import { fetchClient } from "../api/client"
+import { useQueryClient } from "@tanstack/react-query"
+import { $api, fetchClient } from "../api/client"
 import type { User } from "../api/client"
 
 interface SessionState {
@@ -8,37 +9,43 @@ interface SessionState {
   loading: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
-  setUser: (user: User | null) => void
+  invalidateSession: () => Promise<void>
 }
 
 const SessionContext = createContext<SessionState | null>(null)
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
 
-  useEffect(() => {
-    fetchClient
-      .GET("/sessions")
-      .then(({ data }) => setUser(data?.user ?? null))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false))
-  }, [])
+  const { data, isLoading } = $api.useQuery("get", "/sessions")
+  const user = data?.user ?? null
 
-  async function login(email: string, password: string) {
-    const { data } = await fetchClient.POST("/sessions/login", {
-      body: { email, password },
-    })
-    setUser(data?.user ?? null)
-  }
+  const invalidateSession = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ["get", "/sessions"] }),
+    [queryClient]
+  )
 
-  async function logout() {
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const { data: loginData } = await fetchClient.POST("/sessions/login", {
+        body: { email, password },
+      })
+      queryClient.setQueryData(["get", "/sessions"], {
+        user: loginData?.user ?? null,
+      })
+    },
+    [queryClient]
+  )
+
+  const logout = useCallback(async () => {
     await fetchClient.POST("/sessions/logout")
-    setUser(null)
-  }
+    queryClient.setQueryData(["get", "/sessions"], { user: null })
+  }, [queryClient])
 
   return (
-    <SessionContext.Provider value={{ user, loading, login, logout, setUser }}>
+    <SessionContext.Provider
+      value={{ user, loading: isLoading, login, logout, invalidateSession }}
+    >
       {children}
     </SessionContext.Provider>
   )
