@@ -58,7 +58,11 @@ func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig,
 	mux.Use(sess.Middleware)
 	mux.Use(middleware.Recoverer)
 
-	mux.Mount("/api", rest.New(d, sess, jobSubmitter, appConfig))
+	apiHandler, err := rest.New(d, sess, jobSubmitter, appConfig)
+	if err != nil {
+		logg.Panic(ctx, "Failed to create API handler", "err", err)
+	}
+	mux.Mount("/api", apiHandler)
 	mux.Handle("/*", spaHandler(staticFS))
 
 	return mux

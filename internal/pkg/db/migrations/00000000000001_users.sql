@@ -22,8 +22,7 @@ CREATE TABLE email_verifications (
     created_at DATETIME NOT NULL,
     expires_at DATETIME NOT NULL,
     user_id TEXT NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
-    email TEXT NOT NULL,
-    token TEXT NOT NULL UNIQUE
+    email TEXT NOT NULL
 );
 -- +goose StatementEnd
 

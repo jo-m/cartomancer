@@ -38,9 +38,10 @@ func (w *tWriter) Write(p []byte) (int, error) {
 
 // testEnv holds the test server and database for a single test.
 type testEnv struct {
-	t  *testing.T
-	d  *db.DB
-	ts *httptest.Server
+	t              *testing.T
+	d              *db.DB
+	ts             *httptest.Server
+	emailJWTSecret []byte
 }
 
 func newTestEnv(t *testing.T) *testEnv {
@@ -70,12 +71,15 @@ func newTestEnv(t *testing.T) *testEnv {
 	mux.Use(middleware.RequestID)
 	mux.Use(logg.AttachLogger(logger))
 	mux.Use(sess.Middleware)
-	mux.Mount("/", rest.New(d, sess, workers.Submitter(), app.AppConfig{AppName: "test"}))
+	appConf := app.AppConfig{AppName: "test", EmailJWTSecret: rest.TestEmailJWTSecret}
+	apiHandler, err := rest.New(d, sess, workers.Submitter(), appConf)
+	require.NoError(t, err)
+	mux.Mount("/", apiHandler)
 
 	ts := httptest.NewTLSServer(mux)
 	t.Cleanup(ts.Close)
 
-	return &testEnv{t: t, d: d, ts: ts}
+	return &testEnv{t: t, d: d, ts: ts, emailJWTSecret: []byte(rest.TestEmailJWTSecret)}
 }
 
 // newClient creates a new TLS-aware HTTP client with an empty cookie jar.
@@ -128,12 +132,16 @@ func (e *testEnv) login(client *http.Client, email, pass string) {
 	require.Equal(e.t, http.StatusOK, status)
 }
 
-// getVerificationToken retrieves the email verification token for a given email directly from the DB.
-func (e *testEnv) getVerificationToken(t *testing.T, email string) string {
+// getVerificationJWT retrieves the email verification UUID from the DB by user ID and signs a JWT.
+func (e *testEnv) getVerificationJWT(t *testing.T, userEmail string) string {
 	t.Helper()
-	ver, err := e.d.QueryRO().GetEmailVerificationByEmail(t.Context(), email)
-	require.NoError(t, err, "no verification token found for %s", email)
-	return ver.Token
+	user, err := e.d.QueryRO().GetUserByEmail(t.Context(), userEmail)
+	require.NoError(t, err, "no user found for %s", userEmail)
+	ver, err := e.d.QueryRO().GetEmailVerificationByUserID(t.Context(), user.Uuid)
+	require.NoError(t, err, "no verification found for user %s", userEmail)
+	token, err := rest.SignEmailTokenForTest(ver.Uuid, 24*time.Hour, e.emailJWTSecret, "test")
+	require.NoError(t, err)
+	return token
 }
 
 // do sends a JSON request and returns the status code and raw response body.

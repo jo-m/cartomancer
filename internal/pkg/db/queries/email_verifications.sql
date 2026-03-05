@@ -1,18 +1,18 @@
 -- name: CreateEmailVerification :one
 INSERT INTO email_verifications (
-  uuid, created_at, expires_at, user_id, email, token
+  uuid, created_at, expires_at, user_id, email
 ) VALUES (
-  ?, ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?
 )
 RETURNING *;
 
--- name: GetEmailVerificationByToken :one
+-- name: GetEmailVerification :one
 SELECT * FROM email_verifications
-WHERE token = ? LIMIT 1;
+WHERE uuid = ? LIMIT 1;
 
--- name: GetEmailVerificationByEmail :one
+-- name: GetEmailVerificationByUserID :one
 SELECT * FROM email_verifications
-WHERE email = ? LIMIT 1;
+WHERE user_id = ? LIMIT 1;
 
 -- name: DeleteEmailVerification :execrows
 DELETE FROM email_verifications

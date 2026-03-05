@@ -2,12 +2,14 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"jo-m.ch/go/detour/internal/pkg/app"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
+	"jo-m.ch/go/detour/internal/pkg/password"
 	"jo-m.ch/go/detour/internal/pkg/session"
 )
 
@@ -23,19 +25,29 @@ func (sv *server) requireUser(next http.Handler) http.Handler {
 }
 
 type server struct {
-	d            *db.DB
-	sessions     *session.Store
-	jobSubmitter *jobs.Submitter
-	appConfig    app.AppConfig
+	d              *db.DB
+	sessions       *session.Store
+	jobSubmitter   *jobs.Submitter
+	appConfig      app.AppConfig
+	emailJWTSecret []byte
 }
 
 // New creates a new API handler.
-func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig app.AppConfig) http.Handler {
+func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig app.AppConfig) (http.Handler, error) {
+	emailSecret := []byte(appConfig.EmailJWTSecret)
+	if len(emailSecret) == 0 {
+		emailSecret = password.GenRandBytes(emailJWTSecretLenBytes)
+	}
+	if len(emailSecret) != emailJWTSecretLenBytes {
+		return nil, fmt.Errorf("email JWT secret must be %d bytes but is %d", emailJWTSecretLenBytes, len(emailSecret))
+	}
+
 	sv := server{
-		d:            d,
-		sessions:     sessions,
-		jobSubmitter: submitter,
-		appConfig:    appConfig,
+		d:              d,
+		sessions:       sessions,
+		jobSubmitter:   submitter,
+		appConfig:      appConfig,
+		emailJWTSecret: emailSecret,
 	}
 
 	mux := chi.NewRouter()
@@ -83,7 +95,8 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 		r.Patch("/admin/users/{uuid}", sv.handleAdminUpdateUser)
 		r.Delete("/admin/users/{uuid}", sv.handleAdminDeleteUser)
 		r.Post("/admin/users/{uuid}/reset-password", sv.handleAdminResetUserPassword)
+		r.Post("/admin/users/{uuid}/confirm-email", sv.handleAdminConfirmEmail)
 	})
 
-	return mux
+	return mux, nil
 }

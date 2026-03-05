@@ -221,7 +221,17 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 			Admin:     admin,
 			Uuid:      userUUID,
 		})
-		return txErr
+		if txErr != nil {
+			return txErr
+		}
+		// Clean up any pending verifications when admin changes email.
+		if existing.Email != req.Email {
+			_, txErr = q.DeleteEmailVerificationsForUser(ctx, userUUID)
+			if txErr != nil {
+				return txErr
+			}
+		}
+		return nil
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "user not found")
@@ -343,4 +353,77 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 	}
 
 	writeJSON(w, http.StatusOK, adminResetPasswordResponse{Password: newPassword})
+}
+
+var errNoPendingVerification = errors.New("no pending email verification")
+
+func (sv *server) handleAdminConfirmEmail(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userUUID := chi.URLParam(r, "uuid")
+
+	var updatedUser db.User
+
+	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+		target, txErr := q.GetUser(ctx, userUUID)
+		if txErr != nil {
+			return txErr
+		}
+		if target.Admin != 0 {
+			return errTargetIsAdmin
+		}
+
+		ver, txErr := q.GetEmailVerificationByUserID(ctx, userUUID)
+		if errors.Is(txErr, sql.ErrNoRows) {
+			return errNoPendingVerification
+		}
+		if txErr != nil {
+			return txErr
+		}
+
+		if ver.Email != target.Email {
+			// Email change verification: apply the new email.
+			_, txErr = q.UpdateUserEmail(ctx, db.UpdateUserEmailParams{
+				Email:     ver.Email,
+				UpdatedAt: time.Now().UTC(),
+				Uuid:      userUUID,
+			})
+		} else {
+			// Registration confirmation: just mark as confirmed.
+			_, txErr = q.ConfirmUserEmail(ctx, db.ConfirmUserEmailParams{
+				UpdatedAt: time.Now().UTC(),
+				Uuid:      userUUID,
+			})
+		}
+		if txErr != nil {
+			return txErr
+		}
+
+		_, txErr = q.DeleteEmailVerification(ctx, ver.Uuid)
+		if txErr != nil {
+			return txErr
+		}
+
+		updatedUser, txErr = q.GetUser(ctx, userUUID)
+		return txErr
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "user not found")
+		return
+	}
+	if errors.Is(err, errTargetIsAdmin) {
+		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
+		return
+	}
+	if errors.Is(err, errNoPendingVerification) {
+		writeError(w, http.StatusNotFound, "no pending email verification")
+		return
+	}
+	if err != nil {
+		logg.Error(ctx, "failed to confirm email", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, adminUserResponseFromDB(updatedUser))
 }

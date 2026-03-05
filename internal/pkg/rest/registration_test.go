@@ -55,7 +55,7 @@ func TestRegister_Confirm_Login(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, status)
 
 	// Get token from DB.
-	token := e.getVerificationToken(t, "bob@example.com")
+	token := e.getVerificationJWT(t, "bob@example.com")
 
 	// Confirm.
 	var sessResp map[string]any
@@ -100,7 +100,7 @@ func TestChangeEmail_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, status)
 
 	// Confirm.
-	token := e.getVerificationToken(t, "alice-new@example.com")
+	token := e.getVerificationJWT(t, "alice@example.com")
 	var resp map[string]any
 	status, _ = e.do(client, http.MethodPost, "/account/change-email/confirm", map[string]string{
 		"token": token,
@@ -134,4 +134,51 @@ func TestChangeEmail_EmailTaken(t *testing.T) {
 		"password": "secret",
 	}, nil)
 	assert.Equal(t, http.StatusConflict, status)
+}
+
+func TestAdminConfirmEmail_Registration(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "secret", true)
+
+	// Register a new user (unconfirmed) first, before creating the admin client.
+	client := e.newClient()
+	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
+		"email":    "pending@example.com",
+		"name":     "Pending",
+		"password": "secret123",
+	}, nil)
+	require.Equal(t, http.StatusCreated, status)
+
+	// Get user UUID from DB.
+	pendingUser, err := e.d.QueryRO().GetUserByEmail(t.Context(), "pending@example.com")
+	require.NoError(t, err)
+
+	// Now log in as admin (reuses the same underlying client, new jar).
+	adminClient := e.newClient()
+	e.login(adminClient, "admin@example.com", "secret")
+
+	// Admin confirms the email.
+	var resp map[string]any
+	status, _ = e.do(adminClient, http.MethodPost, "/admin/users/"+pendingUser.Uuid+"/confirm-email", map[string]any{}, &resp)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, "pending@example.com", resp["email"])
+
+	// User can now log in.
+	loginClient := e.newClient()
+	status, _ = e.do(loginClient, http.MethodPost, "/sessions/login", map[string]string{
+		"email":    "pending@example.com",
+		"password": "secret123",
+	}, nil)
+	assert.Equal(t, http.StatusOK, status)
+}
+
+func TestAdminConfirmEmail_NoPending(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "secret", true)
+	userUUID := e.createUser("user@example.com", "User", "secret", false)
+	adminClient := e.newClient()
+	e.login(adminClient, "admin@example.com", "secret")
+
+	status, _ := e.do(adminClient, http.MethodPost, "/admin/users/"+userUUID+"/confirm-email", nil, nil)
+	assert.Equal(t, http.StatusNotFound, status)
 }

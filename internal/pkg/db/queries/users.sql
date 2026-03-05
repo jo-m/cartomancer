@@ -19,7 +19,7 @@ RETURNING *;
 
 -- name: UpdateUser :execrows
 UPDATE users
-SET updated_at = ?, email = ?, name = ?, admin = ?
+SET updated_at = ?, email = ?, name = ?, admin = ?, email_confirmed = 1
 WHERE uuid = ?;
 
 -- name: UpdateUserName :execrows

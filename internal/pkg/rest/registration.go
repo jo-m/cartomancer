@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
@@ -16,10 +17,7 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/session"
 )
 
-const (
-	verificationTokenLen = 32
-	verificationExpiry   = 24 * time.Hour
-)
+const verificationExpiry = 24 * time.Hour
 
 type registerRequest struct {
 	Email    string `json:"email"`
@@ -84,7 +82,6 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now().UTC()
-	token := password.GenRandAlnumString(verificationTokenLen)
 
 	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
 		// Check if email is already taken.
@@ -116,7 +113,6 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 			ExpiresAt: now.Add(verificationExpiry),
 			UserID:    userID.String(),
 			Email:     req.Email,
-			Token:     token,
 		})
 		return txErr
 	})
@@ -126,6 +122,13 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		logg.Error(ctx, "failed to register user", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	token, err := signEmailToken(verID.String(), verificationExpiry, sv.emailJWTSecret, sv.appConfig.AppName)
+	if err != nil {
+		logg.Error(ctx, "failed to sign email verification token", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
@@ -157,18 +160,22 @@ func (sv *server) handleConfirmRegistration(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	verUUID, err := verifyEmailToken(req.Token, sv.emailJWTSecret, sv.appConfig.AppName)
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			writeError(w, http.StatusGone, "token expired")
+			return
+		}
+		writeError(w, http.StatusNotFound, "invalid token")
+		return
+	}
+
 	var confirmedUser db.User
 
-	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
-		ver, txErr := q.GetEmailVerificationByToken(ctx, req.Token)
+	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
+		ver, txErr := q.GetEmailVerification(ctx, verUUID)
 		if txErr != nil {
 			return txErr
-		}
-
-		if time.Now().UTC().After(ver.ExpiresAt) {
-			// Clean up expired token.
-			_, _ = q.DeleteEmailVerification(ctx, ver.Uuid)
-			return errTokenExpired
 		}
 
 		_, txErr = q.ConfirmUserEmail(ctx, db.ConfirmUserEmailParams{
@@ -189,10 +196,6 @@ func (sv *server) handleConfirmRegistration(w http.ResponseWriter, r *http.Reque
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "invalid token")
-		return
-	}
-	if errors.Is(err, errTokenExpired) {
-		writeError(w, http.StatusGone, "token expired")
 		return
 	}
 	if err != nil {
@@ -221,5 +224,3 @@ func (sv *server) handleConfirmRegistration(w http.ResponseWriter, r *http.Reque
 		},
 	})
 }
-
-var errTokenExpired = errors.New("token expired")

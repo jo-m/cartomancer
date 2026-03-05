@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
@@ -234,7 +235,6 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now().UTC()
-	token := password.GenRandAlnumString(verificationTokenLen)
 
 	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
 		// Check if new email is taken.
@@ -258,7 +258,6 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 			ExpiresAt: now.Add(verificationExpiry),
 			UserID:    user.Uuid,
 			Email:     req.NewEmail,
-			Token:     token,
 		})
 		return txErr
 	})
@@ -268,6 +267,13 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		logg.Error(ctx, "failed to create email change verification", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	token, err := signEmailToken(verID.String(), verificationExpiry, sv.emailJWTSecret, sv.appConfig.AppName)
+	if err != nil {
+		logg.Error(ctx, "failed to sign email verification token", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
@@ -301,21 +307,26 @@ func (sv *server) handleConfirmChangeEmail(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	verUUID, err := verifyEmailToken(req.Token, sv.emailJWTSecret, sv.appConfig.AppName)
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			writeError(w, http.StatusGone, "token expired")
+			return
+		}
+		writeError(w, http.StatusNotFound, "invalid token")
+		return
+	}
+
 	var updatedUser db.User
 
-	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
-		ver, txErr := q.GetEmailVerificationByToken(ctx, req.Token)
+	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
+		ver, txErr := q.GetEmailVerification(ctx, verUUID)
 		if txErr != nil {
 			return txErr
 		}
 
 		if ver.UserID != user.Uuid {
 			return errUserMismatch
-		}
-
-		if time.Now().UTC().After(ver.ExpiresAt) {
-			_, _ = q.DeleteEmailVerification(ctx, ver.Uuid)
-			return errTokenExpired
 		}
 
 		// Check the new email is still available.
@@ -350,10 +361,6 @@ func (sv *server) handleConfirmChangeEmail(w http.ResponseWriter, r *http.Reques
 	}
 	if errors.Is(err, errUserMismatch) {
 		writeError(w, http.StatusForbidden, "token does not belong to this user")
-		return
-	}
-	if errors.Is(err, errTokenExpired) {
-		writeError(w, http.StatusGone, "token expired")
 		return
 	}
 	if errors.Is(err, errNewEmailTaken) {

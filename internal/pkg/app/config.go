@@ -13,4 +13,7 @@ type AppConfig struct {
 	ExternalBaseURL string `arg:"--external-base-url,env:EXTERNAL_BASE_URL" default:"" help:"Base URL of the application"`
 	// DevelopmentMode enables some development features.
 	DevelopmentMode bool `arg:"--dev-mode,env:DEV_MODE" default:"false" help:"Enable development mode"`
+	// EmailJWTSecret is the secret used to sign email verification JWTs.
+	// Generated on startup if not set.
+	EmailJWTSecret string `arg:"--email-jwt-secret,env:EMAIL_JWT_SECRET" help:"Secret to sign email verification JWTs, generated on startup if not set" placeholder:"SECRET"`
 }
