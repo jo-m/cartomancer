@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -25,7 +25,7 @@ type ChangeEmailData = z.infer<typeof changeEmailSchema>
 type PasswordData = z.infer<typeof passwordSchema>
 
 export default function Account() {
-  const { user, loading, invalidateSession, logout } = useSession()
+  const { user, invalidateSession, logout } = useSession()
   const navigate = useNavigate()
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -47,12 +47,6 @@ export default function Account() {
   const passwordForm = useForm<PasswordData>({
     resolver: zodResolver(passwordSchema),
   })
-
-  useEffect(() => {
-    if (!loading && !user) navigate("/login")
-  }, [user, loading, navigate])
-
-  if (loading || !user) return null
 
   async function onUpdateProfile(data: ProfileData) {
     try {
@@ -105,7 +99,7 @@ export default function Account() {
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Email
             </label>
-            <p className="text-sm text-gray-500">{user.email}</p>
+            <p className="text-sm text-gray-500">{user?.email}</p>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">

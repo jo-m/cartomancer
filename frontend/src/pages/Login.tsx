@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -13,7 +12,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 export default function Login() {
-  const { user, loading, login } = useSession()
+  const { login } = useSession()
   const navigate = useNavigate()
   const {
     register,
@@ -21,10 +20,6 @@ export default function Login() {
     setError,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
-
-  useEffect(() => {
-    if (!loading && user) navigate("/")
-  }, [user, loading, navigate])
 
   async function onSubmit(data: FormData) {
     try {

@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { SessionProvider } from "./context/SessionContext"
+import { ProtectedRoute, GuestRoute } from "./components/ProtectedRoute"
 import Layout from "./components/Layout"
 import Home from "./pages/Home"
 import Login from "./pages/Login"
@@ -18,10 +19,31 @@ export default function App() {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              <Route
+                path="/login"
+                element={
+                  <GuestRoute>
+                    <Login />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <GuestRoute>
+                    <Register />
+                  </GuestRoute>
+                }
+              />
               <Route path="/confirm-email" element={<ConfirmEmail />} />
-              <Route path="/account" element={<Account />} />
+              <Route
+                path="/account"
+                element={
+                  <ProtectedRoute>
+                    <Account />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
           </Routes>
         </SessionProvider>
