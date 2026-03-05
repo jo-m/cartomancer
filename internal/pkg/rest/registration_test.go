@@ -57,17 +57,15 @@ func TestRegister_Confirm_Login(t *testing.T) {
 	// Get token from DB.
 	token := e.getVerificationJWT(t, "bob@example.com")
 
-	// Confirm.
-	var sessResp map[string]any
+	// Confirm (no auto-login, returns message).
+	var msgResp map[string]any
 	status, _ = e.do(client, http.MethodPost, "/register/confirm", map[string]string{
 		"token": token,
-	}, &sessResp)
+	}, &msgResp)
 	assert.Equal(t, http.StatusOK, status)
-	user, ok := sessResp["user"].(map[string]any)
-	require.True(t, ok)
-	assert.Equal(t, "bob@example.com", user["email"])
+	assert.Equal(t, "email confirmed", msgResp["msg"])
 
-	// Login should now succeed (use a fresh client to avoid already-logged-in conflict).
+	// Login should now succeed.
 	client2 := e.newClient()
 	status, _ = e.do(client2, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "bob@example.com",

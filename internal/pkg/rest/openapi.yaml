@@ -94,11 +94,11 @@ paths:
               $ref: "#/components/schemas/ConfirmTokenRequest"
       responses:
         "200":
-          description: Email confirmed, user logged in
+          description: Email confirmed
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SessionResponse"
+                $ref: "#/components/schemas/MsgResponse"
         "400":
           description: Invalid request body
           content:

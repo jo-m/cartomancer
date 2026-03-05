@@ -204,23 +204,14 @@ func (sv *server) handleConfirmRegistration(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Auto-login: create an authenticated session.
+	// If the current session is authenticated, destroy it so the user must log in fresh.
 	oldSess := session.MustGet(ctx)
-	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: confirmedUser.Uuid}, &oldSess)
-	if err != nil {
-		logg.Error(ctx, "failed to create session after confirmation", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
+	if oldSess.UserID.Valid {
+		if delErr := session.Delete(ctx, &oldSess); delErr != nil {
+			logg.Error(ctx, "failed to delete session after confirmation", "err", delErr)
+		}
 	}
-	logg.Info(ctx, "registration confirmed, auto-login", "user", confirmedUser.Uuid, "session", sess.Uuid)
 
-	writeJSON(w, http.StatusOK, sessionResponse{
-		SessionUUID: sess.Uuid,
-		User: &userResponse{
-			UUID:  confirmedUser.Uuid,
-			Email: confirmedUser.Email,
-			Name:  confirmedUser.Name,
-			Admin: confirmedUser.Admin != 0,
-		},
-	})
+	logg.Info(ctx, "registration confirmed", "user", confirmedUser.Uuid)
+	writeJSON(w, http.StatusOK, msgResponse{Msg: "email confirmed"})
 }
