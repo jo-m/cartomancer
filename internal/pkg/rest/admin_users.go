@@ -263,6 +263,16 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 				return txErr
 			}
 		}
+		// Check email uniqueness (excluding this user).
+		if !strings.EqualFold(existing.Email, req.Email) {
+			_, txErr = q.GetUserByEmail(ctx, req.Email)
+			if txErr == nil {
+				return errEmailTaken
+			}
+			if !errors.Is(txErr, sql.ErrNoRows) {
+				return txErr
+			}
+		}
 		_, txErr = q.UpdateUser(ctx, db.UpdateUserParams{
 			UpdatedAt: now,
 			Email:     req.Email,
@@ -292,6 +302,10 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 	}
 	if errors.Is(err, errNameTaken) {
 		writeError(w, http.StatusConflict, "name already taken")
+		return
+	}
+	if errors.Is(err, errEmailTaken) {
+		writeError(w, http.StatusConflict, "email already taken")
 		return
 	}
 	if err != nil {
@@ -435,7 +449,14 @@ func (sv *server) handleAdminConfirmEmail(w http.ResponseWriter, r *http.Request
 		}
 
 		if ver.Email != target.Email {
-			// Email change verification: apply the new email.
+			// Email change verification: check uniqueness before applying.
+			_, txErr = q.GetUserByEmail(ctx, ver.Email)
+			if txErr == nil {
+				return errEmailTaken
+			}
+			if !errors.Is(txErr, sql.ErrNoRows) {
+				return txErr
+			}
 			_, txErr = q.UpdateUserEmail(ctx, db.UpdateUserEmailParams{
 				Email:     ver.Email,
 				UpdatedAt: time.Now().UTC(),
@@ -470,6 +491,10 @@ func (sv *server) handleAdminConfirmEmail(w http.ResponseWriter, r *http.Request
 	}
 	if errors.Is(err, errNoPendingVerification) {
 		writeError(w, http.StatusNotFound, "no pending email verification")
+		return
+	}
+	if errors.Is(err, errEmailTaken) {
+		writeError(w, http.StatusConflict, "email already taken")
 		return
 	}
 	if err != nil {
