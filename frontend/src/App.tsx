@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { setQueryClient } from "./api/client"
 import { SessionProvider } from "./context/SessionContext"
 import { ProtectedRoute, GuestRoute } from "./components/ProtectedRoute"
 import Layout from "./components/Layout"
@@ -10,6 +11,7 @@ import ConfirmEmail from "./pages/ConfirmEmail"
 import Account from "./pages/Account"
 
 const queryClient = new QueryClient()
+setQueryClient(queryClient)
 
 export default function App() {
   return (

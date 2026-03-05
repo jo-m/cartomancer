@@ -1,5 +1,6 @@
 import createFetchClient from "openapi-fetch"
 import createClient from "openapi-react-query"
+import type { QueryClient } from "@tanstack/react-query"
 import type { paths } from "./schema.gen"
 
 declare module "@tanstack/react-query" {
@@ -10,9 +11,24 @@ declare module "@tanstack/react-query" {
 
 export const fetchClient = createFetchClient<paths>({ baseUrl: "/api" })
 
+let queryClient: QueryClient | null = null
+
+export function setQueryClient(qc: QueryClient) {
+  queryClient = qc
+}
+
 fetchClient.use({
-  async onResponse({ response }) {
+  async onResponse({ request, response }) {
     if (!response.ok) {
+      if (
+        response.status === 401 &&
+        !request.url.endsWith("/sessions") &&
+        !request.url.endsWith("/sessions/login")
+      ) {
+        queryClient?.setQueryData(["get", "/sessions"], { user: null })
+        window.location.assign("/login")
+        return response
+      }
       const body = await response
         .clone()
         .json()
