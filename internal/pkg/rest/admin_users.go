@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -129,6 +130,10 @@ func (sv *server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusBadRequest, "name is required")
 		return
 	}
+	if !validateName(req.Name) {
+		writeError(w, http.StatusBadRequest, "invalid name: 3-32 chars, letters/underscores/hyphens only, no consecutive underscores or hyphens")
+		return
+	}
 
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -152,16 +157,44 @@ func (sv *server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	u, err := sv.d.QueryRW().CreateUser(ctx, db.CreateUserParams{
-		Uuid:           id.String(),
-		CreatedAt:      now,
-		UpdatedAt:      now,
-		Email:          req.Email,
-		Name:           req.Name,
-		PasswordHash:   hash,
-		Admin:          admin,
-		EmailConfirmed: 1,
+	var u db.User
+	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
+		// Check email uniqueness.
+		_, txErr := q.GetUserByEmail(ctx, req.Email)
+		if txErr == nil {
+			return errEmailTaken
+		}
+		if !errors.Is(txErr, sql.ErrNoRows) {
+			return txErr
+		}
+		// Check name uniqueness (case-insensitive).
+		_, txErr = q.GetUserByName(ctx, req.Name)
+		if txErr == nil {
+			return errNameTaken
+		}
+		if !errors.Is(txErr, sql.ErrNoRows) {
+			return txErr
+		}
+		u, txErr = q.CreateUser(ctx, db.CreateUserParams{
+			Uuid:           id.String(),
+			CreatedAt:      now,
+			UpdatedAt:      now,
+			Email:          req.Email,
+			Name:           req.Name,
+			PasswordHash:   hash,
+			Admin:          admin,
+			EmailConfirmed: 1,
+		})
+		return txErr
 	})
+	if errors.Is(err, errEmailTaken) {
+		writeError(w, http.StatusConflict, "email already taken")
+		return
+	}
+	if errors.Is(err, errNameTaken) {
+		writeError(w, http.StatusConflict, "name already taken")
+		return
+	}
 	if err != nil {
 		logg.Error(ctx, "failed to create user", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
@@ -200,6 +233,10 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusBadRequest, "name is required")
 		return
 	}
+	if !validateName(req.Name) {
+		writeError(w, http.StatusBadRequest, "invalid name: 3-32 chars, letters/underscores/hyphens only, no consecutive underscores or hyphens")
+		return
+	}
 
 	now := time.Now().UTC()
 	var admin int64
@@ -215,6 +252,16 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 		}
 		if existing.Admin != 0 {
 			return errTargetIsAdmin
+		}
+		// Check name uniqueness (case-insensitive, excluding this user).
+		if !strings.EqualFold(existing.Name, req.Name) {
+			_, txErr = q.GetUserByName(ctx, req.Name)
+			if txErr == nil {
+				return errNameTaken
+			}
+			if !errors.Is(txErr, sql.ErrNoRows) {
+				return txErr
+			}
 		}
 		_, txErr = q.UpdateUser(ctx, db.UpdateUserParams{
 			UpdatedAt: now,
@@ -241,6 +288,10 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 	}
 	if errors.Is(err, errTargetIsAdmin) {
 		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
+		return
+	}
+	if errors.Is(err, errNameTaken) {
+		writeError(w, http.StatusConflict, "name already taken")
 		return
 	}
 	if err != nil {

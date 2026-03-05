@@ -17,9 +17,9 @@ func TestUpdateAccount_Success(t *testing.T) {
 	e.login(client, "alice@example.com", "secret")
 
 	var resp map[string]any
-	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": "Alice Updated"}, &resp)
+	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": "Alice-Updated"}, &resp)
 	assert.Equal(t, http.StatusOK, status)
-	assert.Equal(t, "Alice Updated", resp["name"])
+	assert.Equal(t, "Alice-Updated", resp["name"])
 }
 
 func TestUpdateAccount_MissingName(t *testing.T) {

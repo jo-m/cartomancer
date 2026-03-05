@@ -1043,7 +1043,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "404":
-          description: User not found or no pending verification
+          description: User not found
           content:
             application/json:
               schema:
@@ -1274,6 +1274,10 @@ components:
           format: email
         name:
           type: string
+          minLength: 3
+          maxLength: 32
+          pattern: '^[a-zA-Z_-]{3,32}$'
+          description: 3-32 chars, letters/underscores/hyphens only, no consecutive underscores or hyphens
         password:
           type: string
 
@@ -1384,6 +1388,10 @@ components:
       properties:
         name:
           type: string
+          minLength: 3
+          maxLength: 32
+          pattern: '^[a-zA-Z_-]{3,32}$'
+          description: 3-32 chars, letters/underscores/hyphens only, no consecutive underscores or hyphens
 
     ChangePasswordRequest:
       type: object
@@ -1407,6 +1415,10 @@ components:
           format: email
         name:
           type: string
+          minLength: 3
+          maxLength: 32
+          pattern: '^[a-zA-Z_-]{3,32}$'
+          description: 3-32 chars, letters/underscores/hyphens only, no consecutive underscores or hyphens
         admin:
           type: boolean
 
@@ -1432,6 +1444,10 @@ components:
           format: email
         name:
           type: string
+          minLength: 3
+          maxLength: 32
+          pattern: '^[a-zA-Z_-]{3,32}$'
+          description: 3-32 chars, letters/underscores/hyphens only, no consecutive underscores or hyphens
         admin:
           type: boolean
 

@@ -50,6 +50,10 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "name is required")
 		return
 	}
+	if !validateName(req.Name) {
+		writeError(w, http.StatusBadRequest, "invalid name: 3-32 chars, letters/underscores/hyphens only, no consecutive underscores or hyphens")
+		return
+	}
 	if req.Password == "" {
 		writeError(w, http.StatusBadRequest, "password is required")
 		return
@@ -92,6 +96,15 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 			return txErr
 		}
 
+		// Check if name is already taken (case-insensitive).
+		_, txErr = q.GetUserByName(ctx, req.Name)
+		if txErr == nil {
+			return errNameTaken
+		}
+		if !errors.Is(txErr, sql.ErrNoRows) {
+			return txErr
+		}
+
 		_, txErr = q.CreateUser(ctx, db.CreateUserParams{
 			Uuid:           userID.String(),
 			CreatedAt:      now,
@@ -117,6 +130,10 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	})
 	if errors.Is(err, errEmailTaken) {
 		writeError(w, http.StatusConflict, "email already taken")
+		return
+	}
+	if errors.Is(err, errNameTaken) {
+		writeError(w, http.StatusConflict, "name already taken")
 		return
 	}
 	if err != nil {

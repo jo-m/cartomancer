@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +18,16 @@ import (
 )
 
 var errLastAdmin = errors.New("cannot delete the last admin account")
+
+var (
+	nameRe               = regexp.MustCompile(`^[a-zA-Z_-]{3,32}$`)
+	consecutiveSpecialRe = regexp.MustCompile(`[_-]{2}`)
+	errNameTaken         = errors.New("name already taken")
+)
+
+func validateName(name string) bool {
+	return nameRe.MatchString(name) && !consecutiveSpecialRe.MatchString(name)
+}
 
 type updateMeRequest struct {
 	Name string `json:"name"`
@@ -35,12 +46,30 @@ func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "name is required")
 		return
 	}
+	if !validateName(req.Name) {
+		writeError(w, http.StatusBadRequest, "invalid name: 3-32 chars, letters/underscores/hyphens only, no consecutive underscores or hyphens")
+		return
+	}
 
-	_, err := sv.d.QueryRW().UpdateUserName(ctx, db.UpdateUserNameParams{
-		UpdatedAt: time.Now().UTC(),
-		Name:      req.Name,
-		Uuid:      user.Uuid,
+	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+		existing, txErr := q.GetUserByName(ctx, req.Name)
+		if txErr == nil && existing.Uuid != user.Uuid {
+			return errNameTaken
+		}
+		if txErr != nil && !errors.Is(txErr, sql.ErrNoRows) {
+			return txErr
+		}
+		_, txErr = q.UpdateUserName(ctx, db.UpdateUserNameParams{
+			UpdatedAt: time.Now().UTC(),
+			Name:      req.Name,
+			Uuid:      user.Uuid,
+		})
+		return txErr
 	})
+	if errors.Is(err, errNameTaken) {
+		writeError(w, http.StatusConflict, "name already taken")
+		return
+	}
 	if err != nil {
 		logg.Error(ctx, "failed to update user name", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)

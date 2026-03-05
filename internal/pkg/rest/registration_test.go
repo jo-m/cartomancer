@@ -15,7 +15,7 @@ func TestRegister_Success(t *testing.T) {
 	var resp map[string]any
 	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "newuser@example.com",
-		"name":     "New User",
+		"name":     "New-User",
 		"password": "secret123",
 	}, &resp)
 	assert.Equal(t, http.StatusCreated, status)
@@ -29,7 +29,7 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 
 	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "alice@example.com",
-		"name":     "Another Alice",
+		"name":     "Another-Alice",
 		"password": "secret123",
 	}, nil)
 	assert.Equal(t, http.StatusConflict, status)

@@ -6,6 +6,10 @@ WHERE uuid = ? LIMIT 1;
 SELECT * FROM users
 WHERE email = ? LIMIT 1;
 
+-- name: GetUserByName :one
+SELECT * FROM users
+WHERE lower(name) = lower(?) LIMIT 1;
+
 -- name: GetUsers :many
 SELECT * FROM users ORDER BY uuid;
 

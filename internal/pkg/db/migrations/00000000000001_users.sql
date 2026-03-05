@@ -17,6 +17,8 @@ CREATE TABLE users (
     email_confirmed INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE UNIQUE INDEX users_name_lower_unique ON users(lower(name));
+
 CREATE TABLE email_verifications (
     uuid TEXT PRIMARY KEY,
     created_at DATETIME NOT NULL,

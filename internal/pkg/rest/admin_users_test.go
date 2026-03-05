@@ -50,7 +50,7 @@ func TestAdminCreateUser_Success(t *testing.T) {
 	var resp map[string]any
 	status, _ := e.do(client, http.MethodPost, "/admin/users", map[string]any{
 		"email": "new@example.com",
-		"name":  "New User",
+		"name":  "New-User",
 		"admin": false,
 	}, &resp)
 	assert.Equal(t, http.StatusCreated, status)
@@ -65,7 +65,7 @@ func TestAdminCreateUser_MissingEmail(t *testing.T) {
 	e.login(client, "admin@example.com", "adminpass")
 
 	status, _ := e.do(client, http.MethodPost, "/admin/users", map[string]any{
-		"name": "New User",
+		"name": "New-User",
 	}, nil)
 	assert.Equal(t, http.StatusBadRequest, status)
 }
@@ -115,12 +115,12 @@ func TestAdminUpdateUser_Success(t *testing.T) {
 	var resp map[string]any
 	status, _ := e.do(client, http.MethodPatch, "/admin/users/"+uuid, map[string]any{
 		"email": "alice2@example.com",
-		"name":  "Alice Two",
+		"name":  "Alice-Two",
 		"admin": false,
 	}, &resp)
 	assert.Equal(t, http.StatusOK, status)
 	assert.Equal(t, "alice2@example.com", resp["email"])
-	assert.Equal(t, "Alice Two", resp["name"])
+	assert.Equal(t, "Alice-Two", resp["name"])
 }
 
 func TestAdminUpdateUser_TargetIsAdmin(t *testing.T) {
@@ -131,7 +131,7 @@ func TestAdminUpdateUser_TargetIsAdmin(t *testing.T) {
 
 	status, _ := e.do(client, http.MethodPatch, "/admin/users/"+adminUUID, map[string]any{
 		"email": "admin2@example.com",
-		"name":  "Admin Two",
+		"name":  "Admin-Two",
 		"admin": true,
 	}, nil)
 	assert.Equal(t, http.StatusForbidden, status)
@@ -145,7 +145,7 @@ func TestAdminUpdateUser_NotFound(t *testing.T) {
 
 	status, _ := e.do(client, http.MethodPatch, "/admin/users/no-such-uuid", map[string]any{
 		"email": "x@example.com",
-		"name":  "X",
+		"name":  "Xxx",
 		"admin": false,
 	}, nil)
 	assert.Equal(t, http.StatusNotFound, status)
