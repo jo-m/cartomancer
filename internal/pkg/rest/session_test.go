@@ -60,6 +60,18 @@ func TestLogin_UnknownEmail(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, status)
 }
 
+func TestLogin_EmailNotConfirmed(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUnconfirmedUser("alice@example.com", "Alice", "secret")
+	client := e.newClient()
+
+	status, _ := e.do(client, http.MethodPost, "/sessions/login", map[string]string{
+		"email":    "alice@example.com",
+		"password": "secret",
+	}, nil)
+	assert.Equal(t, http.StatusForbidden, status)
+}
+
 func TestLogin_AlreadyLoggedIn(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("alice@example.com", "Alice", "secret", false)

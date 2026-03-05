@@ -122,6 +122,31 @@ func (e *testEnv) createUser(email, name, pass string, admin bool) string {
 	return u.Uuid
 }
 
+// createUnconfirmedUser inserts an unconfirmed user directly into the DB and returns its UUID.
+func (e *testEnv) createUnconfirmedUser(email, name, pass string) string {
+	e.t.Helper()
+
+	id, err := uuid.NewV7()
+	require.NoError(e.t, err)
+
+	now := time.Now().UTC()
+	hash, err := password.Hash(pass)
+	require.NoError(e.t, err)
+
+	u, err := e.d.QueryRW().CreateUser(e.t.Context(), db.CreateUserParams{
+		Uuid:           id.String(),
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		Email:          email,
+		Name:           name,
+		PasswordHash:   hash,
+		Admin:          0,
+		EmailConfirmed: 0,
+	})
+	require.NoError(e.t, err)
+	return u.Uuid
+}
+
 // login performs POST /sessions/login with the given client and asserts success.
 func (e *testEnv) login(client *http.Client, email, pass string) {
 	e.t.Helper()
