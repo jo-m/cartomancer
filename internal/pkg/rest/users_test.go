@@ -79,7 +79,7 @@ func TestChangePassword_WrongOld(t *testing.T) {
 		"oldPassword": "wrong",
 		"newPassword": "newpass",
 	}, nil)
-	assert.Equal(t, http.StatusUnauthorized, status)
+	assert.Equal(t, http.StatusForbidden, status)
 }
 
 func TestChangePassword_Unauthenticated(t *testing.T) {

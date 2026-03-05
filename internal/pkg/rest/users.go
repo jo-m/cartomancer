@@ -150,7 +150,7 @@ func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	if !password.Check(req.OldPassword, u.PasswordHash) {
 		logg.Warn(ctx, "invalid old password for change-password", "user", user.Uuid)
-		writeError(w, http.StatusUnauthorized, "invalid credentials")
+		writeError(w, http.StatusForbidden, "incorrect password")
 		return
 	}
 
@@ -223,7 +223,7 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !password.Check(req.Password, u.PasswordHash) {
-		writeError(w, http.StatusUnauthorized, "invalid credentials")
+		writeError(w, http.StatusForbidden, "incorrect password")
 		return
 	}
 

@@ -117,7 +117,7 @@ func TestChangeEmail_WrongPassword(t *testing.T) {
 		"newEmail": "alice-new@example.com",
 		"password": "wrong",
 	}, nil)
-	assert.Equal(t, http.StatusUnauthorized, status)
+	assert.Equal(t, http.StatusForbidden, status)
 }
 
 func TestChangeEmail_EmailTaken(t *testing.T) {
