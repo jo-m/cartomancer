@@ -47,11 +47,9 @@ func normalizeEmail(email string) string {
 
 func decodeJSON(r *http.Request, v any) error {
 	ct := r.Header.Get(headerContentType)
-	if ct != "" {
-		mediaType, _, _ := mime.ParseMediaType(ct)
-		if mediaType != "application/json" {
-			return errUnsupportedMediaType
-		}
+	mediaType, _, _ := mime.ParseMediaType(ct)
+	if mediaType != "application/json" {
+		return errUnsupportedMediaType
 	}
 	return json.NewDecoder(r.Body).Decode(v)
 }
