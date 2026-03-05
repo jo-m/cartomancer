@@ -123,20 +123,6 @@ func TestAdminUpdateUser_Success(t *testing.T) {
 	assert.Equal(t, "Alice-Two", resp["name"])
 }
 
-func TestAdminUpdateUser_TargetIsAdmin(t *testing.T) {
-	e := newTestEnv(t)
-	adminUUID := e.createUser("admin@example.com", "Admin", "adminpass", true)
-	client := e.newClient()
-	e.login(client, "admin@example.com", "adminpass")
-
-	status, _ := e.do(client, http.MethodPatch, "/admin/users/"+adminUUID, map[string]any{
-		"email": "admin2@example.com",
-		"name":  "Admin-Two",
-		"admin": true,
-	}, nil)
-	assert.Equal(t, http.StatusForbidden, status)
-}
-
 func TestAdminUpdateUser_NotFound(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
@@ -164,16 +150,6 @@ func TestAdminDeleteUser_Success(t *testing.T) {
 	// Confirm the user is gone.
 	status, _ = e.do(client, http.MethodGet, "/admin/users/"+uuid, nil, nil)
 	assert.Equal(t, http.StatusNotFound, status)
-}
-
-func TestAdminDeleteUser_TargetIsAdmin(t *testing.T) {
-	e := newTestEnv(t)
-	adminUUID := e.createUser("admin@example.com", "Admin", "adminpass", true)
-	client := e.newClient()
-	e.login(client, "admin@example.com", "adminpass")
-
-	status, _ := e.do(client, http.MethodDelete, "/admin/users/"+adminUUID, nil, nil)
-	assert.Equal(t, http.StatusForbidden, status)
 }
 
 func TestAdminDeleteUser_NotFound(t *testing.T) {
@@ -255,18 +231,6 @@ func TestAdminResetPassword_InvalidatesSessions(t *testing.T) {
 	// Alice's session is invalidated.
 	status, _ = e.do(aliceClient, http.MethodGet, "/tracks", nil, nil)
 	assert.Equal(t, http.StatusUnauthorized, status)
-}
-
-func TestAdminResetPassword_TargetIsAdmin(t *testing.T) {
-	e := newTestEnv(t)
-	adminUUID := e.createUser("admin@example.com", "Admin", "adminpass", true)
-	client := e.newClient()
-	e.login(client, "admin@example.com", "adminpass")
-
-	status, _ := e.do(client, http.MethodPost, "/admin/users/"+adminUUID+"/reset-password", map[string]any{
-		"sendEmail": false,
-	}, nil)
-	assert.Equal(t, http.StatusForbidden, status)
 }
 
 func TestAdminResetPassword_NotFound(t *testing.T) {

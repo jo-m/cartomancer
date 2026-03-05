@@ -15,8 +15,6 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/session"
 )
 
-var errTargetIsAdmin = errors.New("cannot modify admin accounts")
-
 const generatedPasswordLen = 20
 
 type adminUserResponse struct {
@@ -250,9 +248,6 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 		if txErr != nil {
 			return txErr
 		}
-		if existing.Admin != 0 {
-			return errTargetIsAdmin
-		}
 		// Check name uniqueness (case-insensitive, excluding this user).
 		if !strings.EqualFold(existing.Name, req.Name) {
 			_, txErr = q.GetUserByName(ctx, req.Name)
@@ -296,10 +291,6 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusNotFound, "user not found")
 		return
 	}
-	if errors.Is(err, errTargetIsAdmin) {
-		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
-		return
-	}
 	if errors.Is(err, errNameTaken) {
 		writeError(w, http.StatusConflict, "name already taken")
 		return
@@ -329,24 +320,16 @@ func (sv *server) handleAdminDeleteUser(w http.ResponseWriter, r *http.Request) 
 
 	userUUID := chi.URLParam(r, "uuid")
 
-	// Admin guard check and deletion must be atomic to prevent TOCTOU races.
 	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
-		target, txErr := q.GetUser(ctx, userUUID)
+		_, txErr := q.GetUser(ctx, userUUID)
 		if txErr != nil {
 			return txErr
-		}
-		if target.Admin != 0 {
-			return errTargetIsAdmin
 		}
 		_, txErr = q.DeleteUser(ctx, userUUID)
 		return txErr
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "user not found")
-		return
-	}
-	if errors.Is(err, errTargetIsAdmin) {
-		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
 		return
 	}
 	if err != nil {
@@ -384,15 +367,11 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Admin guard check and password update must be atomic to prevent TOCTOU races.
 	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
 		var txErr error
-		u, txErr := q.GetUser(ctx, userUUID)
+		_, txErr = q.GetUser(ctx, userUUID)
 		if txErr != nil {
 			return txErr
-		}
-		if u.Admin != 0 {
-			return errTargetIsAdmin
 		}
 		_, txErr = q.UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
 			UpdatedAt:    time.Now().UTC(),
@@ -407,10 +386,6 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "user not found")
-		return
-	}
-	if errors.Is(err, errTargetIsAdmin) {
-		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
 		return
 	}
 	if err != nil {
@@ -436,10 +411,6 @@ func (sv *server) handleAdminConfirmEmail(w http.ResponseWriter, r *http.Request
 		if txErr != nil {
 			return txErr
 		}
-		if target.Admin != 0 {
-			return errTargetIsAdmin
-		}
-
 		ver, txErr := q.GetEmailVerificationByUserID(ctx, userUUID)
 		if errors.Is(txErr, sql.ErrNoRows) {
 			return errNoPendingVerification
@@ -483,10 +454,6 @@ func (sv *server) handleAdminConfirmEmail(w http.ResponseWriter, r *http.Request
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "user not found")
-		return
-	}
-	if errors.Is(err, errTargetIsAdmin) {
-		writeError(w, http.StatusForbidden, "cannot modify admin accounts")
 		return
 	}
 	if errors.Is(err, errNoPendingVerification) {
