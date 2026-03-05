@@ -120,6 +120,7 @@ func (sv *server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	req.Email = normalizeEmail(req.Email)
 	if req.Email == "" {
 		writeError(w, http.StatusBadRequest, "email is required")
 		return
@@ -190,6 +191,7 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	req.Email = normalizeEmail(req.Email)
 	if req.Email == "" {
 		writeError(w, http.StatusBadRequest, "email is required")
 		return

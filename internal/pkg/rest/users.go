@@ -203,6 +203,7 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 		writeDecodeError(w, err)
 		return
 	}
+	req.NewEmail = normalizeEmail(req.NewEmail)
 	if req.NewEmail == "" {
 		writeError(w, http.StatusBadRequest, "newEmail is required")
 		return

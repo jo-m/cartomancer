@@ -43,6 +43,7 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		writeDecodeError(w, err)
 		return
 	}
+	req.Email = normalizeEmail(req.Email)
 	if req.Email == "" {
 		writeError(w, http.StatusBadRequest, "email is required")
 		return

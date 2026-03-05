@@ -41,6 +41,8 @@ func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Email = normalizeEmail(req.Email)
+
 	user, err := sv.d.QueryRO().GetUserByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

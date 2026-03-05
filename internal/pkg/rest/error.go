@@ -41,6 +41,10 @@ func writeDecodeError(w http.ResponseWriter, err error) {
 	writeError(w, http.StatusBadRequest, "invalid request body")
 }
 
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
 func decodeJSON(r *http.Request, v any) error {
 	ct := r.Header.Get(headerContentType)
 	if ct != "" {
