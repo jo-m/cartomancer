@@ -147,7 +147,9 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, msgResponse{Msg: "check your email"})
 }
 
-func (sv *server) handleConfirmRegistration(w http.ResponseWriter, r *http.Request) {
+var errNewEmailTaken = errors.New("new email already taken")
+
+func (sv *server) handleConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var req confirmTokenRequest
@@ -170,36 +172,55 @@ func (sv *server) handleConfirmRegistration(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var confirmedUser db.User
-
 	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
 		ver, txErr := q.GetEmailVerification(ctx, verUUID)
 		if txErr != nil {
 			return txErr
 		}
 
-		_, txErr = q.ConfirmUserEmail(ctx, db.ConfirmUserEmailParams{
-			UpdatedAt: time.Now().UTC(),
-			Uuid:      ver.UserID,
-		})
+		user, txErr := q.GetUser(ctx, ver.UserID)
+		if txErr != nil {
+			return txErr
+		}
+
+		if ver.Email == user.Email {
+			// Registration confirmation: just mark as confirmed.
+			_, txErr = q.ConfirmUserEmail(ctx, db.ConfirmUserEmailParams{
+				UpdatedAt: time.Now().UTC(),
+				Uuid:      ver.UserID,
+			})
+		} else {
+			// Email change: check availability, then update.
+			_, txErr = q.GetUserByEmail(ctx, ver.Email)
+			if txErr == nil {
+				return errNewEmailTaken
+			}
+			if !errors.Is(txErr, sql.ErrNoRows) {
+				return txErr
+			}
+			_, txErr = q.UpdateUserEmail(ctx, db.UpdateUserEmailParams{
+				Email:     ver.Email,
+				UpdatedAt: time.Now().UTC(),
+				Uuid:      ver.UserID,
+			})
+		}
 		if txErr != nil {
 			return txErr
 		}
 
 		_, txErr = q.DeleteEmailVerification(ctx, ver.Uuid)
-		if txErr != nil {
-			return txErr
-		}
-
-		confirmedUser, txErr = q.GetUser(ctx, ver.UserID)
 		return txErr
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "invalid token")
 		return
 	}
+	if errors.Is(err, errNewEmailTaken) {
+		writeError(w, http.StatusConflict, "email already taken")
+		return
+	}
 	if err != nil {
-		logg.Error(ctx, "failed to confirm registration", "err", err)
+		logg.Error(ctx, "failed to confirm email", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
@@ -212,6 +233,6 @@ func (sv *server) handleConfirmRegistration(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	logg.Info(ctx, "registration confirmed", "user", confirmedUser.Uuid)
+	logg.Info(ctx, "email confirmed", "verification", verUUID)
 	writeJSON(w, http.StatusOK, msgResponse{Msg: "email confirmed"})
 }

@@ -16,7 +16,7 @@ export default function ConfirmEmail() {
     setConfirming(true)
     setError(null)
     try {
-      await fetchClient.POST("/register/confirm", { body: { token } })
+      await fetchClient.POST("/confirm-email", { body: { token } })
       invalidateSession()
       setConfirmed(true)
     } catch (err) {

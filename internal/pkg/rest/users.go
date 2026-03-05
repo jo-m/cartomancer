@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
@@ -195,8 +194,6 @@ type changeEmailRequest struct {
 	Password string `json:"password"`
 }
 
-var errNewEmailTaken = errors.New("new email already taken")
-
 func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := session.GetUser(ctx)
@@ -289,94 +286,4 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, msgResponse{Msg: "check your email"})
-}
-
-var errUserMismatch = errors.New("token does not belong to this user")
-
-func (sv *server) handleConfirmChangeEmail(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	user := session.GetUser(ctx)
-
-	var req confirmTokenRequest
-	if err := decodeJSON(r, &req); err != nil {
-		writeDecodeError(w, err)
-		return
-	}
-	if req.Token == "" {
-		writeError(w, http.StatusBadRequest, "token is required")
-		return
-	}
-
-	verUUID, err := verifyEmailToken(req.Token, sv.emailJWTSecret, sv.appConfig.AppName)
-	if err != nil {
-		if errors.Is(err, jwt.ErrTokenExpired) {
-			writeError(w, http.StatusGone, "token expired")
-			return
-		}
-		writeError(w, http.StatusNotFound, "invalid token")
-		return
-	}
-
-	var updatedUser db.User
-
-	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
-		ver, txErr := q.GetEmailVerification(ctx, verUUID)
-		if txErr != nil {
-			return txErr
-		}
-
-		if ver.UserID != user.Uuid {
-			return errUserMismatch
-		}
-
-		// Check the new email is still available.
-		_, txErr = q.GetUserByEmail(ctx, ver.Email)
-		if txErr == nil {
-			return errNewEmailTaken
-		}
-		if !errors.Is(txErr, sql.ErrNoRows) {
-			return txErr
-		}
-
-		_, txErr = q.UpdateUserEmail(ctx, db.UpdateUserEmailParams{
-			Email:     ver.Email,
-			UpdatedAt: time.Now().UTC(),
-			Uuid:      user.Uuid,
-		})
-		if txErr != nil {
-			return txErr
-		}
-
-		_, txErr = q.DeleteEmailVerification(ctx, ver.Uuid)
-		if txErr != nil {
-			return txErr
-		}
-
-		updatedUser, txErr = q.GetUser(ctx, user.Uuid)
-		return txErr
-	})
-	if errors.Is(err, sql.ErrNoRows) {
-		writeError(w, http.StatusNotFound, "invalid token")
-		return
-	}
-	if errors.Is(err, errUserMismatch) {
-		writeError(w, http.StatusForbidden, "token does not belong to this user")
-		return
-	}
-	if errors.Is(err, errNewEmailTaken) {
-		writeError(w, http.StatusConflict, "email already taken")
-		return
-	}
-	if err != nil {
-		logg.Error(ctx, "failed to confirm email change", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	writeJSON(w, http.StatusOK, userResponse{
-		UUID:  updatedUser.Uuid,
-		Email: updatedUser.Email,
-		Name:  updatedUser.Name,
-		Admin: updatedUser.Admin != 0,
-	})
 }

@@ -59,7 +59,7 @@ func TestRegister_Confirm_Login(t *testing.T) {
 
 	// Confirm (no auto-login, returns message).
 	var msgResp map[string]any
-	status, _ = e.do(client, http.MethodPost, "/register/confirm", map[string]string{
+	status, _ = e.do(client, http.MethodPost, "/confirm-email", map[string]string{
 		"token": token,
 	}, &msgResp)
 	assert.Equal(t, http.StatusOK, status)
@@ -78,7 +78,7 @@ func TestRegister_Confirm_InvalidToken(t *testing.T) {
 	e := newTestEnv(t)
 	client := e.newClient()
 
-	status, _ := e.do(client, http.MethodPost, "/register/confirm", map[string]string{
+	status, _ := e.do(client, http.MethodPost, "/confirm-email", map[string]string{
 		"token": "nonexistent",
 	}, nil)
 	assert.Equal(t, http.StatusNotFound, status)
@@ -97,14 +97,22 @@ func TestChangeEmail_Success(t *testing.T) {
 	}, nil)
 	assert.Equal(t, http.StatusOK, status)
 
-	// Confirm.
+	// Confirm via unified endpoint (no auth required).
 	token := e.getVerificationJWT(t, "alice@example.com")
 	var resp map[string]any
-	status, _ = e.do(client, http.MethodPost, "/account/change-email/confirm", map[string]string{
+	status, _ = e.do(client, http.MethodPost, "/confirm-email", map[string]string{
 		"token": token,
 	}, &resp)
 	assert.Equal(t, http.StatusOK, status)
-	assert.Equal(t, "alice-new@example.com", resp["email"])
+	assert.Equal(t, "email confirmed", resp["msg"])
+
+	// Verify email was actually changed.
+	client2 := e.newClient()
+	status, _ = e.do(client2, http.MethodPost, "/sessions/login", map[string]string{
+		"email":    "alice-new@example.com",
+		"password": "secret",
+	}, nil)
+	assert.Equal(t, http.StatusOK, status)
 }
 
 func TestChangeEmail_WrongPassword(t *testing.T) {

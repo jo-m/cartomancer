@@ -56,7 +56,7 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 
 	mux.Group(func(r chi.Router) {
 		r.Post("/register", sv.handleRegister)
-		r.Post("/register/confirm", sv.handleConfirmRegistration)
+		r.Post("/confirm-email", sv.handleConfirmEmail)
 	})
 
 	mux.Group(func(r chi.Router) {
@@ -84,7 +84,6 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 		r.Delete("/account", sv.handleDeleteAccount)
 		r.Post("/account/change-password", sv.handleChangePassword)
 		r.Post("/account/change-email", sv.handleChangeEmail)
-		r.Post("/account/change-email/confirm", sv.handleConfirmChangeEmail)
 	})
 
 	mux.Group(func(r chi.Router) {
