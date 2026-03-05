@@ -114,3 +114,42 @@ func TestLogout_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, status)
 	assert.Nil(t, resp["user"])
 }
+
+func TestLogin_MixedCaseEmail(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+
+	status, _ := e.do(client, http.MethodPost, "/sessions/login", map[string]string{
+		"email":    "ALICE@EXAMPLE.COM",
+		"password": "secret",
+	}, nil)
+	assert.Equal(t, http.StatusOK, status)
+}
+
+func TestLogin_EmptyFields(t *testing.T) {
+	tests := []struct {
+		desc string
+		body map[string]string
+	}{
+		{"empty email", map[string]string{"email": "", "password": "secret"}},
+		{"empty password", map[string]string{"email": "alice@example.com", "password": ""}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			e := newTestEnv(t)
+			e.createUser("alice@example.com", "Alice", "secret", false)
+			client := e.newClient()
+			status, _ := e.do(client, http.MethodPost, "/sessions/login", tc.body, nil)
+			assert.Equal(t, http.StatusUnauthorized, status)
+		})
+	}
+}
+
+func TestLogout_Anonymous(t *testing.T) {
+	e := newTestEnv(t)
+	client := e.newClient()
+
+	status, _ := e.do(client, http.MethodPost, "/sessions/logout", nil, nil)
+	assert.Equal(t, http.StatusNoContent, status)
+}

@@ -4,10 +4,12 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/http/cookiejar"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/detour/internal/pkg/password"
 )
 
 func TestUpdateAccount_Success(t *testing.T) {
@@ -137,6 +139,87 @@ func TestChangePassword_InvalidatesOtherSessions(t *testing.T) {
 	// middleware creates anonymous session).
 	status, _ = e.do(client2, http.MethodGet, "/tracks", nil, nil)
 	assert.Equal(t, http.StatusUnauthorized, status)
+}
+
+func TestUpdateAccount_NameTaken(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("bob@example.com", "Bob", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": "Bob"}, nil)
+	assert.Equal(t, http.StatusConflict, status)
+}
+
+func TestUpdateAccount_InvalidName(t *testing.T) {
+	tests := []struct {
+		desc string
+		name string
+	}{
+		{"too short", "ab"},
+		{"too long", strings.Repeat("a", 33)},
+		{"consecutive hyphens", "al--ice"},
+		{"consecutive underscores", "al__ice"},
+		{"contains digit", "ali123"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			e := newTestEnv(t)
+			e.createUser("alice@example.com", "Alice", "secret", false)
+			client := e.newClient()
+			e.login(client, "alice@example.com", "secret")
+
+			status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": tc.name}, nil)
+			assert.Equal(t, http.StatusBadRequest, status)
+		})
+	}
+}
+
+func TestUpdateAccount_SameName(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	var resp map[string]any
+	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": "Alice"}, &resp)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, "Alice", resp["name"])
+}
+
+func TestChangePassword_NewPasswordTooLong(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "oldpass", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "oldpass")
+
+	status, _ := e.do(client, http.MethodPost, "/account/change-password", map[string]string{
+		"oldPassword": "oldpass",
+		"newPassword": strings.Repeat("x", password.MaxPasswordLen+1),
+	}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
+}
+
+func TestChangePassword_EmptyFields(t *testing.T) {
+	tests := []struct {
+		desc string
+		body map[string]string
+	}{
+		{"empty oldPassword", map[string]string{"oldPassword": "", "newPassword": "newpass"}},
+		{"empty newPassword", map[string]string{"oldPassword": "oldpass", "newPassword": ""}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			e := newTestEnv(t)
+			e.createUser("alice@example.com", "Alice", "oldpass", false)
+			client := e.newClient()
+			e.login(client, "alice@example.com", "oldpass")
+
+			status, _ := e.do(client, http.MethodPost, "/account/change-password", tc.body, nil)
+			assert.Equal(t, http.StatusBadRequest, status)
+		})
+	}
 }
 
 func TestDeleteAccount_RegularUser(t *testing.T) {
