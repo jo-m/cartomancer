@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/franiglesias/golden"
 	"github.com/stretchr/testify/require"
 )
 
@@ -84,4 +85,66 @@ func TestCell(t *testing.T) {
 	center, _ := cell.LatLng()
 	distDeg := math.Sqrt(math.Pow(center.Lat-berlin.Lat, 2) + math.Pow(center.Lng-berlin.Lon, 2))
 	require.Less(t, distDeg, 1.0)
+}
+
+func TestSubsample(t *testing.T) {
+	// Helper: create a point at a given latitude on the equator.
+	pt := func(lat float64) Point {
+		return Point{Lat: lat, Lon: 0}
+	}
+
+	t.Run("empty", func(t *testing.T) {
+		require.Nil(t, Points(nil).Subsample(100))
+	})
+
+	t.Run("single point", func(t *testing.T) {
+		pts := Points{pt(0)}
+		got := pts.Subsample(100)
+		require.Equal(t, pts, got)
+	})
+
+	t.Run("two points", func(t *testing.T) {
+		pts := Points{pt(0), pt(1)}
+		got := pts.Subsample(100)
+		require.Equal(t, pts, got)
+	})
+
+	t.Run("keeps first and last", func(t *testing.T) {
+		// Three points very close together; middle one should be dropped.
+		pts := Points{pt(0), pt(0.000001), pt(0.000002)}
+		got := pts.Subsample(1000)
+		require.Len(t, got, 2)
+		require.Equal(t, pts[0], got[0])
+		require.Equal(t, pts[2], got[1])
+	})
+
+	t.Run("keeps distant points", func(t *testing.T) {
+		// Points spaced ~111 km apart (1 degree latitude at equator).
+		pts := Points{pt(0), pt(1), pt(2), pt(3)}
+		got := pts.Subsample(50_000) // 50 km threshold, all are >111 km apart.
+		require.Equal(t, pts, got)
+	})
+
+	t.Run("filters close points", func(t *testing.T) {
+		// 5 points: 0, 0.001, 0.002, 0.003, 1.0 degrees latitude.
+		// At equator, 0.001 deg ~ 111 m. With 200 m threshold, only every other close point is kept.
+		pts := Points{pt(0), pt(0.001), pt(0.002), pt(0.003), pt(1)}
+		got := pts.Subsample(200)
+		require.Equal(t, pt(0), got[0])
+		require.Equal(t, pt(1), got[len(got)-1])
+		// Middle close points should be thinned out.
+		require.Less(t, len(got), len(pts))
+	})
+}
+
+func TestPreviewSVGPfanni(t *testing.T) {
+	pts := loadGPXPoints(t, "testdata/pfanni highlights.gpx")
+	svg := pts.PreviewSVG(256)
+	golden.Verify(t, svg) // golden.WaitApproval()
+}
+
+func TestPreviewSVGSee(t *testing.T) {
+	pts := loadGPXPoints(t, "testdata/See.gpx")
+	svg := pts.PreviewSVG(256)
+	golden.Verify(t, svg) // golden.WaitApproval()
 }
