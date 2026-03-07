@@ -30,28 +30,6 @@ func (c *Cells) NCells() int {
 	return len(c.cells) - c.nZeros
 }
 
-// pointSegments is a mutable list of point sequences used during segmentation.
-type pointSegments [][]Point
-
-// newPointSegments creates a new pointSegments with one segment containing first.
-func newPointSegments(first Point) *pointSegments {
-	return &pointSegments{[]Point{first}}
-}
-
-// add appends p to the last segment.
-func (s *pointSegments) add(p Point) {
-	(*s)[len(*s)-1] = append((*s)[len(*s)-1], p)
-}
-
-// newSeg starts a new empty segment, unless the last segment is already empty.
-func (s *pointSegments) newSeg() {
-	last := (*s)[len(*s)-1]
-	if len(last) == 0 {
-		return
-	}
-	*s = append(*s, []Point{})
-}
-
 const (
 	// maxPointDistRecordedM is the maximum allowed distance in meters between consecutive
 	// points in a recorded track before a new segment is started.
@@ -61,14 +39,15 @@ const (
 // checkAndSplit validates points and splits them into segments.
 // For recorded tracks, a new segment is started whenever consecutive points are more than
 // maxPointDistRecordedM apart. Segments with fewer than two points are discarded.
+// Returns sub-slices of points; no new point storage is allocated.
 // Returns an error if there are fewer than two points or timestamps are not ordered.
 func checkAndSplit(points []Point, recorded bool) ([][]Point, error) {
 	if len(points) < 2 {
 		return nil, fmt.Errorf("not enough points")
 	}
 
-	// TODO: slice on arg points instead of allocating new storage..
-	segs := newPointSegments(points[0])
+	segStart := 0
+	var segs [][]Point
 
 	for i, p1 := range points[1:] {
 		p0 := points[i]
@@ -80,22 +59,20 @@ func checkAndSplit(points []Point, recorded bool) ([][]Point, error) {
 		if recorded {
 			d := p1.MetersTo(&p0)
 			if d > maxPointDistRecordedM {
-				segs.newSeg()
+				if seg := points[segStart : i+1]; len(seg) > 1 {
+					segs = append(segs, seg)
+				}
+				segStart = i + 1
 			}
 		}
-
-		segs.add(p1)
 	}
 
-	// Strip any segments with only one point.
-	ret := [][]Point{}
-	for _, seg := range *segs {
-		if len(seg) > 1 {
-			ret = append(ret, seg)
-		}
+	// Flush the last segment.
+	if seg := points[segStart:]; len(seg) > 1 {
+		segs = append(segs, seg)
 	}
 
-	return ret, nil
+	return segs, nil
 }
 
 // interpolatePoints converts a sequence of points into a deduplicated list of H3 cells

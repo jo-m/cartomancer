@@ -255,6 +255,76 @@ func TestCellsFromBytes_InvalidData(t *testing.T) {
 	require.Error(t, err)
 }
 
+func BenchmarkNewCells_SmallPlanned(b *testing.B) {
+	t0 := time.Now()
+	pts := line(52.50, 13.40, 52.55, 13.45, 50, t0)
+	src := &mockSource{
+		meta:   Metadata{TrackType: TrackTypePlanned},
+		points: pts,
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		_, err := NewCells(src, 7)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkNewCells_LargePlanned(b *testing.B) {
+	t0 := time.Now()
+	pts := line(52.50, 13.40, 53.50, 14.40, 5000, t0)
+	src := &mockSource{
+		meta:   Metadata{TrackType: TrackTypePlanned},
+		points: pts,
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		_, err := NewCells(src, 7)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkNewCells_RecordedWithSegments(b *testing.B) {
+	t0 := time.Now()
+	seg1 := line(52.520, 13.405, 52.530, 13.415, 500, t0)
+	seg2 := line(52.620, 13.505, 52.630, 13.515, 500, t0.Add(10*time.Minute))
+	seg3 := line(52.720, 13.605, 52.730, 13.615, 500, t0.Add(20*time.Minute))
+	pts := append(append(seg1, seg2...), seg3...)
+	src := &mockSource{
+		meta:   Metadata{TrackType: TrackTypeRecorded},
+		points: pts,
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		_, err := NewCells(src, 7)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkNewCells_HighResolution(b *testing.B) {
+	t0 := time.Now()
+	pts := line(52.50, 13.40, 52.55, 13.45, 500, t0)
+	src := &mockSource{
+		meta:   Metadata{TrackType: TrackTypePlanned},
+		points: pts,
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		_, err := NewCells(src, 10)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
 
 func TestNCells_ExcludesZeros(t *testing.T) {
 	t0 := time.Now()
