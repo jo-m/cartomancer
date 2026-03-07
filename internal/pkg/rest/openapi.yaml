@@ -713,6 +713,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/{uuid}/preview.svg:
+    get:
+      summary: Download the track preview SVG
+      operationId: downloadTrackPreviewSVG
+      tags: [Tracks]
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Track preview SVG image
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Track not found, not accessible, or preview not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /tracks/editing:
     get:
       summary: List tracks pending initial editing

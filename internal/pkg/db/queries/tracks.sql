@@ -7,7 +7,8 @@ INSERT INTO tracks (
   total_distance_m, total_ascent_m,
   start_lat, start_lon, end_lat, end_lon,
   original_created_at,
-  public
+  public,
+  preview_svg_blob_id
 ) VALUES (
   ?, ?, ?, ?, ?, ?, ?,
   ?, ?, ?, ?, ?,
@@ -15,6 +16,7 @@ INSERT INTO tracks (
   ?, ?,
   ?, ?,
   ?, ?, ?, ?,
+  ?,
   ?,
   ?
 )

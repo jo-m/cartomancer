@@ -198,6 +198,39 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 	}
 }
 
+func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.MustGetUser(ctx)
+	trackUUID := chi.URLParam(r, "uuid")
+
+	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "track not found")
+			return
+		}
+		logg.Error(ctx, "failed to get track", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	if t.Public == 0 && user.Uuid != t.UserID {
+		writeError(w, http.StatusNotFound, "track not found")
+		return
+	}
+
+	if !t.PreviewSvgBlobID.Valid {
+		writeError(w, http.StatusNotFound, "preview not available")
+		return
+	}
+
+	if err := blob.Serve(w, r, sv.d.QueryRO(), t.PreviewSvgBlobID.String, "image/svg+xml", t.Uuid+".svg"); err != nil {
+		logg.Error(ctx, "failed to serve preview svg", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+}
+
 type editTrackRequest struct {
 	Name          string   `json:"name"`
 	Description   string   `json:"description"`
@@ -792,12 +825,21 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	svgBlobID, err := uuid.NewV7()
+	if err != nil {
+		logg.Error(ctx, "failed to generate svg blob uuid", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
 	trackID, err := uuid.NewV7()
 	if err != nil {
 		logg.Error(ctx, "failed to generate track uuid", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
+
+	svgContent := []byte(t.PreviewSVG(512))
 
 	now := time.Now().UTC()
 	var created db.Track
@@ -811,6 +853,11 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_, txErr = blob.Create(ctx, q, blobID.String(), content, blob.CompressionZstd)
+		if txErr != nil {
+			return txErr
+		}
+
+		_, txErr = blob.Create(ctx, q, svgBlobID.String(), svgContent, blob.CompressionZstd)
 		if txErr != nil {
 			return txErr
 		}
@@ -840,6 +887,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			EndLon:            toNullFloat64(meta.EndLon),
 			OriginalCreatedAt: toNullTime(meta.OriginalCreatedAt),
 			Public:            0,
+			PreviewSvgBlobID:  sql.NullString{Valid: true, String: svgBlobID.String()},
 		})
 		return txErr
 	})

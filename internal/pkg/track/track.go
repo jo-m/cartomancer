@@ -137,6 +137,11 @@ func (t *Track) EnhancedMetadata() Metadata {
 	return ret
 }
 
+// PreviewSVG generates a square SVG preview image of the track at the given pixel size.
+func (t *Track) PreviewSVG(size int) string {
+	return Points(t.pts).PreviewSVG(size)
+}
+
 type TrackSource interface {
 	Metadata() Metadata
 	All() iter.Seq[Point]
