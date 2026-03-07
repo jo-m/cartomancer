@@ -39,6 +39,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await fetchClient.POST("/sessions/logout")
+    sessionStorage.clear()
     queryClient.setQueryData(["get", "/sessions"], { user: null })
   }, [queryClient])
 
