@@ -1,7 +1,7 @@
 -- +goose Up
 CREATE TABLE tags (
     id INTEGER PRIMARY KEY,
-    tag TEXT NOT NULL,
+    tag TEXT NOT NULL CHECK(LENGTH(tag) > 0),
     user_id TEXT NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
     UNIQUE(tag, user_id)
 );

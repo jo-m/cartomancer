@@ -10,9 +10,9 @@ CREATE TABLE sessions (
     FOREIGN KEY(user_id) REFERENCES users(uuid) ON DELETE CASCADE
 );
 CREATE TABLE sessions_data (
-    session_id TEXT NOT NULL,
-    key TEXT NOT NULL,
-    data TEXT NOT NULL,
+    session_id TEXT NOT NULL CHECK(LENGTH(session_id) > 0),
+    key TEXT NOT NULL CHECK(LENGTH(key) > 0),
+    data TEXT NOT NULL CHECK(LENGTH(data) > 0),
     FOREIGN KEY(session_id) REFERENCES sessions(uuid) ON DELETE CASCADE,
     UNIQUE (session_id, key)
 );

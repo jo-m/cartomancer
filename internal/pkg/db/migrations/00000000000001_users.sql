@@ -9,7 +9,7 @@ CREATE TABLE users (
     last_login_at DATETIME,
     last_active_at DATETIME,
 
-    email TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE CHECK(LENGTH(email) > 3),
     name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     otp_secret BLOB DEFAULT NULL,

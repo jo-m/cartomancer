@@ -17,8 +17,8 @@ CREATE TABLE jobs (
     delay_s INTEGER NOT NULL DEFAULT 0,
     backoff_factor_s INTEGER NOT NULL DEFAULT 0,
 
-    kind TEXT NOT NULL,
-    args_json TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK(LENGTH(kind) > 0),
+    args_json TEXT NOT NULL CHECK(LENGTH(args_json) > 0),
     error TEXT
 );
 CREATE TABLE job_runner_pid (

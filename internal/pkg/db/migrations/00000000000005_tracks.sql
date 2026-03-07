@@ -14,7 +14,7 @@ CREATE TABLE tracks (
     blob_id TEXT NOT NULL,
     file_format INTEGER NOT NULL,
 
-    name TEXT NOT NULL,
+    name TEXT NOT NULL CHECK(LENGTH(name) > 0),
     description TEXT,
     source TEXT,
     author TEXT,
