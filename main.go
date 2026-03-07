@@ -55,7 +55,6 @@ func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig,
 	mux.Use(logg.RequestLogger)
 	mux.Use(middleware.RequestSize(1024 * 1024))
 	mux.Use(middleware.Compress(5))
-	mux.Use(middleware.RedirectSlashes)
 	mux.Use(sess.Middleware)
 	mux.Use(middleware.Recoverer)
 
