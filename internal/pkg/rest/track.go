@@ -725,7 +725,7 @@ func boolToInt(b bool) int {
 }
 
 const (
-	maxUploadSize    = 1 << 20 // 1 MiB
+	maxUploadSize    = 5 << 20 // 5 MiB
 	minTrackPoints   = 3
 	maxTrackPoints   = 100_000
 	minTrackDistM    = 10       // 10 m
