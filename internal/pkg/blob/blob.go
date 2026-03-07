@@ -5,6 +5,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/DataDog/zstd"
 	"jo-m.ch/go/detour/internal/pkg/db"
@@ -58,6 +61,74 @@ func Create(ctx context.Context, q *db.Queries, id string, content []byte, compr
 	}
 
 	return Blob{ID: id, Content: content}, nil
+}
+
+// acceptsZstd reports whether the request's Accept-Encoding header includes zstd
+// with a non-zero q-value.
+func acceptsZstd(r *http.Request) bool {
+	for _, part := range strings.Split(r.Header.Get("Accept-Encoding"), ",") {
+		part = strings.TrimSpace(part)
+		enc := part
+		q := 1.0
+		if i := strings.IndexByte(part, ';'); i >= 0 {
+			enc = strings.TrimSpace(part[:i])
+			param := strings.TrimSpace(part[i+1:])
+			if strings.HasPrefix(param, "q=") {
+				if v, err := strconv.ParseFloat(param[2:], 64); err == nil {
+					q = v
+				}
+			}
+		}
+		if strings.EqualFold(enc, "zstd") && q > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// Serve writes the blob identified by id to w, setting the given contentType and filename.
+// If the client advertises zstd support in Accept-Encoding and the blob is stored
+// zstd-compressed, the raw compressed bytes are forwarded directly with a
+// Content-Encoding: zstd header to avoid an unnecessary decompress/recompress cycle.
+// An error is returned if the database fetch or decompression fails; note that if the
+// error occurs after headers have already been written, the caller cannot send an error
+// response.
+func Serve(w http.ResponseWriter, r *http.Request, q *db.Queries, id, contentType, filename string) error {
+	raw, err := q.GetBlob(r.Context(), id)
+	if err != nil {
+		return err
+	}
+
+	comp := Compression(raw.Compression)
+
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename=%q`, filename))
+
+	if comp == CompressionZstd && acceptsZstd(r) {
+		w.Header().Set("Content-Encoding", "zstd")
+		w.Header().Set("Content-Length", strconv.Itoa(len(raw.Content)))
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write(raw.Content)
+		return err
+	}
+
+	content := raw.Content
+	switch comp {
+	case CompressionNone:
+		// No decompression needed.
+	case CompressionZstd:
+		content, err = zstd.Decompress(nil, raw.Content)
+		if err != nil {
+			return fmt.Errorf("zstd decompress: %w", err)
+		}
+	default:
+		return fmt.Errorf("unknown compression type: %d", raw.Compression)
+	}
+
+	w.Header().Set("Content-Length", strconv.Itoa(len(content)))
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(content)
+	return err
 }
 
 // Get retrieves a blob and decompresses its content if needed.

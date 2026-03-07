@@ -181,13 +181,6 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
-	if err != nil {
-		logg.Error(ctx, "failed to get blob", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
 	var contentType string
 	switch track.FileFormat(t.FileFormat) {
 	case track.FileFormatGPX:
@@ -198,11 +191,11 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 		contentType = "application/octet-stream"
 	}
 
-	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename=%q`, t.OriginalFilename))
-	w.Header().Set("Content-Length", strconv.Itoa(len(b.Content)))
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(b.Content)
+	if err := blob.Serve(w, r, sv.d.QueryRO(), t.BlobID, contentType, t.OriginalFilename); err != nil {
+		logg.Error(ctx, "failed to serve blob", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
 }
 
 type editTrackRequest struct {
