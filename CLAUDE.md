@@ -264,6 +264,7 @@ Keep it very simple and barebones.
 - Vite build outputs to `../static/` which the Go server embeds and serves.
 - All data views/tables must always be searchable/paginatable/filterable.
 - All links, including nav etc. must be proper `<a>` links such that right click, open in new tab etc. work as expected.
+- URL paths used in the router should generally roughly mirror those from the API. E.g. the tracks upload page (POST /api/tracks) should be at /tracks/uploads.
 
 ## Linting
 
