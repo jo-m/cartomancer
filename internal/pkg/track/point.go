@@ -2,8 +2,9 @@
 package track
 
 import (
-	"math"
 	"time"
+
+	"github.com/uber/h3-go/v4"
 )
 
 type Point struct {
@@ -12,27 +13,16 @@ type Point struct {
 	Elevation float64
 }
 
-// MetersTo computes distance in meters to another point.
-// TODO: Use `func GreatCircleDistanceM(a, b LatLng) float64`
+// MetersTo computes the great-circle distance in meters to another point.
+// Elevation is ignored because it is unreliable and negligible for our purposes (ca. 0.5% at 10% grade).
 func (p *Point) MetersTo(other *Point) float64 {
-	// https://www.movable-type.co.uk/scripts/latlong.html
-
-	const R = 6371e3              // metres
-	phi0 := p.Lat * math.Pi / 180 // φ, λ in radians
-	phi1 := other.Lat * math.Pi / 180
-	dPhi := (other.Lat - p.Lat) * math.Pi / 180
-	dLambda := (other.Lon - p.Lon) * math.Pi / 180
-
-	a := math.Sin(dPhi/2)*math.Sin(dPhi/2) +
-		math.Cos(phi0)*math.Cos(phi1)*
-			math.Sin(dLambda/2)*math.Sin(dLambda/2)
-	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-
-	// We ignore elevation for distance calculation because it is unreliable
-	// and in practice is negligible (e.g. ca. 0.5% at 10% grade).
-	return R * c
+	return h3.GreatCircleDistanceM(
+		h3.LatLng{Lat: p.Lat, Lng: p.Lon},
+		h3.LatLng{Lat: other.Lat, Lng: other.Lon},
+	)
 }
 
+// Sub returns p - other (lat, lon, elevation).
 func (p *Point) Sub(other *Point) Point {
 	return Point{
 		Lat:       p.Lat - other.Lat,
@@ -41,6 +31,7 @@ func (p *Point) Sub(other *Point) Point {
 	}
 }
 
+// Add returns p + other (lat, lon, elevation).
 func (p *Point) Add(other *Point) Point {
 	return Point{
 		Lat:       p.Lat + other.Lat,
@@ -49,6 +40,7 @@ func (p *Point) Add(other *Point) Point {
 	}
 }
 
+// Mul scales lat, lon, and elevation by x.
 func (p *Point) Mul(x float64) Point {
 	return Point{
 		Lat:       p.Lat * x,
@@ -57,6 +49,7 @@ func (p *Point) Mul(x float64) Point {
 	}
 }
 
+// Interpolate returns the point at fraction x (0-1) between p and other.
 func (p *Point) Interpolate(other *Point, x float64) Point {
 	if x > 1 {
 		panic("x cannot be > 1")
@@ -68,6 +61,19 @@ func (p *Point) Interpolate(other *Point, x float64) Point {
 	d := other.Sub(p)
 	dx := d.Mul(x)
 	return p.Add(&dx)
+}
+
+// Cell returns the H3 cell containing p at the given resolution.
+func (p *Point) Cell(resolution int) h3.Cell {
+	latLng := h3.LatLng{
+		Lat: p.Lat,
+		Lng: p.Lon,
+	}
+	cell, err := h3.LatLngToCell(latLng, resolution)
+	if err != nil {
+		panic(err)
+	}
+	return cell
 }
 
 type Points []Point

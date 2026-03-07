@@ -260,6 +260,9 @@ Keep it very simple and barebones.
 - Vite build outputs to `../static/` which the Go server embeds and serves.
 - All data views/tables must always be searchable/paginatable/filterable.
 - All links, including nav etc. must be proper `<a>` links such that right click, open in new tab etc. work as expected.
+- All public fns must have docstrings.
+- All code comments must be grammatical complete sentences and end with punctuation. Interjections are grammatically also complete sentences.
+- Do not usually use special characters in comments. E.g. instead of → use ->.
 
 ## Linting
 

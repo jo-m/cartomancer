@@ -26,8 +26,10 @@ require (
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.27.0
 	github.com/stretchr/testify v1.11.1
+	github.com/uber/h3-go/v4 v4.4.0
 	github.com/wneessen/go-mail v0.7.2
 	golang.org/x/crypto v0.48.0
+	gonum.org/v1/gonum v0.17.0
 	modernc.org/sqlite v1.46.1
 )
 
