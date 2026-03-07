@@ -494,7 +494,7 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: A .gpx or .fit file (max 1 MiB)
+                  description: A .gpx or .fit file (max 5 MiB)
       responses:
         "201":
           description: Track created
