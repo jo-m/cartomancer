@@ -79,7 +79,7 @@ type ListTracksResult struct {
 }
 
 // trackScanCols must match the column order in the Track struct exactly.
-const trackScanCols = `uuid, created_at, updated_at, user_id, public, blob_id, file_format, name, description, source, author, author_link_url, track_type, link_url, sport, sub_sport, total_distance_m, total_ascent_m, start_lat, start_lon, end_lat, end_lon, original_created_at`
+const trackScanCols = `uuid, created_at, updated_at, user_id, public, blob_id, file_format, original_filename, name, description, source, author, author_link_url, track_type, link_url, sport, sub_sport, total_distance_m, total_ascent_m, start_lat, start_lon, end_lat, end_lon, original_created_at`
 
 func scanTrack(rows *sql.Rows) (Track, error) {
 	var i Track
@@ -91,6 +91,7 @@ func scanTrack(rows *sql.Rows) (Track, error) {
 		&i.Public,
 		&i.BlobID,
 		&i.FileFormat,
+		&i.OriginalFilename,
 		&i.Name,
 		&i.Description,
 		&i.Source,

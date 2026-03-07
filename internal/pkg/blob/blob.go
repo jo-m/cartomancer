@@ -29,13 +29,12 @@ const (
 
 // Blob is a decompressed blob, ready to use.
 type Blob struct {
-	ID       string
-	Filename string
-	Content  []byte
+	ID      string
+	Content []byte
 }
 
 // Create inserts a blob, optionally compressing its content.
-func Create(ctx context.Context, q *db.Queries, id, filename string, content []byte, compression Compression) (Blob, error) {
+func Create(ctx context.Context, q *db.Queries, id string, content []byte, compression Compression) (Blob, error) {
 	hash := sha256.Sum256(content)
 
 	stored := content
@@ -49,7 +48,6 @@ func Create(ctx context.Context, q *db.Queries, id, filename string, content []b
 
 	_, err := q.CreateBlob(ctx, db.CreateBlobParams{
 		Uuid:        id,
-		Filename:    filename,
 		Compression: int64(compression),
 		Content:     stored,
 		HashType:    int64(HashTypeSHA256),
@@ -59,7 +57,7 @@ func Create(ctx context.Context, q *db.Queries, id, filename string, content []b
 		return Blob{}, err
 	}
 
-	return Blob{ID: id, Filename: filename, Content: content}, nil
+	return Blob{ID: id, Content: content}, nil
 }
 
 // Get retrieves a blob and decompresses its content if needed.
@@ -82,8 +80,7 @@ func Get(ctx context.Context, q *db.Queries, id string) (Blob, error) {
 	}
 
 	return Blob{
-		ID:       raw.Uuid,
-		Filename: raw.Filename,
-		Content:  content,
+		ID:      raw.Uuid,
+		Content: content,
 	}, nil
 }

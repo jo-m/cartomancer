@@ -199,7 +199,7 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename=%q`, b.Filename))
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename=%q`, t.OriginalFilename))
 	w.Header().Set("Content-Length", strconv.Itoa(len(b.Content)))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(b.Content)
@@ -817,7 +817,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			return errUploadTrackLimitReached
 		}
 
-		_, txErr = blob.Create(ctx, q, blobID.String(), header.Filename, content, blob.CompressionZstd)
+		_, txErr = blob.Create(ctx, q, blobID.String(), content, blob.CompressionZstd)
 		if txErr != nil {
 			return txErr
 		}
@@ -829,6 +829,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			UserID:            user.Uuid,
 			BlobID:            blobID.String(),
 			FileFormat:        int64(fileFormatFromExt(header.Filename)),
+			OriginalFilename:  header.Filename,
 			Name:              meta.Name,
 			Description:       toNullString(meta.Description),
 			Source:            toNullString(meta.Source),

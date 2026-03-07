@@ -3,7 +3,6 @@
 CREATE TABLE blobs (
     uuid TEXT PRIMARY KEY,
 
-    filename TEXT NOT NULL CHECK(LENGTH(filename) > 1),
     compression INTEGER NOT NULL,
     content BLOB NOT NULL,
 

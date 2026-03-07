@@ -13,6 +13,7 @@ CREATE TABLE tracks (
 
     blob_id TEXT NOT NULL,
     file_format INTEGER NOT NULL,
+    original_filename TEXT NOT NULL CHECK(LENGTH(original_filename) > 0),
 
     name TEXT NOT NULL CHECK(LENGTH(name) > 0),
     description TEXT,

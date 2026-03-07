@@ -1,6 +1,6 @@
 -- name: CreateTrack :one
 INSERT INTO tracks (
-  uuid, created_at, updated_at, user_id, blob_id, file_format,
+  uuid, created_at, updated_at, user_id, blob_id, file_format, original_filename,
   name, description, source, author, author_link_url,
   track_type, link_url,
   sport, sub_sport,
@@ -9,7 +9,7 @@ INSERT INTO tracks (
   original_created_at,
   public
 ) VALUES (
-  ?, ?, ?, ?, ?, ?,
+  ?, ?, ?, ?, ?, ?, ?,
   ?, ?, ?, ?, ?,
   ?, ?,
   ?, ?,

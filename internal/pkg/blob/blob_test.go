@@ -15,11 +15,10 @@ func TestCreateUncompressed(t *testing.T) {
 	q := d.QueryRW()
 
 	content := []byte("hello world")
-	blob, err := Create(ctx, q, "id1", "test.gpx", content, CompressionNone)
+	blob, err := Create(ctx, q, "id1", content, CompressionNone)
 	require.NoError(t, err)
 
 	assert.Equal(t, "id1", blob.ID)
-	assert.Equal(t, "test.gpx", blob.Filename)
 	assert.Equal(t, content, blob.Content)
 
 	// Verify raw DB row is uncompressed.
@@ -36,11 +35,10 @@ func TestCreateCompressed(t *testing.T) {
 	q := d.QueryRW()
 
 	content := []byte("hello world, this is some content that should be compressed")
-	blob, err := Create(ctx, q, "id1", "test.fit", content, CompressionZstd)
+	blob, err := Create(ctx, q, "id1", content, CompressionZstd)
 	require.NoError(t, err)
 
 	assert.Equal(t, "id1", blob.ID)
-	assert.Equal(t, "test.fit", blob.Filename)
 	assert.Equal(t, content, blob.Content)
 
 	// Verify raw DB row is compressed (content differs).
@@ -57,13 +55,12 @@ func TestGetUncompressed(t *testing.T) {
 	q := d.QueryRW()
 
 	content := []byte("raw content")
-	_, err := Create(ctx, q, "id1", "file.gpx", content, CompressionNone)
+	_, err := Create(ctx, q, "id1", content, CompressionNone)
 	require.NoError(t, err)
 
 	blob, err := Get(ctx, q, "id1")
 	require.NoError(t, err)
 	assert.Equal(t, "id1", blob.ID)
-	assert.Equal(t, "file.gpx", blob.Filename)
 	assert.Equal(t, content, blob.Content)
 }
 
@@ -74,13 +71,12 @@ func TestGetCompressed(t *testing.T) {
 	q := d.QueryRW()
 
 	content := []byte("compressed content that should round-trip correctly")
-	_, err := Create(ctx, q, "id1", "file.fit", content, CompressionZstd)
+	_, err := Create(ctx, q, "id1", content, CompressionZstd)
 	require.NoError(t, err)
 
 	blob, err := Get(ctx, q, "id1")
 	require.NoError(t, err)
 	assert.Equal(t, "id1", blob.ID)
-	assert.Equal(t, "file.fit", blob.Filename)
 	assert.Equal(t, content, blob.Content)
 }
 
