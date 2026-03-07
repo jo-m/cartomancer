@@ -75,7 +75,7 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 		r.Get("/tracks/{uuid}", sv.handleGetTrack)
 		r.Patch("/tracks/{uuid}", sv.handleEditTrack)
 		r.Put("/tracks/{uuid}/tags", sv.handleSetTrackTags)
-		r.Get("/tracks/{uuid}/blob", sv.handleDownloadTrackBlob)
+		r.Get("/tracks/{uuid}/download", sv.handleDownloadTrackBlob)
 		r.Post("/tracks/editing-complete", sv.handleEditingComplete)
 
 		r.Get("/tags", sv.handleSuggestTags)

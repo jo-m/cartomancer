@@ -673,7 +673,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /tracks/{uuid}/blob:
+  /tracks/{uuid}/download:
     get:
       summary: Download the original track file
       operationId: downloadTrackBlob
