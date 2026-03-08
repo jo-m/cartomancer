@@ -51,7 +51,7 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !validateName(req.Name) {
-		writeError(w, http.StatusBadRequest, "invalid name: 3-32 chars, letters/underscores/hyphens only, no consecutive underscores or hyphens")
+		writeError(w, http.StatusBadRequest, "invalid name: 3-32 chars, letters/digits/underscores/hyphens only, no consecutive underscores or hyphens")
 		return
 	}
 	if req.Password == "" {

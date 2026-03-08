@@ -161,7 +161,6 @@ func TestUpdateAccount_InvalidName(t *testing.T) {
 		{"too long", strings.Repeat("a", 33)},
 		{"consecutive hyphens", "al--ice"},
 		{"consecutive underscores", "al__ice"},
-		{"contains digit", "ali123"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {

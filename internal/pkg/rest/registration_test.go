@@ -216,7 +216,6 @@ func TestRegister_InvalidName(t *testing.T) {
 		{"consecutive hyphens", "al--ice"},
 		{"consecutive underscores", "al__ice"},
 		{"mixed consecutive specials", "al-_ice"},
-		{"contains digit", "ali123"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {

@@ -20,7 +20,7 @@ import (
 var errLastAdmin = errors.New("cannot delete the last admin account")
 
 var (
-	nameRe               = regexp.MustCompile(`^[a-zA-Z_-]{3,32}$`)
+	nameRe               = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,32}$`)
 	consecutiveSpecialRe = regexp.MustCompile(`[_-]{2}`)
 	errNameTaken         = errors.New("name already taken")
 )
@@ -47,7 +47,7 @@ func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !validateName(req.Name) {
-		writeError(w, http.StatusBadRequest, "invalid name: 3-32 chars, letters/underscores/hyphens only, no consecutive underscores or hyphens")
+		writeError(w, http.StatusBadRequest, "invalid name: 3-32 chars, letters/digits/underscores/hyphens only, no consecutive underscores or hyphens")
 		return
 	}
 

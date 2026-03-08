@@ -68,7 +68,7 @@ func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig,
 	return mux
 }
 
-func createUser(ctx context.Context, q *db.Queries, email, pass string) error {
+func createUser(ctx context.Context, q *db.Queries, email, name, pass string) error {
 	uid, err := uuid.NewV7()
 	if err != nil {
 		return fmt.Errorf("failed to create uuid: %w", err)
@@ -82,7 +82,7 @@ func createUser(ctx context.Context, q *db.Queries, email, pass string) error {
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 		Email:          email,
-		Name:           "test",
+		Name:           name,
 		PasswordHash:   hash,
 		Admin:          0,
 		EmailConfirmed: 1,
@@ -121,7 +121,7 @@ func main() {
 	// Insert users.
 	{
 		err := d.WithTx(ctx, func(tx *db.Queries) error {
-			_ = createUser(ctx, tx, "test@example.org", "asdf") // TODO: Make this configurable.
+			_ = createUser(ctx, tx, "test@example.org", "test", "asdf") // TODO: Make this configurable.
 			if err != nil {
 				logg.Error(ctx, "CreateUser failed", "err", err)
 			}
