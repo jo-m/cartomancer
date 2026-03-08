@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react"
+import { Link } from "react-router-dom"
 import { fetchClient } from "../api/client"
 
 type UploadStatus = "pending" | "uploading" | "done" | "error"
@@ -188,11 +189,15 @@ export default function Upload() {
                 )}
                 {u.status === "done" && (
                   <span className="shrink-0 text-green-600">
-                    Done
-                    {u.trackId && (
-                      <span className="ml-1 font-mono text-xs text-gray-400">
-                        {u.trackId}
-                      </span>
+                    {u.trackId ? (
+                      <Link
+                        to={`/tracks/${u.trackId}`}
+                        className="underline hover:text-green-800"
+                      >
+                        Done
+                      </Link>
+                    ) : (
+                      "Done"
                     )}
                   </span>
                 )}
