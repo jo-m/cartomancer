@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
 import { $api } from "../api/client"
 
@@ -12,168 +12,218 @@ function formatAscent(m: number): string {
   return `${Math.round(m)} m`
 }
 
-interface Filters {
-  search: string
-  distMinEnabled: boolean
-  distMaxEnabled: boolean
-  distMinKm: string
-  distMaxKm: string
-  ascentMinEnabled: boolean
-  ascentMaxEnabled: boolean
-  ascentMinM: string
-  ascentMaxM: string
+// --- DualRangeSlider ---
+// Pointer events are handled on the outer container; thumbs are visual only.
+// Which thumb to move is decided by proximity to the pointer position.
+
+interface DualRangeSliderProps {
+  absoluteMin: number
+  absoluteMax: number
+  valueMin: number
+  valueMax: number
+  step: number
+  formatValue: (v: number) => string
+  onChange: (min: number, max: number) => void
 }
 
-const emptyFilters: Filters = {
-  search: "",
-  distMinEnabled: false,
-  distMaxEnabled: false,
-  distMinKm: "",
-  distMaxKm: "",
-  ascentMinEnabled: false,
-  ascentMaxEnabled: false,
-  ascentMinM: "",
-  ascentMaxM: "",
-}
+function DualRangeSlider({
+  absoluteMin,
+  absoluteMax,
+  valueMin,
+  valueMax,
+  step,
+  formatValue,
+  onChange,
+}: DualRangeSliderProps) {
+  const outerRef = useRef<HTMLDivElement>(null)
+  const activeThumb = useRef<"min" | "max" | null>(null)
 
-function buildQueryParams(f: Filters) {
-  const distMinM =
-    f.distMinEnabled && f.distMinKm !== ""
-      ? parseFloat(f.distMinKm) * 1000
-      : undefined
-  const distMaxM =
-    f.distMaxEnabled && f.distMaxKm !== ""
-      ? parseFloat(f.distMaxKm) * 1000
-      : undefined
-  const ascentMinM =
-    f.ascentMinEnabled && f.ascentMinM !== ""
-      ? parseFloat(f.ascentMinM)
-      : undefined
-  const ascentMaxM =
-    f.ascentMaxEnabled && f.ascentMaxM !== ""
-      ? parseFloat(f.ascentMaxM)
-      : undefined
+  const range = absoluteMax - absoluteMin || 1
 
-  return {
-    ...(f.search ? { name: f.search } : {}),
-    ...(distMinM !== undefined ? { totalDistanceMMin: distMinM } : {}),
-    ...(distMaxM !== undefined ? { totalDistanceMMax: distMaxM } : {}),
-    ...(ascentMinM !== undefined ? { totalAscentMMin: ascentMinM } : {}),
-    ...(ascentMaxM !== undefined ? { totalAscentMMax: ascentMaxM } : {}),
+  // The outer div has 8px horizontal padding so thumbs at 0 % / 100 % stay fully visible.
+  // Value calculations subtract that padding from the bounding rect.
+  function valueFromClientX(clientX: number): number {
+    if (!outerRef.current) return absoluteMin
+    const { left, width } = outerRef.current.getBoundingClientRect()
+    const p = Math.max(0, Math.min(1, (clientX - left - 8) / (width - 16)))
+    return Math.round((absoluteMin + p * range) / step) * step
   }
-}
 
-interface RangeFilterProps {
-  label: string
-  unit: string
-  minEnabled: boolean
-  maxEnabled: boolean
-  minValue: string
-  maxValue: string
-  rangeHint?: string
-  onMinEnabledChange: (v: boolean) => void
-  onMaxEnabledChange: (v: boolean) => void
-  onMinValueChange: (v: string) => void
-  onMaxValueChange: (v: string) => void
-}
+  function pickThumb(v: number): "min" | "max" {
+    const dMin = Math.abs(v - valueMin)
+    const dMax = Math.abs(v - valueMax)
+    if (dMin !== dMax) return dMin < dMax ? "min" : "max"
+    // Equal distance: on the upper half prefer min (more room to drag left).
+    return v >= (absoluteMin + absoluteMax) / 2 ? "min" : "max"
+  }
 
-function RangeFilter({
-  label,
-  unit,
-  minEnabled,
-  maxEnabled,
-  minValue,
-  maxValue,
-  rangeHint,
-  onMinEnabledChange,
-  onMaxEnabledChange,
-  onMinValueChange,
-  onMaxValueChange,
-}: RangeFilterProps) {
+  function applyValue(v: number) {
+    if (activeThumb.current === "min") onChange(Math.min(v, valueMax), valueMax)
+    else if (activeThumb.current === "max")
+      onChange(valueMin, Math.max(v, valueMin))
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const v = valueFromClientX(e.clientX)
+    activeThumb.current = pickThumb(v)
+    applyValue(v)
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
+    applyValue(valueFromClientX(e.clientX))
+  }
+
+  function onPointerUp() {
+    activeThumb.current = null
+  }
+
+  // Thumb position: calc(frac*100% + (8 - frac*16)px) places the center
+  // exactly at the correct inner position while the outer 8px padding absorbs overflow.
+  function thumbLeft(v: number): string {
+    const frac = (v - absoluteMin) / range
+    return `calc(${frac * 100}% + ${8 - frac * 16}px)`
+  }
+
+  const minFrac = (valueMin - absoluteMin) / range
+  const maxFrac = (valueMax - absoluteMin) / range
+  const highlightStyle = {
+    left: `calc(${minFrac * 100}% + ${8 - minFrac * 16}px)`,
+    right: `calc(${(1 - maxFrac) * 100}% + ${maxFrac * 16 - 8}px)`,
+  }
+
+  const minActive = valueMin > absoluteMin
+  const maxActive = valueMax < absoluteMax
+
   return (
-    <div className="flex flex-wrap items-center gap-3 text-sm">
-      <span className="w-16 shrink-0 font-medium text-gray-700">{label}</span>
-      <label className="flex items-center gap-1.5">
-        <input
-          type="checkbox"
-          checked={minEnabled}
-          onChange={(e) => onMinEnabledChange(e.target.checked)}
-          className="accent-gray-700"
+    <div>
+      <div
+        ref={outerRef}
+        className="relative h-5 cursor-grab select-none active:cursor-grabbing"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+      >
+        <div className="absolute inset-x-2 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-gray-200" />
+        <div
+          className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-gray-500"
+          style={highlightStyle}
         />
-        <span className="text-gray-600">Min</span>
-        <input
-          type="number"
-          min={0}
-          value={minValue}
-          disabled={!minEnabled}
-          onChange={(e) => onMinValueChange(e.target.value)}
-          className="w-20 rounded border border-gray-300 px-2 py-1 text-sm disabled:opacity-40"
-          placeholder="0"
+        <div
+          className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-white"
+          style={{
+            left: thumbLeft(valueMin),
+            borderColor: minActive ? "#6b7280" : "#d1d5db",
+          }}
         />
-        <span className="text-gray-500">{unit}</span>
-      </label>
-      <label className="flex items-center gap-1.5">
-        <input
-          type="checkbox"
-          checked={maxEnabled}
-          onChange={(e) => onMaxEnabledChange(e.target.checked)}
-          className="accent-gray-700"
+        <div
+          className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-white"
+          style={{
+            left: thumbLeft(valueMax),
+            borderColor: maxActive ? "#6b7280" : "#d1d5db",
+          }}
         />
-        <span className="text-gray-600">Max</span>
-        <input
-          type="number"
-          min={0}
-          value={maxValue}
-          disabled={!maxEnabled}
-          onChange={(e) => onMaxValueChange(e.target.value)}
-          className="w-20 rounded border border-gray-300 px-2 py-1 text-sm disabled:opacity-40"
-          placeholder="∞"
-        />
-        <span className="text-gray-500">{unit}</span>
-      </label>
-      {rangeHint && <span className="text-xs text-gray-400">{rangeHint}</span>}
+      </div>
+      <div className="mt-1 flex justify-between text-xs">
+        <span
+          className={minActive ? "font-medium text-gray-700" : "text-gray-400"}
+        >
+          {formatValue(valueMin)}
+        </span>
+        <span
+          className={maxActive ? "font-medium text-gray-700" : "text-gray-400"}
+        >
+          {formatValue(valueMax)}
+        </span>
+      </div>
     </div>
   )
 }
 
+// --- TrackList ---
+// Slider range state is null when the slider is at the full range (= no filter).
+// This avoids any initialization side-effects: null is the correct initial state.
+
+type Range = [number, number]
+
+interface Live {
+  search: string
+  distRange: Range | null // km; null = full range
+  ascentRange: Range | null // m; null = full range
+}
+
+const initial: Live = { search: "", distRange: null, ascentRange: null }
+
 export default function TrackList() {
-  const [liveFilters, setLiveFilters] = useState<Filters>(emptyFilters)
-  const [appliedFilters, setAppliedFilters] = useState<Filters>(emptyFilters)
+  const { data: stats } = $api.useQuery("get", "/tracks/statistics")
+
+  const absMaxDistKm =
+    stats?.totalDistanceMMax != null
+      ? Math.ceil(stats.totalDistanceMMax / 1000)
+      : 0
+  const absMaxAscentM =
+    stats?.totalAscentMMax != null
+      ? Math.ceil(stats.totalAscentMMax / 10) * 10
+      : 0
+
+  const [live, setLive] = useState<Live>(initial)
+  const [applied, setApplied] = useState<Live>(initial)
   const [page, setPage] = useState(1)
 
+  // Debounce live → applied. Uses setTimeout so setState is not synchronous
+  // in the effect body, which avoids cascading renders.
   useEffect(() => {
     const timer = setTimeout(() => {
-      setAppliedFilters(liveFilters)
+      setApplied(live)
       setPage(1)
-    }, 300)
+    }, 200)
     return () => clearTimeout(timer)
-  }, [liveFilters])
+  }, [live])
 
-  const { data: stats } = $api.useQuery("get", "/tracks/statistics")
+  // Derive slider display values: fall back to absolute bounds when null.
+  const distMin = live.distRange?.[0] ?? 0
+  const distMax = live.distRange?.[1] ?? absMaxDistKm
+  const ascentMin = live.ascentRange?.[0] ?? 0
+  const ascentMax = live.ascentRange?.[1] ?? absMaxAscentM
+
+  function setDistRange(min: number, max: number) {
+    const r: Range | null =
+      min === 0 && max === absMaxDistKm ? null : [min, max]
+    setLive((prev) => ({ ...prev, distRange: r }))
+  }
+
+  function setAscentRange(min: number, max: number) {
+    const r: Range | null =
+      min === 0 && max === absMaxAscentM ? null : [min, max]
+    setLive((prev) => ({ ...prev, ascentRange: r }))
+  }
+
+  // Build API query params from applied state.
+  const appliedDistMin = applied.distRange?.[0] ?? 0
+  const appliedDistMax = applied.distRange?.[1] ?? absMaxDistKm
+  const appliedAscentMin = applied.ascentRange?.[0] ?? 0
+  const appliedAscentMax = applied.ascentRange?.[1] ?? absMaxAscentM
 
   const { data, isLoading, error } = $api.useQuery("get", "/tracks", {
     params: {
       query: {
         page,
         pageSize: PAGE_SIZE,
-        ...buildQueryParams(appliedFilters),
+        ...(applied.search ? { name: applied.search } : {}),
+        ...(appliedDistMin > 0
+          ? { totalDistanceMMin: appliedDistMin * 1000 }
+          : {}),
+        ...(absMaxDistKm > 0 && appliedDistMax < absMaxDistKm
+          ? { totalDistanceMMax: appliedDistMax * 1000 }
+          : {}),
+        ...(appliedAscentMin > 0 ? { totalAscentMMin: appliedAscentMin } : {}),
+        ...(absMaxAscentM > 0 && appliedAscentMax < absMaxAscentM
+          ? { totalAscentMMax: appliedAscentMax }
+          : {}),
       },
     },
   })
-
-  function set<K extends keyof Filters>(key: K, value: Filters[K]) {
-    setLiveFilters((prev) => ({ ...prev, [key]: value }))
-  }
-
-  const distRangeHint =
-    stats?.totalDistanceMMin != null && stats?.totalDistanceMMax != null
-      ? `Range: ${formatDistance(stats.totalDistanceMMin)} – ${formatDistance(stats.totalDistanceMMax)}`
-      : undefined
-
-  const ascentRangeHint =
-    stats?.totalAscentMMin != null && stats?.totalAscentMMax != null
-      ? `Range: ${formatAscent(stats.totalAscentMMin)} – ${formatAscent(stats.totalAscentMMax)}`
-      : undefined
 
   const totalPages = data ? Math.ceil(data.totalCount / PAGE_SIZE) : 1
 
@@ -184,40 +234,48 @@ export default function TrackList() {
         <input
           type="search"
           placeholder="Search by name…"
-          value={liveFilters.search}
-          onChange={(e) => set("search", e.target.value)}
+          value={live.search}
+          onChange={(e) =>
+            setLive((prev) => ({ ...prev, search: e.target.value }))
+          }
           className="w-64 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none"
         />
       </div>
 
-      <div className="mb-6 space-y-2 rounded-lg border border-gray-200 bg-white p-3">
-        <RangeFilter
-          label="Distance"
-          unit="km"
-          minEnabled={liveFilters.distMinEnabled}
-          maxEnabled={liveFilters.distMaxEnabled}
-          minValue={liveFilters.distMinKm}
-          maxValue={liveFilters.distMaxKm}
-          rangeHint={distRangeHint}
-          onMinEnabledChange={(v) => set("distMinEnabled", v)}
-          onMaxEnabledChange={(v) => set("distMaxEnabled", v)}
-          onMinValueChange={(v) => set("distMinKm", v)}
-          onMaxValueChange={(v) => set("distMaxKm", v)}
-        />
-        <RangeFilter
-          label="Ascent"
-          unit="m"
-          minEnabled={liveFilters.ascentMinEnabled}
-          maxEnabled={liveFilters.ascentMaxEnabled}
-          minValue={liveFilters.ascentMinM}
-          maxValue={liveFilters.ascentMaxM}
-          rangeHint={ascentRangeHint}
-          onMinEnabledChange={(v) => set("ascentMinEnabled", v)}
-          onMaxEnabledChange={(v) => set("ascentMaxEnabled", v)}
-          onMinValueChange={(v) => set("ascentMinM", v)}
-          onMaxValueChange={(v) => set("ascentMaxM", v)}
-        />
-      </div>
+      {absMaxDistKm > 0 && (
+        <div className="mb-6 grid grid-cols-2 gap-6 rounded-lg border border-gray-200 bg-white px-4 pb-3 pt-3">
+          <div>
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">
+              Distance
+            </p>
+            <DualRangeSlider
+              absoluteMin={0}
+              absoluteMax={absMaxDistKm}
+              valueMin={distMin}
+              valueMax={distMax}
+              step={1}
+              formatValue={(v) => `${v} km`}
+              onChange={setDistRange}
+            />
+          </div>
+          {absMaxAscentM > 0 && (
+            <div>
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">
+                Ascent
+              </p>
+              <DualRangeSlider
+                absoluteMin={0}
+                absoluteMax={absMaxAscentM}
+                valueMin={ascentMin}
+                valueMax={ascentMax}
+                step={10}
+                formatValue={(v) => `${v} m`}
+                onChange={setAscentRange}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {isLoading && <p className="text-gray-500">Loading…</p>}
 
