@@ -23,6 +23,12 @@ export default function Layout() {
                 <>
                   <span className="text-gray-600">{user.name}</span>
                   <Link
+                    to="/tracks"
+                    className="text-gray-700 hover:text-gray-900"
+                  >
+                    Tracks
+                  </Link>
+                  <Link
                     to="/upload"
                     className="text-gray-700 hover:text-gray-900"
                   >

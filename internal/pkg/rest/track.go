@@ -743,6 +743,34 @@ func (sv *server) handleEditingComplete(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 }
 
+type trackStatisticsResponse struct {
+	TotalDistanceMMin *float64 `json:"totalDistanceMMin"`
+	TotalDistanceMMax *float64 `json:"totalDistanceMMax"`
+	TotalAscentMMin   *float64 `json:"totalAscentMMin"`
+	TotalAscentMMax   *float64 `json:"totalAscentMMax"`
+}
+
+func (sv *server) handleTrackStatistics(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.MustGetUser(ctx)
+
+	result, err := sv.d.TrackStatistics(ctx, db.TrackStatisticsParams{
+		UserID: user.Uuid,
+	})
+	if err != nil {
+		logg.Error(ctx, "failed to get track statistics", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, trackStatisticsResponse{
+		TotalDistanceMMin: nullFloat64Ptr(result.TotalDistanceMMin),
+		TotalDistanceMMax: nullFloat64Ptr(result.TotalDistanceMMax),
+		TotalAscentMMin:   nullFloat64Ptr(result.TotalAscentMMin),
+		TotalAscentMMax:   nullFloat64Ptr(result.TotalAscentMMax),
+	})
+}
+
 func boolToInt(b bool) int {
 	if b {
 		return 1

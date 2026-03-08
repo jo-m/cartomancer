@@ -745,6 +745,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/statistics:
+    get:
+      summary: Get track statistics
+      operationId: getTrackStatistics
+      tags: [Tracks]
+      description: >
+        Returns aggregate statistics (min/max distance and ascent) for all tracks
+        visible to the authenticated user. All fields are null when there are no
+        visible tracks.
+      responses:
+        "200":
+          description: Track statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackStatisticsResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /tracks/editing:
     get:
       summary: List tracks pending initial editing
@@ -1695,6 +1724,35 @@ components:
           type: integer
         subSport:
           type: integer
+
+    TrackStatisticsResponse:
+      type: object
+      required:
+        - totalDistanceMMin
+        - totalDistanceMMax
+        - totalAscentMMin
+        - totalAscentMMax
+      properties:
+        totalDistanceMMin:
+          type: number
+          format: double
+          nullable: true
+          description: Null when there are no visible tracks.
+        totalDistanceMMax:
+          type: number
+          format: double
+          nullable: true
+          description: Null when there are no visible tracks.
+        totalAscentMMin:
+          type: number
+          format: double
+          nullable: true
+          description: Null when there are no visible tracks.
+        totalAscentMMax:
+          type: number
+          format: double
+          nullable: true
+          description: Null when there are no visible tracks.
 
     ListTracksResponse:
       type: object

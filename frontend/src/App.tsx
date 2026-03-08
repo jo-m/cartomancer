@@ -10,6 +10,8 @@ import Register from "./pages/Register"
 import ConfirmEmail from "./pages/ConfirmEmail"
 import Account from "./pages/Account"
 import Upload from "./pages/Upload"
+import TrackList from "./pages/TrackList"
+import Track from "./pages/Track"
 
 const queryClient = new QueryClient()
 setQueryClient(queryClient)
@@ -52,6 +54,22 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Upload />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tracks"
+                element={
+                  <ProtectedRoute>
+                    <TrackList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tracks/:uuid"
+                element={
+                  <ProtectedRoute>
+                    <Track />
                   </ProtectedRoute>
                 }
               />
