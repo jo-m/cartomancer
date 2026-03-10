@@ -3,6 +3,11 @@ import { Link } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { fetchClient, $api } from "../api/client"
 import TagsInput from "../components/TagsInput"
+import {
+  SPORT_LABELS,
+  SUB_SPORT_LABELS,
+  SUB_SPORTS_BY_SPORT,
+} from "../lib/sports"
 
 type UploadStatus = "pending" | "uploading" | "error"
 
@@ -76,6 +81,8 @@ export default function Upload() {
   )
   const [isDragging, setIsDragging] = useState(false)
   const [bulkTags, setBulkTags] = useState<string[]>([])
+  const [bulkSport, setBulkSport] = useState("")
+  const [bulkSubSport, setBulkSubSport] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { data: editingData, isLoading: editingLoading } = $api.useQuery(
@@ -215,6 +222,26 @@ export default function Upload() {
     )
   }
 
+  function bulkSetSport() {
+    const uuids = pendingTracks.map((t) => t.uuid)
+    if (!bulkSport || uuids.length === 0) return
+    const body: Parameters<typeof bulkEditMutation.mutate>[0]["body"] = {
+      uuids,
+      sport: parseInt(bulkSport),
+    }
+    if (bulkSubSport !== "") body.subSport = parseInt(bulkSubSport)
+    bulkEditMutation.mutate(
+      { body },
+      {
+        onSuccess: () => {
+          void queryClient.invalidateQueries({
+            queryKey: ["get", "/tracks/editing"],
+          })
+        },
+      }
+    )
+  }
+
   const activeUploads = uploads.filter(
     (u) => u.status === "pending" || u.status === "uploading"
   )
@@ -344,6 +371,45 @@ export default function Upload() {
                 Set all private
               </button>
               <span className="text-gray-200">|</span>
+              <select
+                value={bulkSport}
+                onChange={(e) => {
+                  setBulkSport(e.target.value)
+                  setBulkSubSport("")
+                }}
+                className="cursor-pointer rounded border border-gray-200 px-1.5 py-0.5 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              >
+                <option value="">Sport…</option>
+                {Object.entries(SPORT_LABELS).map(([id, label]) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              {bulkSport !== "" && (
+                <select
+                  value={bulkSubSport}
+                  onChange={(e) => setBulkSubSport(e.target.value)}
+                  className="cursor-pointer rounded border border-gray-200 px-1.5 py-0.5 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                >
+                  <option value="">Sub-sport…</option>
+                  {(SUB_SPORTS_BY_SPORT[parseInt(bulkSport)] ?? []).map(
+                    (id) => (
+                      <option key={id} value={String(id)}>
+                        {SUB_SPORT_LABELS[id]}
+                      </option>
+                    )
+                  )}
+                </select>
+              )}
+              <button
+                onClick={bulkSetSport}
+                disabled={!bulkSport || bulkEditMutation.isPending}
+                className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50"
+              >
+                Set sport on all
+              </button>
+              <span className="text-gray-200">|</span>
               <div className="flex min-w-48 flex-1 items-center gap-2">
                 <TagsInput value={bulkTags} onChange={setBulkTags} />
                 <button
@@ -388,6 +454,17 @@ export default function Upload() {
                         className={`text-xs ${track.public ? "text-green-600" : "text-gray-400"}`}
                       >
                         {track.public ? "public" : "private"}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {SPORT_LABELS[track.sport] ?? track.sport}
+                        {track.subSport !== 0 && (
+                          <>
+                            {" "}
+                            (
+                            {SUB_SPORT_LABELS[track.subSport] ?? track.subSport}
+                            )
+                          </>
+                        )}
                       </span>
                       {track.tags.map((tag) => (
                         <span

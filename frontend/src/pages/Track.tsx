@@ -1,23 +1,6 @@
 import { Link, useParams } from "react-router-dom"
 import { $api } from "../api/client"
-
-const SPORT_LABELS: Record<number, string> = {
-  0: "Unknown",
-  1: "Running",
-  2: "Cycling",
-}
-
-const SUB_SPORT_LABELS: Record<number, string> = {
-  0: "Unknown",
-  1: "Outdoor",
-  2: "Treadmill",
-  3: "Road",
-  4: "Spinning",
-  5: "Indoor Cycling",
-  6: "Mountain",
-  7: "Gravel",
-  8: "Commuting",
-}
+import { SPORT_LABELS, SUB_SPORT_LABELS } from "../lib/sports"
 
 const TRACK_TYPE_LABELS: Record<number, string> = {
   0: "Unknown",

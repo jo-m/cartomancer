@@ -7,6 +7,7 @@ import (
 
 type Sport int
 
+// When editing this list, the frontend code at frontend/src/lib/sports.ts MUST be updated as well.
 const (
 	SportUnknown Sport = iota
 	SportRunning
@@ -15,6 +16,7 @@ const (
 
 type SubSport int
 
+// When editing this list, the frontend code at frontend/src/lib/sports.ts MUST be updated as well.
 const (
 	SubSportUnknown SubSport = iota
 	SubSportRunningOutdoor
