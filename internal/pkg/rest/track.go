@@ -614,7 +614,7 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-const maxBulkEditUUIDs = 1000
+const maxBulkEditUUIDs = 10000
 
 type bulkEditTracksRequest struct {
 	UUIDs         []string `json:"uuids"`
