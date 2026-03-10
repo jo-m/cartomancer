@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"strings"
 	"time"
 
 	"jo-m.ch/go/detour/internal/pkg/track"
@@ -96,7 +97,7 @@ func (g *GPX) Metadata() track.Metadata {
 	ret.Name = t.Name
 	ret.Description = t.Description
 
-	switch t.Type {
+	switch strings.ToLower(t.Type) {
 	case "road_biking": // Garmin.
 		ret.Sport = track.SportCycling
 		ret.SubSport = track.SubSportCyclingRoad
@@ -106,17 +107,15 @@ func (g *GPX) Metadata() track.Metadata {
 	case "cycling": // Strava.
 		ret.Sport = track.SportCycling
 		ret.SubSport = track.SubSportCyclingRoad
-	case "Ride": // Strava.
+	case "ride": // Strava.
 		ret.Sport = track.SportCycling
 		ret.SubSport = track.SubSportCyclingRoad
 	case "gravel_biking": // Strava.
 		ret.Sport = track.SportCycling
 		ret.SubSport = track.SubSportCyclingGravel
-	case "":
+	default:
 		ret.Sport = track.SportUnknown
 		ret.SubSport = track.SubSportUnknown
-	default:
-		panic(fmt.Sprintf("unknown sport %s", t.Type))
 	}
 
 	if g.XMetadata.Time != nil {
