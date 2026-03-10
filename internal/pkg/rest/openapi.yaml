@@ -1724,6 +1724,13 @@ components:
           type: integer
         subSport:
           type: integer
+        tags:
+          type: array
+          items:
+            type: string
+            minLength: 2
+            maxLength: 32
+          description: Replaces all tags on every track with this list. Omit to leave tags unchanged.
 
     TrackStatisticsResponse:
       type: object

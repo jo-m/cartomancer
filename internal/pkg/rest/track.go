@@ -617,15 +617,16 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 const maxBulkEditUUIDs = 10000
 
 type bulkEditTracksRequest struct {
-	UUIDs         []string `json:"uuids"`
-	Public        *bool    `json:"public"`
-	Source        *string  `json:"source"`
-	Author        *string  `json:"author"`
-	AuthorLinkURL *string  `json:"authorLinkUrl"`
-	TrackType     *int64   `json:"trackType"`
-	LinkURL       *string  `json:"linkUrl"`
-	Sport         *int64   `json:"sport"`
-	SubSport      *int64   `json:"subSport"`
+	UUIDs         []string  `json:"uuids"`
+	Public        *bool     `json:"public"`
+	Source        *string   `json:"source"`
+	Author        *string   `json:"author"`
+	AuthorLinkURL *string   `json:"authorLinkUrl"`
+	TrackType     *int64    `json:"trackType"`
+	LinkURL       *string   `json:"linkUrl"`
+	Sport         *int64    `json:"sport"`
+	SubSport      *int64    `json:"subSport"`
+	Tags          *[]string `json:"tags"`
 }
 
 func (sv *server) handleBulkEditTracks(w http.ResponseWriter, r *http.Request) {
@@ -658,6 +659,7 @@ func (sv *server) handleBulkEditTracks(w http.ResponseWriter, r *http.Request) {
 		LinkURL:       req.LinkURL,
 		Sport:         req.Sport,
 		SubSport:      req.SubSport,
+		Tags:          req.Tags,
 	})
 	if errors.Is(err, db.ErrBulkUpdateMismatch) {
 		writeError(w, http.StatusNotFound, "one or more tracks not found or not owned by you")

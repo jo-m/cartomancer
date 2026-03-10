@@ -132,6 +132,63 @@ func TestBulkEditTracks_PartialFields(t *testing.T) {
 	assert.Equal(t, originalName, track["name"])
 }
 
+func TestBulkEditTracks_Tags(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	// Upload two tracks.
+	status, u1 := e.doUpload(client, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	uuid1 := u1["uuid"].(string)
+
+	status, u2 := e.doUpload(client, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	uuid2 := u2["uuid"].(string)
+
+	// Bulk set tags on both tracks.
+	status, _ = e.do(client, http.MethodPatch, "/tracks", map[string]any{
+		"uuids": []string{uuid1, uuid2},
+		"tags":  []string{"cycling", "road"},
+	}, nil)
+	assert.Equal(t, http.StatusNoContent, status)
+
+	// Verify tags on track 1.
+	var track1 map[string]any
+	status, _ = e.do(client, http.MethodGet, "/tracks/"+uuid1, nil, &track1)
+	require.Equal(t, http.StatusOK, status)
+	assert.Equal(t, []any{"cycling", "road"}, track1["tags"])
+
+	// Verify tags on track 2.
+	var track2 map[string]any
+	status, _ = e.do(client, http.MethodGet, "/tracks/"+uuid2, nil, &track2)
+	require.Equal(t, http.StatusOK, status)
+	assert.Equal(t, []any{"cycling", "road"}, track2["tags"])
+
+	// Replace tags with a different set (set, not add).
+	status, _ = e.do(client, http.MethodPatch, "/tracks", map[string]any{
+		"uuids": []string{uuid1, uuid2},
+		"tags":  []string{"hiking"},
+	}, nil)
+	assert.Equal(t, http.StatusNoContent, status)
+
+	status, _ = e.do(client, http.MethodGet, "/tracks/"+uuid1, nil, &track1)
+	require.Equal(t, http.StatusOK, status)
+	assert.Equal(t, []any{"hiking"}, track1["tags"])
+
+	// Clear tags by setting an empty list.
+	status, _ = e.do(client, http.MethodPatch, "/tracks", map[string]any{
+		"uuids": []string{uuid1},
+		"tags":  []string{},
+	}, nil)
+	assert.Equal(t, http.StatusNoContent, status)
+
+	status, _ = e.do(client, http.MethodGet, "/tracks/"+uuid1, nil, &track1)
+	require.Equal(t, http.StatusOK, status)
+	assert.Equal(t, []any{}, track1["tags"])
+}
+
 func TestBulkEditTracks_NoFieldsProvided(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("alice@example.com", "Alice", "secret", false)

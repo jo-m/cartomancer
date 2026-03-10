@@ -10,7 +10,7 @@ import (
 )
 
 // BulkUpdateTracksParams defines the fields that can be bulk-updated.
-// Only non-nil pointer fields are applied.
+// Only non-nil pointer fields are applied. Tags, if non-nil, replaces all tags on every track.
 type BulkUpdateTracksParams struct {
 	UUIDs         []string
 	UserID        string
@@ -22,6 +22,7 @@ type BulkUpdateTracksParams struct {
 	LinkURL       *string
 	Sport         *int64
 	SubSport      *int64
+	Tags          *[]string
 }
 
 // ErrBulkUpdateMismatch is returned when the number of rows affected
@@ -79,8 +80,8 @@ func (d *DB) BulkUpdateTracks(ctx context.Context, p BulkUpdateTracksParams) err
 		args = append(args, *p.SubSport)
 	}
 
-	// If only updated_at would change, there's nothing to do.
-	if len(setClauses) == 1 {
+	// If only updated_at would change and there are no tags to replace, this is a no-op.
+	if len(setClauses) == 1 && p.Tags == nil {
 		return nil
 	}
 
@@ -118,7 +119,53 @@ func (d *DB) BulkUpdateTracks(ctx context.Context, p BulkUpdateTracksParams) err
 		return ErrBulkUpdateMismatch
 	}
 
+	if p.Tags != nil {
+		if err = bulkReplaceTags(ctx, tx, p.UUIDs, p.UserID, *p.Tags); err != nil {
+			return err
+		}
+	}
+
 	return tx.Commit()
+}
+
+// bulkReplaceTags removes all existing tags from the given tracks and sets the new ones.
+func bulkReplaceTags(ctx context.Context, tx *sql.Tx, uuids []string, userID string, tags []string) error {
+	placeholders := make([]string, len(uuids))
+	delArgs := make([]any, len(uuids))
+	for i, id := range uuids {
+		placeholders[i] = "?"
+		delArgs[i] = id
+	}
+
+	_, err := tx.ExecContext(ctx,
+		fmt.Sprintf("DELETE FROM track_tags WHERE track_id IN (%s)", strings.Join(placeholders, ", ")),
+		delArgs...,
+	)
+	if err != nil {
+		return fmt.Errorf("delete track tags: %w", err)
+	}
+
+	for _, tag := range tags {
+		var tagID int64
+		err = tx.QueryRowContext(ctx,
+			"INSERT INTO tags (tag, user_id) VALUES (?, ?) ON CONFLICT (tag, user_id) DO UPDATE SET tag = tag RETURNING id",
+			tag, userID,
+		).Scan(&tagID)
+		if err != nil {
+			return fmt.Errorf("upsert tag: %w", err)
+		}
+		for _, uuid := range uuids {
+			_, err = tx.ExecContext(ctx,
+				"INSERT INTO track_tags (track_id, tag_id) VALUES (?, ?)",
+				uuid, tagID,
+			)
+			if err != nil {
+				return fmt.Errorf("create track tag: %w", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func toNullStr(s string) sql.NullString {
