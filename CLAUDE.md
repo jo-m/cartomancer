@@ -30,7 +30,7 @@ internal/pkg/
 └── utl/      # General utilities
 ```
 
-## REST API
+### REST API
 
 Handlers are mounted in `internal/pkg/rest/rest.go`.
 Group handler fns into files, approx. 1 per resource, in `internal/pkg/rest/*.go`.
@@ -94,7 +94,7 @@ WAL mode, foreign keys enabled, busy timeout 5s.
 
 ```go
 d.WithTx(ctx, func(tx *db.Queries) error { ... })  // auto commit/rollback
-tx, err := d.BeginTX(ctx)                           // manual
+tx, err := d.BeginTX(ctx)                          // manual
 ```
 
 ### Transactions in REST handlers
@@ -149,7 +149,7 @@ After every change, `make check` MUST run successfully. This already includes `g
 ```bash
 air        # Hot-reload (pre-build runs make gen, watches .go/.sql)
 make gen   # Regenerate sqlc code (required after query changes)
-make check # Full quality gate: gen → format → lint → test
+make check # Full quality gate
 ```
 
 For email, run the bundled MailHog: `go tool MailHog` (UI at http://127.0.0.1:8025).
@@ -163,12 +163,12 @@ Use `https://github.com/franiglesias/golden` for snapshot tests. Approval mode: 
 ## Conventions
 
 - All files with ending `.gen.go` are generated and MUST NOT EVER be edited manually. You should also not read them manually, instead use grep or LSP plugin.
-- Usually the logger instance is passed around in ctx.Context
-- Modules have config structs if applicable, compatible with github.com/alexflint/go-arg, example `internal/pkg/logg/handler.go`.
+- The logger instance is mostly passed around in ctx.Context
+- Make modules/packages have their own config structs if applicable, compatible with github.com/alexflint/go-arg, example `internal/pkg/logg/handler.go`.
 - Avoid TOCTOU race conditions by using txs correctly. Be careful to hold txs only for a short time.
 - All public fns must have docstrings.
-- All code comments must be grammatical complete sentences and end with punctuation. Interjections are grammatically also complete sentences.
-- Do not usually use special characters in comments. E.g. instead of → use ->.
+- All code comments must be grammatical complete sentences and end with punctuation (interjections are grammatically also complete sentences).
+- MUST write tests for all new code
   
 # Frontend
 
@@ -196,9 +196,9 @@ frontend/
 
 ```bash
 cd frontend
-npm run dev          # Vite dev server (proxies API to :8080)
-npm run check        # lint + format check + typecheck
-npm run build        # build to ../static/ (served by Go via go:embed)
+npm run dev
+npm run check
+npm run build
 ```
 
 ## API client
@@ -259,9 +259,7 @@ Keep it very simple and barebones.
 
 ## Conventions
 
-- Use `prettier` formatting (configured in `.prettierrc`).
-- ESLint with typescript-eslint + react-hooks + prettier.
-- Vite build outputs to `../static/` which the Go server embeds and serves.
+- Vite build outputs to `../static/` (embedded in Go binary from there).
 - All data views/tables must always be searchable/paginatable/filterable.
 - All links, including nav etc. must be proper `<a>` links such that right click, open in new tab etc. work as expected.
 - URL paths used in the router should generally roughly mirror those from the API. E.g. the tracks upload page (POST /api/tracks) should be at /tracks/uploads.
@@ -269,3 +267,16 @@ Keep it very simple and barebones.
 ## Linting
 
 After every change, `npm run check` MUST run successfully.
+
+# Universal Guidelines
+
+- NEVER print or log URLs to console if they contain an API key
+- NEVER hardcode sensitive configuration (keys/passwords) into the code
+- MUST keep functions focused on a single responsibility
+- MUST include docstrings for all public functions, classes, and methods
+  - MUST document function parameters, return values, and exceptions raised
+  - Keep comments up-to-date with code changes
+- MUST use meaningful, descriptive variable and function names
+- NEVER use emoji, or unicode that emulates emoji (e.g. ✓, ✗). The only exception is when writing tests and testing the impact of multibyte characters.  
+- MUST avoid including redundant comments which are tautological or self-demonstating (e.g. cases where it is easily parsable what the code does at a glance so the comment does)
+- MUST avoid including comments which leak what this file contains, or leak the original user prompt, ESPECIALLY if it's irrelevant to the output code.
