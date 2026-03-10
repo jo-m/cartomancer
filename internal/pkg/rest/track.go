@@ -199,7 +199,7 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 		contentType = "application/octet-stream"
 	}
 
-	if err := blob.Serve(w, r, sv.d.QueryRO(), t.BlobID, contentType, t.OriginalFilename); err != nil {
+	if err := blob.Serve(w, r, sv.d.QueryRO(), t.BlobID, contentType, t.Name); err != nil {
 		logg.Error(ctx, "failed to serve blob", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
