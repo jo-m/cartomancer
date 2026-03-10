@@ -42,20 +42,14 @@ CREATE TABLE tracks (
 
     original_created_at DATETIME,
 
-    preview_svg_blob_id TEXT,
-
     FOREIGN KEY(user_id) REFERENCES users(uuid) ON DELETE CASCADE,
-    FOREIGN KEY(blob_id) REFERENCES blobs(uuid) ON DELETE RESTRICT,
-    FOREIGN KEY(preview_svg_blob_id) REFERENCES blobs(uuid) ON DELETE RESTRICT
+    FOREIGN KEY(blob_id) REFERENCES blobs(uuid) ON DELETE RESTRICT
 );
--- When a track is deleted, delete its blobs (unless another track still references them).
+-- When a track is deleted, delete its blob (unless another track still references it).
 CREATE TRIGGER tracks_delete_blob AFTER DELETE ON tracks
 BEGIN
     DELETE FROM blobs WHERE uuid = OLD.blob_id
     AND NOT EXISTS (SELECT 1 FROM tracks WHERE blob_id = OLD.blob_id);
-    DELETE FROM blobs WHERE uuid = OLD.preview_svg_blob_id
-    AND OLD.preview_svg_blob_id IS NOT NULL
-    AND NOT EXISTS (SELECT 1 FROM tracks WHERE preview_svg_blob_id = OLD.preview_svg_blob_id);
 END;
 -- +goose StatementEnd
 

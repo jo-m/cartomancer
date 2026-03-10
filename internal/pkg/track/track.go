@@ -155,9 +155,11 @@ func (t *Track) EnhancedMetadata() Metadata {
 	return ret
 }
 
-// PreviewSVG generates a square SVG preview image of the track at the given pixel size.
-func (t *Track) PreviewSVG(size int) string {
-	return Points(t.pts).PreviewSVG(size)
+// PreviewSVG generates a square SVG preview image of the track.
+// opts controls the canvas size, stroke width, and color.
+// If bounds is non-nil, its extents are used directly instead of being computed from the track points.
+func (t *Track) PreviewSVG(opts PreviewOptions, bounds *Bounds) string {
+	return Points(t.pts).PreviewSVG(opts, bounds)
 }
 
 type TrackSource interface {

@@ -139,12 +139,16 @@ func TestSubsample(t *testing.T) {
 
 func TestPreviewSVGPfanni(t *testing.T) {
 	pts := loadGPXPoints(t, "testdata/pfanni highlights.gpx")
-	svg := pts.PreviewSVG(256)
+	opts := DefaultPreviewOptions()
+	opts.Size = 256
+	svg := pts.PreviewSVG(opts, nil)
 	golden.Verify(t, svg) // golden.WaitApproval()
 }
 
 func TestPreviewSVGSee(t *testing.T) {
 	pts := loadGPXPoints(t, "testdata/See.gpx")
-	svg := pts.PreviewSVG(256)
+	opts := DefaultPreviewOptions()
+	opts.Size = 256
+	svg := pts.PreviewSVG(opts, nil)
 	golden.Verify(t, svg) // golden.WaitApproval()
 }

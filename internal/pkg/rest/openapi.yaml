@@ -724,6 +724,33 @@ paths:
           required: true
           schema:
             type: string
+        - name: size
+          in: query
+          required: false
+          description: Square canvas size in pixels (16–512, default 512).
+          schema:
+            type: integer
+            minimum: 16
+            maximum: 512
+            default: 512
+        - name: strokeWidth
+          in: query
+          required: false
+          description: Polyline stroke width in SVG user units (default 1.5).
+          schema:
+            type: number
+            format: float
+            exclusiveMinimum: 0
+            maximum: 100
+            default: 1.5
+        - name: color
+          in: query
+          required: false
+          description: Stroke color as a CSS hex value (e.g. "#f00", "#rrggbb") or "currentColor" (default).
+          schema:
+            type: string
+            pattern: '^currentColor$|^#[0-9a-fA-F]{3}$|^#[0-9a-fA-F]{4}$|^#[0-9a-fA-F]{6}$|^#[0-9a-fA-F]{8}$'
+            default: currentColor
       responses:
         "200":
           description: Track preview SVG image
@@ -732,8 +759,14 @@ paths:
               schema:
                 type: string
                 format: binary
+        "400":
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "404":
-          description: Track not found, not accessible, or preview not available
+          description: Track not found or not accessible
           content:
             application/json:
               schema:

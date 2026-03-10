@@ -228,16 +228,84 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if !t.PreviewSvgBlobID.Valid {
-		writeError(w, http.StatusNotFound, "preview not available")
+	opts, err := parseSVGOptions(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := blob.Serve(w, r, sv.d.QueryRO(), t.PreviewSvgBlobID.String, "image/svg+xml", t.Uuid+".svg"); err != nil {
-		logg.Error(ctx, "failed to serve preview svg", "err", err)
+	// Compute ETag before the expensive blob load so 304s are cheap.
+	eTag := fmt.Sprintf(`"%d-%d-%.4g-%s"`, t.UpdatedAt.UnixMilli(), opts.Size, opts.StrokeWidth, opts.Color)
+	if r.Header.Get("If-None-Match") == eTag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
+	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
+	if err != nil {
+		logg.Error(ctx, "failed to get track blob", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
+
+	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
+	if err != nil {
+		logg.Error(ctx, "failed to parse track blob", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	tr := track.New(src, 0)
+
+	var bounds *track.Bounds
+	if t.BoundsMinLat.Valid && t.BoundsMinLon.Valid && t.BoundsMaxLat.Valid && t.BoundsMaxLon.Valid {
+		bounds = &track.Bounds{
+			MinLat: t.BoundsMinLat.Float64,
+			MinLon: t.BoundsMinLon.Float64,
+			MaxLat: t.BoundsMaxLat.Float64,
+			MaxLon: t.BoundsMaxLon.Float64,
+		}
+	}
+
+	svg := []byte(tr.PreviewSVG(opts, bounds))
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("Cache-Control", "private, max-age=3600")
+	w.Header().Set("ETag", eTag)
+	w.Header().Set("Content-Length", strconv.Itoa(len(svg)))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(svg)
+}
+
+// parseSVGOptions reads optional query parameters (size, strokeWidth, color) from r
+// and returns a PreviewOptions struct, falling back to defaults for missing params.
+func parseSVGOptions(r *http.Request) (track.PreviewOptions, error) {
+	opts := track.DefaultPreviewOptions()
+	q := r.URL.Query()
+
+	if s := q.Get("size"); s != "" {
+		v, err := strconv.Atoi(s)
+		if err != nil || v < 16 || v > 512 {
+			return opts, fmt.Errorf("size must be an integer between 16 and 512")
+		}
+		opts.Size = v
+	}
+
+	if s := q.Get("strokeWidth"); s != "" {
+		v, err := strconv.ParseFloat(s, 64)
+		if err != nil || v <= 0 || v > 100 {
+			return opts, fmt.Errorf("strokeWidth must be a positive number up to 100")
+		}
+		opts.StrokeWidth = v
+	}
+
+	if s := q.Get("color"); s != "" {
+		if !track.IsValidColor(s) {
+			return opts, fmt.Errorf("color must be a CSS hex color (e.g. #rgb or #rrggbb) or \"currentColor\"")
+		}
+		opts.Color = s
+	}
+
+	return opts, nil
 }
 
 type editTrackRequest struct {
@@ -867,21 +935,12 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	svgBlobID, err := uuid.NewV7()
-	if err != nil {
-		logg.Error(ctx, "failed to generate svg blob uuid", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
 	trackID, err := uuid.NewV7()
 	if err != nil {
 		logg.Error(ctx, "failed to generate track uuid", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
-
-	svgContent := []byte(t.PreviewSVG(512))
 
 	now := time.Now().UTC()
 	var created db.Track
@@ -906,11 +965,6 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_, txErr = blob.Create(ctx, q, blobID.String(), content, blob.CompressionZstd)
-		if txErr != nil {
-			return txErr
-		}
-
-		_, txErr = blob.Create(ctx, q, svgBlobID.String(), svgContent, blob.CompressionZstd)
 		if txErr != nil {
 			return txErr
 		}
@@ -944,7 +998,6 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			BoundsMaxLon:      toNullFloat64(meta.BoundsMaxLon),
 			OriginalCreatedAt: toNullTime(meta.OriginalCreatedAt),
 			Public:            0,
-			PreviewSvgBlobID:  sql.NullString{Valid: true, String: svgBlobID.String()},
 		})
 		return txErr
 	})

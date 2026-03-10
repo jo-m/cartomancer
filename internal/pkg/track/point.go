@@ -81,21 +81,78 @@ func (p *Point) Cell(resolution int) h3.Cell {
 
 type Points []Point
 
-// PreviewSVG renders the track as a square SVG of the given pixel size.
+// PreviewOptions configures SVG rendering parameters for track previews.
+type PreviewOptions struct {
+	// Size is the square canvas size in pixels.
+	Size int
+	// StrokeWidth is the polyline stroke width in SVG user units.
+	StrokeWidth float64
+	// Color is the stroke color: either a CSS hex value (e.g., "#000000", "#f00")
+	// or "currentColor". Invalid values are silently replaced with "currentColor".
+	Color string
+}
+
+// DefaultPreviewOptions returns sensible defaults for preview rendering.
+func DefaultPreviewOptions() PreviewOptions {
+	return PreviewOptions{
+		Size:        512,
+		StrokeWidth: 1.5,
+		Color:       "currentColor",
+	}
+}
+
+// IsValidColor reports whether s is a valid stroke color value: either
+// "currentColor" or a CSS hex color (#RGB, #RGBA, #RRGGBB, #RRGGBBAA, case-insensitive).
+func IsValidColor(s string) bool {
+	if s == "currentColor" {
+		return true
+	}
+	if len(s) == 0 || s[0] != '#' {
+		return false
+	}
+	hex := s[1:]
+	n := len(hex)
+	if n != 3 && n != 4 && n != 6 && n != 8 {
+		return false
+	}
+	for _, c := range hex {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
+// Bounds represents the geographic extents of a track.
+type Bounds struct {
+	MinLat, MinLon float64
+	MaxLat, MaxLon float64
+}
+
+// PreviewSVG renders the track as a square SVG preview image.
+// opts controls the canvas size, stroke width, and color.
+// If bounds is non-nil, its extents are used directly; otherwise extents are computed from pts.
 // Points are subsampled so that each line segment spans approximately 5px.
-func (pts Points) PreviewSVG(size int) string {
+func (pts Points) PreviewSVG(opts PreviewOptions, bounds *Bounds) string {
+	size := opts.Size
 	if len(pts) < 2 {
 		return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d"/>`, size, size)
 	}
 
-	// Compute lat/lon extents.
-	minLat, maxLat := pts[0].Lat, pts[0].Lat
-	minLon, maxLon := pts[0].Lon, pts[0].Lon
-	for _, p := range pts[1:] {
-		minLat = min(minLat, p.Lat)
-		maxLat = max(maxLat, p.Lat)
-		minLon = min(minLon, p.Lon)
-		maxLon = max(maxLon, p.Lon)
+	var minLat, maxLat, minLon, maxLon float64
+	if bounds != nil {
+		minLat, maxLat = bounds.MinLat, bounds.MaxLat
+		minLon, maxLon = bounds.MinLon, bounds.MaxLon
+	} else {
+		// Compute lat/lon extents from points.
+		minLat, maxLat = pts[0].Lat, pts[0].Lat
+		minLon, maxLon = pts[0].Lon, pts[0].Lon
+		for _, p := range pts[1:] {
+			minLat = min(minLat, p.Lat)
+			maxLat = max(maxLat, p.Lat)
+			minLon = min(minLon, p.Lon)
+			maxLon = max(maxLon, p.Lon)
+		}
 	}
 
 	dLat := maxLat - minLat
@@ -143,11 +200,16 @@ func (pts Points) PreviewSVG(size int) string {
 		fmt.Fprintf(&b, " %.1f,%.1f", toX(last), toY(last))
 	}
 
+	color := opts.Color
+	if !IsValidColor(color) {
+		color = "currentColor"
+	}
+
 	return fmt.Sprintf(
 		`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d">`+
-			`<polyline points="%s" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`+
+			`<polyline points="%s" fill="none" stroke="%s" stroke-width="%.4g" stroke-linejoin="round" stroke-linecap="round"/>`+
 			`</svg>`,
-		size, size, b.String(),
+		size, size, b.String(), color, opts.StrokeWidth,
 	)
 }
 
