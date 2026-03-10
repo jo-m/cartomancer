@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { fetchClient, $api } from "../api/client"
 import { useSession } from "../context/SessionContext"
 import TagsInput from "../components/TagsInput"
+import Toast from "../components/Toast"
 import {
   SPORT_LABELS,
   SUB_SPORT_LABELS,
@@ -90,6 +91,10 @@ export default function Upload() {
   const [bulkTags, setBulkTags] = useState<string[]>([])
   const [bulkSport, setBulkSport] = useState("")
   const [bulkSubSport, setBulkSubSport] = useState("")
+  const [toastError, setToastError] = useState<{
+    key: number
+    msg: string
+  } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { data: editingData, isLoading: editingLoading } = $api.useQuery(
@@ -210,6 +215,11 @@ export default function Upload() {
             queryKey: ["get", "/tracks/editing"],
           })
         },
+        onError: (e) =>
+          setToastError((prev) => ({
+            key: (prev?.key ?? 0) + 1,
+            msg: (e as unknown as Error).message,
+          })),
       }
     )
   }
@@ -225,6 +235,11 @@ export default function Upload() {
             queryKey: ["get", "/tracks/editing"],
           })
         },
+        onError: (e) =>
+          setToastError((prev) => ({
+            key: (prev?.key ?? 0) + 1,
+            msg: (e as unknown as Error).message,
+          })),
       }
     )
   }
@@ -245,6 +260,11 @@ export default function Upload() {
             queryKey: ["get", "/tracks/editing"],
           })
         },
+        onError: (e) =>
+          setToastError((prev) => ({
+            key: (prev?.key ?? 0) + 1,
+            msg: (e as unknown as Error).message,
+          })),
       }
     )
   }
@@ -494,6 +514,14 @@ export default function Upload() {
             </ul>
           )}
         </div>
+      )}
+
+      {toastError && (
+        <Toast
+          key={toastError.key}
+          message={toastError.msg}
+          onDismiss={() => setToastError(null)}
+        />
       )}
     </div>
   )

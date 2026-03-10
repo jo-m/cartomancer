@@ -263,6 +263,7 @@ Keep it very simple and barebones.
 - All data views/tables must always be searchable/paginatable/filterable.
 - All links, including nav etc. must be proper `<a>` links such that right click, open in new tab etc. work as expected.
 - URL paths used in the router should generally roughly mirror those from the API. E.g. the tracks upload page (POST /api/tracks) should be at /tracks/uploads.
+- Error handling: Unless API errors have some separate handling mechanism like e.g. the failed uploads list on the upload page, use the toast element (frontend/src/components/Toast.tsx) to forward API errors to the user.
 
 ## Linting
 
