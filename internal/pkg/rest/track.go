@@ -2,6 +2,7 @@ package rest
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -798,6 +799,7 @@ const (
 )
 
 var errUploadTrackLimitReached = errors.New("track limit reached")
+var errUploadTrackDuplicate = errors.New("duplicate track")
 
 func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -823,6 +825,8 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
+
+	contentHash := sha256.Sum256(content)
 
 	src, err := load.Blob(header.Filename, bytes.NewReader(content))
 	if err != nil {
@@ -890,6 +894,17 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			return errUploadTrackLimitReached
 		}
 
+		_, txErr = q.TrackExistsByUserAndBlobHash(ctx, db.TrackExistsByUserAndBlobHashParams{
+			UserID: user.Uuid,
+			Hash:   contentHash[:],
+		})
+		if txErr == nil {
+			return errUploadTrackDuplicate
+		}
+		if !errors.Is(txErr, sql.ErrNoRows) {
+			return txErr
+		}
+
 		_, txErr = blob.Create(ctx, q, blobID.String(), content, blob.CompressionZstd)
 		if txErr != nil {
 			return txErr
@@ -935,6 +950,10 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	})
 	if errors.Is(err, errUploadTrackLimitReached) {
 		writeError(w, http.StatusConflict, "track limit reached (max 10000)")
+		return
+	}
+	if errors.Is(err, errUploadTrackDuplicate) {
+		writeError(w, http.StatusConflict, "duplicate file")
 		return
 	}
 	if err != nil {

@@ -71,12 +71,12 @@ func TestBulkEditTracks_Success(t *testing.T) {
 	client := e.newClient()
 	e.login(client, "alice@example.com", "secret")
 
-	// Upload two tracks.
+	// Upload two distinct tracks.
 	status, u1 := e.doUpload(client, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
 	uuid1 := u1["uuid"].(string)
 
-	status, u2 := e.doUpload(client, testGPXFile)
+	status, u2 := e.doUpload(client, testGPXFile2)
 	require.Equal(t, http.StatusCreated, status)
 	uuid2 := u2["uuid"].(string)
 
@@ -138,12 +138,12 @@ func TestBulkEditTracks_Tags(t *testing.T) {
 	client := e.newClient()
 	e.login(client, "alice@example.com", "secret")
 
-	// Upload two tracks.
+	// Upload two distinct tracks.
 	status, u1 := e.doUpload(client, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
 	uuid1 := u1["uuid"].(string)
 
-	status, u2 := e.doUpload(client, testGPXFile)
+	status, u2 := e.doUpload(client, testGPXFile2)
 	require.Equal(t, http.StatusCreated, status)
 	uuid2 := u2["uuid"].(string)
 

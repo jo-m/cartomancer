@@ -16,6 +16,7 @@ import (
 )
 
 const testGPXFile = "../load/testdata/COURSE_436298480.gpx"
+const testGPXFile2 = "../load/testdata/2022-05-25_781839002_BP LA - Granadilla - Vilaflor - Boca Tauce - Arona (Road).gpx"
 
 // doUpload sends a multipart POST /tracks request with the given file.
 func (e *testEnv) doUpload(client *http.Client, filename string) (int, map[string]any) {
@@ -132,4 +133,35 @@ func TestUploadTrack_OtherUserCannotSee(t *testing.T) {
 
 	status, _ = e.do(bob, http.MethodGet, "/tracks/"+trackUUID, nil, nil)
 	assert.Equal(t, http.StatusNotFound, status)
+}
+
+func TestUploadTrack_DuplicateRejected(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	status, _ := e.doUpload(client, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+
+	// Second upload of the same file must be rejected.
+	status, _ = e.doUpload(client, testGPXFile)
+	assert.Equal(t, http.StatusConflict, status)
+}
+
+func TestUploadTrack_DuplicateAllowedForDifferentUser(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("bob@example.com", "Bob", "secret2", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+	status, _ := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+
+	// Same file uploaded by a different user must succeed.
+	bob := e.newClient()
+	e.login(bob, "bob@example.com", "secret2")
+	status, _ = e.doUpload(bob, testGPXFile)
+	assert.Equal(t, http.StatusCreated, status)
 }
