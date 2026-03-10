@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Link } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { fetchClient, $api } from "../api/client"
+import { useSession } from "../context/SessionContext"
 import TagsInput from "../components/TagsInput"
 import {
   SPORT_LABELS,
@@ -19,11 +20,13 @@ interface FileUpload {
   errorMsg?: string
 }
 
-const SESSION_KEY = "upload_errors"
+function sessionKey(userUuid: string): string {
+  return `upload_errors:${userUuid}`
+}
 
-function loadErrorsFromSession(): FileUpload[] {
+function loadErrorsFromSession(userUuid: string): FileUpload[] {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY)
+    const raw = sessionStorage.getItem(sessionKey(userUuid))
     if (!raw) return []
     return JSON.parse(raw) as FileUpload[]
   } catch {
@@ -31,7 +34,7 @@ function loadErrorsFromSession(): FileUpload[] {
   }
 }
 
-function persistErrorsToSession(uploads: FileUpload[]) {
+function persistErrorsToSession(userUuid: string, uploads: FileUpload[]) {
   const errors = uploads
     .filter((u) => u.status === "error")
     .map(({ id, filename, status, errorMsg }) => ({
@@ -41,7 +44,7 @@ function persistErrorsToSession(uploads: FileUpload[]) {
       errorMsg,
       file: null,
     }))
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(errors))
+  sessionStorage.setItem(sessionKey(userUuid), JSON.stringify(errors))
 }
 
 async function uploadFile(
@@ -76,8 +79,12 @@ function formatAscent(m: number): string {
 
 export default function Upload() {
   const queryClient = useQueryClient()
+  // useSession is called before useState so user.uuid is available for the
+  // lazy initializer. ProtectedRoute guarantees user is non-null here.
+  const { user } = useSession()
+  const userUuid = user!.uuid
   const [uploads, setUploads] = useState<FileUpload[]>(() =>
-    loadErrorsFromSession()
+    loadErrorsFromSession(userUuid)
   )
   const [isDragging, setIsDragging] = useState(false)
   const [bulkTags, setBulkTags] = useState<string[]>([])
@@ -94,8 +101,8 @@ export default function Upload() {
   const bulkEditMutation = $api.useMutation("patch", "/tracks")
 
   useEffect(() => {
-    persistErrorsToSession(uploads)
-  }, [uploads])
+    persistErrorsToSession(userUuid, uploads)
+  }, [userUuid, uploads])
 
   const updateUpload = useCallback((id: string, patch: Partial<FileUpload>) => {
     setUploads((prev) =>
