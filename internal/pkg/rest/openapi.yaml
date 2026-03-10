@@ -1618,6 +1618,18 @@ components:
         endLon:
           type: number
           format: double
+        boundsMinLat:
+          type: number
+          format: double
+        boundsMinLon:
+          type: number
+          format: double
+        boundsMaxLat:
+          type: number
+          format: double
+        boundsMaxLon:
+          type: number
+          format: double
         originalCreatedAt:
           type: string
           format: date-time

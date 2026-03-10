@@ -35,6 +35,11 @@ CREATE TABLE tracks (
     end_lat REAL,
     end_lon REAL,
 
+    bounds_min_lat REAL,
+    bounds_min_lon REAL,
+    bounds_max_lat REAL,
+    bounds_max_lon REAL,
+
     original_created_at DATETIME,
 
     preview_svg_blob_id TEXT,

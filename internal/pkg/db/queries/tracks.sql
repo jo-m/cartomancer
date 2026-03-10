@@ -6,6 +6,7 @@ INSERT INTO tracks (
   sport, sub_sport,
   total_distance_m, total_ascent_m,
   start_lat, start_lon, end_lat, end_lon,
+  bounds_min_lat, bounds_min_lon, bounds_max_lat, bounds_max_lon,
   original_created_at,
   public,
   preview_svg_blob_id
@@ -15,6 +16,7 @@ INSERT INTO tracks (
   ?, ?,
   ?, ?,
   ?, ?,
+  ?, ?, ?, ?,
   ?, ?, ?, ?,
   ?,
   ?,

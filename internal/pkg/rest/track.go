@@ -40,6 +40,10 @@ type trackResponse struct {
 	StartLon                *float64 `json:"startLon,omitempty"`
 	EndLat                  *float64 `json:"endLat,omitempty"`
 	EndLon                  *float64 `json:"endLon,omitempty"`
+	BoundsMinLat            *float64 `json:"boundsMinLat,omitempty"`
+	BoundsMinLon            *float64 `json:"boundsMinLon,omitempty"`
+	BoundsMaxLat            *float64 `json:"boundsMaxLat,omitempty"`
+	BoundsMaxLon            *float64 `json:"boundsMaxLon,omitempty"`
 	OriginalCreatedAt       string   `json:"originalCreatedAt,omitempty"`
 	CreatedAt               string   `json:"createdAt"`
 	UpdatedAt               string   `json:"updatedAt"`
@@ -105,6 +109,10 @@ func trackResponseFromDB(t db.Track, tags []string) trackResponse {
 		StartLon:                nullFloat64Ptr(t.StartLon),
 		EndLat:                  nullFloat64Ptr(t.EndLat),
 		EndLon:                  nullFloat64Ptr(t.EndLon),
+		BoundsMinLat:            nullFloat64Ptr(t.BoundsMinLat),
+		BoundsMinLon:            nullFloat64Ptr(t.BoundsMinLon),
+		BoundsMaxLat:            nullFloat64Ptr(t.BoundsMaxLat),
+		BoundsMaxLon:            nullFloat64Ptr(t.BoundsMaxLon),
 		CreatedAt:               t.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:               t.UpdatedAt.Format(time.RFC3339),
 		Public:                  t.Public != 0,
@@ -915,6 +923,10 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			StartLon:          toNullFloat64(meta.StartLon),
 			EndLat:            toNullFloat64(meta.EndLat),
 			EndLon:            toNullFloat64(meta.EndLon),
+			BoundsMinLat:      toNullFloat64(meta.BoundsMinLat),
+			BoundsMinLon:      toNullFloat64(meta.BoundsMinLon),
+			BoundsMaxLat:      toNullFloat64(meta.BoundsMaxLat),
+			BoundsMaxLon:      toNullFloat64(meta.BoundsMaxLon),
 			OriginalCreatedAt: toNullTime(meta.OriginalCreatedAt),
 			Public:            0,
 			PreviewSvgBlobID:  sql.NullString{Valid: true, String: svgBlobID.String()},

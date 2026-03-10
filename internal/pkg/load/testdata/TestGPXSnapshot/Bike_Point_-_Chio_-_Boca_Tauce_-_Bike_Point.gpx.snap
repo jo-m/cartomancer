@@ -2,6 +2,10 @@
   "Metadata": {
     "Author": "Dieter Jacobs",
     "AuthorLinkURL": "https://www.strava.com/athletes/487763",
+    "BoundsMaxLat": null,
+    "BoundsMaxLon": null,
+    "BoundsMinLat": null,
+    "BoundsMinLon": null,
     "Description": "",
     "EndLat": null,
     "EndLon": null,

@@ -2,6 +2,10 @@
   "Metadata": {
     "Author": "",
     "AuthorLinkURL": "https://www.komoot.de",
+    "BoundsMaxLat": null,
+    "BoundsMaxLon": null,
+    "BoundsMinLat": null,
+    "BoundsMinLon": null,
     "Description": "",
     "EndLat": null,
     "EndLon": null,

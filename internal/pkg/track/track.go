@@ -65,6 +65,9 @@ type Metadata struct {
 	StartLat, StartLon *float64
 	EndLat, EndLon     *float64
 
+	BoundsMinLat, BoundsMinLon *float64
+	BoundsMaxLat, BoundsMaxLon *float64
+
 	// OriginalCreatedAt is the recording/creation timestamp from the original file.
 	OriginalCreatedAt *time.Time
 }
@@ -106,7 +109,7 @@ const (
 	defaultRunSubSport  = SubSportRunningOutdoor
 )
 
-// EnhancedMetadata returns Metadata with some additional guessed information if it is missing from the original.
+// EnhancedMetadata returns Metadata with some additional guessed/computed information.
 func (t *Track) EnhancedMetadata() Metadata {
 	ret := t.meta
 
@@ -134,6 +137,19 @@ func (t *Track) EnhancedMetadata() Metadata {
 		ret.StartLon = &first.Lon
 		ret.EndLat = &last.Lat
 		ret.EndLon = &last.Lon
+
+		minLat, maxLat := t.pts[0].Lat, t.pts[0].Lat
+		minLon, maxLon := t.pts[0].Lon, t.pts[0].Lon
+		for _, p := range t.pts[1:] {
+			minLat = min(minLat, p.Lat)
+			maxLat = max(maxLat, p.Lat)
+			minLon = min(minLon, p.Lon)
+			maxLon = max(maxLon, p.Lon)
+		}
+		ret.BoundsMinLat = &minLat
+		ret.BoundsMinLon = &minLon
+		ret.BoundsMaxLat = &maxLat
+		ret.BoundsMaxLon = &maxLon
 	}
 
 	return ret
