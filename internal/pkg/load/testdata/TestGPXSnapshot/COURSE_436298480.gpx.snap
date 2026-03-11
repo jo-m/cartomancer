@@ -10,6 +10,8 @@
     "EndLat": null,
     "EndLon": null,
     "LinkURL": "connect.garmin.com",
+    "MaxElevationM": null,
+    "MinElevationM": null,
     "Name": "lägern",
     "OriginalCreatedAt": "2026-03-04T01:49:01Z",
     "Source": "Garmin Connect",

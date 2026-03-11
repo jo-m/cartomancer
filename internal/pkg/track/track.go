@@ -62,6 +62,9 @@ type Metadata struct {
 	TotalDistanceM float64
 	TotalAscentM   float64
 
+	MinElevationM *float64
+	MaxElevationM *float64
+
 	StartLat, StartLon *float64
 	EndLat, EndLon     *float64
 
@@ -103,6 +106,22 @@ func (t *Track) computeAscentM() float64 {
 	return float64(ascM)
 }
 
+func (t *Track) computeElevationBounds() (minM, maxM *float64) {
+	if len(t.pts) == 0 {
+		return nil, nil
+	}
+	lo, hi := t.pts[0].Elevation, t.pts[0].Elevation
+	for _, p := range t.pts[1:] {
+		if p.Elevation < lo {
+			lo = p.Elevation
+		}
+		if p.Elevation > hi {
+			hi = p.Elevation
+		}
+	}
+	return &lo, &hi
+}
+
 // TODO: Make those configurable per user.
 const (
 	defaultBikeSubSport = SubSportCyclingRoad
@@ -129,6 +148,8 @@ func (t *Track) EnhancedMetadata() Metadata {
 			ret.SubSport = defaultRunSubSport
 		}
 	}
+
+	ret.MinElevationM, ret.MaxElevationM = t.computeElevationBounds()
 
 	if len(t.pts) > 0 {
 		first := t.pts[0]
@@ -160,6 +181,13 @@ func (t *Track) EnhancedMetadata() Metadata {
 // If bounds is non-nil, its extents are used directly instead of being computed from the track points.
 func (t *Track) PreviewSVG(opts PreviewOptions, bounds *Bounds) string {
 	return Points(t.pts).PreviewSVG(opts, bounds)
+}
+
+// ProfileSVG generates an altitude profile SVG for the track.
+// opts controls the canvas width, stroke width, and color.
+// The canvas height is opts.Size/4; the Y axis is fixed to 2000 m.
+func (t *Track) ProfileSVG(opts PreviewOptions) string {
+	return Points(t.pts).ProfileSVG(opts)
 }
 
 type TrackSource interface {

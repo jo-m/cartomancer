@@ -40,6 +40,9 @@ CREATE TABLE tracks (
     bounds_max_lat REAL,
     bounds_max_lon REAL,
 
+    min_elevation_m REAL,
+    max_elevation_m REAL,
+
     original_created_at DATETIME,
 
     FOREIGN KEY(user_id) REFERENCES users(uuid) ON DELETE CASCADE,

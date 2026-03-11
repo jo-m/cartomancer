@@ -212,6 +212,90 @@ func (pts Points) PreviewSVG(opts PreviewOptions, bounds *Bounds) string {
 	)
 }
 
+const profileElevationRange = 2000.0 // meters; fixed Y-axis range for ProfileSVG.
+
+// ProfileSVG renders the track's altitude profile as an SVG image.
+// X is cumulative distance along the track; Y is elevation normalized to the
+// track's lowest point with a fixed scale of 2000 m.
+// The canvas is opts.Size wide and opts.Size/4 tall.
+// Points are subsampled so that each line segment spans approximately 5 px.
+func (pts Points) ProfileSVG(opts PreviewOptions) string {
+	w := opts.Size
+	h := max(1, opts.Size/4)
+
+	if len(pts) < 2 {
+		return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d"/>`, w, h)
+	}
+
+	// Compute cumulative distances and find the minimum elevation.
+	dists := make([]float64, len(pts))
+	minElev := pts[0].Elevation
+	for i := 1; i < len(pts); i++ {
+		dists[i] = dists[i-1] + pts[i-1].MetersTo(&pts[i])
+		if pts[i].Elevation < minElev {
+			minElev = pts[i].Elevation
+		}
+	}
+
+	totalDist := dists[len(dists)-1]
+	if totalDist == 0 {
+		return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d"/>`, w, h)
+	}
+
+	padX := float64(w) * 0.05
+	padY := float64(h) * 0.05
+	innerW := float64(w) - 2*padX
+	innerH := float64(h) - 2*padY
+
+	toSVGX := func(dist float64) float64 {
+		return padX + (dist/totalDist)*innerW
+	}
+	toSVGY := func(elev float64) float64 {
+		// Normalize to [0, profileElevationRange], then invert (SVG y goes down).
+		normalized := (elev - minElev) / profileElevationRange
+		return padY + innerH*(1-normalized)
+	}
+
+	// Compute total pixel-space path length to determine subsampling stride.
+	totalPx := 0.0
+	for i := 1; i < len(pts); i++ {
+		dx := toSVGX(dists[i]) - toSVGX(dists[i-1])
+		dy := toSVGY(pts[i].Elevation) - toSVGY(pts[i-1].Elevation)
+		totalPx += math.Sqrt(dx*dx + dy*dy)
+	}
+
+	// Target ~5 px per segment.
+	nSegments := max(1, int(math.Round(totalPx/5)))
+	stride := max(1, len(pts)/nSegments)
+
+	var b strings.Builder
+	for i := 0; i < len(pts); i += stride {
+		if b.Len() > 0 {
+			b.WriteByte(' ')
+		}
+		fmt.Fprintf(&b, "%.1f,%.1f", toSVGX(dists[i]), toSVGY(pts[i].Elevation))
+	}
+	// Always include the last point.
+	last := len(pts) - 1
+	if last%stride != 0 {
+		fmt.Fprintf(&b, " %.1f,%.1f", toSVGX(dists[last]), toSVGY(pts[last].Elevation))
+	}
+
+	color := opts.Color
+	if !IsValidColor(color) {
+		color = "currentColor"
+	}
+
+	strokeWidth := math.Max(1.0, float64(opts.Size)/100)
+
+	return fmt.Sprintf(
+		`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d">`+
+			`<polyline points="%s" fill="none" stroke="%s" stroke-width="%.4g" stroke-linejoin="round" stroke-linecap="round"/>`+
+			`</svg>`,
+		w, h, b.String(), color, strokeWidth,
+	)
+}
+
 // Subsample returns a subset of points such that consecutive points are at
 // least minDistM meters apart. The first and last points are always included.
 func (pts Points) Subsample(minDistM float64) Points {

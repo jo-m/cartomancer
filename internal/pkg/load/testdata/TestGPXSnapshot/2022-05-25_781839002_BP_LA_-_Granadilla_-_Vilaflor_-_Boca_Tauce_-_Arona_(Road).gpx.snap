@@ -10,6 +10,8 @@
     "EndLat": null,
     "EndLon": null,
     "LinkURL": "",
+    "MaxElevationM": null,
+    "MinElevationM": null,
     "Name": "BP LA - Granadilla - Vilaflor - Boca Tauce - Arona (Road)",
     "OriginalCreatedAt": null,
     "Source": "https://www.komoot.de",

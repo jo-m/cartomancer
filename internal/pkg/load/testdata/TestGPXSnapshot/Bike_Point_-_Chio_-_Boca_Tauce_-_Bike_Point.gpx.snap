@@ -10,6 +10,8 @@
     "EndLat": null,
     "EndLon": null,
     "LinkURL": "https://www.strava.com/routes/14201305",
+    "MaxElevationM": null,
+    "MinElevationM": null,
     "Name": "Bike Point - Chio - Boca Tauce - Bike Point",
     "OriginalCreatedAt": null,
     "Source": "StravaGPX",

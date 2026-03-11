@@ -74,6 +74,14 @@ export default function Track() {
         />
       </div>
 
+      <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+        <img
+          src={`/api/tracks/${data.uuid}/profile.svg?size=512`}
+          alt="Elevation profile"
+          className="w-full"
+        />
+      </div>
+
       <dl className="mt-6 grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">

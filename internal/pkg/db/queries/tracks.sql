@@ -7,6 +7,7 @@ INSERT INTO tracks (
   total_distance_m, total_ascent_m,
   start_lat, start_lon, end_lat, end_lon,
   bounds_min_lat, bounds_min_lon, bounds_max_lat, bounds_max_lon,
+  min_elevation_m, max_elevation_m,
   original_created_at,
   public
 ) VALUES (
@@ -17,6 +18,7 @@ INSERT INTO tracks (
   ?, ?,
   ?, ?, ?, ?,
   ?, ?, ?, ?,
+  ?, ?,
   ?,
   ?
 )

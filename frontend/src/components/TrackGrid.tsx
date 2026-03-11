@@ -488,6 +488,13 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                       {formatDistance(track.totalDistanceM)} &middot;{" "}
                       {formatAscent(track.totalAscentM)}
                     </p>
+                    <div className="mt-1.5 overflow-hidden rounded bg-gray-50">
+                      <img
+                        src={`/api/tracks/${track.uuid}/profile.svg?size=256`}
+                        alt="Elevation profile"
+                        className="w-full"
+                      />
+                    </div>
                   </div>
                 </Link>
               ))}

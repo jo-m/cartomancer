@@ -37,6 +37,8 @@ type trackResponse struct {
 	SubSport                int      `json:"subSport"`
 	TotalDistanceM          float64  `json:"totalDistanceM"`
 	TotalAscentM            float64  `json:"totalAscentM"`
+	MinElevationM           *float64 `json:"minElevationM,omitempty"`
+	MaxElevationM           *float64 `json:"maxElevationM,omitempty"`
 	StartLat                *float64 `json:"startLat,omitempty"`
 	StartLon                *float64 `json:"startLon,omitempty"`
 	EndLat                  *float64 `json:"endLat,omitempty"`
@@ -106,6 +108,8 @@ func trackResponseFromDB(t db.Track, tags []string) trackResponse {
 		SubSport:                int(t.SubSport),
 		TotalDistanceM:          t.TotalDistanceM,
 		TotalAscentM:            t.TotalAscentM,
+		MinElevationM:           nullFloat64Ptr(t.MinElevationM),
+		MaxElevationM:           nullFloat64Ptr(t.MaxElevationM),
 		StartLat:                nullFloat64Ptr(t.StartLat),
 		StartLon:                nullFloat64Ptr(t.StartLon),
 		EndLat:                  nullFloat64Ptr(t.EndLat),
@@ -272,6 +276,66 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 	}
 
 	svg := []byte(tr.PreviewSVG(opts, bounds))
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("Cache-Control", "private, max-age=3600")
+	w.Header().Set("ETag", eTag)
+	w.Header().Set("Content-Length", strconv.Itoa(len(svg)))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(svg)
+}
+
+func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+	trackUUID := chi.URLParam(r, "uuid")
+
+	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "track not found")
+			return
+		}
+		logg.Error(ctx, "failed to get track", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
+		writeError(w, http.StatusNotFound, "track not found")
+		return
+	}
+
+	opts, err := parseSVGOptions(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	opts.Color = sv.appConfig.TrackColor
+
+	// Compute ETag before the expensive blob load so 304s are cheap.
+	eTag := fmt.Sprintf(`"%d-%d-%s"`, t.UpdatedAt.UnixMilli(), opts.Size, opts.Color)
+	if r.Header.Get("If-None-Match") == eTag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
+	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
+	if err != nil {
+		logg.Error(ctx, "failed to get track blob", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
+	if err != nil {
+		logg.Error(ctx, "failed to parse track blob", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	tr := track.New(src, 0)
+
+	svg := []byte(tr.ProfileSVG(opts))
 	w.Header().Set("Content-Type", "image/svg+xml")
 	w.Header().Set("Cache-Control", "private, max-age=3600")
 	w.Header().Set("ETag", eTag)
@@ -1027,6 +1091,8 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			BoundsMinLon:      toNullFloat64(meta.BoundsMinLon),
 			BoundsMaxLat:      toNullFloat64(meta.BoundsMaxLat),
 			BoundsMaxLon:      toNullFloat64(meta.BoundsMaxLon),
+			MinElevationM:     toNullFloat64(meta.MinElevationM),
+			MaxElevationM:     toNullFloat64(meta.MaxElevationM),
 			OriginalCreatedAt: toNullTime(meta.OriginalCreatedAt),
 			Public:            0,
 		})

@@ -768,6 +768,53 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/{uuid}/profile.svg:
+    get:
+      summary: Download the track altitude profile SVG
+      operationId: downloadTrackProfileSVG
+      tags: [Tracks]
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: size
+          in: query
+          required: false
+          description: Canvas width in pixels (16–512, default 512). Height is size/3.
+          schema:
+            type: integer
+            minimum: 16
+            maximum: 512
+            default: 512
+      responses:
+        "200":
+          description: Track altitude profile SVG image
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Track not found or not accessible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /tracks/{uuid}/preview.svg:
     get:
       summary: Download the track preview SVG
@@ -1700,6 +1747,14 @@ components:
         totalAscentM:
           type: number
           format: double
+        minElevationM:
+          type: number
+          format: double
+          nullable: true
+        maxElevationM:
+          type: number
+          format: double
+          nullable: true
         startLat:
           type: number
           format: double

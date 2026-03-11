@@ -1,6 +1,7 @@
 package track
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -135,6 +136,78 @@ func TestSubsample(t *testing.T) {
 		// Middle close points should be thinned out.
 		require.Less(t, len(got), len(pts))
 	})
+}
+
+func TestComputeElevationBounds(t *testing.T) {
+	t.Run("empty track", func(t *testing.T) {
+		tr := &Track{}
+		lo, hi := tr.computeElevationBounds()
+		require.Nil(t, lo)
+		require.Nil(t, hi)
+	})
+
+	t.Run("single point", func(t *testing.T) {
+		tr := &Track{pts: []Point{{Elevation: 500}}}
+		lo, hi := tr.computeElevationBounds()
+		require.NotNil(t, lo)
+		require.NotNil(t, hi)
+		require.InDelta(t, 500, *lo, 1e-9)
+		require.InDelta(t, 500, *hi, 1e-9)
+	})
+
+	t.Run("ascending", func(t *testing.T) {
+		tr := &Track{pts: []Point{
+			{Elevation: 100},
+			{Elevation: 300},
+			{Elevation: 200},
+		}}
+		lo, hi := tr.computeElevationBounds()
+		require.InDelta(t, 100, *lo, 1e-9)
+		require.InDelta(t, 300, *hi, 1e-9)
+	})
+}
+
+func TestProfileSVGEmpty(t *testing.T) {
+	opts := DefaultPreviewOptions()
+	opts.Size = 256
+
+	t.Run("nil", func(t *testing.T) {
+		svg := Points(nil).ProfileSVG(opts)
+		require.Contains(t, svg, `width="256"`)
+		require.Contains(t, svg, `height="64"`)
+		require.NotContains(t, svg, "polyline")
+	})
+
+	t.Run("one point", func(t *testing.T) {
+		svg := Points{berlin}.ProfileSVG(opts)
+		require.NotContains(t, svg, "polyline")
+	})
+
+	t.Run("two identical points", func(t *testing.T) {
+		// Zero distance -> empty SVG.
+		svg := Points{berlin, berlin}.ProfileSVG(opts)
+		require.NotContains(t, svg, "polyline")
+	})
+
+	t.Run("dimensions", func(t *testing.T) {
+		// Height must be size/3.
+		for _, size := range []int{16, 64, 128, 256, 512} {
+			o := opts
+			o.Size = size
+			svg := Points{berlin, paris}.ProfileSVG(o)
+			expected := size / 4
+			require.Contains(t, svg, fmt.Sprintf(`height="%d"`, expected))
+		}
+	})
+}
+
+func TestProfileSVGSnapshot(t *testing.T) {
+	// Uses a GPX with real elevation data (from the load package test fixtures).
+	pts := loadGPXPoints(t, "../load/testdata/COURSE_436298480.gpx")
+	opts := DefaultPreviewOptions()
+	opts.Size = 256
+	svg := pts.ProfileSVG(opts)
+	golden.Verify(t, svg)
 }
 
 func TestPreviewSVGPfanni(t *testing.T) {
