@@ -953,12 +953,13 @@ func boolToInt(b bool) int {
 }
 
 const (
-	maxUploadSize    = 5 << 20 // 5 MiB
-	minTrackPoints   = 3
-	maxTrackPoints   = 100_000
-	minTrackDistM    = 10       // 10 m
-	maxTrackDistM    = 10_000e3 // 10 000 km
-	maxTracksPerUser = 10_000
+	maxUploadSize         = 5 << 20 // 5 MiB
+	minTrackPoints        = 3
+	maxTrackPoints        = 100_000
+	minTrackDistM         = 10       // 10 m
+	maxTrackDistM         = 10_000e3 // 10 000 km
+	maxTracksPerUser      = 200
+	maxTracksPerUserAdmin = 10_000
 )
 
 var errUploadTrackLimitReached = errors.New("track limit reached")
@@ -1044,7 +1045,11 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		if txErr != nil {
 			return txErr
 		}
-		if count >= maxTracksPerUser {
+		limit := int64(maxTracksPerUser)
+		if user.Admin != 0 {
+			limit = maxTracksPerUserAdmin
+		}
+		if count >= limit {
 			return errUploadTrackLimitReached
 		}
 
@@ -1099,7 +1104,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		return txErr
 	})
 	if errors.Is(err, errUploadTrackLimitReached) {
-		writeError(w, http.StatusConflict, "track limit reached (max 10000)")
+		writeError(w, http.StatusConflict, "per-user track limit reached")
 		return
 	}
 	if errors.Is(err, errUploadTrackDuplicate) {
