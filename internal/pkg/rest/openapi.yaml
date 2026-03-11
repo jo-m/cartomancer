@@ -276,6 +276,13 @@ paths:
           in: query
           schema:
             type: boolean
+        - name: onlyMine
+          in: query
+          schema:
+            type: boolean
+          description: >
+            When true and authenticated, restricts results to tracks owned by the
+            current user (ignoring public tracks from other users).
         - name: fileFormat
           in: query
           schema:
@@ -798,9 +805,17 @@ paths:
       operationId: getTrackStatistics
       tags: [Tracks]
       description: >
-        Returns aggregate statistics (min/max distance and ascent) for all tracks
-        visible to the authenticated user. All fields are null when there are no
-        visible tracks.
+        Returns aggregate statistics (min/max distance and ascent) for tracks
+        visible to the caller. Unauthenticated callers see only public tracks.
+        All fields are null when there are no visible tracks.
+      parameters:
+        - name: onlyMine
+          in: query
+          schema:
+            type: boolean
+          description: >
+            When true and authenticated, restricts statistics to tracks owned by
+            the current user.
       responses:
         "200":
           description: Track statistics
@@ -808,12 +823,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TrackStatisticsResponse"
-        "401":
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
         "500":
           description: Internal server error
           content:

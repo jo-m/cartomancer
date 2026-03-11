@@ -10,6 +10,10 @@ import (
 type TrackStatisticsParams struct {
 	// UserID is the current user's UUID. If empty, only public tracks are included.
 	UserID string
+
+	// OnlyOwnedByUser restricts statistics to tracks owned by UserID, ignoring public
+	// visibility from other users. Has no effect when UserID is empty.
+	OnlyOwnedByUser bool
 }
 
 // TrackStatisticsResult holds aggregate stats for tracks visible to a user.
@@ -25,7 +29,10 @@ type TrackStatisticsResult struct {
 func (d *DB) TrackStatistics(ctx context.Context, p TrackStatisticsParams) (TrackStatisticsResult, error) {
 	var where string
 	var args []any
-	if p.UserID != "" {
+	if p.UserID != "" && p.OnlyOwnedByUser {
+		where = " WHERE user_id = ?"
+		args = []any{p.UserID}
+	} else if p.UserID != "" {
 		where = " WHERE (public = 1 OR user_id = ?)"
 		args = []any{p.UserID}
 	} else {

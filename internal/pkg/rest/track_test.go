@@ -165,3 +165,125 @@ func TestUploadTrack_DuplicateAllowedForDifferentUser(t *testing.T) {
 	status, _ = e.doUpload(bob, testGPXFile)
 	assert.Equal(t, http.StatusCreated, status)
 }
+
+// makeTrackPublic patches the track to set public=true.
+func (e *testEnv) makeTrackPublic(client *http.Client, trackUUID string, trackName string) {
+	e.t.Helper()
+	status, _ := e.do(client, http.MethodPatch, "/tracks/"+trackUUID, map[string]any{
+		"name":   trackName,
+		"public": true,
+		"tags":   []string{},
+	}, nil)
+	require.Equal(e.t, http.StatusOK, status)
+}
+
+func TestListTracks_Unauthenticated_OnlyPublic(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	// Alice uploads two tracks; makes one public.
+	status, uploaded1 := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	uuid1 := uploaded1["uuid"].(string)
+	status, uploaded2 := e.doUpload(alice, testGPXFile2)
+	require.Equal(t, http.StatusCreated, status)
+	e.makeTrackPublic(alice, uploaded2["uuid"].(string), uploaded2["name"].(string))
+
+	// Unauthenticated client sees only the public track.
+	anon := e.newClient()
+	var listResp map[string]any
+	status, _ = e.do(anon, http.MethodGet, "/tracks", nil, &listResp)
+	assert.Equal(t, http.StatusOK, status)
+	tracks, _ := listResp["tracks"].([]any)
+	require.Len(t, tracks, 1)
+	assert.NotEqual(t, uuid1, tracks[0].(map[string]any)["uuid"])
+}
+
+func TestListTracks_OnlyMine(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("bob@example.com", "Bob", "secret2", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+	status, aliceTrack := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	e.makeTrackPublic(alice, aliceTrack["uuid"].(string), aliceTrack["name"].(string))
+
+	bob := e.newClient()
+	e.login(bob, "bob@example.com", "secret2")
+	status, _ = e.doUpload(bob, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+
+	// Bob with onlyMine=true should see only his own track, not Alice's public one.
+	var listResp map[string]any
+	status, _ = e.do(bob, http.MethodGet, "/tracks?onlyMine=true", nil, &listResp)
+	assert.Equal(t, http.StatusOK, status)
+	tracks, _ := listResp["tracks"].([]any)
+	require.Len(t, tracks, 1)
+	assert.Equal(t, "bob@example.com", "bob@example.com") // sanity
+	assert.NotEqual(t, aliceTrack["uuid"], tracks[0].(map[string]any)["uuid"])
+}
+
+func TestGetTrack_Unauthenticated_PublicTrack(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, uploaded := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	trackUUID := uploaded["uuid"].(string)
+	e.makeTrackPublic(alice, trackUUID, uploaded["name"].(string))
+
+	// Unauthenticated client can fetch a public track.
+	anon := e.newClient()
+	var track map[string]any
+	status, _ = e.do(anon, http.MethodGet, "/tracks/"+trackUUID, nil, &track)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, trackUUID, track["uuid"])
+}
+
+func TestGetTrack_Unauthenticated_PrivateTrack(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, uploaded := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	trackUUID := uploaded["uuid"].(string)
+
+	// Unauthenticated client cannot fetch a private track.
+	anon := e.newClient()
+	status, _ = e.do(anon, http.MethodGet, "/tracks/"+trackUUID, nil, nil)
+	assert.Equal(t, http.StatusNotFound, status)
+}
+
+func TestGetTrackSVG_Unauthenticated_PublicTrack(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, uploaded := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	trackUUID := uploaded["uuid"].(string)
+	e.makeTrackPublic(alice, trackUUID, uploaded["name"].(string))
+
+	// Unauthenticated client can fetch the SVG preview of a public track.
+	anon := e.newClient()
+	req, err := http.NewRequest(http.MethodGet, e.ts.URL+"/tracks/"+trackUUID+"/preview.svg", nil)
+	require.NoError(t, err)
+	resp, err := anon.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "image/svg+xml", resp.Header.Get("Content-Type"))
+}

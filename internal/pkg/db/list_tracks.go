@@ -14,6 +14,10 @@ type ListTracksParams struct {
 	// UserID is the current user's UUID. If empty, only public tracks are returned.
 	UserID string
 
+	// OnlyOwnedByUser restricts results to tracks owned by UserID, ignoring public
+	// visibility from other users. Has no effect when UserID is empty.
+	OnlyOwnedByUser bool
+
 	// Public filters by visibility. nil = no filter.
 	Public *bool
 
@@ -187,8 +191,10 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 
 	var b queryBuilder
 
-	// Visibility: public OR owned by the current user.
-	if p.UserID != "" {
+	// Visibility filter.
+	if p.UserID != "" && p.OnlyOwnedByUser {
+		b.add("user_id = ?", p.UserID)
+	} else if p.UserID != "" {
 		b.add("(public = 1 OR user_id = ?)", p.UserID)
 	} else {
 		b.add("public = 1")

@@ -66,19 +66,21 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 		r.Get("/sessions", sv.handleGetSession)
 	})
 
+	// Public read endpoints: accessible without authentication.
+	mux.Get("/tracks", sv.handleListTracks)
+	mux.Get("/tracks/statistics", sv.handleTrackStatistics)
+	mux.Get("/tracks/{uuid}", sv.handleGetTrack)
+	mux.Get("/tracks/{uuid}/download", sv.handleDownloadTrackBlob)
+	mux.Get("/tracks/{uuid}/preview.svg", sv.handleDownloadTrackSVG)
+
 	mux.Group(func(r chi.Router) {
 		r.Use(sv.requireUser)
 
-		r.Get("/tracks", sv.handleListTracks)
 		r.Post("/tracks", sv.handleUploadTrack)
 		r.Patch("/tracks", sv.handleBulkEditTracks)
 		r.Get("/tracks/editing", sv.handleListTracksForEditing)
-		r.Get("/tracks/statistics", sv.handleTrackStatistics)
-		r.Get("/tracks/{uuid}", sv.handleGetTrack)
 		r.Patch("/tracks/{uuid}", sv.handleEditTrack)
 		r.Put("/tracks/{uuid}/tags", sv.handleSetTrackTags)
-		r.Get("/tracks/{uuid}/download", sv.handleDownloadTrackBlob)
-		r.Get("/tracks/{uuid}/preview.svg", sv.handleDownloadTrackSVG)
 		r.Post("/tracks/editing-complete", sv.handleEditingComplete)
 
 		r.Get("/tags", sv.handleSuggestTags)

@@ -140,7 +140,7 @@ func fileFormatFromExt(filename string) track.FileFormat {
 
 func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.MustGetUser(ctx)
+	user := session.GetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
 	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
@@ -154,7 +154,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if t.Public == 0 && user.Uuid != t.UserID {
+	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
 		writeError(w, http.StatusNotFound, "track not found")
 		return
 	}
@@ -171,7 +171,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 
 func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.MustGetUser(ctx)
+	user := session.GetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
 	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
@@ -185,7 +185,7 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if t.Public == 0 && user.Uuid != t.UserID {
+	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
 		writeError(w, http.StatusNotFound, "track not found")
 		return
 	}
@@ -212,7 +212,7 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 
 func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.MustGetUser(ctx)
+	user := session.GetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
 	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
@@ -226,7 +226,7 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if t.Public == 0 && user.Uuid != t.UserID {
+	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
 		writeError(w, http.StatusNotFound, "track not found")
 		return
 	}
@@ -461,13 +461,26 @@ func parseInt64Slice(q map[string][]string, key string) ([]int64, error) {
 
 func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.MustGetUser(ctx)
+	user := session.GetUser(ctx)
 
 	q := r.URL.Query()
 	qmap := map[string][]string(q)
 
-	params := db.ListTracksParams{
-		UserID: user.Uuid,
+	var params db.ListTracksParams
+	if user != nil {
+		params.UserID = user.Uuid
+	}
+
+	// onlyMine restricts results to tracks owned by the authenticated user.
+	if v := q.Get("onlyMine"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid value for 'onlyMine'")
+			return
+		}
+		if b && user != nil {
+			params.OnlyOwnedByUser = true
+		}
 	}
 
 	// Pagination.
@@ -821,11 +834,26 @@ type trackStatisticsResponse struct {
 
 func (sv *server) handleTrackStatistics(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.MustGetUser(ctx)
+	user := session.GetUser(ctx)
 
-	result, err := sv.d.TrackStatistics(ctx, db.TrackStatisticsParams{
-		UserID: user.Uuid,
-	})
+	statsParams := db.TrackStatisticsParams{}
+	if user != nil {
+		statsParams.UserID = user.Uuid
+	}
+
+	q := r.URL.Query()
+	if v := q.Get("onlyMine"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid value for 'onlyMine'")
+			return
+		}
+		if b && user != nil {
+			statsParams.OnlyOwnedByUser = true
+		}
+	}
+
+	result, err := sv.d.TrackStatistics(ctx, statsParams)
 	if err != nil {
 		logg.Error(ctx, "failed to get track statistics", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)

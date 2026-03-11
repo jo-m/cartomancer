@@ -9,8 +9,8 @@ import Login from "./pages/Login"
 import Register from "./pages/Register"
 import ConfirmEmail from "./pages/ConfirmEmail"
 import Account from "./pages/Account"
+import AccountTracks from "./pages/AccountTracks"
 import Upload from "./pages/Upload"
-import TrackList from "./pages/TrackList"
 import Track from "./pages/Track"
 
 const queryClient = new QueryClient()
@@ -50,6 +50,14 @@ export default function App() {
                 }
               />
               <Route
+                path="/account/tracks"
+                element={
+                  <ProtectedRoute>
+                    <AccountTracks />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/upload"
                 element={
                   <ProtectedRoute>
@@ -57,22 +65,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/tracks"
-                element={
-                  <ProtectedRoute>
-                    <TrackList />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/tracks/:uuid"
-                element={
-                  <ProtectedRoute>
-                    <Track />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/tracks/:uuid" element={<Track />} />
             </Route>
           </Routes>
         </SessionProvider>

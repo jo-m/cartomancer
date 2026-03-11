@@ -35,10 +35,10 @@ export default function Layout() {
               (user ? (
                 <>
                   <Link
-                    to="/tracks"
+                    to="/account/tracks"
                     className="text-gray-700 hover:text-gray-900"
                   >
-                    Tracks
+                    My Tracks
                   </Link>
                   <Link
                     to="/upload"

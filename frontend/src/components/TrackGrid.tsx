@@ -12,8 +12,7 @@ function formatAscent(m: number): string {
   return `${Math.round(m)} m`
 }
 
-// --- DualRangeSlider ---
-// Pointer events are handled on the outer container; thumbs are visual only.
+// DualRangeSlider uses pointer events on the outer container; thumbs are visual only.
 // Which thumb to move is decided by proximity to the pointer position.
 
 interface DualRangeSliderProps {
@@ -40,7 +39,7 @@ function DualRangeSlider({
 
   const range = absoluteMax - absoluteMin || 1
 
-  // The outer div has 8px horizontal padding so thumbs at 0 % / 100 % stay fully visible.
+  // The outer div has 8px horizontal padding so thumbs at 0%/100% stay fully visible.
   // Value calculations subtract that padding from the bounding rect.
   function valueFromClientX(clientX: number): number {
     if (!outerRef.current) return absoluteMin
@@ -53,7 +52,6 @@ function DualRangeSlider({
     const dMin = Math.abs(v - valueMin)
     const dMax = Math.abs(v - valueMax)
     if (dMin !== dMax) return dMin < dMax ? "min" : "max"
-    // Equal distance: on the upper half prefer min (more room to drag left).
     return v >= (absoluteMin + absoluteMax) / 2 ? "min" : "max"
   }
 
@@ -141,22 +139,35 @@ function DualRangeSlider({
   )
 }
 
-// --- TrackList ---
-// Slider range state is null when the slider is at the full range (= no filter).
-// This avoids any initialization side-effects: null is the correct initial state.
-
+// Slider range state is null when at the full range (= no filter).
 type Range = [number, number]
 
-interface Live {
+interface LiveFilters {
   search: string
   distRange: Range | null // km; null = full range
   ascentRange: Range | null // m; null = full range
+  visibility: "all" | "public" | "private" // user mode only
 }
 
-const initial: Live = { search: "", distRange: null, ascentRange: null }
+const initialFilters: LiveFilters = {
+  search: "",
+  distRange: null,
+  ascentRange: null,
+  visibility: "all",
+}
 
-export default function TrackList() {
-  const { data: stats } = $api.useQuery("get", "/tracks/statistics")
+export interface TrackGridProps {
+  // mode "public" shows all public tracks; "user" shows only the current user's tracks.
+  mode: "public" | "user"
+}
+
+/** TrackGrid renders a filterable, paginated grid of track cards. */
+export default function TrackGrid({ mode }: TrackGridProps) {
+  const onlyMine = mode === "user"
+
+  const { data: stats } = $api.useQuery("get", "/tracks/statistics", {
+    params: { query: { onlyMine } },
+  })
 
   const absMaxDistKm =
     stats?.totalDistanceMMax != null
@@ -167,12 +178,10 @@ export default function TrackList() {
       ? Math.ceil(stats.totalAscentMMax / 10) * 10
       : 0
 
-  const [live, setLive] = useState<Live>(initial)
-  const [applied, setApplied] = useState<Live>(initial)
+  const [live, setLive] = useState<LiveFilters>(initialFilters)
+  const [applied, setApplied] = useState<LiveFilters>(initialFilters)
   const [page, setPage] = useState(1)
 
-  // Debounce live → applied. Uses setTimeout so setState is not synchronous
-  // in the effect body, which avoids cascading renders.
   useEffect(() => {
     const timer = setTimeout(() => {
       setApplied(live)
@@ -181,7 +190,6 @@ export default function TrackList() {
     return () => clearTimeout(timer)
   }, [live])
 
-  // Derive slider display values: fall back to absolute bounds when null.
   const distMin = live.distRange?.[0] ?? 0
   const distMax = live.distRange?.[1] ?? absMaxDistKm
   const ascentMin = live.ascentRange?.[0] ?? 0
@@ -199,17 +207,28 @@ export default function TrackList() {
     setLive((prev) => ({ ...prev, ascentRange: r }))
   }
 
-  // Build API query params from applied state.
   const appliedDistMin = applied.distRange?.[0] ?? 0
   const appliedDistMax = applied.distRange?.[1] ?? absMaxDistKm
   const appliedAscentMin = applied.ascentRange?.[0] ?? 0
   const appliedAscentMax = applied.ascentRange?.[1] ?? absMaxAscentM
+
+  // Derive the public query param from mode and user visibility filter.
+  let publicParam: boolean | undefined
+  if (mode === "public") {
+    publicParam = true
+  } else if (applied.visibility === "public") {
+    publicParam = true
+  } else if (applied.visibility === "private") {
+    publicParam = false
+  }
 
   const { data, isLoading, error } = $api.useQuery("get", "/tracks", {
     params: {
       query: {
         page,
         pageSize: PAGE_SIZE,
+        onlyMine,
+        ...(publicParam !== undefined ? { public: publicParam } : {}),
         ...(applied.search ? { name: applied.search } : {}),
         ...(appliedDistMin > 0
           ? { totalDistanceMMin: appliedDistMin * 1000 }
@@ -230,16 +249,39 @@ export default function TrackList() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold text-gray-900">Tracks</h1>
-        <input
-          type="search"
-          placeholder="Search by name…"
-          value={live.search}
-          onChange={(e) =>
-            setLive((prev) => ({ ...prev, search: e.target.value }))
-          }
-          className="w-64 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none"
-        />
+        <h1 className="text-xl font-semibold text-gray-900">
+          {mode === "public" ? "Tracks" : "My Tracks"}
+        </h1>
+        <div className="flex items-center gap-3">
+          {mode === "user" && (
+            <div className="flex rounded border border-gray-300 text-sm">
+              {(["all", "public", "private"] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() =>
+                    setLive((prev) => ({ ...prev, visibility: v }))
+                  }
+                  className={`px-3 py-1.5 first:rounded-l last:rounded-r ${
+                    live.visibility === v
+                      ? "bg-gray-800 text-white"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {v === "all" ? "All" : v === "public" ? "Public" : "Private"}
+                </button>
+              ))}
+            </div>
+          )}
+          <input
+            type="search"
+            placeholder="Search by name..."
+            value={live.search}
+            onChange={(e) =>
+              setLive((prev) => ({ ...prev, search: e.target.value }))
+            }
+            className="w-56 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none"
+          />
+        </div>
       </div>
 
       {absMaxDistKm > 0 && (
@@ -277,7 +319,7 @@ export default function TrackList() {
         </div>
       )}
 
-      {isLoading && <p className="text-gray-500">Loading…</p>}
+      {isLoading && <p className="text-gray-500">Loading...</p>}
 
       {error && (
         <p className="text-red-600">{(error as unknown as Error).message}</p>
@@ -307,7 +349,7 @@ export default function TrackList() {
                       {track.name}
                     </p>
                     <p className="mt-0.5 text-xs text-gray-500">
-                      {formatDistance(track.totalDistanceM)} ·{" "}
+                      {formatDistance(track.totalDistanceM)} &middot;{" "}
                       {formatAscent(track.totalAscentM)}
                     </p>
                   </div>
