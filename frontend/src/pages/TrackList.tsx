@@ -297,8 +297,8 @@ export default function TrackList() {
                 >
                   <div className="aspect-square overflow-hidden rounded-t-lg bg-gray-50">
                     <img
-                      src={`/api/tracks/${track.uuid}/preview.svg`}
-                      alt=""
+                      src={`/api/tracks/${track.uuid}/preview.svg?size=256`}
+                      alt="Track preview"
                       className="h-full w-full object-contain"
                     />
                   </div>

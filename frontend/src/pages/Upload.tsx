@@ -460,8 +460,8 @@ export default function Upload() {
                 >
                   <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-gray-50">
                     <img
-                      src={`/api/tracks/${track.uuid}/preview.svg`}
-                      alt=""
+                      src={`/api/tracks/${track.uuid}/preview.svg?size=40`}
+                      alt="Track preview"
                       className="h-full w-full object-contain"
                     />
                   </div>

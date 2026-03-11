@@ -20,4 +20,7 @@ type AppConfig struct {
 	EmailJWTSecret string `arg:"--email-jwt-secret,env:EMAIL_JWT_SECRET" help:"Secret to sign email verification JWTs, generated on startup if not set" placeholder:"SECRET"`
 	// EmailVerificationExpiry is how long an email verification link remains valid.
 	EmailVerificationExpiry time.Duration `arg:"--email-verification-expiry,env:EMAIL_VERIFICATION_EXPIRY" default:"2h" help:"How long email verification links are valid"`
+	// TrackColor is the stroke color used for all track preview SVGs.
+	// Accepts a CSS hex value (e.g. "#f00", "#rrggbb") or "currentColor".
+	TrackColor string `arg:"--track-color,env:TRACK_COLOR" default:"currentColor" help:"Stroke color for track preview SVGs, CSS hex or currentColor"`
 }

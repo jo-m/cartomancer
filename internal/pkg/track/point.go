@@ -85,8 +85,6 @@ type Points []Point
 type PreviewOptions struct {
 	// Size is the square canvas size in pixels.
 	Size int
-	// StrokeWidth is the polyline stroke width in SVG user units.
-	StrokeWidth float64
 	// Color is the stroke color: either a CSS hex value (e.g., "#000000", "#f00")
 	// or "currentColor". Invalid values are silently replaced with "currentColor".
 	Color string
@@ -95,9 +93,8 @@ type PreviewOptions struct {
 // DefaultPreviewOptions returns sensible defaults for preview rendering.
 func DefaultPreviewOptions() PreviewOptions {
 	return PreviewOptions{
-		Size:        512,
-		StrokeWidth: 1.5,
-		Color:       "currentColor",
+		Size:  512,
+		Color: "currentColor",
 	}
 }
 
@@ -205,11 +202,13 @@ func (pts Points) PreviewSVG(opts PreviewOptions, bounds *Bounds) string {
 		color = "currentColor"
 	}
 
+	strokeWidth := math.Max(1.0, float64(size)/100)
+
 	return fmt.Sprintf(
 		`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d">`+
 			`<polyline points="%s" fill="none" stroke="%s" stroke-width="%.4g" stroke-linejoin="round" stroke-linecap="round"/>`+
 			`</svg>`,
-		size, size, b.String(), color, opts.StrokeWidth,
+		size, size, b.String(), color, strokeWidth,
 	)
 }
 

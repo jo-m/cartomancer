@@ -68,7 +68,7 @@ export default function Track() {
 
       <div className="mt-6 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
         <img
-          src={`/api/tracks/${data.uuid}/preview.svg`}
+          src={`/api/tracks/${data.uuid}/preview.svg?size=512`}
           alt="Track preview"
           className="w-full object-contain"
         />

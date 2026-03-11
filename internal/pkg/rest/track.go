@@ -233,9 +233,10 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	opts.Color = sv.appConfig.TrackColor
 
 	// Compute ETag before the expensive blob load so 304s are cheap.
-	eTag := fmt.Sprintf(`"%d-%d-%.4g-%s"`, t.UpdatedAt.UnixMilli(), opts.Size, opts.StrokeWidth, opts.Color)
+	eTag := fmt.Sprintf(`"%d-%d-%s"`, t.UpdatedAt.UnixMilli(), opts.Size, opts.Color)
 	if r.Header.Get("If-None-Match") == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -276,8 +277,9 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 	_, _ = w.Write(svg)
 }
 
-// parseSVGOptions reads optional query parameters (size, strokeWidth, color) from r
-// and returns a PreviewOptions struct, falling back to defaults for missing params.
+// parseSVGOptions reads the optional size query parameter from r and returns a
+// PreviewOptions struct, falling back to defaults for missing params.
+// The color field is not set here; callers should populate it from server config.
 func parseSVGOptions(r *http.Request) (track.PreviewOptions, error) {
 	opts := track.DefaultPreviewOptions()
 	q := r.URL.Query()
@@ -288,21 +290,6 @@ func parseSVGOptions(r *http.Request) (track.PreviewOptions, error) {
 			return opts, fmt.Errorf("size must be an integer between 16 and 512")
 		}
 		opts.Size = v
-	}
-
-	if s := q.Get("strokeWidth"); s != "" {
-		v, err := strconv.ParseFloat(s, 64)
-		if err != nil || v <= 0 || v > 100 {
-			return opts, fmt.Errorf("strokeWidth must be a positive number up to 100")
-		}
-		opts.StrokeWidth = v
-	}
-
-	if s := q.Get("color"); s != "" {
-		if !track.IsValidColor(s) {
-			return opts, fmt.Errorf("color must be a CSS hex color (e.g. #rgb or #rrggbb) or \"currentColor\"")
-		}
-		opts.Color = s
 	}
 
 	return opts, nil
