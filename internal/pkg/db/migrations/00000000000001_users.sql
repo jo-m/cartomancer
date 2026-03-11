@@ -14,7 +14,8 @@ CREATE TABLE users (
     password_hash TEXT NOT NULL,
     otp_secret BLOB DEFAULT NULL,
     admin INTEGER NOT NULL DEFAULT 0,
-    email_confirmed INTEGER NOT NULL DEFAULT 0
+    email_confirmed INTEGER NOT NULL DEFAULT 0,
+    avatar_seed TEXT NOT NULL DEFAULT (lower(hex(randomblob(8))))
 );
 
 CREATE UNIQUE INDEX users_name_lower_unique ON users(lower(name));

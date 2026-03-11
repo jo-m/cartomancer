@@ -1,13 +1,26 @@
+import { useRef, useState } from "react"
 import { Link, Outlet, useNavigate } from "react-router-dom"
 import { useSession } from "../context/SessionContext"
 
 export default function Layout() {
   const { user, loading, logout } = useSession()
   const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   async function handleLogout() {
+    setMenuOpen(false)
     await logout()
     navigate("/login")
+  }
+
+  function handleMouseEnter() {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    setMenuOpen(true)
+  }
+
+  function handleMouseLeave() {
+    closeTimer.current = setTimeout(() => setMenuOpen(false), 150)
   }
 
   return (
@@ -21,7 +34,6 @@ export default function Layout() {
             {!loading &&
               (user ? (
                 <>
-                  <span className="text-gray-600">{user.name}</span>
                   <Link
                     to="/tracks"
                     className="text-gray-700 hover:text-gray-900"
@@ -34,18 +46,38 @@ export default function Layout() {
                   >
                     Upload
                   </Link>
-                  <Link
-                    to="/account"
-                    className="text-gray-700 hover:text-gray-900"
+                  <div
+                    className="relative"
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
                   >
-                    Account
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="cursor-pointer text-gray-700 hover:text-gray-900"
-                  >
-                    Logout
-                  </button>
+                    <img
+                      src={`/api/users/${user.uuid}/avatar?v=${user.avatarSeed}`}
+                      alt={user.name}
+                      className="h-8 w-8 cursor-pointer rounded-full"
+                    />
+                    {menuOpen && (
+                      <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded border border-gray-200 bg-white py-1 shadow-md">
+                        <div className="px-3 py-2 text-xs font-medium text-gray-500">
+                          {user.name}
+                        </div>
+                        <hr className="border-gray-100" />
+                        <Link
+                          to="/account"
+                          className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          Account
+                        </Link>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full cursor-pointer px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </>
               ) : (
                 <>

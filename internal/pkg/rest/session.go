@@ -21,10 +21,11 @@ type sessionResponse struct {
 }
 
 type userResponse struct {
-	UUID  string `json:"uuid"`
-	Email string `json:"email"`
-	Name  string `json:"name"`
-	Admin bool   `json:"admin"`
+	UUID       string `json:"uuid"`
+	Email      string `json:"email"`
+	Name       string `json:"name"`
+	Admin      bool   `json:"admin"`
+	AvatarSeed string `json:"avatarSeed"`
 }
 
 func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -78,10 +79,11 @@ func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, sessionResponse{
 		SessionUUID: sess.Uuid,
 		User: &userResponse{
-			UUID:  user.Uuid,
-			Email: user.Email,
-			Name:  user.Name,
-			Admin: user.Admin != 0,
+			UUID:       user.Uuid,
+			Email:      user.Email,
+			Name:       user.Name,
+			Admin:      user.Admin != 0,
+			AvatarSeed: user.AvatarSeed,
 		},
 	})
 }
@@ -111,10 +113,11 @@ func (sv *server) handleGetSession(w http.ResponseWriter, r *http.Request) {
 
 	if user := session.GetUser(ctx); user != nil {
 		resp.User = &userResponse{
-			UUID:  user.Uuid,
-			Email: user.Email,
-			Name:  user.Name,
-			Admin: user.Admin != 0,
+			UUID:       user.Uuid,
+			Email:      user.Email,
+			Name:       user.Name,
+			Admin:      user.Admin != 0,
+			AvatarSeed: user.AvatarSeed,
 		}
 	}
 

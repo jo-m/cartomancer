@@ -46,6 +46,11 @@ UPDATE users
 SET last_active_at = ?
 WHERE uuid = ?;
 
+-- name: UpdateUserAvatarSeed :execrows
+UPDATE users
+SET updated_at = ?, avatar_seed = ?
+WHERE uuid = ?;
+
 -- name: CountAdmins :one
 SELECT COUNT(*) FROM users WHERE admin = 1;
 

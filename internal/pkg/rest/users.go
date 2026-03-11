@@ -84,10 +84,11 @@ func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, userResponse{
-		UUID:  u.Uuid,
-		Email: u.Email,
-		Name:  u.Name,
-		Admin: u.Admin != 0,
+		UUID:       u.Uuid,
+		Email:      u.Email,
+		Name:       u.Name,
+		Admin:      u.Admin != 0,
+		AvatarSeed: u.AvatarSeed,
 	})
 }
 

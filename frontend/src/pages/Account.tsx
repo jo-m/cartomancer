@@ -30,6 +30,10 @@ export default function Account() {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const updateMeMutation = $api.useMutation("patch", "/account")
+  const rotateAvatarMutation = $api.useMutation(
+    "post",
+    "/account/rotate-avatar"
+  )
   const changeEmailMutation = $api.useMutation("post", "/account/change-email")
   const changePasswordMutation = $api.useMutation(
     "post",
@@ -47,6 +51,15 @@ export default function Account() {
   const passwordForm = useForm<PasswordData>({
     resolver: zodResolver(passwordSchema),
   })
+
+  async function handleRotateAvatar() {
+    try {
+      await rotateAvatarMutation.mutateAsync({})
+      await invalidateSession()
+    } catch {
+      // error displayed via rotateAvatarMutation.error
+    }
+  }
 
   async function onUpdateProfile(data: ProfileData) {
     try {
@@ -88,6 +101,33 @@ export default function Account() {
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
       <h1 className="mb-8 text-2xl font-semibold text-gray-900">Account</h1>
+
+      <section className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
+        <h2 className="mb-4 text-base font-medium text-gray-900">Avatar</h2>
+        <div className="flex items-center gap-4">
+          {user && (
+            <img
+              src={`/api/users/${user.uuid}/avatar?v=${user.avatarSeed}`}
+              alt={user.name}
+              className="h-16 w-16 rounded-full"
+            />
+          )}
+          <div>
+            <button
+              onClick={handleRotateAvatar}
+              disabled={rotateAvatarMutation.isPending}
+              className="cursor-pointer rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {rotateAvatarMutation.isPending ? "Rotating…" : "Rotate avatar"}
+            </button>
+            {rotateAvatarMutation.error && (
+              <p className="mt-1 text-sm text-red-600">
+                {(rotateAvatarMutation.error as unknown as Error).message}
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
 
       <section className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
         <h2 className="mb-4 text-base font-medium text-gray-900">Profile</h2>

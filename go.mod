@@ -14,6 +14,7 @@ tool (
 )
 
 require (
+	codeberg.org/Codeberg/avatars v1.0.0
 	github.com/DataDog/zstd v1.5.7
 	github.com/alexflint/go-arg v1.6.1
 	github.com/brianvoe/gofakeit/v7 v7.14.1
