@@ -315,6 +315,22 @@ paths:
               type: integer
           style: form
           explode: true
+        - name: tag
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+          description: Filter by tag names.
+        - name: tagsAnd
+          in: query
+          schema:
+            type: boolean
+          description: >
+            When true, all listed tags must be present on the track (AND).
+            When false (default), any one listed tag suffices (OR).
         - name: name
           in: query
           schema:
@@ -1405,12 +1421,6 @@ paths:
                 $ref: "#/components/schemas/TagSuggestionResponse"
         "400":
           description: Prefix too short
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          description: Not authenticated
           content:
             application/json:
               schema:

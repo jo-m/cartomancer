@@ -530,6 +530,19 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Tag filters.
+	if tags := qmap["tag"]; len(tags) > 0 {
+		params.Tags = tags
+	}
+	if v := q.Get("tagsAnd"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid value for 'tagsAnd'")
+			return
+		}
+		params.TagsAnd = b
+	}
+
 	// Text filters.
 	params.Name = parseOptionalString(qmap, "name")
 	params.Description = parseOptionalString(qmap, "description")

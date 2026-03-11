@@ -287,3 +287,91 @@ func TestGetTrackSVG_Unauthenticated_PublicTrack(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "image/svg+xml", resp.Header.Get("Content-Type"))
 }
+
+// setTags patches the given tags onto a track.
+func (e *testEnv) setTags(client *http.Client, trackUUID string, trackName string, tags []string) {
+	e.t.Helper()
+	status, _ := e.do(client, http.MethodPatch, "/tracks/"+trackUUID, map[string]any{
+		"name": trackName,
+		"tags": tags,
+	}, nil)
+	require.Equal(e.t, http.StatusOK, status)
+}
+
+func TestListTracks_FilterBySport(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, track1 := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+
+	// sport=1 (Running) should return no results since the test file is cycling.
+	var listResp map[string]any
+	status, _ = e.do(alice, http.MethodGet, "/tracks?onlyMine=true&sport=1", nil, &listResp)
+	assert.Equal(t, http.StatusOK, status)
+	tracks, _ := listResp["tracks"].([]any)
+	for _, tr := range tracks {
+		assert.NotEqual(t, track1["uuid"], tr.(map[string]any)["uuid"])
+	}
+}
+
+func TestListTracks_FilterByTagOR(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, track1 := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	status, track2 := e.doUpload(alice, testGPXFile2)
+	require.Equal(t, http.StatusCreated, status)
+
+	e.setTags(alice, track1["uuid"].(string), track1["name"].(string), []string{"alpine", "race"})
+	e.setTags(alice, track2["uuid"].(string), track2["name"].(string), []string{"road"})
+
+	// OR mode: tag=alpine OR tag=road should return both tracks.
+	var listResp map[string]any
+	status, _ = e.do(alice, http.MethodGet, "/tracks?onlyMine=true&tag=alpine&tag=road", nil, &listResp)
+	assert.Equal(t, http.StatusOK, status)
+	tracks, _ := listResp["tracks"].([]any)
+	assert.Len(t, tracks, 2)
+
+	// Only tag=alpine should return only track1.
+	status, _ = e.do(alice, http.MethodGet, "/tracks?onlyMine=true&tag=alpine", nil, &listResp)
+	assert.Equal(t, http.StatusOK, status)
+	tracks, _ = listResp["tracks"].([]any)
+	require.Len(t, tracks, 1)
+	assert.Equal(t, track1["uuid"], tracks[0].(map[string]any)["uuid"])
+}
+
+func TestListTracks_FilterByTagAND(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, track1 := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	status, track2 := e.doUpload(alice, testGPXFile2)
+	require.Equal(t, http.StatusCreated, status)
+
+	// track1 has both tags; track2 only has "road".
+	e.setTags(alice, track1["uuid"].(string), track1["name"].(string), []string{"alpine", "race"})
+	e.setTags(alice, track2["uuid"].(string), track2["name"].(string), []string{"road"})
+
+	// AND mode: must have both alpine AND race → only track1.
+	var listResp map[string]any
+	status, _ = e.do(alice, http.MethodGet, "/tracks?onlyMine=true&tag=alpine&tag=race&tagsAnd=true", nil, &listResp)
+	assert.Equal(t, http.StatusOK, status)
+	tracks, _ := listResp["tracks"].([]any)
+	require.Len(t, tracks, 1)
+	assert.Equal(t, track1["uuid"], tracks[0].(map[string]any)["uuid"])
+
+	// AND mode: alpine AND road → no track has both → empty.
+	status, _ = e.do(alice, http.MethodGet, "/tracks?onlyMine=true&tag=alpine&tag=road&tagsAnd=true", nil, &listResp)
+	assert.Equal(t, http.StatusOK, status)
+	tracks, _ = listResp["tracks"].([]any)
+	assert.Empty(t, tracks)
+}

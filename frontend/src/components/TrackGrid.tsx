@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
 import { $api } from "../api/client"
+import TagsInput from "./TagsInput"
+import {
+  SPORT_LABELS,
+  SUB_SPORT_LABELS,
+  SUB_SPORTS_BY_SPORT,
+} from "../lib/sports"
 
 const PAGE_SIZE = 24
 
@@ -142,11 +148,18 @@ function DualRangeSlider({
 // Slider range state is null when at the full range (= no filter).
 type Range = [number, number]
 
+// All known sport IDs (excluding Unknown = 0 which is rarely useful as a filter).
+const SPORT_IDS = [1, 2] as const
+
 interface LiveFilters {
   search: string
   distRange: Range | null // km; null = full range
   ascentRange: Range | null // m; null = full range
   visibility: "all" | "public" | "private" // user mode only
+  sports: number[]
+  subSports: number[]
+  tags: string[]
+  tagsAnd: boolean
 }
 
 const initialFilters: LiveFilters = {
@@ -154,6 +167,10 @@ const initialFilters: LiveFilters = {
   distRange: null,
   ascentRange: null,
   visibility: "all",
+  sports: [],
+  subSports: [],
+  tags: [],
+  tagsAnd: false,
 }
 
 export interface TrackGridProps {
@@ -207,6 +224,42 @@ export default function TrackGrid({ mode }: TrackGridProps) {
     setLive((prev) => ({ ...prev, ascentRange: r }))
   }
 
+  function toggleSport(id: number) {
+    setLive((prev) => {
+      const next = prev.sports.includes(id)
+        ? prev.sports.filter((s) => s !== id)
+        : [...prev.sports, id]
+      // Remove any sub-sports that are no longer valid for the new sport selection.
+      const validSubSports = next.flatMap((s) => SUB_SPORTS_BY_SPORT[s] ?? [])
+      return {
+        ...prev,
+        sports: next,
+        subSports: prev.subSports.filter((ss) => validSubSports.includes(ss)),
+      }
+    })
+  }
+
+  function toggleSubSport(id: number) {
+    setLive((prev) => ({
+      ...prev,
+      subSports: prev.subSports.includes(id)
+        ? prev.subSports.filter((s) => s !== id)
+        : [...prev.subSports, id],
+    }))
+  }
+
+  // Sub-sports available given the currently selected sports.
+  const availableSubSports =
+    live.sports.length === 0
+      ? []
+      : [
+          ...new Set(
+            live.sports.flatMap((s) =>
+              (SUB_SPORTS_BY_SPORT[s] ?? []).filter((ss) => ss !== 0)
+            )
+          ),
+        ]
+
   const appliedDistMin = applied.distRange?.[0] ?? 0
   const appliedDistMax = applied.distRange?.[1] ?? absMaxDistKm
   const appliedAscentMin = applied.ascentRange?.[0] ?? 0
@@ -230,6 +283,12 @@ export default function TrackGrid({ mode }: TrackGridProps) {
         onlyMine,
         ...(publicParam !== undefined ? { public: publicParam } : {}),
         ...(applied.search ? { name: applied.search } : {}),
+        ...(applied.sports.length > 0 ? { sport: applied.sports } : {}),
+        ...(applied.subSports.length > 0
+          ? { subSport: applied.subSports }
+          : {}),
+        ...(applied.tags.length > 0 ? { tag: applied.tags } : {}),
+        ...(applied.tags.length > 1 ? { tagsAnd: applied.tagsAnd } : {}),
         ...(appliedDistMin > 0
           ? { totalDistanceMMin: appliedDistMin * 1000 }
           : {}),
@@ -284,22 +343,24 @@ export default function TrackGrid({ mode }: TrackGridProps) {
         </div>
       </div>
 
-      {absMaxDistKm > 0 && (
-        <div className="mb-6 grid grid-cols-2 gap-6 rounded-lg border border-gray-200 bg-white px-4 pb-3 pt-3">
-          <div>
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">
-              Distance
-            </p>
-            <DualRangeSlider
-              absoluteMin={0}
-              absoluteMax={absMaxDistKm}
-              valueMin={distMin}
-              valueMax={distMax}
-              step={1}
-              formatValue={(v) => `${v} km`}
-              onChange={setDistRange}
-            />
-          </div>
+      <div className="mb-6 rounded-lg border border-gray-200 bg-white px-4 pb-4 pt-3">
+        <div className="grid grid-cols-2 gap-6">
+          {absMaxDistKm > 0 && (
+            <div>
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">
+                Distance
+              </p>
+              <DualRangeSlider
+                absoluteMin={0}
+                absoluteMax={absMaxDistKm}
+                valueMin={distMin}
+                valueMax={distMax}
+                step={1}
+                formatValue={(v) => `${v} km`}
+                onChange={setDistRange}
+              />
+            </div>
+          )}
           {absMaxAscentM > 0 && (
             <div>
               <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -317,7 +378,82 @@ export default function TrackGrid({ mode }: TrackGridProps) {
             </div>
           )}
         </div>
-      )}
+
+        <div className="mt-4 grid grid-cols-2 gap-6">
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+              Sport
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {SPORT_IDS.map((id) => (
+                <button
+                  key={id}
+                  onClick={() => toggleSport(id)}
+                  className={`rounded border px-2.5 py-1 text-xs ${
+                    live.sports.includes(id)
+                      ? "border-gray-700 bg-gray-800 text-white"
+                      : "border-gray-300 text-gray-600 hover:border-gray-400"
+                  }`}
+                >
+                  {SPORT_LABELS[id]}
+                </button>
+              ))}
+            </div>
+            {availableSubSports.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {availableSubSports.map((id) => (
+                  <button
+                    key={id}
+                    onClick={() => toggleSubSport(id)}
+                    className={`rounded border px-2.5 py-1 text-xs ${
+                      live.subSports.includes(id)
+                        ? "border-gray-500 bg-gray-600 text-white"
+                        : "border-gray-200 text-gray-500 hover:border-gray-300"
+                    }`}
+                  >
+                    {SUB_SPORT_LABELS[id]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                Tags
+              </p>
+              {live.tags.length > 1 && (
+                <div className="flex rounded border border-gray-200 text-xs">
+                  {(["or", "and"] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() =>
+                        setLive((prev) => ({
+                          ...prev,
+                          tagsAnd: m === "and",
+                        }))
+                      }
+                      className={`px-2 py-0.5 first:rounded-l last:rounded-r ${
+                        (m === "and") === live.tagsAnd
+                          ? "bg-gray-700 text-white"
+                          : "text-gray-500 hover:bg-gray-50"
+                      }`}
+                    >
+                      {m.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <TagsInput
+              value={live.tags}
+              onChange={(tags) => setLive((prev) => ({ ...prev, tags }))}
+              placeholder="Filter by tag..."
+            />
+          </div>
+        </div>
+      </div>
 
       {isLoading && <p className="text-gray-500">Loading...</p>}
 

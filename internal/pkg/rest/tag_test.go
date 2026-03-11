@@ -134,8 +134,12 @@ func TestSuggestTags_Unauthenticated(t *testing.T) {
 	e := newTestEnv(t)
 	client := e.newClient()
 
-	status, _ := e.do(client, http.MethodGet, "/tags?prefix=cy", nil, nil)
-	assert.Equal(t, http.StatusUnauthorized, status)
+	// Unauthenticated requests receive an empty suggestion list rather than 401.
+	var resp map[string]any
+	status, _ := e.do(client, http.MethodGet, "/tags?prefix=cy", nil, &resp)
+	assert.Equal(t, http.StatusOK, status)
+	tags, _ := resp["tags"].([]any)
+	assert.Empty(t, tags)
 }
 
 func TestSuggestTags_PrefixTooShort(t *testing.T) {

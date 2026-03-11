@@ -27,6 +27,11 @@ type ListTracksParams struct {
 	Sports      []int64
 	SubSports   []int64
 
+	// Tags filters by tag names. Empty = no filter.
+	// When TagsAnd is true all listed tags must be present; otherwise any one suffices.
+	Tags    []string
+	TagsAnd bool
+
 	// Text LIKE filters (substring match). nil = no filter.
 	Name        *string
 	Description *string
@@ -212,6 +217,20 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	b.inInt64("track_type", p.TrackTypes)
 	b.inInt64("sport", p.Sports)
 	b.inInt64("sub_sport", p.SubSports)
+
+	if len(p.Tags) > 0 {
+		placeholders := make([]string, len(p.Tags))
+		args := make([]any, len(p.Tags))
+		for i, tag := range p.Tags {
+			placeholders[i] = "?"
+			args[i] = tag
+		}
+		sub := "SELECT track_id FROM track_tags JOIN tags ON tags.id = track_tags.tag_id WHERE tags.tag IN (" + strings.Join(placeholders, ", ") + ")"
+		if p.TagsAnd {
+			sub += fmt.Sprintf(" GROUP BY track_id HAVING COUNT(DISTINCT tags.tag) = %d", len(p.Tags))
+		}
+		b.add("uuid IN ("+sub+")", args...)
+	}
 
 	if p.Name != nil {
 		b.add("name LIKE ?", "%"+*p.Name+"%")

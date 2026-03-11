@@ -94,7 +94,11 @@ func (sv *server) handleSuggestTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := session.MustGetUser(ctx)
+	user := session.GetUser(ctx)
+	if user == nil {
+		writeJSON(w, http.StatusOK, tagSuggestionResponse{Tags: []string{}})
+		return
+	}
 
 	escaped := strings.NewReplacer("%", `\%`, "_", `\_`).Replace(prefix)
 	tags, err := sv.d.QueryRO().SuggestTags(ctx, db.SuggestTagsParams{

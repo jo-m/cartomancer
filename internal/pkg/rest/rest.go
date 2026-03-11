@@ -72,6 +72,7 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 	mux.Get("/tracks/{uuid}", sv.handleGetTrack)
 	mux.Get("/tracks/{uuid}/download", sv.handleDownloadTrackBlob)
 	mux.Get("/tracks/{uuid}/preview.svg", sv.handleDownloadTrackSVG)
+	mux.Get("/tags", sv.handleSuggestTags)
 
 	mux.Group(func(r chi.Router) {
 		r.Use(sv.requireUser)
@@ -82,8 +83,6 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 		r.Patch("/tracks/{uuid}", sv.handleEditTrack)
 		r.Put("/tracks/{uuid}/tags", sv.handleSetTrackTags)
 		r.Post("/tracks/editing-complete", sv.handleEditingComplete)
-
-		r.Get("/tags", sv.handleSuggestTags)
 
 		r.Patch("/account", sv.handleUpdateAccount)
 		r.Delete("/account", sv.handleDeleteAccount)
