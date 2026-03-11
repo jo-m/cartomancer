@@ -185,7 +185,7 @@ func (t *Track) PreviewSVG(opts PreviewOptions, bounds *Bounds) string {
 
 // ProfileSVG generates an altitude profile SVG for the track.
 // opts controls the canvas width, stroke width, and color.
-// The canvas height is opts.Size/4; the Y axis is fixed to 2000 m.
+// The canvas height is opts.Size/4; the Y axis is fixed.
 func (t *Track) ProfileSVG(opts PreviewOptions) string {
 	return Points(t.pts).ProfileSVG(opts)
 }

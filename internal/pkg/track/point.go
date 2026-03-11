@@ -212,11 +212,11 @@ func (pts Points) PreviewSVG(opts PreviewOptions, bounds *Bounds) string {
 	)
 }
 
-const profileElevationRange = 2000.0 // meters; fixed Y-axis range for ProfileSVG.
+const profileElevationRange = 1000.0 // meters; fixed Y-axis range for ProfileSVG.
 
 // ProfileSVG renders the track's altitude profile as an SVG image.
 // X is cumulative distance along the track; Y is elevation normalized to the
-// track's lowest point with a fixed scale of 2000 m.
+// track's lowest point with a fixed scale.
 // The canvas is opts.Size wide and opts.Size/4 tall.
 // Points are subsampled so that each line segment spans approximately 5 px.
 func (pts Points) ProfileSVG(opts PreviewOptions) string {
@@ -280,6 +280,15 @@ func (pts Points) ProfileSVG(opts PreviewOptions) string {
 	if last%stride != 0 {
 		fmt.Fprintf(&b, " %.1f,%.1f", toSVGX(dists[last]), toSVGY(pts[last].Elevation))
 	}
+	profilePts := b.String()
+
+	// Close the fill area along the bottom edge: bottom-right then bottom-left.
+	baseline := padY + innerH
+	fillPts := fmt.Sprintf("%s %.1f,%.1f %.1f,%.1f",
+		profilePts,
+		toSVGX(dists[last]), baseline,
+		padX, baseline,
+	)
 
 	color := opts.Color
 	if !IsValidColor(color) {
@@ -290,9 +299,20 @@ func (pts Points) ProfileSVG(opts PreviewOptions) string {
 
 	return fmt.Sprintf(
 		`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d">`+
+			`<defs>`+
+			`<linearGradient id="g" x1="0" x2="0" y1="%.1f" y2="%.1f" gradientUnits="userSpaceOnUse">`+
+			`<stop offset="0" stop-color="%s" stop-opacity="0"/>`+
+			`<stop offset="1" stop-color="%s" stop-opacity="0.7"/>`+
+			`</linearGradient>`+
+			`</defs>`+
+			`<polygon points="%s" fill="url(#g)"/>`+
 			`<polyline points="%s" fill="none" stroke="%s" stroke-width="%.4g" stroke-linejoin="round" stroke-linecap="round"/>`+
 			`</svg>`,
-		w, h, b.String(), color, strokeWidth,
+		w, h,
+		padY, baseline,
+		color, color,
+		fillPts,
+		profilePts, color, strokeWidth,
 	)
 }
 
