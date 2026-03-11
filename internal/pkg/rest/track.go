@@ -190,17 +190,20 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var contentType string
+	var contentType, ext string
 	switch track.FileFormat(t.FileFormat) {
 	case track.FileFormatGPX:
 		contentType = "application/gpx+xml"
+		ext = ".gpx"
 	case track.FileFormatFIT:
 		contentType = "application/vnd.ant.fit"
+		ext = ".fit"
 	default:
 		contentType = "application/octet-stream"
+		ext = ".bin"
 	}
 
-	if err := blob.Serve(w, r, sv.d.QueryRO(), t.BlobID, contentType, t.Name); err != nil {
+	if err := blob.Serve(w, r, sv.d.QueryRO(), t.BlobID, contentType, t.Name+ext); err != nil {
 		logg.Error(ctx, "failed to serve blob", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
