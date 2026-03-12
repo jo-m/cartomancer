@@ -45,5 +45,5 @@ frontend:
 .PHONY: check
 check: gen format lint
 	go build ./...
-	go build ./internal/pkg/grib2/testdata/generate.go
+	go build -o internal/pkg/grib2/testdata/generate ./internal/pkg/grib2/testdata/generate.go
 	go test ./...
