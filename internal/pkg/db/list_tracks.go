@@ -18,9 +18,14 @@ type ListTracksParams struct {
 	// visibility from other users. Has no effect when UserID is empty.
 	OnlyOwnedByUser bool
 
-	// OnlyStarred restricts results to tracks starred by UserID.
-	// Has no effect when UserID is empty.
+	// OnlyStarred restricts results to tracks starred by ViewerUserID.
+	// Has no effect when ViewerUserID is empty.
 	OnlyStarred bool
+
+	// ViewerUserID is the UUID of the user viewing the results, used to compute
+	// the IsStarred field on each returned track. Empty string = anonymous viewer
+	// (IsStarred is always false).
+	ViewerUserID string
 
 	// Public filters by visibility. nil = no filter.
 	Public *bool
@@ -85,21 +90,32 @@ type ListTracksParams struct {
 	PageSize int
 }
 
+// TrackWithStarred pairs a Track with the viewing user's star status for that track.
+type TrackWithStarred struct {
+	Track
+	IsStarred bool
+}
+
 // ListTracksResult holds a page of tracks and the total count.
 type ListTracksResult struct {
-	Tracks     []Track
+	Tracks     []TrackWithStarred
 	TotalCount int
 }
 
-// trackScanCols must match the column order in the Track struct exactly.
-const trackScanCols = `uuid, created_at, updated_at, user_id, public, blob_id, file_format, original_filename, name, description, source, author, author_link_url, track_type, link_url, sport, sub_sport, total_distance_m, total_ascent_m, start_lat, start_lon, end_lat, end_lon, original_created_at`
+// trackAllCols lists all 31 track columns with the tracks. table prefix,
+// suitable for use in queries that JOIN against other tables.
+const trackAllCols = `tracks.uuid, tracks.created_at, tracks.updated_at, tracks.initial_editing_completed, tracks.user_id, tracks.public, tracks.blob_id, tracks.file_format, tracks.original_filename, tracks.name, tracks.description, tracks.source, tracks.author, tracks.author_link_url, tracks.track_type, tracks.link_url, tracks.sport, tracks.sub_sport, tracks.total_distance_m, tracks.total_ascent_m, tracks.start_lat, tracks.start_lon, tracks.end_lat, tracks.end_lon, tracks.bounds_min_lat, tracks.bounds_min_lon, tracks.bounds_max_lat, tracks.bounds_max_lon, tracks.min_elevation_m, tracks.max_elevation_m, tracks.original_created_at`
 
-func scanTrack(rows *sql.Rows) (Track, error) {
+// scanTrackWithStar scans a row containing all 31 track columns (in trackAllCols order)
+// followed by a single integer is_starred column.
+func scanTrackWithStar(rows *sql.Rows) (TrackWithStarred, error) {
 	var i Track
+	var isStarred int64
 	err := rows.Scan(
 		&i.Uuid,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.InitialEditingCompleted,
 		&i.UserID,
 		&i.Public,
 		&i.BlobID,
@@ -120,9 +136,16 @@ func scanTrack(rows *sql.Rows) (Track, error) {
 		&i.StartLon,
 		&i.EndLat,
 		&i.EndLon,
+		&i.BoundsMinLat,
+		&i.BoundsMinLon,
+		&i.BoundsMaxLat,
+		&i.BoundsMaxLon,
+		&i.MinElevationM,
+		&i.MaxElevationM,
 		&i.OriginalCreatedAt,
+		&isStarred,
 	)
-	return i, err
+	return TrackWithStarred{Track: i, IsStarred: isStarred != 0}, err
 }
 
 type queryBuilder struct {
@@ -172,6 +195,8 @@ func lonDeltaDeg(radiusM, lat float64) float64 {
 func ptr[T any](v T) *T { return &v }
 
 // ListTracks returns a paginated list of tracks matching the given filters.
+// Each returned track includes an IsStarred field indicating whether ViewerUserID
+// has starred it (always false when ViewerUserID is empty).
 func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResult, error) {
 	if p.Page < 1 {
 		p.Page = 1
@@ -202,29 +227,30 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 
 	// Visibility filter.
 	if p.UserID != "" && p.OnlyOwnedByUser {
-		b.add("user_id = ?", p.UserID)
+		b.add("tracks.user_id = ?", p.UserID)
 	} else if p.UserID != "" {
-		b.add("(public = 1 OR user_id = ?)", p.UserID)
+		b.add("(tracks.public = 1 OR tracks.user_id = ?)", p.UserID)
 	} else {
-		b.add("public = 1")
+		b.add("tracks.public = 1")
 	}
 
 	if p.Public != nil {
 		if *p.Public {
-			b.add("public = 1")
+			b.add("tracks.public = 1")
 		} else {
-			b.add("public = 0")
+			b.add("tracks.public = 0")
 		}
 	}
 
-	if p.OnlyStarred && p.UserID != "" {
-		b.add("uuid IN (SELECT track_id FROM track_stars WHERE user_id = ?)", p.UserID)
+	// OnlyStarred uses the LEFT JOIN alias ts (joined on ViewerUserID).
+	if p.OnlyStarred && p.ViewerUserID != "" {
+		b.add("ts.track_id IS NOT NULL")
 	}
 
-	b.inInt64("file_format", p.FileFormats)
-	b.inInt64("track_type", p.TrackTypes)
-	b.inInt64("sport", p.Sports)
-	b.inInt64("sub_sport", p.SubSports)
+	b.inInt64("tracks.file_format", p.FileFormats)
+	b.inInt64("tracks.track_type", p.TrackTypes)
+	b.inInt64("tracks.sport", p.Sports)
+	b.inInt64("tracks.sub_sport", p.SubSports)
 
 	if len(p.Tags) > 0 {
 		placeholders := make([]string, len(p.Tags))
@@ -237,90 +263,96 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 		if p.TagsAnd {
 			sub += fmt.Sprintf(" GROUP BY track_id HAVING COUNT(DISTINCT tags.tag) = %d", len(p.Tags))
 		}
-		b.add("uuid IN ("+sub+")", args...)
+		b.add("tracks.uuid IN ("+sub+")", args...)
 	}
 
 	if p.Name != nil {
-		b.add("name LIKE ?", "%"+*p.Name+"%")
+		b.add("tracks.name LIKE ?", "%"+*p.Name+"%")
 	}
 	if p.Description != nil {
-		b.add("description LIKE ?", "%"+*p.Description+"%")
+		b.add("tracks.description LIKE ?", "%"+*p.Description+"%")
 	}
 	if p.Source != nil {
-		b.add("source LIKE ?", "%"+*p.Source+"%")
+		b.add("tracks.source LIKE ?", "%"+*p.Source+"%")
 	}
 
 	if p.CreatedAtMin != nil {
-		b.add("created_at >= ?", *p.CreatedAtMin)
+		b.add("tracks.created_at >= ?", *p.CreatedAtMin)
 	}
 	if p.CreatedAtMax != nil {
-		b.add("created_at <= ?", *p.CreatedAtMax)
+		b.add("tracks.created_at <= ?", *p.CreatedAtMax)
 	}
 	if p.UpdatedAtMin != nil {
-		b.add("updated_at >= ?", *p.UpdatedAtMin)
+		b.add("tracks.updated_at >= ?", *p.UpdatedAtMin)
 	}
 	if p.UpdatedAtMax != nil {
-		b.add("updated_at <= ?", *p.UpdatedAtMax)
+		b.add("tracks.updated_at <= ?", *p.UpdatedAtMax)
 	}
 	if p.OriginalCreatedAtMin != nil {
-		b.add("original_created_at >= ?", *p.OriginalCreatedAtMin)
+		b.add("tracks.original_created_at >= ?", *p.OriginalCreatedAtMin)
 	}
 	if p.OriginalCreatedAtMax != nil {
-		b.add("original_created_at <= ?", *p.OriginalCreatedAtMax)
+		b.add("tracks.original_created_at <= ?", *p.OriginalCreatedAtMax)
 	}
 
 	if p.TotalDistanceMMin != nil {
-		b.add("total_distance_m >= ?", *p.TotalDistanceMMin)
+		b.add("tracks.total_distance_m >= ?", *p.TotalDistanceMMin)
 	}
 	if p.TotalDistanceMMax != nil {
-		b.add("total_distance_m <= ?", *p.TotalDistanceMMax)
+		b.add("tracks.total_distance_m <= ?", *p.TotalDistanceMMax)
 	}
 	if p.TotalAscentMMin != nil {
-		b.add("total_ascent_m >= ?", *p.TotalAscentMMin)
+		b.add("tracks.total_ascent_m >= ?", *p.TotalAscentMMin)
 	}
 	if p.TotalAscentMMax != nil {
-		b.add("total_ascent_m <= ?", *p.TotalAscentMMax)
+		b.add("tracks.total_ascent_m <= ?", *p.TotalAscentMMax)
 	}
 
 	if p.StartLatMin != nil {
-		b.add("start_lat >= ?", *p.StartLatMin)
+		b.add("tracks.start_lat >= ?", *p.StartLatMin)
 	}
 	if p.StartLatMax != nil {
-		b.add("start_lat <= ?", *p.StartLatMax)
+		b.add("tracks.start_lat <= ?", *p.StartLatMax)
 	}
 	if p.StartLonMin != nil {
-		b.add("start_lon >= ?", *p.StartLonMin)
+		b.add("tracks.start_lon >= ?", *p.StartLonMin)
 	}
 	if p.StartLonMax != nil {
-		b.add("start_lon <= ?", *p.StartLonMax)
+		b.add("tracks.start_lon <= ?", *p.StartLonMax)
 	}
 	if p.EndLatMin != nil {
-		b.add("end_lat >= ?", *p.EndLatMin)
+		b.add("tracks.end_lat >= ?", *p.EndLatMin)
 	}
 	if p.EndLatMax != nil {
-		b.add("end_lat <= ?", *p.EndLatMax)
+		b.add("tracks.end_lat <= ?", *p.EndLatMax)
 	}
 	if p.EndLonMin != nil {
-		b.add("end_lon >= ?", *p.EndLonMin)
+		b.add("tracks.end_lon >= ?", *p.EndLonMin)
 	}
 	if p.EndLonMax != nil {
-		b.add("end_lon <= ?", *p.EndLonMax)
+		b.add("tracks.end_lon <= ?", *p.EndLonMax)
 	}
 
 	where := b.whereClause()
+	// The LEFT JOIN computes is_starred for the viewer; an empty ViewerUserID never
+	// matches any row, so is_starred is always 0 for anonymous callers.
+	const join = " LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"
+
+	// The ViewerUserID arg comes first, before the WHERE args, matching the JOIN position.
+	baseArgs := append([]any{p.ViewerUserID}, b.args...)
 
 	var total int
-	countSQL := "SELECT COUNT(*) FROM tracks" + where
-	if err := d.ro.QueryRowContext(ctx, countSQL, b.args...).Scan(&total); err != nil {
+	countSQL := "SELECT COUNT(*) FROM tracks" + join + where
+	if err := d.ro.QueryRowContext(ctx, countSQL, baseArgs...).Scan(&total); err != nil {
 		return ListTracksResult{}, fmt.Errorf("count tracks: %w", err)
 	}
 
 	offset := (p.Page - 1) * p.PageSize
 	dataSQL := fmt.Sprintf(
-		"SELECT %s FROM tracks%s ORDER BY created_at DESC LIMIT ? OFFSET ?",
-		trackScanCols, where,
+		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS is_starred FROM tracks%s%s ORDER BY tracks.created_at DESC LIMIT ? OFFSET ?",
+		trackAllCols, join, where,
 	)
-	dataArgs := append(append([]any{}, b.args...), int64(p.PageSize), int64(offset))
+	dataArgs := append(append([]any{}, baseArgs...), int64(p.PageSize), int64(offset))
 
 	rows, err := d.ro.QueryContext(ctx, dataSQL, dataArgs...)
 	if err != nil {
@@ -328,9 +360,9 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	}
 	defer rows.Close()
 
-	tracks := make([]Track, 0, p.PageSize)
+	tracks := make([]TrackWithStarred, 0, p.PageSize)
 	for rows.Next() {
-		t, err := scanTrack(rows)
+		t, err := scanTrackWithStar(rows)
 		if err != nil {
 			return ListTracksResult{}, fmt.Errorf("scan track: %w", err)
 		}

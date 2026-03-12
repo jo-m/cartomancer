@@ -37,7 +37,7 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 
 	user := session.MustGetUser(ctx)
 
-	track, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
+	track, err := sv.d.GetTrackByUUIDForViewer(ctx, trackUUID, user.Uuid)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "track not found")
@@ -78,14 +78,7 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	starredSet, err := sv.d.GetStarredStatusForTracks(ctx, user.Uuid, []string{trackUUID})
-	if err != nil {
-		logg.Error(ctx, "failed to get starred status", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	writeJSON(w, http.StatusOK, trackResponseFromDB(track, tags, starredSet[trackUUID]))
+	writeJSON(w, http.StatusOK, trackResponseFromDB(track.Track, tags, track.IsStarred))
 }
 
 type tagSuggestionResponse struct {

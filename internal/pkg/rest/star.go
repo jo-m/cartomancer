@@ -114,7 +114,7 @@ func (sv *server) handleGetUserStars(w http.ResponseWriter, r *http.Request) {
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t, tags, true)
+		responses[i] = trackResponseFromDB(t.Track, tags, t.IsStarred)
 	}
 
 	writeJSON(w, http.StatusOK, responses)

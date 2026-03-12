@@ -149,7 +149,12 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 	user := session.GetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
-	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
+	var viewerID string
+	if user != nil {
+		viewerID = user.Uuid
+	}
+
+	t, err := sv.d.GetTrackByUUIDForViewer(ctx, trackUUID, viewerID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "track not found")
@@ -172,18 +177,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var userID string
-	if user != nil {
-		userID = user.Uuid
-	}
-	starredSet, err := sv.d.GetStarredStatusForTracks(ctx, userID, []string{trackUUID})
-	if err != nil {
-		logg.Error(ctx, "failed to get starred status", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	writeJSON(w, http.StatusOK, trackResponseFromDB(t, tags, starredSet[trackUUID]))
+	writeJSON(w, http.StatusOK, trackResponseFromDB(t.Track, tags, t.IsStarred))
 }
 
 func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request) {
@@ -478,14 +472,17 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	starredSet, err := sv.d.GetStarredStatusForTracks(ctx, user.Uuid, []string{trackUUID})
+	starCount, err := sv.d.QueryRO().IsTrackStarredByUser(ctx, db.IsTrackStarredByUserParams{
+		TrackID: trackUUID,
+		UserID:  user.Uuid,
+	})
 	if err != nil {
 		logg.Error(ctx, "failed to get starred status", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, trackResponseFromDB(updated, req.Tags, starredSet[trackUUID]))
+	writeJSON(w, http.StatusOK, trackResponseFromDB(updated, req.Tags, starCount > 0))
 }
 
 type listTracksResponse struct {
@@ -553,6 +550,7 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 	var params db.ListTracksParams
 	if user != nil {
 		params.UserID = user.Uuid
+		params.ViewerUserID = user.Uuid
 	}
 
 	// onlyMine restricts results to tracks owned by the authenticated user.
@@ -767,7 +765,7 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch tags and starred status for all returned tracks in single queries.
+	// Fetch tags for all returned tracks.
 	trackUUIDs := make([]string, len(result.Tracks))
 	for i, t := range result.Tracks {
 		trackUUIDs[i] = t.Uuid
@@ -779,24 +777,13 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var listUserID string
-	if user != nil {
-		listUserID = user.Uuid
-	}
-	starredSet, err := sv.d.GetStarredStatusForTracks(ctx, listUserID, trackUUIDs)
-	if err != nil {
-		logg.Error(ctx, "failed to get starred status for tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
 	responses := make([]trackResponse, len(result.Tracks))
 	for i, t := range result.Tracks {
 		tags := tagsByTrack[t.Uuid]
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t, tags, starredSet[t.Uuid])
+		responses[i] = trackResponseFromDB(t.Track, tags, t.IsStarred)
 	}
 
 	if params.Page == 0 {
@@ -878,7 +865,7 @@ func (sv *server) handleListTracksForEditing(w http.ResponseWriter, r *http.Requ
 	ctx := r.Context()
 	user := session.MustGetUser(ctx)
 
-	tracks, err := sv.d.QueryRO().ListTracksForEditing(ctx, user.Uuid)
+	tracks, err := sv.d.ListTracksForEditingForViewer(ctx, user.Uuid)
 	if err != nil {
 		logg.Error(ctx, "failed to list tracks for editing", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
@@ -896,20 +883,13 @@ func (sv *server) handleListTracksForEditing(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	starredSet, err := sv.d.GetStarredStatusForTracks(ctx, user.Uuid, trackUUIDs)
-	if err != nil {
-		logg.Error(ctx, "failed to get starred status for editing tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
 	responses := make([]trackResponse, len(tracks))
 	for i, t := range tracks {
 		tags := tagsByTrack[t.Uuid]
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t, tags, starredSet[t.Uuid])
+		responses[i] = trackResponseFromDB(t.Track, tags, t.IsStarred)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"tracks": responses})

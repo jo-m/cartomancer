@@ -2,57 +2,107 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
-	"strings"
 )
 
-// GetStarredStatusForTracks returns a map of trackUUID → true for each track in
-// trackIDs that is starred by userID. Tracks not starred are absent from the map.
-// Returns an empty map when userID is empty or trackIDs is empty.
-func (d *DB) GetStarredStatusForTracks(ctx context.Context, userID string, trackIDs []string) (map[string]bool, error) {
-	result := make(map[string]bool, len(trackIDs))
-	if userID == "" || len(trackIDs) == 0 {
-		return result, nil
-	}
-
-	placeholders := make([]string, len(trackIDs))
-	args := make([]any, 0, len(trackIDs)+1)
-	args = append(args, userID)
-	for i, id := range trackIDs {
-		placeholders[i] = "?"
-		args = append(args, id)
-	}
-
+// GetTrackByUUIDForViewer returns the track with the given UUID together with
+// a flag indicating whether viewerUserID has starred it. An empty viewerUserID
+// (anonymous caller) always yields IsStarred = false. Returns sql.ErrNoRows
+// when the track does not exist.
+func (d *DB) GetTrackByUUIDForViewer(ctx context.Context, uuid, viewerUserID string) (TrackWithStarred, error) {
 	query := fmt.Sprintf(
-		"SELECT track_id FROM track_stars WHERE user_id = ? AND track_id IN (%s)",
-		strings.Join(placeholders, ", "),
+		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS is_starred"+
+			" FROM tracks LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"+
+			" WHERE tracks.uuid = ?",
+		trackAllCols,
 	)
-
-	rows, err := d.ro.QueryContext(ctx, query, args...)
+	rows, err := d.ro.QueryContext(ctx, query, viewerUserID, uuid)
 	if err != nil {
-		return nil, fmt.Errorf("get starred status for tracks: %w", err)
+		return TrackWithStarred{}, fmt.Errorf("get track by uuid for viewer: %w", err)
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return TrackWithStarred{}, err
+		}
+		return TrackWithStarred{}, sql.ErrNoRows
+	}
+	return scanTrackWithStar(rows)
+}
+
+// ListTracksForEditingForViewer returns all tracks owned by userID that have not
+// yet completed initial editing, together with that user's star status for each.
+// Results are ordered by creation time, newest first.
+func (d *DB) ListTracksForEditingForViewer(ctx context.Context, userID string) ([]TrackWithStarred, error) {
+	query := fmt.Sprintf(
+		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS is_starred"+
+			" FROM tracks LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"+
+			" WHERE tracks.user_id = ? AND tracks.initial_editing_completed = 0"+
+			" ORDER BY tracks.created_at DESC",
+		trackAllCols,
+	)
+	rows, err := d.ro.QueryContext(ctx, query, userID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list tracks for editing for viewer: %w", err)
 	}
 	defer rows.Close()
 
+	var tracks []TrackWithStarred
 	for rows.Next() {
-		var trackID string
-		if err := rows.Scan(&trackID); err != nil {
-			return nil, fmt.Errorf("scan starred track id: %w", err)
+		t, err := scanTrackWithStar(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan track for editing: %w", err)
 		}
-		result[trackID] = true
+		tracks = append(tracks, t)
 	}
-	return result, rows.Err()
+	return tracks, rows.Err()
 }
 
 // GetStarredTracks returns the tracks starred by starredByUserID, filtered to
-// those visible to viewerUserID (empty string = anonymous viewer).
+// those visible to viewerUserID (empty string = anonymous viewer), together with
+// the IsStarred flag reflecting viewerUserID's own star status on each track.
 // Results are ordered by star creation time, newest first.
-func (d *DB) GetStarredTracks(ctx context.Context, starredByUserID, viewerUserID string) ([]Track, error) {
+func (d *DB) GetStarredTracks(ctx context.Context, starredByUserID, viewerUserID string) ([]TrackWithStarred, error) {
+	var query string
+	var args []any
+
 	if viewerUserID == "" {
-		return d.QueryRO().GetStarredTracksPublicOnly(ctx, starredByUserID)
+		query = fmt.Sprintf(
+			"SELECT %s, 0 AS is_starred"+
+				" FROM track_stars ts_owner"+
+				" JOIN tracks ON tracks.uuid = ts_owner.track_id"+
+				" WHERE ts_owner.user_id = ? AND tracks.public = 1"+
+				" ORDER BY ts_owner.created_at DESC",
+			trackAllCols,
+		)
+		args = []any{starredByUserID}
+	} else {
+		query = fmt.Sprintf(
+			"SELECT %s, CASE WHEN ts_viewer.track_id IS NOT NULL THEN 1 ELSE 0 END AS is_starred"+
+				" FROM track_stars ts_owner"+
+				" JOIN tracks ON tracks.uuid = ts_owner.track_id"+
+				" LEFT JOIN track_stars ts_viewer ON ts_viewer.track_id = tracks.uuid AND ts_viewer.user_id = ?"+
+				" WHERE ts_owner.user_id = ? AND (tracks.public = 1 OR tracks.user_id = ?)"+
+				" ORDER BY ts_owner.created_at DESC",
+			trackAllCols,
+		)
+		args = []any{viewerUserID, starredByUserID, viewerUserID}
 	}
-	return d.QueryRO().GetStarredTracksVisible(ctx, GetStarredTracksVisibleParams{
-		UserID:   starredByUserID,
-		UserID_2: viewerUserID,
-	})
+
+	rows, err := d.ro.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("get starred tracks: %w", err)
+	}
+	defer rows.Close()
+
+	var tracks []TrackWithStarred
+	for rows.Next() {
+		t, err := scanTrackWithStar(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan starred track: %w", err)
+		}
+		tracks = append(tracks, t)
+	}
+	return tracks, rows.Err()
 }
