@@ -207,7 +207,7 @@ func TestProfileSVGSnapshot(t *testing.T) {
 	opts := DefaultPreviewOptions()
 	opts.Size = 256
 	svg := pts.ProfileSVG(opts)
-	golden.Verify(t, svg)
+	golden.Verify(t, svg, golden.Extension(".svg")) // golden.WaitApproval()
 }
 
 func TestPreviewSVGPfanni(t *testing.T) {
@@ -215,7 +215,7 @@ func TestPreviewSVGPfanni(t *testing.T) {
 	opts := DefaultPreviewOptions()
 	opts.Size = 256
 	svg := pts.PreviewSVG(opts, nil)
-	golden.Verify(t, svg) // golden.WaitApproval()
+	golden.Verify(t, svg, golden.Extension(".svg")) // golden.WaitApproval()
 }
 
 func TestPreviewSVGSee(t *testing.T) {
@@ -223,5 +223,5 @@ func TestPreviewSVGSee(t *testing.T) {
 	opts := DefaultPreviewOptions()
 	opts.Size = 256
 	svg := pts.PreviewSVG(opts, nil)
-	golden.Verify(t, svg) // golden.WaitApproval()
+	golden.Verify(t, svg, golden.Extension(".svg")) // golden.WaitApproval()
 }

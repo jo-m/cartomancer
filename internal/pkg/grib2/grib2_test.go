@@ -252,7 +252,7 @@ func TestVisualizeFields(t *testing.T) {
 			err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 90})
 			require.NoError(t, err)
 
-			golden.Verify(t, buf.String()) // golden.WaitApproval()
+			golden.Verify(t, buf.String(), golden.Extension(".jpeg")) // golden.WaitApproval()
 		})
 	}
 }

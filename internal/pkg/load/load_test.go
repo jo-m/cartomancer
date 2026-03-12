@@ -32,7 +32,7 @@ func TestGPXSnapshot(t *testing.T) {
 			golden.Verify(t, snapshot{
 				Metadata:   src.Metadata(),
 				PointCount: count,
-			})
+			}, golden.Extension(".json")) // golden.WaitApproval()
 		})
 	}
 }

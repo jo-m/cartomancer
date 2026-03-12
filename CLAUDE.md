@@ -158,7 +158,7 @@ For email, run the bundled MailHog: `go tool MailHog` (UI at http://127.0.0.1:80
 
 Use `db.GetTestDB(t)` to get a temp SQLite DB with all migrations applied.
 Use `github.com/stretchr/testify/require` for assertions.
-Use `https://github.com/franiglesias/golden` for snapshot tests. Approval mode: `golden.Verify(t, output, golden.WaitApproval())`.
+Use `https://github.com/franiglesias/golden` for snapshot tests. Approval mode: `golden.Verify(t, output, golden.WaitApproval())`. Set custom extension for snapshot files: golden.Verify(t, output, golden.Extension(".json")).
 
 ## Conventions
 
