@@ -85,6 +85,7 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 		r.Patch("/tracks", sv.handleBulkEditTracks)
 		r.Get("/tracks/editing", sv.handleListTracksForEditing)
 		r.Patch("/tracks/{uuid}", sv.handleEditTrack)
+		r.Delete("/tracks/{uuid}", sv.handleDeleteTrack)
 		r.Put("/tracks/{uuid}/tags", sv.handleSetTrackTags)
 		r.Post("/tracks/editing-complete", sv.handleEditingComplete)
 

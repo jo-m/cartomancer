@@ -53,6 +53,7 @@ type trackResponse struct {
 	Public                  bool     `json:"public"`
 	InitialEditingCompleted bool     `json:"initialEditingCompleted"`
 	Starred                 bool     `json:"starred"`
+	IsOwner                 bool     `json:"isOwner"`
 	Tags                    []string `json:"tags"`
 }
 
@@ -91,7 +92,7 @@ func nullStringVal(ns sql.NullString) string {
 	return ""
 }
 
-func trackResponseFromDB(t db.Track, tags []string, starred bool) trackResponse {
+func trackResponseFromDB(t db.Track, tags []string, starred bool, isOwner bool) trackResponse {
 	if tags == nil {
 		tags = []string{}
 	}
@@ -124,6 +125,7 @@ func trackResponseFromDB(t db.Track, tags []string, starred bool) trackResponse 
 		Public:                  t.Public != 0,
 		InitialEditingCompleted: t.InitialEditingCompleted != 0,
 		Starred:                 starred,
+		IsOwner:                 isOwner,
 		Tags:                    tags,
 	}
 	if t.OriginalCreatedAt.Valid {
@@ -177,7 +179,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, trackResponseFromDB(t.Track, tags, t.Starred))
+	writeJSON(w, http.StatusOK, trackResponseFromDB(t.Track, tags, t.Starred, user != nil && user.Uuid == t.UserID))
 }
 
 func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request) {
@@ -482,7 +484,44 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, trackResponseFromDB(updated, req.Tags, starCount > 0))
+	writeJSON(w, http.StatusOK, trackResponseFromDB(updated, req.Tags, starCount > 0, true))
+}
+
+// handleDeleteTrack handles DELETE /tracks/{uuid}.
+// Deletes the track and all associated data (tags, stars, blob).
+// Only the track owner may delete it.
+func (sv *server) handleDeleteTrack(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.MustGetUser(ctx)
+	trackUUID := chi.URLParam(r, "uuid")
+
+	var errForbidden = errors.New("forbidden")
+
+	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+		existing, txErr := q.GetTrackByUUID(ctx, trackUUID)
+		if txErr != nil {
+			return txErr
+		}
+		if existing.UserID != user.Uuid {
+			return errForbidden
+		}
+		return q.DeleteTrack(ctx, trackUUID)
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "track not found")
+		return
+	}
+	if errors.Is(err, errForbidden) {
+		writeStatusError(w, http.StatusForbidden)
+		return
+	}
+	if err != nil {
+		logg.Error(ctx, "failed to delete track", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 type listTracksResponse struct {
@@ -783,7 +822,7 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t.Track, tags, t.Starred)
+		responses[i] = trackResponseFromDB(t.Track, tags, t.Starred, user != nil && user.Uuid == t.UserID)
 	}
 
 	if params.Page == 0 {
@@ -889,7 +928,7 @@ func (sv *server) handleListTracksForEditing(w http.ResponseWriter, r *http.Requ
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t.Track, tags, t.Starred)
+		responses[i] = trackResponseFromDB(t.Track, tags, t.Starred, true)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"tracks": responses})
@@ -1140,5 +1179,5 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, trackResponseFromDB(created, nil, false))
+	writeJSON(w, http.StatusCreated, trackResponseFromDB(created, nil, false, true))
 }

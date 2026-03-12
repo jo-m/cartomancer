@@ -1,9 +1,19 @@
-import { Link, useParams } from "react-router-dom"
+import { useState } from "react"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
+import { useForm, Controller } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 import { $api } from "../api/client"
 import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
-import { SPORT_LABELS, SUB_SPORT_LABELS } from "../lib/sports"
+import TagsInput from "../components/TagsInput"
+import Toast from "../components/Toast"
+import {
+  SPORT_LABELS,
+  SUB_SPORT_LABELS,
+  SUB_SPORTS_BY_SPORT,
+} from "../lib/sports"
 
 const TRACK_TYPE_LABELS: Record<number, string> = {
   0: "Unknown",
@@ -32,10 +42,24 @@ function formatDate(iso: string): string {
   })
 }
 
+const editSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  public: z.boolean(),
+  sport: z.number().int(),
+  subSport: z.number().int(),
+  tags: z.array(z.string()),
+})
+
+type EditFormValues = z.infer<typeof editSchema>
+
 export default function Track() {
   const { uuid } = useParams<{ uuid: string }>()
   const { user } = useSession()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const { data, isLoading, error } = $api.useQuery("get", "/tracks/{uuid}", {
     params: { path: { uuid: uuid! } },
@@ -43,19 +67,83 @@ export default function Track() {
 
   const starMutation = $api.useMutation("post", "/tracks/{uuid}/star")
   const unstarMutation = $api.useMutation("delete", "/tracks/{uuid}/star")
+  const editMutation = $api.useMutation("patch", "/tracks/{uuid}")
+  const deleteMutation = $api.useMutation("delete", "/tracks/{uuid}")
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<EditFormValues>({
+    resolver: zodResolver(editSchema),
+    values: data?.isOwner
+      ? {
+          name: data.name,
+          public: data.public ?? false,
+          sport: data.sport,
+          subSport: data.subSport,
+          tags: data.tags,
+        }
+      : undefined,
+  })
+
+  const watchedSport = watch("sport")
 
   async function toggleStar() {
     if (!data) return
-    if (data.starred) {
-      await unstarMutation.mutateAsync({
+    try {
+      if (data.starred) {
+        await unstarMutation.mutateAsync({
+          params: { path: { uuid: data.uuid } },
+        })
+      } else {
+        await starMutation.mutateAsync({
+          params: { path: { uuid: data.uuid } },
+        })
+      }
+      await queryClient.invalidateQueries({
+        queryKey: ["get", "/tracks/{uuid}"],
+      })
+    } catch (err) {
+      setToastMessage((err as Error).message)
+    }
+  }
+
+  async function onSubmit(values: EditFormValues) {
+    if (!data) return
+    try {
+      await editMutation.mutateAsync({
+        params: { path: { uuid: data.uuid } },
+        body: {
+          name: values.name,
+          public: values.public,
+          sport: values.sport,
+          subSport: values.subSport,
+          tags: values.tags,
+          trackType: data.trackType,
+        },
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ["get", "/tracks/{uuid}"],
+      })
+    } catch (err) {
+      setToastMessage((err as Error).message)
+    }
+  }
+
+  async function handleDelete() {
+    if (!data) return
+    try {
+      await deleteMutation.mutateAsync({
         params: { path: { uuid: data.uuid } },
       })
-    } else {
-      await starMutation.mutateAsync({ params: { path: { uuid: data.uuid } } })
+      navigate("/")
+    } catch (err) {
+      setToastMessage((err as Error).message)
+      setConfirmDelete(false)
     }
-    await queryClient.invalidateQueries({
-      queryKey: ["get", "/tracks/{uuid}"],
-    })
   }
 
   if (isLoading) {
@@ -78,6 +166,10 @@ export default function Track() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      {toastMessage && (
+        <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
+      )}
+
       <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
         ← Tracks
       </Link>
@@ -217,6 +309,140 @@ export default function Track() {
           Download original file
         </a>
       </div>
+
+      {data.isOwner && (
+        <div className="mt-8 border-t border-gray-200 pt-6">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
+            Edit
+          </h2>
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-700">
+                Name
+              </label>
+              <input
+                {...register("name")}
+                className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+              {errors.name && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.name.message}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="track-public"
+                {...register("public")}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="track-public" className="text-sm text-gray-700">
+                Public
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700">
+                  Sport
+                </label>
+                <select
+                  {...register("sport", { valueAsNumber: true })}
+                  className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                >
+                  {Object.entries(SPORT_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700">
+                  Sub-sport
+                </label>
+                <select
+                  {...register("subSport", { valueAsNumber: true })}
+                  className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                >
+                  {(SUB_SPORTS_BY_SPORT[watchedSport] ?? [0]).map((id) => (
+                    <option key={id} value={id}>
+                      {SUB_SPORT_LABELS[id]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700">
+                Tags
+              </label>
+              <div className="mt-1">
+                <Controller
+                  name="tags"
+                  control={control}
+                  render={({ field }) => (
+                    <TagsInput
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="submit"
+                disabled={isSubmitting || editMutation.isPending}
+                className="rounded border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {editMutation.isPending ? "Saving…" : "Save"}
+              </button>
+
+              {editMutation.isSuccess && (
+                <span className="text-xs text-gray-500">Saved.</span>
+              )}
+
+              <div className="ml-auto flex items-center gap-2">
+                {confirmDelete ? (
+                  <>
+                    <span className="text-sm text-gray-600">
+                      Delete this track?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={deleteMutation.isPending}
+                      className="rounded border border-red-300 bg-white px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {deleteMutation.isPending ? "Deleting…" : "Confirm"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(false)}
+                      className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   )
 }

@@ -375,3 +375,89 @@ func TestListTracks_FilterByTagAND(t *testing.T) {
 	tracks, _ = listResp["tracks"].([]any)
 	assert.Empty(t, tracks)
 }
+
+func TestDeleteTrack_Unauthenticated(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, uploaded := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	trackUUID := uploaded["uuid"].(string)
+
+	anon := e.newClient()
+	status, _ = e.do(anon, http.MethodDelete, "/tracks/"+trackUUID, nil, nil)
+	assert.Equal(t, http.StatusUnauthorized, status)
+}
+
+func TestDeleteTrack_Forbidden(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("bob@example.com", "Bob", "secret2", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+	status, uploaded := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	trackUUID := uploaded["uuid"].(string)
+
+	bob := e.newClient()
+	e.login(bob, "bob@example.com", "secret2")
+	status, _ = e.do(bob, http.MethodDelete, "/tracks/"+trackUUID, nil, nil)
+	assert.Equal(t, http.StatusForbidden, status)
+}
+
+func TestDeleteTrack_Success(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, uploaded := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	trackUUID := uploaded["uuid"].(string)
+
+	status, _ = e.do(alice, http.MethodDelete, "/tracks/"+trackUUID, nil, nil)
+	assert.Equal(t, http.StatusNoContent, status)
+
+	// Track should no longer be accessible.
+	status, _ = e.do(alice, http.MethodGet, "/tracks/"+trackUUID, nil, nil)
+	assert.Equal(t, http.StatusNotFound, status)
+}
+
+func TestDeleteTrack_NotFound(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, _ := e.do(alice, http.MethodDelete, "/tracks/nonexistent-uuid", nil, nil)
+	assert.Equal(t, http.StatusNotFound, status)
+}
+
+func TestGetTrack_IsOwner(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("bob@example.com", "Bob", "secret2", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+	status, uploaded := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	trackUUID := uploaded["uuid"].(string)
+	e.makeTrackPublic(alice, trackUUID, uploaded["name"].(string))
+
+	// Alice is the owner.
+	var track map[string]any
+	status, _ = e.do(alice, http.MethodGet, "/tracks/"+trackUUID, nil, &track)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, true, track["isOwner"])
+
+	// Bob is not the owner.
+	bob := e.newClient()
+	e.login(bob, "bob@example.com", "secret2")
+	status, _ = e.do(bob, http.MethodGet, "/tracks/"+trackUUID, nil, &track)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, false, track["isOwner"])
+}

@@ -782,6 +782,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+    delete:
+      summary: Delete a track
+      operationId: deleteTrack
+      tags: [Tracks]
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Track deleted
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Track not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /tracks/{uuid}/tags:
     put:
       summary: Set tags for a track
@@ -1906,6 +1944,8 @@ components:
         initialEditingCompleted:
           type: boolean
         starred:
+          type: boolean
+        isOwner:
           type: boolean
         tags:
           type: array
