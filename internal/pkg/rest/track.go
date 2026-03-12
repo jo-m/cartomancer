@@ -1024,13 +1024,6 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blobID, err := uuid.NewV7()
-	if err != nil {
-		logg.Error(ctx, "failed to generate blob uuid", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
 	trackID, err := uuid.NewV7()
 	if err != nil {
 		logg.Error(ctx, "failed to generate track uuid", "err", err)
@@ -1064,9 +1057,9 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			return txErr
 		}
 
-		_, txErr = blob.Create(ctx, q, blobID.String(), content, blob.CompressionZstd)
-		if txErr != nil {
-			return txErr
+		b, blobErr := blob.Create(ctx, q, content, blob.CompressionZstd)
+		if blobErr != nil {
+			return blobErr
 		}
 
 		created, txErr = q.CreateTrack(ctx, db.CreateTrackParams{
@@ -1074,7 +1067,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			CreatedAt:         now,
 			UpdatedAt:         now,
 			UserID:            user.Uuid,
-			BlobID:            blobID.String(),
+			BlobID:            b.ID,
 			FileFormat:        int64(fileFormatFromExt(header.Filename)),
 			OriginalFilename:  header.Filename,
 			Name:              meta.Name,

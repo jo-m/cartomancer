@@ -32,12 +32,13 @@ const (
 
 // Blob is a decompressed blob, ready to use.
 type Blob struct {
-	ID      string
+	ID      int64
 	Content []byte
 }
 
 // Create inserts a blob, optionally compressing its content.
-func Create(ctx context.Context, q *db.Queries, id string, content []byte, compression Compression) (Blob, error) {
+// The ID is assigned by the database and returned in the result.
+func Create(ctx context.Context, q *db.Queries, content []byte, compression Compression) (Blob, error) {
 	hash := sha256.Sum256(content)
 
 	stored := content
@@ -49,8 +50,7 @@ func Create(ctx context.Context, q *db.Queries, id string, content []byte, compr
 		}
 	}
 
-	_, err := q.CreateBlob(ctx, db.CreateBlobParams{
-		Uuid:        id,
+	raw, err := q.CreateBlob(ctx, db.CreateBlobParams{
 		Compression: int64(compression),
 		Content:     stored,
 		HashType:    int64(HashTypeSHA256),
@@ -60,7 +60,7 @@ func Create(ctx context.Context, q *db.Queries, id string, content []byte, compr
 		return Blob{}, err
 	}
 
-	return Blob{ID: id, Content: content}, nil
+	return Blob{ID: raw.ID, Content: content}, nil
 }
 
 // acceptsZstd reports whether the request's Accept-Encoding header includes zstd
@@ -93,7 +93,7 @@ func acceptsZstd(r *http.Request) bool {
 // An error is returned if the database fetch or decompression fails; note that if the
 // error occurs after headers have already been written, the caller cannot send an error
 // response.
-func Serve(w http.ResponseWriter, r *http.Request, q *db.Queries, id, contentType, filename string) error {
+func Serve(w http.ResponseWriter, r *http.Request, q *db.Queries, id int64, contentType, filename string) error {
 	raw, err := q.GetBlob(r.Context(), id)
 	if err != nil {
 		return err
@@ -132,7 +132,7 @@ func Serve(w http.ResponseWriter, r *http.Request, q *db.Queries, id, contentTyp
 }
 
 // Get retrieves a blob and decompresses its content if needed.
-func Get(ctx context.Context, q *db.Queries, id string) (Blob, error) {
+func Get(ctx context.Context, q *db.Queries, id int64) (Blob, error) {
 	raw, err := q.GetBlob(ctx, id)
 	if err != nil {
 		return Blob{}, err
@@ -151,7 +151,7 @@ func Get(ctx context.Context, q *db.Queries, id string) (Blob, error) {
 	}
 
 	return Blob{
-		ID:      raw.Uuid,
+		ID:      raw.ID,
 		Content: content,
 	}, nil
 }

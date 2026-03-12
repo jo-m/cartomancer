@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE forecast_files (
-    uuid TEXT PRIMARY KEY,
+    id INTEGER PRIMARY KEY,
 
     created_at DATETIME NOT NULL,
 
@@ -21,15 +21,15 @@ CREATE TABLE forecast_files (
     bounds_max_lat REAL,
     bounds_max_lon REAL,
 
-    blob_id TEXT NOT NULL,
+    blob_id INTEGER NOT NULL,
 
-    FOREIGN KEY(blob_id) REFERENCES blobs(uuid) ON DELETE RESTRICT,
+    FOREIGN KEY(blob_id) REFERENCES blobs(id) ON DELETE RESTRICT,
     UNIQUE(reference_time, variable, horizon_secs)
 );
 -- When a forecast_file is deleted, delete its blob (unless another forecast_file still references it).
 CREATE TRIGGER forecast_files_delete_blob AFTER DELETE ON forecast_files
 BEGIN
-    DELETE FROM blobs WHERE uuid = OLD.blob_id
+    DELETE FROM blobs WHERE id = OLD.blob_id
     AND NOT EXISTS (SELECT 1 FROM forecast_files WHERE blob_id = OLD.blob_id);
 END;
 -- +goose StatementEnd

@@ -20,14 +20,14 @@ func TestCreateUncompressed(t *testing.T) {
 	q := d.QueryRW()
 
 	content := []byte("hello world")
-	blob, err := Create(ctx, q, "id1", content, CompressionNone)
+	b, err := Create(ctx, q, content, CompressionNone)
 	require.NoError(t, err)
 
-	assert.Equal(t, "id1", blob.ID)
-	assert.Equal(t, content, blob.Content)
+	assert.Greater(t, b.ID, int64(0))
+	assert.Equal(t, content, b.Content)
 
 	// Verify raw DB row is uncompressed.
-	raw, err := q.GetBlob(ctx, "id1")
+	raw, err := q.GetBlob(ctx, b.ID)
 	require.NoError(t, err)
 	assert.Equal(t, int64(CompressionNone), raw.Compression)
 	assert.Equal(t, content, raw.Content)
@@ -40,14 +40,14 @@ func TestCreateCompressed(t *testing.T) {
 	q := d.QueryRW()
 
 	content := []byte("hello world, this is some content that should be compressed")
-	blob, err := Create(ctx, q, "id1", content, CompressionZstd)
+	b, err := Create(ctx, q, content, CompressionZstd)
 	require.NoError(t, err)
 
-	assert.Equal(t, "id1", blob.ID)
-	assert.Equal(t, content, blob.Content)
+	assert.Greater(t, b.ID, int64(0))
+	assert.Equal(t, content, b.Content)
 
 	// Verify raw DB row is compressed (content differs).
-	raw, err := q.GetBlob(ctx, "id1")
+	raw, err := q.GetBlob(ctx, b.ID)
 	require.NoError(t, err)
 	assert.Equal(t, int64(CompressionZstd), raw.Compression)
 	assert.NotEqual(t, content, raw.Content)
@@ -60,13 +60,13 @@ func TestGetUncompressed(t *testing.T) {
 	q := d.QueryRW()
 
 	content := []byte("raw content")
-	_, err := Create(ctx, q, "id1", content, CompressionNone)
+	created, err := Create(ctx, q, content, CompressionNone)
 	require.NoError(t, err)
 
-	blob, err := Get(ctx, q, "id1")
+	b, err := Get(ctx, q, created.ID)
 	require.NoError(t, err)
-	assert.Equal(t, "id1", blob.ID)
-	assert.Equal(t, content, blob.Content)
+	assert.Equal(t, created.ID, b.ID)
+	assert.Equal(t, content, b.Content)
 }
 
 func TestGetCompressed(t *testing.T) {
@@ -76,13 +76,13 @@ func TestGetCompressed(t *testing.T) {
 	q := d.QueryRW()
 
 	content := []byte("compressed content that should round-trip correctly")
-	_, err := Create(ctx, q, "id1", content, CompressionZstd)
+	created, err := Create(ctx, q, content, CompressionZstd)
 	require.NoError(t, err)
 
-	blob, err := Get(ctx, q, "id1")
+	b, err := Get(ctx, q, created.ID)
 	require.NoError(t, err)
-	assert.Equal(t, "id1", blob.ID)
-	assert.Equal(t, content, blob.Content)
+	assert.Equal(t, created.ID, b.ID)
+	assert.Equal(t, content, b.Content)
 }
 
 func TestGetNotFound(t *testing.T) {
@@ -91,7 +91,7 @@ func TestGetNotFound(t *testing.T) {
 	ctx := t.Context()
 	q := d.QueryRW()
 
-	_, err := Get(ctx, q, "nonexistent")
+	_, err := Get(ctx, q, 0)
 	assert.Error(t, err)
 }
 
@@ -101,12 +101,12 @@ func TestServeUncompressed(t *testing.T) {
 	q := d.QueryRW()
 
 	content := []byte("hello world")
-	_, err := Create(t.Context(), q, "id1", content, CompressionNone)
+	b, err := Create(t.Context(), q, content, CompressionNone)
 	require.NoError(t, err)
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
-	require.NoError(t, Serve(w, r, q, "id1", "text/plain", "file.txt"))
+	require.NoError(t, Serve(w, r, q, b.ID, "text/plain", "file.txt"))
 
 	resp := w.Result()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -124,12 +124,12 @@ func TestServeCompressedNoZstd(t *testing.T) {
 	q := d.QueryRW()
 
 	content := []byte("content for clients without zstd support")
-	_, err := Create(t.Context(), q, "id1", content, CompressionZstd)
+	b, err := Create(t.Context(), q, content, CompressionZstd)
 	require.NoError(t, err)
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
-	require.NoError(t, Serve(w, r, q, "id1", "text/plain", "file.txt"))
+	require.NoError(t, Serve(w, r, q, b.ID, "text/plain", "file.txt"))
 
 	resp := w.Result()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -145,13 +145,13 @@ func TestServeCompressedWithZstd(t *testing.T) {
 	q := d.QueryRW()
 
 	content := []byte("content for zstd-capable clients, served as raw compressed bytes")
-	_, err := Create(t.Context(), q, "id1", content, CompressionZstd)
+	b, err := Create(t.Context(), q, content, CompressionZstd)
 	require.NoError(t, err)
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	r.Header.Set("Accept-Encoding", "zstd, gzip")
 	w := httptest.NewRecorder()
-	require.NoError(t, Serve(w, r, q, "id1", "text/plain", "file.txt"))
+	require.NoError(t, Serve(w, r, q, b.ID, "text/plain", "file.txt"))
 
 	resp := w.Result()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -169,13 +169,13 @@ func TestServeCompressedZstdQZero(t *testing.T) {
 	q := d.QueryRW()
 
 	content := []byte("content for client that explicitly rejects zstd")
-	_, err := Create(t.Context(), q, "id1", content, CompressionZstd)
+	b, err := Create(t.Context(), q, content, CompressionZstd)
 	require.NoError(t, err)
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	r.Header.Set("Accept-Encoding", "zstd;q=0, gzip")
 	w := httptest.NewRecorder()
-	require.NoError(t, Serve(w, r, q, "id1", "text/plain", "file.txt"))
+	require.NoError(t, Serve(w, r, q, b.ID, "text/plain", "file.txt"))
 
 	resp := w.Result()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -191,5 +191,5 @@ func TestServeNotFound(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
-	assert.Error(t, Serve(w, r, q, "nonexistent", "text/plain", "file.txt"))
+	assert.Error(t, Serve(w, r, q, 0, "text/plain", "file.txt"))
 }

@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
@@ -57,19 +56,14 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 
 	ctx := logg.WithDiscardHandler(t.Context())
 
-	blobID, err := uuid.NewV7()
-	require.NoError(t, err)
-	_, err = blob.Create(ctx, d.QueryRW(), blobID.String(), []byte("grib data"), blob.CompressionZstd)
+	b, err := blob.Create(ctx, d.QueryRW(), []byte("grib data"), blob.CompressionZstd)
 	require.NoError(t, err)
 
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
 	validTime := refTime.Add(10 * time.Hour)
 	const horizonSecs = int64(10 * 3600)
 
-	fileID, err := uuid.NewV7()
-	require.NoError(t, err)
 	f, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
-		Uuid:          fileID.String(),
 		CreatedAt:     time.Now(),
 		ReferenceTime: refTime,
 		ValidTime:     validTime,
@@ -79,10 +73,10 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 		BoundsMinLon:  sql.NullFloat64{Float64: 5.9, Valid: true},
 		BoundsMaxLat:  sql.NullFloat64{Float64: 47.8, Valid: true},
 		BoundsMaxLon:  sql.NullFloat64{Float64: 10.5, Valid: true},
-		BlobID:        blobID.String(),
+		BlobID:        b.ID,
 	})
 	require.NoError(t, err)
-	require.Equal(t, fileID.String(), f.Uuid)
+	require.Greater(t, f.ID, int64(0))
 	require.Equal(t, "TOT_PREC", f.Variable)
 	require.Equal(t, horizonSecs, f.HorizonSecs)
 	require.InDelta(t, 45.7, f.BoundsMinLat.Float64, 1e-9)
@@ -98,21 +92,16 @@ func TestCreateForecastFile_uniqueConstraint(t *testing.T) {
 
 	ctx := logg.WithDiscardHandler(t.Context())
 
-	insertBlob := func() string {
-		id, err := uuid.NewV7()
+	insertBlob := func() int64 {
+		b, err := blob.Create(ctx, d.QueryRW(), []byte("grib data"), blob.CompressionNone)
 		require.NoError(t, err)
-		_, err = blob.Create(ctx, d.QueryRW(), id.String(), []byte("grib data"), blob.CompressionNone)
-		require.NoError(t, err)
-		return id.String()
+		return b.ID
 	}
 
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
 
-	insert := func(blobID string) error {
-		id, err := uuid.NewV7()
-		require.NoError(t, err)
-		_, err = d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
-			Uuid:          id.String(),
+	insert := func(blobID int64) error {
+		_, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
 			CreatedAt:     time.Now(),
 			ReferenceTime: refTime,
 			ValidTime:     refTime.Add(time.Hour),

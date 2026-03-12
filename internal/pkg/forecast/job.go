@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/google/uuid"
 	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
@@ -161,22 +160,12 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 				return fmt.Errorf("read %s: %w", f.path, readErr)
 			}
 
-			blobID, uuidErr := uuid.NewV7()
-			if uuidErr != nil {
-				return fmt.Errorf("new blob uuid: %w", uuidErr)
-			}
-
-			if _, blobErr := blob.Create(ctx, tx, blobID.String(), content, blob.CompressionNone); blobErr != nil {
+			b, blobErr := blob.Create(ctx, tx, content, blob.CompressionNone)
+			if blobErr != nil {
 				return fmt.Errorf("create blob for %s: %w", f.path, blobErr)
 			}
 
-			fileID, uuidErr := uuid.NewV7()
-			if uuidErr != nil {
-				return fmt.Errorf("new forecast file uuid: %w", uuidErr)
-			}
-
 			if _, dbErr := tx.CreateForecastFile(ctx, db.CreateForecastFileParams{
-				Uuid:          fileID.String(),
 				CreatedAt:     time.Now(),
 				ReferenceTime: f.referenceTime,
 				ValidTime:     f.validTime,
@@ -186,7 +175,7 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 				BoundsMinLon:  f.boundsMinLon,
 				BoundsMaxLat:  f.boundsMaxLat,
 				BoundsMaxLon:  f.boundsMaxLon,
-				BlobID:        blobID.String(),
+				BlobID:        b.ID,
 			}); dbErr != nil {
 				return fmt.Errorf("create forecast_file record for %s horizon=%ds: %w",
 					f.variable, f.horizonSecs, dbErr)
