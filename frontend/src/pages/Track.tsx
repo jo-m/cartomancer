@@ -1,5 +1,8 @@
 import { Link, useParams } from "react-router-dom"
+import { useQueryClient } from "@tanstack/react-query"
 import { $api } from "../api/client"
+import { useSession } from "../context/SessionContext"
+import StarIcon from "../assets/StarIcon"
 import { SPORT_LABELS, SUB_SPORT_LABELS } from "../lib/sports"
 
 const TRACK_TYPE_LABELS: Record<number, string> = {
@@ -31,10 +34,29 @@ function formatDate(iso: string): string {
 
 export default function Track() {
   const { uuid } = useParams<{ uuid: string }>()
+  const { user } = useSession()
+  const queryClient = useQueryClient()
 
   const { data, isLoading, error } = $api.useQuery("get", "/tracks/{uuid}", {
     params: { path: { uuid: uuid! } },
   })
+
+  const starMutation = $api.useMutation("post", "/tracks/{uuid}/star")
+  const unstarMutation = $api.useMutation("delete", "/tracks/{uuid}/star")
+
+  async function toggleStar() {
+    if (!data) return
+    if (data.isStarred) {
+      await unstarMutation.mutateAsync({
+        params: { path: { uuid: data.uuid } },
+      })
+    } else {
+      await starMutation.mutateAsync({ params: { path: { uuid: data.uuid } } })
+    }
+    await queryClient.invalidateQueries({
+      queryKey: ["get", "/tracks/{uuid}"],
+    })
+  }
 
   if (isLoading) {
     return (
@@ -60,7 +82,20 @@ export default function Track() {
         ← Tracks
       </Link>
 
-      <h1 className="mt-4 text-2xl font-bold text-gray-900">{data.name}</h1>
+      <div className="mt-4 flex items-start justify-between gap-4">
+        <h1 className="text-2xl font-bold text-gray-900">{data.name}</h1>
+        {user && (
+          <button
+            onClick={toggleStar}
+            disabled={starMutation.isPending || unstarMutation.isPending}
+            className="shrink-0 cursor-pointer rounded border border-gray-200 p-1.5 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <StarIcon
+              className={`h-5 w-5 ${data.isStarred ? "text-yellow-400" : "text-gray-300"}`}
+            />
+          </button>
+        )}
+      </div>
 
       {data.description && (
         <p className="mt-2 text-sm text-gray-600">{data.description}</p>

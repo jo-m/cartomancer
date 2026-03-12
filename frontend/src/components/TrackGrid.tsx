@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
 import { $api } from "../api/client"
+import { useSession } from "../context/SessionContext"
+import StarIcon from "../assets/StarIcon"
 import TagsInput from "./TagsInput"
 import {
   SPORT_LABELS,
   SUB_SPORT_LABELS,
   SUB_SPORTS_BY_SPORT,
 } from "../lib/sports"
+import { useQueryClient } from "@tanstack/react-query"
 
 const PAGE_SIZE = 24
 
@@ -156,6 +159,7 @@ interface LiveFilters {
   distRange: Range | null // km; null = full range
   ascentRange: Range | null // m; null = full range
   visibility: "all" | "public" | "private" // user mode only
+  onlyStarred: boolean
   sports: number[]
   subSports: number[]
   tags: string[]
@@ -167,6 +171,7 @@ const initialFilters: LiveFilters = {
   distRange: null,
   ascentRange: null,
   visibility: "all",
+  onlyStarred: false,
   sports: [],
   subSports: [],
   tags: [],
@@ -181,6 +186,8 @@ export interface TrackGridProps {
 /** TrackGrid renders a filterable, paginated grid of track cards. */
 export default function TrackGrid({ mode }: TrackGridProps) {
   const onlyMine = mode === "user"
+  const { user } = useSession()
+  const queryClient = useQueryClient()
 
   const { data: stats } = $api.useQuery("get", "/tracks/statistics", {
     params: { query: { onlyMine } },
@@ -275,6 +282,26 @@ export default function TrackGrid({ mode }: TrackGridProps) {
     publicParam = false
   }
 
+  const starMutation = $api.useMutation("post", "/tracks/{uuid}/star")
+  const unstarMutation = $api.useMutation("delete", "/tracks/{uuid}/star")
+
+  async function toggleStar(
+    e: React.MouseEvent,
+    trackUuid: string,
+    isStarred: boolean
+  ) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (isStarred) {
+      await unstarMutation.mutateAsync({
+        params: { path: { uuid: trackUuid } },
+      })
+    } else {
+      await starMutation.mutateAsync({ params: { path: { uuid: trackUuid } } })
+    }
+    await queryClient.invalidateQueries({ queryKey: ["get", "/tracks"] })
+  }
+
   const { data, isLoading, error } = $api.useQuery("get", "/tracks", {
     params: {
       query: {
@@ -282,6 +309,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
         pageSize: PAGE_SIZE,
         onlyMine,
         ...(publicParam !== undefined ? { public: publicParam } : {}),
+        ...(applied.onlyStarred && user ? { onlyStarred: true } : {}),
         ...(applied.search ? { name: applied.search } : {}),
         ...(applied.sports.length > 0 ? { sport: applied.sports } : {}),
         ...(applied.subSports.length > 0
@@ -330,6 +358,23 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                 </button>
               ))}
             </div>
+          )}
+          {user && (
+            <button
+              onClick={() =>
+                setLive((prev) => ({
+                  ...prev,
+                  onlyStarred: !prev.onlyStarred,
+                }))
+              }
+              className={`rounded border px-3 py-1.5 text-sm ${
+                live.onlyStarred
+                  ? "border-gray-700 bg-gray-800 text-white"
+                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              Starred
+            </button>
           )}
           <input
             type="search"
@@ -471,8 +516,20 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                 <Link
                   key={track.uuid}
                   to={`/tracks/${track.uuid}`}
-                  className="group block rounded-lg border border-gray-200 bg-white hover:border-gray-400"
+                  className="group relative block rounded-lg border border-gray-200 bg-white hover:border-gray-400"
                 >
+                  {user && (
+                    <button
+                      onClick={(e) =>
+                        toggleStar(e, track.uuid, track.isStarred ?? false)
+                      }
+                      className="absolute right-1.5 top-1.5 z-10 cursor-pointer rounded bg-white/80 p-1 hover:bg-white"
+                    >
+                      <StarIcon
+                        className={`h-4 w-4 ${track.isStarred ? "text-yellow-400" : "text-gray-300"}`}
+                      />
+                    </button>
+                  )}
                   <div className="aspect-square overflow-hidden rounded-t-lg bg-gray-50">
                     <img
                       src={`/api/tracks/${track.uuid}/preview.svg?size=256`}
