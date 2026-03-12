@@ -1,0 +1,11 @@
+The GRIB2+CSV files in this directory are meteorological forecast data from the
+ICON-CH1-EPS model.
+
+Source:    MeteoSwiss (Federal Office of Meteorology and Climatology)
+Dataset:   ch.meteoschweiz.ogd-forecasting-icon-ch1
+URL:       https://data.geo.admin.ch/api/stac/v0.9/collections/ch.meteoschweiz.ogd-forecasting-icon-ch1
+License:   Creative Commons Attribution 4.0 International (CC BY 4.0)
+           https://creativecommons.org/licenses/by/4.0/
+
+Attribution: MeteoSwiss, Federal Office of Meteorology and Climatology,
+             https://www.meteoswiss.admin.ch

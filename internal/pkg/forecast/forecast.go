@@ -4,6 +4,9 @@
 // Usage is a two-step process: first call FetchVariables to obtain the list of
 // available meteorological variables and their metadata; then call Download with
 // a selection of variable names to stage the corresponding GRIB2 files locally.
+//
+// Docs: https://opendatadocs.meteoswiss.ch/de/e-forecast-data/e2-e3-numerical-weather-forecasting-model
+// STAC Browser: https://data.geo.admin.ch/browser/index.html#/collections/ch.meteoschweiz.ogd-forecasting-icon-ch1
 package forecast
 
 import (
@@ -20,7 +23,7 @@ import (
 const (
 	collectionBaseURL = "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.meteoschweiz.ogd-forecasting-icon-ch1"
 	csvAssetKey       = "params_icon-ch1-eps.csv"
-	itemsPageSize     = 100
+	itemsPageSize     = 1000
 )
 
 // Variable describes a meteorological forecast variable available in the

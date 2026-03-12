@@ -1,3 +1,14 @@
+Third-party data included in this repository
+============================================
+
+The GRIB2 files in internal/pkg/grib2/testdata/ are licensed under the
+Creative Commons Attribution 4.0 International License (CC BY 4.0).
+See internal/pkg/grib2/testdata/LICENSE for full attribution details.
+Source: MeteoSwiss.
+
+Everything else
+===============
+
 MIT License
 
 Copyright (c) 2026 https://jo-m.ch
