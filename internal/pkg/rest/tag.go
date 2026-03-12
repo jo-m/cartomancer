@@ -78,7 +78,14 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, trackResponseFromDB(track, tags))
+	starredSet, err := sv.d.GetStarredStatusForTracks(ctx, user.Uuid, []string{trackUUID})
+	if err != nil {
+		logg.Error(ctx, "failed to get starred status", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, trackResponseFromDB(track, tags, starredSet[trackUUID]))
 }
 
 type tagSuggestionResponse struct {

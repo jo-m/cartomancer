@@ -18,6 +18,10 @@ type ListTracksParams struct {
 	// visibility from other users. Has no effect when UserID is empty.
 	OnlyOwnedByUser bool
 
+	// OnlyStarred restricts results to tracks starred by UserID.
+	// Has no effect when UserID is empty.
+	OnlyStarred bool
+
 	// Public filters by visibility. nil = no filter.
 	Public *bool
 
@@ -211,6 +215,10 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 		} else {
 			b.add("public = 0")
 		}
+	}
+
+	if p.OnlyStarred && p.UserID != "" {
+		b.add("uuid IN (SELECT track_id FROM track_stars WHERE user_id = ?)", p.UserID)
 	}
 
 	b.inInt64("file_format", p.FileFormats)

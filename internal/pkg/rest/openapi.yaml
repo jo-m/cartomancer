@@ -41,6 +41,8 @@ tags:
     description: Tag suggestions
   - name: Account
     description: Current user account management
+  - name: Stars
+    description: Track starring
   - name: Admin
     description: Administrative user management
 
@@ -80,6 +82,110 @@ paths:
                 type: string
         "404":
           description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /users/{uuid}/stars:
+    get:
+      summary: Get starred tracks for a user
+      operationId: getUserStars
+      tags: [Stars]
+      security: []
+      description: >
+        Returns all tracks starred by the given user that are visible to the
+        caller. Anonymous callers see only stars on public tracks.
+        Authenticated callers also see stars on tracks they own.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Array of starred tracks (may be empty)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrackResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tracks/{uuid}/star:
+    post:
+      summary: Star a track
+      operationId: starTrack
+      tags: [Stars]
+      description: >
+        Stars the given track for the authenticated user.
+        Starring a track that is already starred is idempotent.
+        Private tracks owned by other users cannot be starred (returns 404).
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Track starred (or was already starred)
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Track not found or not accessible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      summary: Unstar a track
+      operationId: unstarTrack
+      tags: [Stars]
+      description: >
+        Removes the authenticated user's star from the given track.
+        No visibility check is performed; stars on private tracks can always be removed.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Star removed
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Star not found
           content:
             application/json:
               schema:
@@ -283,6 +389,13 @@ paths:
           description: >
             When true and authenticated, restricts results to tracks owned by the
             current user (ignoring public tracks from other users).
+        - name: onlyStarred
+          in: query
+          schema:
+            type: boolean
+          description: >
+            When true and authenticated, restricts results to tracks starred by
+            the current user.
         - name: fileFormat
           in: query
           schema:
@@ -1791,6 +1904,8 @@ components:
         public:
           type: boolean
         initialEditingCompleted:
+          type: boolean
+        isStarred:
           type: boolean
         tags:
           type: array

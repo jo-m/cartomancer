@@ -52,6 +52,7 @@ type trackResponse struct {
 	UpdatedAt               string   `json:"updatedAt"`
 	Public                  bool     `json:"public"`
 	InitialEditingCompleted bool     `json:"initialEditingCompleted"`
+	IsStarred               bool     `json:"isStarred"`
 	Tags                    []string `json:"tags"`
 }
 
@@ -90,7 +91,7 @@ func nullStringVal(ns sql.NullString) string {
 	return ""
 }
 
-func trackResponseFromDB(t db.Track, tags []string) trackResponse {
+func trackResponseFromDB(t db.Track, tags []string, isStarred bool) trackResponse {
 	if tags == nil {
 		tags = []string{}
 	}
@@ -122,6 +123,7 @@ func trackResponseFromDB(t db.Track, tags []string) trackResponse {
 		UpdatedAt:               t.UpdatedAt.Format(time.RFC3339),
 		Public:                  t.Public != 0,
 		InitialEditingCompleted: t.InitialEditingCompleted != 0,
+		IsStarred:               isStarred,
 		Tags:                    tags,
 	}
 	if t.OriginalCreatedAt.Valid {
@@ -170,7 +172,18 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, trackResponseFromDB(t, tags))
+	var userID string
+	if user != nil {
+		userID = user.Uuid
+	}
+	starredSet, err := sv.d.GetStarredStatusForTracks(ctx, userID, []string{trackUUID})
+	if err != nil {
+		logg.Error(ctx, "failed to get starred status", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, trackResponseFromDB(t, tags, starredSet[trackUUID]))
 }
 
 func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request) {
@@ -465,7 +478,14 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, trackResponseFromDB(updated, req.Tags))
+	starredSet, err := sv.d.GetStarredStatusForTracks(ctx, user.Uuid, []string{trackUUID})
+	if err != nil {
+		logg.Error(ctx, "failed to get starred status", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, trackResponseFromDB(updated, req.Tags, starredSet[trackUUID]))
 }
 
 type listTracksResponse struct {
@@ -544,6 +564,18 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		}
 		if b && user != nil {
 			params.OnlyOwnedByUser = true
+		}
+	}
+
+	// onlyStarred restricts results to tracks starred by the authenticated user.
+	if v := q.Get("onlyStarred"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid value for 'onlyStarred'")
+			return
+		}
+		if b && user != nil {
+			params.OnlyStarred = true
 		}
 	}
 
@@ -735,7 +767,7 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch tags for all returned tracks in a single query.
+	// Fetch tags and starred status for all returned tracks in single queries.
 	trackUUIDs := make([]string, len(result.Tracks))
 	for i, t := range result.Tracks {
 		trackUUIDs[i] = t.Uuid
@@ -747,13 +779,24 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var listUserID string
+	if user != nil {
+		listUserID = user.Uuid
+	}
+	starredSet, err := sv.d.GetStarredStatusForTracks(ctx, listUserID, trackUUIDs)
+	if err != nil {
+		logg.Error(ctx, "failed to get starred status for tracks", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
 	responses := make([]trackResponse, len(result.Tracks))
 	for i, t := range result.Tracks {
 		tags := tagsByTrack[t.Uuid]
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t, tags)
+		responses[i] = trackResponseFromDB(t, tags, starredSet[t.Uuid])
 	}
 
 	if params.Page == 0 {
@@ -853,13 +896,20 @@ func (sv *server) handleListTracksForEditing(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	starredSet, err := sv.d.GetStarredStatusForTracks(ctx, user.Uuid, trackUUIDs)
+	if err != nil {
+		logg.Error(ctx, "failed to get starred status for editing tracks", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
 	responses := make([]trackResponse, len(tracks))
 	for i, t := range tracks {
 		tags := tagsByTrack[t.Uuid]
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t, tags)
+		responses[i] = trackResponseFromDB(t, tags, starredSet[t.Uuid])
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"tracks": responses})
@@ -1110,5 +1160,5 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, trackResponseFromDB(created, nil))
+	writeJSON(w, http.StatusCreated, trackResponseFromDB(created, nil, false))
 }
