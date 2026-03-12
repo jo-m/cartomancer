@@ -14,10 +14,13 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
+	"time"
+
+	"jo-m.ch/go/detour/internal/pkg/logg"
 )
 
 const (
@@ -39,11 +42,11 @@ type Variable struct {
 	Level string
 	// VerticalCoordinate describes the vertical coordinate system.
 	VerticalCoordinate string
-	// Horizon is the forecast time horizon.
+	// Horizon is the range of available forecast horizons (e.g., "0-33h").
 	Horizon string
 	// TemporalAggregation is the aggregation method (e.g., "Instant", "Average").
 	TemporalAggregation string
-	// AggregationStart is the start reference for temporal aggregation (e.g., "Reference Time" or "-").
+	// AggregationStart is the start reference for temporal aggregation.
 	AggregationStart string
 }
 
@@ -66,18 +69,41 @@ func FetchVariables(ctx context.Context) ([]Variable, error) {
 	return downloadAndParseCSV(ctx, csvAsset.Href)
 }
 
-// FileSet maps variable-type keys to local GRIB2 file paths.
-// Keys follow the pattern "{VARIABLE}-{type}", for example "T_2M-ctrl" or "TOT_PREC-perturb".
-type FileSet map[string]string
+// DownloadedFile represents a single downloaded GRIB2 file with its parsed metadata.
+type DownloadedFile struct {
+	// Path is the absolute path to the downloaded file within the temporary directory.
+	Path string
+	// Variable is the forecast variable name (e.g., "U_10M", "TOT_PREC").
+	Variable string
+	// Horizon is the duration from the reference time to the forecast valid time.
+	Horizon time.Duration
+	// ValidTime is the time at which the forecast values are valid.
+	ValidTime time.Time
+	// Perturbed indicates whether this is a perturbed ensemble member.
+	Perturbed bool
+	// BoundsMinLat is the southern latitude of the spatial domain (WGS84).
+	// NaN when not available.
+	BoundsMinLat float64
+	// BoundsMinLon is the western longitude of the spatial domain (WGS84).
+	// NaN when not available.
+	BoundsMinLon float64
+	// BoundsMaxLat is the northern latitude of the spatial domain (WGS84).
+	// NaN when not available.
+	BoundsMaxLat float64
+	// BoundsMaxLon is the eastern longitude of the spatial domain (WGS84).
+	// NaN when not available.
+	BoundsMaxLon float64
+}
 
-// DownloadResult holds the output of a Download call.
+// DownloadResult holds the output of a [Download] call.
 type DownloadResult struct {
 	// Dir is the temporary directory containing all downloaded files.
 	// The caller must call os.RemoveAll(Dir) when the files are no longer needed.
 	Dir string
-	// Files maps variable-type keys to absolute file paths within Dir.
-	// Keys are of the form "{VARIABLE}-{type}" (e.g., "T_2M-ctrl").
-	Files FileSet
+	// ReferenceTime is the model run initialisation time.
+	ReferenceTime time.Time
+	// Files contains one entry per downloaded GRIB2 file.
+	Files []DownloadedFile
 }
 
 // Download fetches GRIB2 forecast files for the given variables from the newest
@@ -91,56 +117,78 @@ type DownloadResult struct {
 // Returns an error if any download fails; in that case the temporary directory
 // is removed before returning.
 func Download(ctx context.Context, variables []string) (*DownloadResult, error) {
-	items, forecastTime, err := fetchItemsForVariables(ctx, variables)
+	items, refTime, err := fetchItemsForVariables(ctx, variables)
 	if err != nil {
-		return nil, fmt.Errorf("fetching STAC items (forecast %s): %w", forecastTime, err)
+		return nil, fmt.Errorf("fetching STAC items: %w", err)
 	}
+	if len(items) == 0 {
+		return nil, fmt.Errorf("no forecast items found for variables %v", variables)
+	}
+
+	logg.Info(ctx, "Downloading forecast files", "referenceTime", refTime, "count", len(items))
 
 	dir, err := os.MkdirTemp("", "forecast-*")
 	if err != nil {
 		return nil, fmt.Errorf("creating temp dir: %w", err)
 	}
 
-	files := make(FileSet, len(items))
-	for _, item := range items {
-		for assetKey, asset := range item.Assets {
-			varKey := assetKeyToVarKey(assetKey)
-			if varKey == "" {
-				continue
-			}
-			localPath := filepath.Join(dir, filepath.Base(assetKey))
-			if err := downloadFile(ctx, asset.Href, localPath); err != nil {
-				_ = os.RemoveAll(dir)
-				return nil, fmt.Errorf("downloading %s: %w", assetKey, err)
-			}
-			files[varKey] = localPath
+	var files []DownloadedFile
+	for i, item := range items {
+		horizon, parseErr := parseISO8601Duration(item.Properties.Horizon)
+		if parseErr != nil {
+			_ = os.RemoveAll(dir)
+			return nil, fmt.Errorf("parsing horizon for item %s: %w", item.ID, parseErr)
 		}
+
+		var assetURL string
+		for _, asset := range item.Assets {
+			assetURL = asset.Href
+			break
+		}
+		if assetURL == "" {
+			continue
+		}
+
+		localPath := filepath.Join(dir, fmt.Sprintf("%04d.grib2", i))
+		logg.Debug(ctx, "Downloading forecast file",
+			"variable", item.Properties.Variable,
+			"horizon", item.Properties.Horizon,
+			"perturbed", item.Properties.Perturbed)
+		if downloadErr := downloadFile(ctx, assetURL, localPath); downloadErr != nil {
+			_ = os.RemoveAll(dir)
+			return nil, fmt.Errorf("downloading %s/%s: %w",
+				item.Properties.Variable, item.Properties.Horizon, downloadErr)
+		}
+
+		f := DownloadedFile{
+			Path:      localPath,
+			Variable:  item.Properties.Variable,
+			Horizon:   horizon,
+			ValidTime: refTime.Add(horizon),
+			Perturbed: item.Properties.Perturbed,
+		}
+		parseBBox(item, &f)
+		files = append(files, f)
 	}
 
-	return &DownloadResult{Dir: dir, Files: files}, nil
+	logg.Info(ctx, "Downloaded forecast files", "referenceTime", refTime, "count", len(files))
+	return &DownloadResult{Dir: dir, ReferenceTime: refTime, Files: files}, nil
 }
 
-// assetKeyToVarKey converts an asset filename like
-// "icon-ch1-eps-202603101800-0-t_2m-ctrl.grib2" to a variable-type key like
-// "T_2M-ctrl".
-//
-// Returns an empty string if the key does not match the expected format.
-func assetKeyToVarKey(assetKey string) string {
-	name := strings.TrimSuffix(assetKey, ".grib2")
-	// Format: icon-ch1-eps-{datetime}-0-{variable}-{type}
-	// Split on "-0-" to isolate the variable-type suffix.
-	_, varType, found := strings.Cut(name, "-0-")
-	if !found {
-		return ""
+// parseBBox fills the bounding-box fields of f from the STAC item's BBox slice,
+// which follows the GeoJSON convention [min_lon, min_lat, max_lon, max_lat].
+// Fields are set to NaN when the bbox is absent or malformed.
+func parseBBox(item stacItem, f *DownloadedFile) {
+	f.BoundsMinLat = math.NaN()
+	f.BoundsMinLon = math.NaN()
+	f.BoundsMaxLat = math.NaN()
+	f.BoundsMaxLon = math.NaN()
+	if len(item.BBox) == 4 {
+		f.BoundsMinLon = item.BBox[0]
+		f.BoundsMinLat = item.BBox[1]
+		f.BoundsMaxLon = item.BBox[2]
+		f.BoundsMaxLat = item.BBox[3]
 	}
-	// Split on the last "-" to separate variable name from ensemble type.
-	lastDash := strings.LastIndex(varType, "-")
-	if lastDash < 0 {
-		return strings.ToUpper(varType)
-	}
-	variable := strings.ToUpper(varType[:lastDash])
-	kind := varType[lastDash+1:]
-	return variable + "-" + kind
 }
 
 // downloadAndParseCSV fetches the CSV at href and parses it into Variable records.

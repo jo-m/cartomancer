@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"jo-m.ch/go/detour/internal/pkg/forecast"
@@ -38,11 +39,17 @@ func TestDownload(t *testing.T) {
 
 	require.NotEmpty(t, result.Dir)
 	require.NotEmpty(t, result.Files)
+	require.False(t, result.ReferenceTime.IsZero(), "ReferenceTime must be set")
 
-	for key, path := range result.Files {
-		t.Logf("downloaded %s -> %s", key, path)
-		info, err := os.Stat(path)
+	for _, f := range result.Files {
+		t.Logf("downloaded %s horizon=%s perturbed=%v -> %s",
+			f.Variable, f.Horizon, f.Perturbed, f.Path)
+		require.NotEmpty(t, f.Variable)
+		require.GreaterOrEqual(t, f.Horizon, time.Duration(0))
+		require.False(t, f.ValidTime.IsZero())
+
+		info, err := os.Stat(f.Path)
 		require.NoError(t, err)
-		require.Greater(t, info.Size(), int64(0), "file %s should not be empty", path)
+		require.Greater(t, info.Size(), int64(0), "file %s should not be empty", f.Path)
 	}
 }

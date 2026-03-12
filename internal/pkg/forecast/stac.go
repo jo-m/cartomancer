@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // stacCollection is a partial STAC Collection object containing only the fields
@@ -29,15 +32,20 @@ type stacItemCollection struct {
 }
 
 // stacItem is a partial STAC Item (GeoJSON Feature) carrying forecast assets.
+// BBox follows the GeoJSON convention: [min_lon, min_lat, max_lon, max_lat].
 type stacItem struct {
 	ID         string               `json:"id"`
+	BBox       []float64            `json:"bbox"`
 	Properties stacItemProperties   `json:"properties"`
 	Assets     map[string]stacAsset `json:"assets"`
 }
 
-// stacItemProperties holds the datetime metadata of a STAC item.
+// stacItemProperties holds the metadata of a STAC item.
 type stacItemProperties struct {
-	Datetime string `json:"datetime"`
+	Datetime  string `json:"datetime"`
+	Variable  string `json:"forecast:variable"`
+	Horizon   string `json:"forecast:horizon"`
+	Perturbed bool   `json:"forecast:perturbed"`
 }
 
 // stacLink is a STAC hyperlink.
@@ -72,25 +80,27 @@ func fetchJSON[T any](ctx context.Context, url string) (T, error) {
 }
 
 // fetchItemsForVariables paginates through the STAC items endpoint and returns
-// all items from the newest forecast datetime whose assets match any of the
-// requested variable names.
+// all items from the newest forecast run whose forecast:variable matches any of
+// the requested variable names (case-insensitive). Both perturbed and
+// non-perturbed items are included; callers filter as needed.
 //
-// It also returns the forecast reference datetime string (e.g., "2026-03-10T18:00:00Z")
-// for use in error messages and logging.
-func fetchItemsForVariables(ctx context.Context, variables []string) ([]stacItem, string, error) {
-	varSet := make(map[string]struct{}, len(variables))
+// The second return value is the parsed reference time (properties.datetime of
+// the newest run). If no items exist, the zero time is returned with a nil error.
+func fetchItemsForVariables(ctx context.Context, variables []string) ([]stacItem, time.Time, error) {
+	varSet := make(map[string]bool, len(variables))
 	for _, v := range variables {
-		varSet[strings.ToLower(v)] = struct{}{}
+		varSet[strings.ToUpper(v)] = true
 	}
 
 	pageURL := fmt.Sprintf("%s/items?limit=%d&sortby=-datetime", collectionBaseURL, itemsPageSize)
 	var newestDatetime string
 	var result []stacItem
+	done := false
 
-	for pageURL != "" {
+	for pageURL != "" && !done {
 		page, err := fetchJSON[stacItemCollection](ctx, pageURL)
 		if err != nil {
-			return nil, newestDatetime, err
+			return nil, time.Time{}, err
 		}
 
 		for _, item := range page.Features {
@@ -98,35 +108,31 @@ func fetchItemsForVariables(ctx context.Context, variables []string) ([]stacItem
 			if newestDatetime == "" {
 				newestDatetime = dt
 			}
-			// Stop when we encounter items from an older forecast run.
+			// Stop as soon as we cross into an older forecast run.
 			if dt != newestDatetime {
-				return result, newestDatetime, nil
+				done = true
+				break
 			}
-			for assetKey := range item.Assets {
-				if assetMatchesAny(assetKey, varSet) {
-					result = append(result, item)
-					break
-				}
+			if !varSet[strings.ToUpper(item.Properties.Variable)] {
+				continue
 			}
+			result = append(result, item)
 		}
 
-		pageURL = nextPageURL(page.Links)
-	}
-
-	return result, newestDatetime, nil
-}
-
-// assetMatchesAny reports whether assetKey contains any of the requested
-// variable names. Asset keys follow the pattern
-// "icon-ch1-eps-{datetime}-0-{variable}-{type}.grib2".
-func assetMatchesAny(assetKey string, varSet map[string]struct{}) bool {
-	lower := strings.ToLower(assetKey)
-	for v := range varSet {
-		if strings.Contains(lower, "-0-"+v+"-") {
-			return true
+		if !done {
+			pageURL = nextPageURL(page.Links)
 		}
 	}
-	return false
+
+	if newestDatetime == "" {
+		return nil, time.Time{}, nil
+	}
+
+	refTime, err := time.Parse(time.RFC3339, newestDatetime)
+	if err != nil {
+		return nil, time.Time{}, fmt.Errorf("parse reference datetime %q: %w", newestDatetime, err)
+	}
+	return result, refTime, nil
 }
 
 // nextPageURL returns the href of the "next" pagination link, or an empty
@@ -138,4 +144,34 @@ func nextPageURL(links []stacLink) string {
 		}
 	}
 	return ""
+}
+
+// durationPattern matches ISO 8601 durations of the form P[n]DT[n]H[n]M[n]S.
+var durationPattern = regexp.MustCompile(`^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$`)
+
+// parseISO8601Duration parses an ISO 8601 duration of the form P[n]DT[n]H[n]M[n]S
+// and returns the equivalent [time.Duration].
+func parseISO8601Duration(s string) (time.Duration, error) {
+	m := durationPattern.FindStringSubmatch(s)
+	if m == nil {
+		return 0, fmt.Errorf("unsupported ISO 8601 duration format: %q", s)
+	}
+
+	parseInt := func(v string) int64 {
+		if v == "" {
+			return 0
+		}
+		n, _ := strconv.ParseInt(v, 10, 64)
+		return n
+	}
+
+	days := parseInt(m[1])
+	hours := parseInt(m[2])
+	minutes := parseInt(m[3])
+	seconds := parseInt(m[4])
+
+	return time.Duration(days)*24*time.Hour +
+		time.Duration(hours)*time.Hour +
+		time.Duration(minutes)*time.Minute +
+		time.Duration(seconds)*time.Second, nil
 }
