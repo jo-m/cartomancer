@@ -372,6 +372,105 @@ func TestChangeEmail_SameEmail(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, status)
 }
 
+func TestAdminConfirmEmail_EmailChange(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+
+	aliceClient := e.newClient()
+	e.login(aliceClient, "alice@example.com", "secret")
+
+	// Alice requests an email change.
+	status, _ := e.do(aliceClient, http.MethodPost, "/account/change-email", map[string]string{
+		"newEmail": "alice-new@example.com",
+		"password": "secret",
+	}, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	aliceUser, err := e.d.QueryRO().GetUserByEmail(t.Context(), "alice@example.com")
+	require.NoError(t, err)
+
+	adminClient := e.newClient()
+	e.login(adminClient, "admin@example.com", "adminpass")
+
+	// Admin confirms the email-change verification.
+	var resp map[string]any
+	status, _ = e.do(adminClient, http.MethodPost, "/admin/users/"+aliceUser.Uuid+"/confirm-email", map[string]any{}, &resp)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, "alice-new@example.com", resp["email"])
+
+	// New email works for login.
+	loginClient := e.newClient()
+	status, _ = e.do(loginClient, http.MethodPost, "/sessions/login", map[string]string{
+		"email":    "alice-new@example.com",
+		"password": "secret",
+	}, nil)
+	assert.Equal(t, http.StatusOK, status)
+}
+
+func TestAdminConfirmEmail_AdminTarget(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	e.createUser("admin2@example.com", "Admin2", "adminpass2", true)
+
+	// Admin2 requests an email change to create a pending verification.
+	admin2Client := e.newClient()
+	e.login(admin2Client, "admin2@example.com", "adminpass2")
+	status, _ := e.do(admin2Client, http.MethodPost, "/account/change-email", map[string]string{
+		"newEmail": "admin2-new@example.com",
+		"password": "adminpass2",
+	}, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	admin2User, err := e.d.QueryRO().GetUserByEmail(t.Context(), "admin2@example.com")
+	require.NoError(t, err)
+
+	adminClient := e.newClient()
+	e.login(adminClient, "admin@example.com", "adminpass")
+
+	// Admin confirm email for an admin target must be forbidden.
+	status, _ = e.do(adminClient, http.MethodPost, "/admin/users/"+admin2User.Uuid+"/confirm-email", map[string]any{}, nil)
+	assert.Equal(t, http.StatusForbidden, status)
+}
+
+func TestAdminConfirmEmail_EmailTaken(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+
+	aliceClient := e.newClient()
+	e.login(aliceClient, "alice@example.com", "secret")
+
+	// Alice requests an email change.
+	status, _ := e.do(aliceClient, http.MethodPost, "/account/change-email", map[string]string{
+		"newEmail": "wanted@example.com",
+		"password": "secret",
+	}, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	// Another user takes the target email before admin confirms.
+	e.createUser("wanted@example.com", "Bob", "secret", false)
+
+	aliceUser, err := e.d.QueryRO().GetUserByEmail(t.Context(), "alice@example.com")
+	require.NoError(t, err)
+
+	adminClient := e.newClient()
+	e.login(adminClient, "admin@example.com", "adminpass")
+
+	status, _ = e.do(adminClient, http.MethodPost, "/admin/users/"+aliceUser.Uuid+"/confirm-email", map[string]any{}, nil)
+	assert.Equal(t, http.StatusConflict, status)
+}
+
+func TestAdminConfirmEmail_NonAdmin(t *testing.T) {
+	e := newTestEnv(t)
+	userUUID := e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users/"+userUUID+"/confirm-email", map[string]any{}, nil)
+	assert.Equal(t, http.StatusForbidden, status)
+}
+
 func TestChangeEmail_SecondRequestSupersedes(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("alice@example.com", "Alice", "secret", false)

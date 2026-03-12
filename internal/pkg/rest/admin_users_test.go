@@ -244,3 +244,152 @@ func TestAdminResetPassword_NotFound(t *testing.T) {
 	}, nil)
 	assert.Equal(t, http.StatusNotFound, status)
 }
+
+func TestAdminCreateUser_DuplicateEmail(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	e.createUser("existing@example.com", "Existing", "secret", false)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users", map[string]any{
+		"email": "existing@example.com",
+		"name":  "New-User",
+		"admin": false,
+	}, nil)
+	assert.Equal(t, http.StatusConflict, status)
+}
+
+func TestAdminCreateUser_DuplicateName(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	e.createUser("existing@example.com", "Existing", "secret", false)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users", map[string]any{
+		"email": "new@example.com",
+		"name":  "Existing",
+		"admin": false,
+	}, nil)
+	assert.Equal(t, http.StatusConflict, status)
+}
+
+func TestAdminCreateUser_AdminFlag(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	var resp map[string]any
+	status, _ := e.do(client, http.MethodPost, "/admin/users", map[string]any{
+		"email": "newadmin@example.com",
+		"name":  "New-Admin",
+		"admin": true,
+	}, &resp)
+	assert.Equal(t, http.StatusCreated, status)
+	assert.Equal(t, true, resp["admin"])
+}
+
+func TestAdminCreateUser_InvalidName(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users", map[string]any{
+		"email": "new@example.com",
+		"name":  "ab",
+		"admin": false,
+	}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
+}
+
+func TestAdminUpdateUser_EmailTaken(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("bob@example.com", "Bob", "secret", false)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodPatch, "/admin/users/"+uuid, map[string]any{
+		"email": "bob@example.com",
+		"name":  "Alice",
+		"admin": false,
+	}, nil)
+	assert.Equal(t, http.StatusConflict, status)
+}
+
+func TestAdminUpdateUser_NameTaken(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("bob@example.com", "Bob", "secret", false)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodPatch, "/admin/users/"+uuid, map[string]any{
+		"email": "alice@example.com",
+		"name":  "Bob",
+		"admin": false,
+	}, nil)
+	assert.Equal(t, http.StatusConflict, status)
+}
+
+func TestAdminUpdateUser_ToggleAdmin(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	// Promote to admin.
+	var resp map[string]any
+	status, _ := e.do(client, http.MethodPatch, "/admin/users/"+uuid, map[string]any{
+		"email": "alice@example.com",
+		"name":  "Alice",
+		"admin": true,
+	}, &resp)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, true, resp["admin"])
+
+	// Remove admin status.
+	status, _ = e.do(client, http.MethodPatch, "/admin/users/"+uuid, map[string]any{
+		"email": "alice@example.com",
+		"name":  "Alice",
+		"admin": false,
+	}, &resp)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, false, resp["admin"])
+}
+
+func TestAdminUpdateUser_EmailChange_OldEmailInvalidated(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
+	adminClient := e.newClient()
+	e.login(adminClient, "admin@example.com", "adminpass")
+
+	status, _ := e.do(adminClient, http.MethodPatch, "/admin/users/"+uuid, map[string]any{
+		"email": "alice-new@example.com",
+		"name":  "Alice",
+		"admin": false,
+	}, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	// Old email no longer works for login.
+	loginClient := e.newClient()
+	status, _ = e.do(loginClient, http.MethodPost, "/sessions/login", map[string]string{
+		"email":    "alice@example.com",
+		"password": "secret",
+	}, nil)
+	assert.Equal(t, http.StatusUnauthorized, status)
+
+	// New email works for login.
+	status, _ = e.do(loginClient, http.MethodPost, "/sessions/login", map[string]string{
+		"email":    "alice-new@example.com",
+		"password": "secret",
+	}, nil)
+	assert.Equal(t, http.StatusOK, status)
+}

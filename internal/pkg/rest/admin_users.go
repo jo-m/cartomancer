@@ -398,6 +398,7 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 }
 
 var errNoPendingVerification = errors.New("no pending email verification")
+var errConfirmAdminForbidden = errors.New("cannot admin-confirm email for an admin user")
 
 func (sv *server) handleAdminConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -410,6 +411,9 @@ func (sv *server) handleAdminConfirmEmail(w http.ResponseWriter, r *http.Request
 		target, txErr := q.GetUser(ctx, userUUID)
 		if txErr != nil {
 			return txErr
+		}
+		if target.Admin != 0 {
+			return errConfirmAdminForbidden
 		}
 		ver, txErr := q.GetEmailVerificationByUserID(ctx, userUUID)
 		if errors.Is(txErr, sql.ErrNoRows) {
@@ -454,6 +458,10 @@ func (sv *server) handleAdminConfirmEmail(w http.ResponseWriter, r *http.Request
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "user not found")
+		return
+	}
+	if errors.Is(err, errConfirmAdminForbidden) {
+		writeError(w, http.StatusForbidden, "cannot admin-confirm email for an admin user")
 		return
 	}
 	if errors.Is(err, errNoPendingVerification) {
