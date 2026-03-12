@@ -24,9 +24,10 @@ import (
 )
 
 const (
-	collectionBaseURL = "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.meteoschweiz.ogd-forecasting-icon-ch1"
-	csvAssetKey       = "params_icon-ch1-eps.csv"
-	itemsPageSize     = 1000
+	collectionBaseURL  = "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.meteoschweiz.ogd-forecasting-icon-ch1"
+	csvAssetKey        = "params_icon-ch1-eps.csv"
+	horizConstAssetKey = "horizontal_constants_icon-ch1-eps.grib2"
+	itemsPageSize      = 1000
 )
 
 // Variable describes a meteorological forecast variable available in the
@@ -104,6 +105,10 @@ type DownloadResult struct {
 	ReferenceTime time.Time
 	// Files contains one entry per downloaded GRIB2 file.
 	Files []DownloadedFile
+	// GridConstantsPath is the path to the horizontal constants GRIB2 file within Dir.
+	GridConstantsPath string
+	// VariablesCSVPath is the path to the forecast variables parameter CSV within Dir.
+	VariablesCSVPath string
 }
 
 // Download fetches GRIB2 forecast files for the given variables from the newest
@@ -130,6 +135,34 @@ func Download(ctx context.Context, variables []string) (*DownloadResult, error) 
 	dir, err := os.MkdirTemp("", "forecast-*")
 	if err != nil {
 		return nil, fmt.Errorf("creating temp dir: %w", err)
+	}
+
+	coll, err := fetchJSON[stacCollection](ctx, collectionBaseURL)
+	if err != nil {
+		_ = os.RemoveAll(dir)
+		return nil, fmt.Errorf("fetching STAC collection: %w", err)
+	}
+
+	horizAsset, ok := coll.Assets[horizConstAssetKey]
+	if !ok {
+		_ = os.RemoveAll(dir)
+		return nil, fmt.Errorf("asset %q not found in collection", horizConstAssetKey)
+	}
+	gridConstantsPath := filepath.Join(dir, "horiz_const.grib2")
+	if err := downloadFile(ctx, horizAsset.Href, gridConstantsPath); err != nil {
+		_ = os.RemoveAll(dir)
+		return nil, fmt.Errorf("downloading grid constants: %w", err)
+	}
+
+	csvAsset, ok := coll.Assets[csvAssetKey]
+	if !ok {
+		_ = os.RemoveAll(dir)
+		return nil, fmt.Errorf("asset %q not found in collection", csvAssetKey)
+	}
+	variablesCSVPath := filepath.Join(dir, "params.csv")
+	if err := downloadFile(ctx, csvAsset.Href, variablesCSVPath); err != nil {
+		_ = os.RemoveAll(dir)
+		return nil, fmt.Errorf("downloading variables CSV: %w", err)
 	}
 
 	var files []DownloadedFile
@@ -172,7 +205,13 @@ func Download(ctx context.Context, variables []string) (*DownloadResult, error) 
 	}
 
 	logg.Info(ctx, "Downloaded forecast files", "referenceTime", refTime, "count", len(files))
-	return &DownloadResult{Dir: dir, ReferenceTime: refTime, Files: files}, nil
+	return &DownloadResult{
+		Dir:               dir,
+		ReferenceTime:     refTime,
+		Files:             files,
+		GridConstantsPath: gridConstantsPath,
+		VariablesCSVPath:  variablesCSVPath,
+	}, nil
 }
 
 // parseBBox fills the bounding-box fields of f from the STAC item's BBox slice,

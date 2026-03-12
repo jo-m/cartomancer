@@ -52,4 +52,12 @@ func TestDownload(t *testing.T) {
 		require.NoError(t, err)
 		require.Greater(t, info.Size(), int64(0), "file %s should not be empty", f.Path)
 	}
+
+	info, err := os.Stat(result.GridConstantsPath)
+	require.NoError(t, err)
+	require.Greater(t, info.Size(), int64(0), "grid constants file should not be empty")
+
+	info, err = os.Stat(result.VariablesCSVPath)
+	require.NoError(t, err)
+	require.Greater(t, info.Size(), int64(0), "variables CSV should not be empty")
 }
