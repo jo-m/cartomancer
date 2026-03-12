@@ -116,12 +116,13 @@ type DownloadResult struct {
 // The caller is responsible for removing Dir when finished (os.RemoveAll).
 //
 // variables is a list of parameter codes as they appear in the parameter CSV
-// (e.g., "T_2M", "TOT_PREC"). Both ctrl and perturb files are downloaded for
-// each variable when available.
+// (e.g., "T_2M", "TOT_PREC"). Only files whose horizon does not exceed
+// maxHorizon and whose perturbed flag matches the perturbed parameter are
+// downloaded.
 //
 // Returns an error if any download fails; in that case the temporary directory
 // is removed before returning.
-func Download(ctx context.Context, variables []string) (*DownloadResult, error) {
+func Download(ctx context.Context, variables []string, maxHorizon time.Duration, perturbed bool) (*DownloadResult, error) {
 	items, refTime, err := fetchItemsForVariables(ctx, variables)
 	if err != nil {
 		return nil, fmt.Errorf("fetching STAC items: %w", err)
@@ -171,6 +172,10 @@ func Download(ctx context.Context, variables []string) (*DownloadResult, error) 
 		if parseErr != nil {
 			_ = os.RemoveAll(dir)
 			return nil, fmt.Errorf("parsing horizon for item %s: %w", item.ID, parseErr)
+		}
+
+		if horizon > maxHorizon || item.Properties.Perturbed != perturbed {
+			continue
 		}
 
 		var assetURL string

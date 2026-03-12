@@ -33,7 +33,7 @@ func TestFetchVariables(t *testing.T) {
 // TestDownload verifies that GRIB2 files for a small variable selection can be
 // fetched from the newest forecast run and staged in a temporary directory.
 func TestDownload(t *testing.T) {
-	result, err := forecast.Download(context.Background(), []string{"T_2M", "TOT_PREC"})
+	result, err := forecast.Download(context.Background(), []string{"TOT_PREC", "T_2M"}, 3*time.Hour, false)
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(result.Dir) })
 
