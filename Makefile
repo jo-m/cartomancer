@@ -28,11 +28,15 @@ lint:
 
 .PHONY: test
 test:
-	go test -v ./...
+	go test ./...
+
+.PHONY: test_online
+test_online:
+	go test --tags=online ./...
 
 .PHONY: bench
 bench:
-	go test -v -bench=. -run=Bench ./...
+	go test -bench=. -run=Bench ./...
 
 .PHONY: frontend
 frontend:
