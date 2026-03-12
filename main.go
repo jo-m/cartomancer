@@ -144,9 +144,11 @@ func main() {
 	jobs.MustRegisterJob(w, mail.NewMailer(c.MailerConfig))
 	jobs.MustRegisterJob(w, users.NewEmailVerificationCleaner(d))
 	jobs.MustRegisterJob(w, forecast.NewDownloader(d))
+	jobs.MustRegisterJob(w, forecast.NewCleaner(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute)
 	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour)
 	jobs.Periodic(ctxJobs, w.Submitter(), forecast.DownloaderArgs{}, time.Hour)
+	jobs.Periodic(ctxJobs, w.Submitter(), forecast.CleanerArgs(), time.Hour)
 	jobs.Submit(ctxJobs, w.Submitter(), forecast.DownloaderArgs{}, jobs.Params{}) // Run immediately.
 
 	// TODO: clean shutdown via context.
