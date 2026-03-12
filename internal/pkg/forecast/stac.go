@@ -84,8 +84,9 @@ func fetchJSON[T any](ctx context.Context, url string) (T, error) {
 // the requested variable names (case-insensitive). Both perturbed and
 // non-perturbed items are included; callers filter as needed.
 //
-// The second return value is the parsed reference time (properties.datetime of
-// the newest run). If no items exist, the zero time is returned with a nil error.
+// The second return value is the reference time of the newest run (i.e. the
+// model initialisation time, computed as valid_time - horizon). If no items
+// exist, the zero time is returned with a nil error.
 func fetchItemsForVariables(ctx context.Context, variables []string) ([]stacItem, time.Time, error) {
 	varSet := make(map[string]bool, len(variables))
 	for _, v := range variables {
@@ -93,7 +94,8 @@ func fetchItemsForVariables(ctx context.Context, variables []string) ([]stacItem
 	}
 
 	pageURL := fmt.Sprintf("%s/items?limit=%d&sortby=-datetime", collectionBaseURL, itemsPageSize)
-	var newestDatetime string
+	var newestRefTime time.Time
+	foundFirst := false
 	var result []stacItem
 	done := false
 
@@ -104,12 +106,28 @@ func fetchItemsForVariables(ctx context.Context, variables []string) ([]stacItem
 		}
 
 		for _, item := range page.Features {
-			dt := item.Properties.Datetime
-			if newestDatetime == "" {
-				newestDatetime = dt
+			if item.Properties.Datetime == "" || item.Properties.Horizon == "" {
+				continue
+			}
+
+			validTime, parseErr := time.Parse(time.RFC3339, item.Properties.Datetime)
+			if parseErr != nil {
+				return nil, time.Time{}, fmt.Errorf("parse item datetime %q: %w", item.Properties.Datetime, parseErr)
+			}
+			horizon, parseErr := parseISO8601Duration(item.Properties.Horizon)
+			if parseErr != nil {
+				return nil, time.Time{}, fmt.Errorf("parse item horizon %q: %w", item.Properties.Horizon, parseErr)
+			}
+
+			// Reference time is the model initialisation time; items are sorted by
+			// valid time descending, so we must compute it to identify run boundaries.
+			refTime := validTime.Add(-horizon)
+			if !foundFirst {
+				newestRefTime = refTime
+				foundFirst = true
 			}
 			// Stop as soon as we cross into an older forecast run.
-			if dt != newestDatetime {
+			if !refTime.Equal(newestRefTime) {
 				done = true
 				break
 			}
@@ -124,15 +142,11 @@ func fetchItemsForVariables(ctx context.Context, variables []string) ([]stacItem
 		}
 	}
 
-	if newestDatetime == "" {
+	if !foundFirst {
 		return nil, time.Time{}, nil
 	}
 
-	refTime, err := time.Parse(time.RFC3339, newestDatetime)
-	if err != nil {
-		return nil, time.Time{}, fmt.Errorf("parse reference datetime %q: %w", newestDatetime, err)
-	}
-	return result, refTime, nil
+	return result, newestRefTime, nil
 }
 
 // nextPageURL returns the href of the "next" pagination link, or an empty
