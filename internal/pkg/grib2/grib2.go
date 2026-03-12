@@ -41,19 +41,14 @@ func (p Param) Category() uint8 { return p[1] }
 // Number returns the GRIB2 parameter number within the category.
 func (p Param) Number() uint8 { return p[2] }
 
-// Known Param constants for the ICON-CH1-EPS model.
-// These codes are specific to MeteoSwiss and may differ from WMO standard tables.
+// Well-known GRIB2 parameters used in the ICON-CH1-EPS wind fields.
 var (
-	// Wind variables at 10 m above ground, instantaneous.
-	ParamUWind10m = Param{0, 2, 2}  // U_10M: zonal (eastward) wind component, m/s
-	ParamVWind10m = Param{0, 2, 3}  // V_10M: meridional (northward) wind component, m/s
-	ParamMaxWind  = Param{0, 2, 22} // VMAX_10M: maximum wind speed over 1 h, m/s
-
-	// Precipitation variables, surface level.
-	ParamTotPrec = Param{0, 1, 52} // TOT_PREC: total accumulated precipitation, kg/m²
-	ParamRain    = Param{0, 1, 77} // RAIN_GSP: large-scale rain accumulation, kg/m²
-	ParamSnow    = Param{0, 1, 56} // SNOW_GSP: large-scale snowfall accumulation, kg/m²
-	ParamGraupel = Param{0, 1, 75} // GRAU_GSP: graupel accumulation, kg/m²
+	// ParamU is the WMO GRIB2 parameter for the u-component (zonal) of wind
+	// (discipline 0, category 2, parameter 2).
+	ParamU = Param{0, 2, 2}
+	// ParamV is the WMO GRIB2 parameter for the v-component (meridional) of wind
+	// (discipline 0, category 2, parameter 3).
+	ParamV = Param{0, 2, 3}
 )
 
 // Message holds the decoded content of one GRIB2 message.

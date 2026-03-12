@@ -1,9 +1,10 @@
 // Package forecast provides functionality for downloading ICON-CH1-EPS weather
 // forecast data from the Swiss government STAC API.
 //
-// Usage is a two-step process: first call FetchVariables to obtain the list of
-// available meteorological variables and their metadata; then call Download with
-// a selection of variable names to stage the corresponding GRIB2 files locally.
+// Call GetNewestForecast to retrieve metadata for the newest available run, then
+// optionally filter the returned file list and pass it to DownloadForecast to
+// stage the corresponding GRIB2 files locally. Download is a convenience wrapper
+// that performs both steps in sequence.
 //
 // Docs: https://opendatadocs.meteoswiss.ch/de/e-forecast-data/e2-e3-numerical-weather-forecasting-model
 // STAC Browser: https://data.geo.admin.ch/browser/index.html#/collections/ch.meteoschweiz.ogd-forecasting-icon-ch1
@@ -11,7 +12,6 @@ package forecast
 
 import (
 	"context"
-	"encoding/csv"
 	"fmt"
 	"io"
 	"math"
@@ -20,60 +20,23 @@ import (
 	"path/filepath"
 	"time"
 
+	"jo-m.ch/go/detour/internal/pkg/forecast/stac"
+	"jo-m.ch/go/detour/internal/pkg/forecast/vars"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 )
 
 const (
-	collectionBaseURL  = "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.meteoschweiz.ogd-forecasting-icon-ch1"
-	csvAssetKey        = "params_icon-ch1-eps.csv"
 	horizConstAssetKey = "horizontal_constants_icon-ch1-eps.grib2"
-	itemsPageSize      = 1000
+	vertConstAssetKey  = "vertical_constants_icon-ch1-eps.grib2"
+
+	// NoHorizonLimit can be passed as maxHorizon to [GetNewestForecast] to include all
+	// available forecast horizons without restriction.
+	NoHorizonLimit = time.Duration(math.MaxInt64)
 )
 
-// Variable describes a meteorological forecast variable available in the
-// ICON-CH1-EPS model.
-type Variable struct {
-	// Parameter is the short parameter code (e.g., "T_2M").
-	Parameter string
-	// LongName is the human-readable description (e.g., "2m Temperature").
-	LongName string
-	// Unit is the standard physical unit (e.g., "K").
-	Unit string
-	// Level indicates whether the variable is "Single Level" or "Multi Level".
-	Level string
-	// VerticalCoordinate describes the vertical coordinate system.
-	VerticalCoordinate string
-	// Horizon is the range of available forecast horizons (e.g., "0-33h").
-	Horizon string
-	// TemporalAggregation is the aggregation method (e.g., "Instant", "Average").
-	TemporalAggregation string
-	// AggregationStart is the start reference for temporal aggregation.
-	AggregationStart string
-}
-
-// FetchVariables downloads and parses the parameter CSV from the STAC collection,
-// returning the list of available forecast variables with their metadata.
-//
-// The CSV is fetched at runtime from the collection's asset href, so the caller
-// must have network access to the Swiss government STAC API.
-func FetchVariables(ctx context.Context) ([]Variable, error) {
-	coll, err := fetchJSON[stacCollection](ctx, collectionBaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("fetching STAC collection: %w", err)
-	}
-
-	csvAsset, ok := coll.Assets[csvAssetKey]
-	if !ok {
-		return nil, fmt.Errorf("asset %q not found in collection", csvAssetKey)
-	}
-
-	return downloadAndParseCSV(ctx, csvAsset.Href)
-}
-
-// DownloadedFile represents a single downloaded GRIB2 file with its parsed metadata.
-type DownloadedFile struct {
-	// Path is the absolute path to the downloaded file within the temporary directory.
-	Path string
+// FileMeta holds the meteorological metadata shared between [ForecastFile] and
+// [DownloadedFile].
+type FileMeta struct {
 	// Variable is the forecast variable name (e.g., "U_10M", "TOT_PREC").
 	Variable string
 	// Horizon is the duration from the reference time to the forecast valid time.
@@ -96,34 +59,67 @@ type DownloadedFile struct {
 	BoundsMaxLon float64
 }
 
-// DownloadResult holds the output of a [Download] call.
+// ForecastFile is a single GRIB2 file available in a forecast run, as returned
+// by [GetNewestForecast] before any files have been downloaded.
+type ForecastFile struct {
+	// Meta contains the meteorological metadata for this file.
+	Meta FileMeta
+	// URL is the HTTPS download address for this file.
+	URL string
+}
+
+// DownloadedFile represents a single downloaded GRIB2 file with its parsed metadata.
+type DownloadedFile struct {
+	// Meta contains the meteorological metadata for this file.
+	Meta FileMeta
+	// Path is the path to the downloaded file, relative to the containing [DownloadResult].Dir.
+	Path string
+}
+
+// ForecastManifest is the result of [GetNewestForecast], listing available
+// GRIB2 files for the newest forecast run without downloading them. The caller
+// may filter or reorder Files before passing the manifest to [DownloadForecast].
+type ForecastManifest struct {
+	// ReferenceTime is the model run initialisation time.
+	ReferenceTime time.Time
+	// Files contains one entry per available GRIB2 file matching the query.
+	Files []ForecastFile
+	// GridConstantsURL is the download URL for the horizontal grid constants GRIB2 file.
+	GridConstantsURL string
+	// VertConstantsURL is the download URL for the vertical grid constants GRIB2 file.
+	VertConstantsURL string
+}
+
+// DownloadResult holds the output of a [DownloadForecast] call.
 type DownloadResult struct {
 	// Dir is the temporary directory containing all downloaded files.
 	// The caller must call os.RemoveAll(Dir) when the files are no longer needed.
 	Dir string
 	// ReferenceTime is the model run initialisation time.
 	ReferenceTime time.Time
-	// Files contains one entry per downloaded GRIB2 file.
+	// Files contains one entry per downloaded GRIB2 file. Paths are relative to Dir.
 	Files []DownloadedFile
-	// GridConstantsPath is the path to the horizontal constants GRIB2 file within Dir.
+	// GridConstantsPath is the path to the horizontal grid constants GRIB2 file,
+	// relative to Dir.
 	GridConstantsPath string
-	// VariablesCSVPath is the path to the forecast variables parameter CSV within Dir.
-	VariablesCSVPath string
+	// VertConstantsPath is the path to the vertical grid constants GRIB2 file,
+	// relative to Dir.
+	VertConstantsPath string
 }
 
-// Download fetches GRIB2 forecast files for the given variables from the newest
-// available forecast run. Files are written to a newly created temporary directory.
-// The caller is responsible for removing Dir when finished (os.RemoveAll).
+// GetNewestForecast queries the STAC API for the newest available forecast run
+// and returns a [ForecastManifest] listing matching files without downloading them.
 //
-// variables is a list of parameter codes as they appear in the parameter CSV
-// (e.g., "T_2M", "TOT_PREC"). Only files whose horizon does not exceed
-// maxHorizon and whose perturbed flag matches the perturbed parameter are
-// downloaded.
-//
-// Returns an error if any download fails; in that case the temporary directory
-// is removed before returning.
-func Download(ctx context.Context, variables []string, maxHorizon time.Duration, perturbed bool) (*DownloadResult, error) {
-	items, refTime, err := fetchItemsForVariables(ctx, variables)
+// Only files whose horizon does not exceed maxHorizon and whose perturbed flag
+// matches the perturbed parameter are included. The caller may further filter or
+// reorder [ForecastManifest].Files before passing the manifest to [DownloadForecast].
+func GetNewestForecast(ctx context.Context, variables []vars.Variable, maxHorizon time.Duration, perturbed bool) (*ForecastManifest, error) {
+	paramNames := make([]string, len(variables))
+	for i, v := range variables {
+		paramNames[i] = v.Name
+	}
+	logg.Debug(ctx, "Fetching STAC items", "variables", paramNames, "maxHorizon", maxHorizon, "perturbed", perturbed)
+	items, refTime, err := stac.FetchItemsForVariables(ctx, vars.CollectionBaseURL, paramNames)
 	if err != nil {
 		return nil, fmt.Errorf("fetching STAC items: %w", err)
 	}
@@ -131,50 +127,38 @@ func Download(ctx context.Context, variables []string, maxHorizon time.Duration,
 		return nil, fmt.Errorf("no forecast items found for variables %v", variables)
 	}
 
-	logg.Info(ctx, "Downloading forecast files", "referenceTime", refTime, "count", len(items))
-
-	dir, err := os.MkdirTemp("", "forecast-*")
+	coll, err := stac.FetchJSON[stac.Collection](ctx, vars.CollectionBaseURL)
 	if err != nil {
-		return nil, fmt.Errorf("creating temp dir: %w", err)
-	}
-
-	coll, err := fetchJSON[stacCollection](ctx, collectionBaseURL)
-	if err != nil {
-		_ = os.RemoveAll(dir)
 		return nil, fmt.Errorf("fetching STAC collection: %w", err)
 	}
 
 	horizAsset, ok := coll.Assets[horizConstAssetKey]
 	if !ok {
-		_ = os.RemoveAll(dir)
 		return nil, fmt.Errorf("asset %q not found in collection", horizConstAssetKey)
 	}
-	gridConstantsPath := filepath.Join(dir, "horiz_const.grib2")
-	if err := downloadFile(ctx, horizAsset.Href, gridConstantsPath); err != nil {
-		_ = os.RemoveAll(dir)
-		return nil, fmt.Errorf("downloading grid constants: %w", err)
-	}
-
-	csvAsset, ok := coll.Assets[csvAssetKey]
+	vertAsset, ok := coll.Assets[vertConstAssetKey]
 	if !ok {
-		_ = os.RemoveAll(dir)
-		return nil, fmt.Errorf("asset %q not found in collection", csvAssetKey)
-	}
-	variablesCSVPath := filepath.Join(dir, "params.csv")
-	if err := downloadFile(ctx, csvAsset.Href, variablesCSVPath); err != nil {
-		_ = os.RemoveAll(dir)
-		return nil, fmt.Errorf("downloading variables CSV: %w", err)
+		return nil, fmt.Errorf("asset %q not found in collection", vertConstAssetKey)
 	}
 
-	var files []DownloadedFile
-	for i, item := range items {
-		horizon, parseErr := parseISO8601Duration(item.Properties.Horizon)
+	var files []ForecastFile
+	for _, item := range items {
+		horizon, parseErr := stac.ParseISO8601Duration(item.Properties.Horizon)
 		if parseErr != nil {
-			_ = os.RemoveAll(dir)
 			return nil, fmt.Errorf("parsing horizon for item %s: %w", item.ID, parseErr)
 		}
 
-		if horizon > maxHorizon || item.Properties.Perturbed != perturbed {
+		if horizon > maxHorizon {
+			logg.Trace(ctx, "Skipping item: horizon exceeds limit",
+				"variable", item.Properties.Variable,
+				"horizon", horizon,
+				"maxHorizon", maxHorizon)
+			continue
+		}
+		if item.Properties.Perturbed != perturbed {
+			logg.Trace(ctx, "Skipping item: perturbed mismatch",
+				"variable", item.Properties.Variable,
+				"perturbed", item.Properties.Perturbed)
 			continue
 		}
 
@@ -184,103 +168,135 @@ func Download(ctx context.Context, variables []string, maxHorizon time.Duration,
 			break
 		}
 		if assetURL == "" {
+			logg.Debug(ctx, "Skipping item: no asset URL", "id", item.ID)
 			continue
 		}
 
-		localPath := filepath.Join(dir, fmt.Sprintf("%04d.grib2", i))
-		logg.Debug(ctx, "Downloading forecast file",
-			"variable", item.Properties.Variable,
-			"horizon", item.Properties.Horizon,
-			"perturbed", item.Properties.Perturbed)
-		if downloadErr := downloadFile(ctx, assetURL, localPath); downloadErr != nil {
-			_ = os.RemoveAll(dir)
-			return nil, fmt.Errorf("downloading %s/%s: %w",
-				item.Properties.Variable, item.Properties.Horizon, downloadErr)
+		f := ForecastFile{
+			URL: assetURL,
+			Meta: FileMeta{
+				Variable:  item.Properties.Variable,
+				Horizon:   horizon,
+				ValidTime: refTime.Add(horizon),
+				Perturbed: item.Properties.Perturbed,
+			},
 		}
-
-		f := DownloadedFile{
-			Path:      localPath,
-			Variable:  item.Properties.Variable,
-			Horizon:   horizon,
-			ValidTime: refTime.Add(horizon),
-			Perturbed: item.Properties.Perturbed,
-		}
-		parseBBox(item, &f)
+		parseBBox(item, &f.Meta)
 		files = append(files, f)
 	}
 
-	logg.Info(ctx, "Downloaded forecast files", "referenceTime", refTime, "count", len(files))
-	return &DownloadResult{
-		Dir:               dir,
-		ReferenceTime:     refTime,
-		Files:             files,
-		GridConstantsPath: gridConstantsPath,
-		VariablesCSVPath:  variablesCSVPath,
+	logg.Info(ctx, "Fetched forecast manifest", "referenceTime", refTime, "count", len(files))
+	return &ForecastManifest{
+		ReferenceTime:    refTime,
+		Files:            files,
+		GridConstantsURL: horizAsset.Href,
+		VertConstantsURL: vertAsset.Href,
 	}, nil
 }
 
-// parseBBox fills the bounding-box fields of f from the STAC item's BBox slice,
-// which follows the GeoJSON convention [min_lon, min_lat, max_lon, max_lat].
-// Fields are set to NaN when the bbox is absent or malformed.
-func parseBBox(item stacItem, f *DownloadedFile) {
-	f.BoundsMinLat = math.NaN()
-	f.BoundsMinLon = math.NaN()
-	f.BoundsMaxLat = math.NaN()
-	f.BoundsMaxLon = math.NaN()
-	if len(item.BBox) == 4 {
-		f.BoundsMinLon = item.BBox[0]
-		f.BoundsMinLat = item.BBox[1]
-		f.BoundsMaxLon = item.BBox[2]
-		f.BoundsMaxLat = item.BBox[3]
-	}
-}
-
-// downloadAndParseCSV fetches the CSV at href and parses it into Variable records.
-func downloadAndParseCSV(ctx context.Context, href string) ([]Variable, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, href, nil)
+// DownloadForecast downloads the files listed in manifest to a newly created
+// temporary directory. manifest.Files may be reduced or reordered by the caller
+// before passing. The caller is responsible for removing Dir when finished
+// (os.RemoveAll).
+//
+// Returns an error if any download fails; in that case the temporary directory
+// is removed before returning.
+func DownloadForecast(ctx context.Context, manifest *ForecastManifest) (*DownloadResult, error) {
+	dir, err := os.MkdirTemp("", "forecast-*")
 	if err != nil {
-		return nil, err
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status %d fetching CSV", resp.StatusCode)
+		return nil, fmt.Errorf("creating temp dir: %w", err)
 	}
 
-	r := csv.NewReader(resp.Body)
-	// Skip the header row.
-	if _, err := r.Read(); err != nil {
-		return nil, fmt.Errorf("reading CSV header: %w", err)
+	const gridConstName = "horiz_const.grib2"
+	logg.Debug(ctx, "Downloading horizontal grid constants", "dest", gridConstName)
+	if err := downloadFile(ctx, manifest.GridConstantsURL, filepath.Join(dir, gridConstName)); err != nil {
+		_ = os.RemoveAll(dir)
+		return nil, fmt.Errorf("downloading horizontal grid constants: %w", err)
 	}
 
-	var vars []Variable
-	for {
-		rec, err := r.Read()
-		if err == io.EOF {
-			break
+	const vertConstName = "vert_const.grib2"
+	logg.Debug(ctx, "Downloading vertical grid constants", "dest", vertConstName)
+	if err := downloadFile(ctx, manifest.VertConstantsURL, filepath.Join(dir, vertConstName)); err != nil {
+		_ = os.RemoveAll(dir)
+		return nil, fmt.Errorf("downloading vertical grid constants: %w", err)
+	}
+
+	logg.Info(ctx, "Downloading forecast files", "referenceTime", manifest.ReferenceTime, "count", len(manifest.Files))
+
+	var downloaded []DownloadedFile
+	for i, mf := range manifest.Files {
+		relPath := fmt.Sprintf("%04d.grib2", i)
+		logg.Debug(ctx, "Downloading forecast file",
+			"variable", mf.Meta.Variable,
+			"horizon", mf.Meta.Horizon,
+			"perturbed", mf.Meta.Perturbed,
+			"dest", relPath)
+		if downloadErr := downloadFile(ctx, mf.URL, filepath.Join(dir, relPath)); downloadErr != nil {
+			_ = os.RemoveAll(dir)
+			return nil, fmt.Errorf("downloading %s/%s: %w", mf.Meta.Variable, mf.Meta.Horizon, downloadErr)
 		}
-		if err != nil {
-			return nil, fmt.Errorf("reading CSV record: %w", err)
-		}
-		if len(rec) < 8 {
-			continue
-		}
-		vars = append(vars, Variable{
-			Parameter:           rec[0],
-			LongName:            rec[1],
-			Unit:                rec[2],
-			Level:               rec[3],
-			VerticalCoordinate:  rec[4],
-			Horizon:             rec[5],
-			TemporalAggregation: rec[6],
-			AggregationStart:    rec[7],
+
+		downloaded = append(downloaded, DownloadedFile{
+			Meta: mf.Meta,
+			Path: relPath,
 		})
 	}
-	return vars, nil
+
+	logg.Info(ctx, "Downloaded forecast files", "referenceTime", manifest.ReferenceTime, "count", len(downloaded))
+	return &DownloadResult{
+		Dir:               dir,
+		ReferenceTime:     manifest.ReferenceTime,
+		Files:             downloaded,
+		GridConstantsPath: gridConstName,
+		VertConstantsPath: vertConstName,
+	}, nil
+}
+
+// Download is a convenience wrapper that calls [GetNewestForecast] followed by
+// [DownloadForecast]. Files are written to a newly created temporary directory.
+// The caller is responsible for removing Dir when finished (os.RemoveAll).
+//
+// Only files whose horizon does not exceed maxHorizon and whose perturbed flag
+// matches the perturbed parameter are downloaded.
+//
+// Returns an error if any step fails; in that case the temporary directory
+// is removed before returning.
+func Download(ctx context.Context, variables []vars.Variable, maxHorizon time.Duration, perturbed bool) (*DownloadResult, error) {
+	manifest, err := GetNewestForecast(ctx, variables, maxHorizon, perturbed)
+	if err != nil {
+		return nil, err
+	}
+	return DownloadForecast(ctx, manifest)
+}
+
+// FetchLatestReferenceTime queries the STAC catalog and returns the model
+// initialisation time of the newest available forecast run. It returns the
+// zero time with a nil error when the catalog contains no items.
+func FetchLatestReferenceTime(ctx context.Context) (time.Time, error) {
+	// Pass nil variables: FetchItemsForVariables scans all items to find the
+	// max reference time before filtering, so the reference time is accurate
+	// regardless of the variable filter.
+	_, refTime, err := stac.FetchItemsForVariables(ctx, vars.CollectionBaseURL, nil)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("fetching STAC items: %w", err)
+	}
+	return refTime, nil
+}
+
+// parseBBox fills the bounding-box fields of m from the STAC item's BBox slice,
+// which follows the GeoJSON convention [min_lon, min_lat, max_lon, max_lat].
+// Fields are set to NaN when the bbox is absent or malformed.
+func parseBBox(item stac.Item, m *FileMeta) {
+	m.BoundsMinLat = math.NaN()
+	m.BoundsMinLon = math.NaN()
+	m.BoundsMaxLat = math.NaN()
+	m.BoundsMaxLon = math.NaN()
+	if len(item.BBox) == 4 {
+		m.BoundsMinLon = item.BBox[0]
+		m.BoundsMinLat = item.BBox[1]
+		m.BoundsMaxLon = item.BBox[2]
+		m.BoundsMaxLat = item.BBox[3]
+	}
 }
 
 // downloadFile downloads the resource at url and writes it to destPath.

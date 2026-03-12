@@ -1,0 +1,65 @@
+Parameter,Long Name,Standard Unit,Multi or Single Level,Vertical Coordinate,Horizon,Temporal Aggregation,Start of Temporal Aggregation
+ALB_RAD,Albedo (in short-wave),%,Single Level,Surface (no dimension),All,Instant,-
+ALHFL_S,Latent Heat Net Flux (m),W m-2,Single Level,Surface (no dimension),All,Average,Reference Time
+ASHFL_S,Sensible Heat Net Flux (m),W m-2,Single Level,Surface (no dimension),All,Average,Reference Time
+ASOB_S,Net short wave radiation flux (at the surface),W m-2,Single Level,Surface (no dimension),All,Average,Reference Time
+ASWDIFD_S,Downward diffusive short wave radiation flux at surface (mean over forecast time),W m-2,Single Level,Surface (no dimension),All,Average,Reference Time
+ASWDIFU_S,Upward diffusive short wave radiation flux at surface ( mean over forecast time),W m-2,Single Level,Surface (no dimension),All,Average,Reference Time
+ASWDIR_S,Downward direct short wave radiation flux at surface (mean over forecast time),W m-2,Single Level,Surface (no dimension),All,Average,Reference Time
+ATHB_S,Net long wave radiation flux (m) (at the surface),W m-2,Single Level,Surface (no dimension),All,Average,Reference Time
+CAPE_ML,"Convective Available Potential Energy, mean layer",J/kg,Single Level,Surface (no dimension),All,Instant,-
+CAPE_MU,"Convective Available Potential Energy, most unstable",J/kg,Single Level,Surface (no dimension),All,Instant,-
+CEILING,Ceiling,m,Single Level,Surface (no dimension),All,Instant,-
+CIN_ML,"Convective Inhibition, mean layer",J/kg,Single Level,Surface (no dimension),All,Instant,-
+CIN_MU,"Convective Inhibition, most unstable",J/kg,Single Level,Surface (no dimension),All,Instant,-
+CLAT,center latitude,deg N,Single Level,Surface (no dimension),0,Constant,-
+CLC,Cloud cover,%,Multi Level,HFL,All,Instant,-
+CLCH,Cloud Cover (0 - 400 hPa),%,Single Level,Surface (no dimension),All,Instant,-
+CLCL,Cloud Cover (800 hPa - Soil),%,Single Level,Surface (no dimension),All,Instant,-
+CLCM,Cloud Cover (400 - 800 hPa),%,Single Level,Surface (no dimension),All,Instant,-
+CLCT,Total Cloud Cover,%,Single Level,Surface (no dimension),All,Instant,-
+CLON,center longitude,deg E,Single Level,Surface (no dimension),0,Constant,-
+DBZ_850,Base reflectivity,dB,Single Level,Surface (no dimension),All,Instant,-
+DBZ_CMAX,Base reflectivity (cmax),dB,Single Level,Surface (no dimension),All,Instant,-
+DURSUN,Sunshine duration,s,Single Level,Surface (no dimension),All,Accumulation,Reference Time
+DURSUN_M,Possible astronomical maximum of sunshine,s,Single Level,Surface (no dimension),All,Summation,Reference Time
+FR_LAND,"Land Cover (1=land, 0=sea)",Proportion,Single Level,Surface (no dimension),0,Constant,-
+GRAU_GSP,Graupel (snow pellets) precipitation (Accumulation),kg m-2 s-1,Single Level,Surface (no dimension),All,Accumulation,Reference Time
+HHL,Geometric Height of the layer limits above sea level(NN),m,Multi Level,HHL,0,Constant,-
+HSURF,Geometric Height of the earths surface above sea level,m,Single Level,Surface (no dimension),0,Constant,-
+HZEROCL,Height of 0 degree Celsius isotherm above msl,m,Single Level,Surface (no dimension),All,Instant,-
+H_SNOW,Snow Depth,m,Single Level,Surface (no dimension),All,Instant,-
+LCL_ML,Height of lifting condensation level of mixed (mean) layer parcel,m,Single Level,Surface (no dimension),All,Instant,-
+LFC_ML,Height of level of free convection of mixed (mean) layer parcel,m,Single Level,Surface (no dimension),All,Instant,-
+P,Pressure,Pa,Multi Level,HFL,All,Instant,-
+PMSL,Pressure Reduced to MSL,Pa,Single Level,Surface (no dimension),All,Instant,-
+PS,Pressure (S) (not reduced),Pa,Single Level,Surface (no dimension),All,Instant,-
+QC,Cloud Mixing Ratio,kg/kg,Multi Level,HFL,All,Instant,-
+QV,Specific Humidity,kg/kg,Multi Level,HFL,All,Instant,-
+RAIN_GSP,Large scale rain (Accumulation),kg m-2 s-1,Single Level,Surface (no dimension),All,Accumulation,Reference Time
+SDI_2,Supercell detection index 2 (only rot. updrafts),s-1,Single Level,Surface (no dimension),All,Instant,-
+SI,Showalter index,K,Single Level,Surface (no dimension),All,Instant,-
+SLI,Surface lifted index,K,Single Level,Surface (no dimension),All,Instant,-
+SNOWLMT,Height of snow fall limit above MSL,m,Single Level,Surface (no dimension),All,Instant,-
+SNOW_GSP,Large-Scale snowfall - water equivalent (Accumulation),kg m-2 s-1,Single Level,Surface (no dimension),All,Accumulation,Reference Time
+SOILTYP,"Soil type (1...9, local soilType.table)",Numeric,Single Level,Surface (no dimension),0,Constant,-
+T,Temperature,K,Multi Level,HFL,All,Instant,-
+TD_2M,2m Dew Point Temperature,K,Single Level,Height (m),All,Instant,-
+TKE,Turbulent Kinetic Energy,J/kg,Multi Level,HHL,All,Instant,-
+TMAX_2M,Max 2m Temperature (i),K,Single Level,Height (m),All,Maximum,Previous Hour
+TMIN_2M,Min 2m Temperature (i),K,Single Level,Height (m),All,Minimum,Previous Hour
+TOT_PR,Total precipitation rate,kg m-2 s-1,Single Level,Surface (no dimension),All,Instant,-
+TOT_PREC,Total Precipitation (Accumulation),kg m-2 s-1,Single Level,Surface (no dimension),All,Accumulation,Reference Time
+TWATER,Total Column integrated water (all components incl. precipitation),kg m-2,Single Level,Surface (no dimension),All,Instant,-
+T_2M,2m Temperature,K,Single Level,Height (m),All,Instant,-
+T_G,Temperature (G),K,Single Level,Surface (no dimension),All,Instant,-
+T_SNOW,Snow temperature (top of snow),K,Single Level,Surface (no dimension),All,Instant,-
+T_SO,Soil Temperature (multilayer model),K,Multi Level,Depth (m),All,Instant,-
+U,U-Component of Wind,m/s,Multi Level,HFL,All,Instant,-
+U_10M,U-Component of Wind,m/s,Single Level,Height (m),All,Instant,-
+V,V-Component of Wind,m/s,Multi Level,HFL,All,Instant,-
+VMAX_10M,maximum Wind 10m,m/s,Single Level,Height (m),All,Maximum,Previous Hour
+V_10M,V-Component of Wind,m/s,Single Level,Height (m),All,Instant,-
+W,Vertical Velocity (Geometric) (w),m/s,Multi Level,HHL,All,Instant,-
+W_SNOW,Snow depth water equivalent,kg m-2,Single Level,Surface (no dimension),All,Instant,-
+Z0,Surface Roughness length Surface Roughness,m,Single Level,Surface (no dimension),All,Instant,-

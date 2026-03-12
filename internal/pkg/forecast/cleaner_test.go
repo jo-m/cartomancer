@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/detour/internal/pkg/forecast/vars"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 )
 
@@ -23,7 +24,7 @@ func insertForecastFileWithValidTime(t *testing.T, d *db.DB, validTime time.Time
 		CreatedAt:     time.Now(),
 		ReferenceTime: refTime,
 		ValidTime:     validTime,
-		Variable:      "U_10M",
+		Variable:      vars.VarU10m.Name,
 		BlobID:        b.ID,
 	})
 	require.NoError(t, err)

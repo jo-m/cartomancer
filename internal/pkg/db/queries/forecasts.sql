@@ -15,6 +15,11 @@ SELECT reference_time FROM forecast_files
 ORDER BY reference_time DESC
 LIMIT 1;
 
+-- name: ListForecastFileKeysForReferenceTime :many
+-- Returns (variable, valid_time) pairs for all stored files with the given reference time.
+SELECT variable, valid_time FROM forecast_files
+WHERE reference_time = ?;
+
 -- name: DeleteOutdatedForecastFiles :execrows
 -- Deletes all forecast_files rows whose valid_time is before the given cutoff.
 -- The forecast_files_delete_blob trigger cascades the deletion to orphaned blobs.

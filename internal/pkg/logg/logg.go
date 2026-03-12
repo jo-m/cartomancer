@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// Extensions to slog.Level*.
 const (
 	// LevelTrace is below [slog.LevelDebug].
 	LevelTrace = slog.Level(-8)

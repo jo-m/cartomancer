@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/detour/internal/pkg/forecast/stac"
+	"jo-m.ch/go/detour/internal/pkg/forecast/vars"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 )
 
@@ -30,7 +32,7 @@ func TestParseISO8601Duration(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {
-			got, err := parseISO8601Duration(tc.input)
+			got, err := stac.ParseISO8601Duration(tc.input)
 			if tc.wantErr {
 				require.Error(t, err)
 				return
@@ -66,7 +68,7 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 		CreatedAt:     time.Now(),
 		ReferenceTime: refTime,
 		ValidTime:     validTime,
-		Variable:      "TOT_PREC",
+		Variable:      vars.VarTotPr.Name,
 		BoundsMinLat:  sql.NullFloat64{Float64: 45.7, Valid: true},
 		BoundsMinLon:  sql.NullFloat64{Float64: 5.9, Valid: true},
 		BoundsMaxLat:  sql.NullFloat64{Float64: 47.8, Valid: true},
@@ -75,7 +77,7 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Greater(t, f.ID, int64(0))
-	require.Equal(t, "TOT_PREC", f.Variable)
+	require.Equal(t, vars.VarTotPr.Name, f.Variable)
 	require.InDelta(t, 45.7, f.BoundsMinLat.Float64, 1e-9)
 
 	latest, err := d.QueryRO().GetLatestForecastReferenceTime(ctx)
@@ -102,7 +104,7 @@ func TestCreateForecastFile_uniqueConstraint(t *testing.T) {
 			CreatedAt:     time.Now(),
 			ReferenceTime: refTime,
 			ValidTime:     refTime.Add(time.Hour),
-			Variable:      "U_10M",
+			Variable:      vars.VarU10m.Name,
 			BlobID:        blobID,
 		})
 		return err

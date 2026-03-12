@@ -32,7 +32,7 @@ test:
 
 .PHONY: test_online
 test_online:
-	go test --tags=online ./...
+	go test -v -timeout 5m -count=1 -run=TestOnline --tags=online ./...
 
 .PHONY: bench
 bench:
@@ -45,5 +45,4 @@ frontend:
 .PHONY: check
 check: gen format lint
 	go build ./...
-	go build -o internal/pkg/grib2/testdata/generate ./internal/pkg/grib2/testdata/generate.go
 	go test ./...
