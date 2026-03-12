@@ -1905,7 +1905,7 @@ components:
           type: boolean
         initialEditingCompleted:
           type: boolean
-        isStarred:
+        starred:
           type: boolean
         tags:
           type: array

@@ -46,7 +46,7 @@ export default function Track() {
 
   async function toggleStar() {
     if (!data) return
-    if (data.isStarred) {
+    if (data.starred) {
       await unstarMutation.mutateAsync({
         params: { path: { uuid: data.uuid } },
       })
@@ -91,7 +91,7 @@ export default function Track() {
             className="shrink-0 cursor-pointer rounded border border-gray-200 p-1.5 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <StarIcon
-              className={`h-5 w-5 ${data.isStarred ? "text-yellow-400" : "text-gray-300"}`}
+              className={`h-5 w-5 ${data.starred ? "text-yellow-400" : "text-gray-300"}`}
             />
           </button>
         )}

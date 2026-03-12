@@ -288,11 +288,11 @@ export default function TrackGrid({ mode }: TrackGridProps) {
   async function toggleStar(
     e: React.MouseEvent,
     trackUuid: string,
-    isStarred: boolean
+    starred: boolean
   ) {
     e.preventDefault()
     e.stopPropagation()
-    if (isStarred) {
+    if (starred) {
       await unstarMutation.mutateAsync({
         params: { path: { uuid: trackUuid } },
       })
@@ -521,12 +521,12 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                   {user && (
                     <button
                       onClick={(e) =>
-                        toggleStar(e, track.uuid, track.isStarred ?? false)
+                        toggleStar(e, track.uuid, track.starred ?? false)
                       }
                       className="absolute right-1.5 top-1.5 z-10 cursor-pointer rounded bg-white/80 p-1 hover:bg-white"
                     >
                       <StarIcon
-                        className={`h-4 w-4 ${track.isStarred ? "text-yellow-400" : "text-gray-300"}`}
+                        className={`h-4 w-4 ${track.starred ? "text-yellow-400" : "text-gray-300"}`}
                       />
                     </button>
                   )}

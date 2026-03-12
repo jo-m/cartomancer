@@ -8,11 +8,11 @@ import (
 
 // GetTrackByUUIDForViewer returns the track with the given UUID together with
 // a flag indicating whether viewerUserID has starred it. An empty viewerUserID
-// (anonymous caller) always yields IsStarred = false. Returns sql.ErrNoRows
+// (anonymous caller) always yields Starred = false. Returns sql.ErrNoRows
 // when the track does not exist.
 func (d *DB) GetTrackByUUIDForViewer(ctx context.Context, uuid, viewerUserID string) (TrackWithStarred, error) {
 	query := fmt.Sprintf(
-		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS is_starred"+
+		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred"+
 			" FROM tracks LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"+
 			" WHERE tracks.uuid = ?",
 		trackAllCols,
@@ -36,7 +36,7 @@ func (d *DB) GetTrackByUUIDForViewer(ctx context.Context, uuid, viewerUserID str
 // Results are ordered by creation time, newest first.
 func (d *DB) ListTracksForEditingForViewer(ctx context.Context, userID string) ([]TrackWithStarred, error) {
 	query := fmt.Sprintf(
-		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS is_starred"+
+		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred"+
 			" FROM tracks LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"+
 			" WHERE tracks.user_id = ? AND tracks.initial_editing_completed = 0"+
 			" ORDER BY tracks.created_at DESC",
@@ -61,7 +61,7 @@ func (d *DB) ListTracksForEditingForViewer(ctx context.Context, userID string) (
 
 // GetStarredTracks returns the tracks starred by starredByUserID, filtered to
 // those visible to viewerUserID (empty string = anonymous viewer), together with
-// the IsStarred flag reflecting viewerUserID's own star status on each track.
+// the Starred flag reflecting viewerUserID's own star status on each track.
 // Results are ordered by star creation time, newest first.
 func (d *DB) GetStarredTracks(ctx context.Context, starredByUserID, viewerUserID string) ([]TrackWithStarred, error) {
 	var query string
@@ -69,7 +69,7 @@ func (d *DB) GetStarredTracks(ctx context.Context, starredByUserID, viewerUserID
 
 	if viewerUserID == "" {
 		query = fmt.Sprintf(
-			"SELECT %s, 0 AS is_starred"+
+			"SELECT %s, 0 AS starred"+
 				" FROM track_stars ts_owner"+
 				" JOIN tracks ON tracks.uuid = ts_owner.track_id"+
 				" WHERE ts_owner.user_id = ? AND tracks.public = 1"+
@@ -79,7 +79,7 @@ func (d *DB) GetStarredTracks(ctx context.Context, starredByUserID, viewerUserID
 		args = []any{starredByUserID}
 	} else {
 		query = fmt.Sprintf(
-			"SELECT %s, CASE WHEN ts_viewer.track_id IS NOT NULL THEN 1 ELSE 0 END AS is_starred"+
+			"SELECT %s, CASE WHEN ts_viewer.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred"+
 				" FROM track_stars ts_owner"+
 				" JOIN tracks ON tracks.uuid = ts_owner.track_id"+
 				" LEFT JOIN track_stars ts_viewer ON ts_viewer.track_id = tracks.uuid AND ts_viewer.user_id = ?"+

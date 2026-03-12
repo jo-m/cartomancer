@@ -90,12 +90,12 @@ func TestGetStarredTracks_VisibilityAnonymous(t *testing.T) {
 	starTrack(t, d, alice, publicTrack)
 	starTrack(t, d, alice, privateTrack)
 
-	// Anonymous viewer sees only the public star; IsStarred is always false.
+	// Anonymous viewer sees only the public star; Starred is always false.
 	tracks, err := d.GetStarredTracks(t.Context(), alice, "")
 	require.NoError(t, err)
 	require.Len(t, tracks, 1)
 	require.Equal(t, publicTrack, tracks[0].Uuid)
-	require.False(t, tracks[0].IsStarred)
+	require.False(t, tracks[0].Starred)
 }
 
 func TestGetStarredTracks_VisibilityOwner(t *testing.T) {
@@ -110,12 +110,12 @@ func TestGetStarredTracks_VisibilityOwner(t *testing.T) {
 	starTrack(t, d, alice, publicTrack)
 	starTrack(t, d, alice, privateTrack)
 
-	// Owner viewer sees both stars; IsStarred is true for all (owner starred them).
+	// Owner viewer sees both stars; Starred is true for all (owner starred them).
 	tracks, err := d.GetStarredTracks(t.Context(), alice, alice)
 	require.NoError(t, err)
 	require.Len(t, tracks, 2)
-	require.True(t, tracks[0].IsStarred)
-	require.True(t, tracks[1].IsStarred)
+	require.True(t, tracks[0].Starred)
+	require.True(t, tracks[1].Starred)
 }
 
 func TestGetStarredTracks_VisibilityOtherUser(t *testing.T) {
@@ -131,15 +131,15 @@ func TestGetStarredTracks_VisibilityOtherUser(t *testing.T) {
 	starTrack(t, d, alice, publicTrack)
 	starTrack(t, d, alice, privateTrack)
 
-	// Bob can only see alice's star on the public track; IsStarred = false since bob hasn't starred it.
+	// Bob can only see alice's star on the public track; Starred = false since bob hasn't starred it.
 	tracks, err := d.GetStarredTracks(t.Context(), alice, bob)
 	require.NoError(t, err)
 	require.Len(t, tracks, 1)
 	require.Equal(t, publicTrack, tracks[0].Uuid)
-	require.False(t, tracks[0].IsStarred)
+	require.False(t, tracks[0].Starred)
 }
 
-func TestGetStarredTracks_IsStarredViewerHasStarred(t *testing.T) {
+func TestGetStarredTracks_StarredViewerHasStarred(t *testing.T) {
 	d := db.GetTestDB(t)
 	t.Cleanup(func() { _ = d.Close() })
 
@@ -152,11 +152,11 @@ func TestGetStarredTracks_IsStarredViewerHasStarred(t *testing.T) {
 	starTrack(t, d, alice, publicTrack)
 	starTrack(t, d, bob, publicTrack)
 
-	// Bob views alice's star list; IsStarred = true since bob also starred this track.
+	// Bob views alice's star list; Starred = true since bob also starred this track.
 	tracks, err := d.GetStarredTracks(t.Context(), alice, bob)
 	require.NoError(t, err)
 	require.Len(t, tracks, 1)
-	require.True(t, tracks[0].IsStarred)
+	require.True(t, tracks[0].Starred)
 }
 
 func TestGetStarredTracks_Empty(t *testing.T) {
@@ -170,7 +170,7 @@ func TestGetStarredTracks_Empty(t *testing.T) {
 	require.Empty(t, tracks)
 }
 
-func TestGetTrackByUUIDForViewer_IsStarred(t *testing.T) {
+func TestGetTrackByUUIDForViewer_Starred(t *testing.T) {
 	d := db.GetTestDB(t)
 	t.Cleanup(func() { _ = d.Close() })
 
@@ -179,19 +179,19 @@ func TestGetTrackByUUIDForViewer_IsStarred(t *testing.T) {
 
 	trackID := createTestTrack(t, d, alice, 1)
 
-	// Bob has not starred: IsStarred = false.
+	// Bob has not starred: Starred = false.
 	tw, err := d.GetTrackByUUIDForViewer(t.Context(), trackID, bob)
 	require.NoError(t, err)
-	require.False(t, tw.IsStarred)
+	require.False(t, tw.Starred)
 
-	// Bob stars the track: IsStarred = true.
+	// Bob stars the track: Starred = true.
 	starTrack(t, d, bob, trackID)
 	tw, err = d.GetTrackByUUIDForViewer(t.Context(), trackID, bob)
 	require.NoError(t, err)
-	require.True(t, tw.IsStarred)
+	require.True(t, tw.Starred)
 
-	// Anonymous viewer: IsStarred = false.
+	// Anonymous viewer: Starred = false.
 	tw, err = d.GetTrackByUUIDForViewer(t.Context(), trackID, "")
 	require.NoError(t, err)
-	require.False(t, tw.IsStarred)
+	require.False(t, tw.Starred)
 }

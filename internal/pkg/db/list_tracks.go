@@ -23,8 +23,8 @@ type ListTracksParams struct {
 	OnlyStarred bool
 
 	// ViewerUserID is the UUID of the user viewing the results, used to compute
-	// the IsStarred field on each returned track. Empty string = anonymous viewer
-	// (IsStarred is always false).
+	// the Starred field on each returned track. Empty string = anonymous viewer
+	// (Starred is always false).
 	ViewerUserID string
 
 	// Public filters by visibility. nil = no filter.
@@ -93,7 +93,7 @@ type ListTracksParams struct {
 // TrackWithStarred pairs a Track with the viewing user's star status for that track.
 type TrackWithStarred struct {
 	Track
-	IsStarred bool
+	Starred bool
 }
 
 // ListTracksResult holds a page of tracks and the total count.
@@ -107,10 +107,10 @@ type ListTracksResult struct {
 const trackAllCols = `tracks.uuid, tracks.created_at, tracks.updated_at, tracks.initial_editing_completed, tracks.user_id, tracks.public, tracks.blob_id, tracks.file_format, tracks.original_filename, tracks.name, tracks.description, tracks.source, tracks.author, tracks.author_link_url, tracks.track_type, tracks.link_url, tracks.sport, tracks.sub_sport, tracks.total_distance_m, tracks.total_ascent_m, tracks.start_lat, tracks.start_lon, tracks.end_lat, tracks.end_lon, tracks.bounds_min_lat, tracks.bounds_min_lon, tracks.bounds_max_lat, tracks.bounds_max_lon, tracks.min_elevation_m, tracks.max_elevation_m, tracks.original_created_at`
 
 // scanTrackWithStar scans a row containing all 31 track columns (in trackAllCols order)
-// followed by a single integer is_starred column.
+// followed by a single integer starred column.
 func scanTrackWithStar(rows *sql.Rows) (TrackWithStarred, error) {
 	var i Track
-	var isStarred int64
+	var starred int64
 	err := rows.Scan(
 		&i.Uuid,
 		&i.CreatedAt,
@@ -143,9 +143,9 @@ func scanTrackWithStar(rows *sql.Rows) (TrackWithStarred, error) {
 		&i.MinElevationM,
 		&i.MaxElevationM,
 		&i.OriginalCreatedAt,
-		&isStarred,
+		&starred,
 	)
-	return TrackWithStarred{Track: i, IsStarred: isStarred != 0}, err
+	return TrackWithStarred{Track: i, Starred: starred != 0}, err
 }
 
 type queryBuilder struct {
@@ -195,7 +195,7 @@ func lonDeltaDeg(radiusM, lat float64) float64 {
 func ptr[T any](v T) *T { return &v }
 
 // ListTracks returns a paginated list of tracks matching the given filters.
-// Each returned track includes an IsStarred field indicating whether ViewerUserID
+// Each returned track includes an Starred field indicating whether ViewerUserID
 // has starred it (always false when ViewerUserID is empty).
 func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResult, error) {
 	if p.Page < 1 {
@@ -334,8 +334,8 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	}
 
 	where := b.whereClause()
-	// The LEFT JOIN computes is_starred for the viewer; an empty ViewerUserID never
-	// matches any row, so is_starred is always 0 for anonymous callers.
+	// The LEFT JOIN computes starred for the viewer; an empty ViewerUserID never
+	// matches any row, so starred is always 0 for anonymous callers.
 	const join = " LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"
 
 	// The ViewerUserID arg comes first, before the WHERE args, matching the JOIN position.
@@ -349,7 +349,7 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 
 	offset := (p.Page - 1) * p.PageSize
 	dataSQL := fmt.Sprintf(
-		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS is_starred FROM tracks%s%s ORDER BY tracks.created_at DESC LIMIT ? OFFSET ?",
+		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred FROM tracks%s%s ORDER BY tracks.created_at DESC LIMIT ? OFFSET ?",
 		trackAllCols, join, where,
 	)
 	dataArgs := append(append([]any{}, baseArgs...), int64(p.PageSize), int64(offset))

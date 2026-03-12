@@ -52,7 +52,7 @@ type trackResponse struct {
 	UpdatedAt               string   `json:"updatedAt"`
 	Public                  bool     `json:"public"`
 	InitialEditingCompleted bool     `json:"initialEditingCompleted"`
-	IsStarred               bool     `json:"isStarred"`
+	Starred                 bool     `json:"starred"`
 	Tags                    []string `json:"tags"`
 }
 
@@ -91,7 +91,7 @@ func nullStringVal(ns sql.NullString) string {
 	return ""
 }
 
-func trackResponseFromDB(t db.Track, tags []string, isStarred bool) trackResponse {
+func trackResponseFromDB(t db.Track, tags []string, starred bool) trackResponse {
 	if tags == nil {
 		tags = []string{}
 	}
@@ -123,7 +123,7 @@ func trackResponseFromDB(t db.Track, tags []string, isStarred bool) trackRespons
 		UpdatedAt:               t.UpdatedAt.Format(time.RFC3339),
 		Public:                  t.Public != 0,
 		InitialEditingCompleted: t.InitialEditingCompleted != 0,
-		IsStarred:               isStarred,
+		Starred:                 starred,
 		Tags:                    tags,
 	}
 	if t.OriginalCreatedAt.Valid {
@@ -177,7 +177,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, trackResponseFromDB(t.Track, tags, t.IsStarred))
+	writeJSON(w, http.StatusOK, trackResponseFromDB(t.Track, tags, t.Starred))
 }
 
 func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request) {
@@ -783,7 +783,7 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t.Track, tags, t.IsStarred)
+		responses[i] = trackResponseFromDB(t.Track, tags, t.Starred)
 	}
 
 	if params.Page == 0 {
@@ -889,7 +889,7 @@ func (sv *server) handleListTracksForEditing(w http.ResponseWriter, r *http.Requ
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t.Track, tags, t.IsStarred)
+		responses[i] = trackResponseFromDB(t.Track, tags, t.Starred)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"tracks": responses})

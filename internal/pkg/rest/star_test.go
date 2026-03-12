@@ -232,7 +232,7 @@ func TestGetUserStars_Empty(t *testing.T) {
 	assert.Empty(t, stars)
 }
 
-func TestIsStarred_ReturnedOnGetTrack(t *testing.T) {
+func TestStarred_ReturnedOnGetTrack(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("alice@example.com", "Alice", "secret", false)
 
@@ -240,22 +240,22 @@ func TestIsStarred_ReturnedOnGetTrack(t *testing.T) {
 	e.login(alice, "alice@example.com", "secret")
 	trackUUID := e.uploadPublicTrack(alice)
 
-	// Before starring: isStarred should be false.
+	// Before starring: starred should be false.
 	var resp map[string]any
 	status, _ := e.do(alice, http.MethodGet, "/tracks/"+trackUUID, nil, &resp)
 	require.Equal(t, http.StatusOK, status)
-	assert.Equal(t, false, resp["isStarred"])
+	assert.Equal(t, false, resp["starred"])
 
-	// After starring: isStarred should be true.
+	// After starring: starred should be true.
 	status, _ = e.do(alice, http.MethodPost, "/tracks/"+trackUUID+"/star", nil, nil)
 	require.Equal(t, http.StatusNoContent, status)
 
 	status, _ = e.do(alice, http.MethodGet, "/tracks/"+trackUUID, nil, &resp)
 	require.Equal(t, http.StatusOK, status)
-	assert.Equal(t, true, resp["isStarred"])
+	assert.Equal(t, true, resp["starred"])
 }
 
-func TestIsStarred_ReturnedOnListTracks(t *testing.T) {
+func TestStarred_ReturnedOnListTracks(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("alice@example.com", "Alice", "secret", false)
 
@@ -273,10 +273,10 @@ func TestIsStarred_ReturnedOnListTracks(t *testing.T) {
 	tracks := listResp["tracks"].([]any)
 	require.Len(t, tracks, 1)
 	tr := tracks[0].(map[string]any)
-	assert.Equal(t, true, tr["isStarred"])
+	assert.Equal(t, true, tr["starred"])
 }
 
-func TestIsStarred_FalseForAnonymousOnGetTrack(t *testing.T) {
+func TestStarred_FalseForAnonymousOnGetTrack(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("alice@example.com", "Alice", "secret", false)
 
@@ -288,15 +288,15 @@ func TestIsStarred_FalseForAnonymousOnGetTrack(t *testing.T) {
 	status, _ := e.do(alice, http.MethodPost, "/tracks/"+trackUUID+"/star", nil, nil)
 	require.Equal(t, http.StatusNoContent, status)
 
-	// Anonymous viewer should see isStarred = false.
+	// Anonymous viewer should see starred = false.
 	anon := e.newClient()
 	var resp map[string]any
 	status, _ = e.do(anon, http.MethodGet, "/tracks/"+trackUUID, nil, &resp)
 	require.Equal(t, http.StatusOK, status)
-	assert.Equal(t, false, resp["isStarred"])
+	assert.Equal(t, false, resp["starred"])
 }
 
-func TestIsStarred_TrueOnUserStarsList(t *testing.T) {
+func TestStarred_TrueOnUserStarsList(t *testing.T) {
 	e := newTestEnv(t)
 	aliceUUID := e.createUser("alice@example.com", "Alice", "secret", false)
 
@@ -311,5 +311,5 @@ func TestIsStarred_TrueOnUserStarsList(t *testing.T) {
 	status, _ = e.do(alice, http.MethodGet, "/users/"+aliceUUID+"/stars", nil, &stars)
 	require.Equal(t, http.StatusOK, status)
 	require.Len(t, stars, 1)
-	assert.Equal(t, true, stars[0]["isStarred"])
+	assert.Equal(t, true, stars[0]["starred"])
 }
