@@ -119,9 +119,9 @@ func TestChangePassword_InvalidatesOtherSessions(t *testing.T) {
 	e.login(client2, "alice@example.com", "oldpass")
 
 	// Both sessions work.
-	status, _ := e.do(client1, http.MethodGet, "/tracks", nil, nil)
+	status, _ := e.do(client1, http.MethodGet, "/tracks/editing", nil, nil)
 	require.Equal(t, http.StatusOK, status)
-	status, _ = e.do(client2, http.MethodGet, "/tracks", nil, nil)
+	status, _ = e.do(client2, http.MethodGet, "/tracks/editing", nil, nil)
 	require.Equal(t, http.StatusOK, status)
 
 	// Change password from client1.
@@ -132,12 +132,12 @@ func TestChangePassword_InvalidatesOtherSessions(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, status)
 
 	// client1 session still works (current session preserved).
-	status, _ = e.do(client1, http.MethodGet, "/tracks", nil, nil)
+	status, _ = e.do(client1, http.MethodGet, "/tracks/editing", nil, nil)
 	assert.Equal(t, http.StatusOK, status)
 
 	// client2 session is invalidated (returns 401 because session is gone,
 	// middleware creates anonymous session).
-	status, _ = e.do(client2, http.MethodGet, "/tracks", nil, nil)
+	status, _ = e.do(client2, http.MethodGet, "/tracks/editing", nil, nil)
 	assert.Equal(t, http.StatusUnauthorized, status)
 }
 

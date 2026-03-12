@@ -217,7 +217,7 @@ func TestAdminResetPassword_InvalidatesSessions(t *testing.T) {
 	e.login(aliceClient, "alice@example.com", "secret")
 
 	// Verify Alice's session works.
-	status, _ := e.do(aliceClient, http.MethodGet, "/tracks", nil, nil)
+	status, _ := e.do(aliceClient, http.MethodGet, "/tracks/editing", nil, nil)
 	require.Equal(t, http.StatusOK, status)
 
 	// Admin resets Alice's password.
@@ -229,7 +229,7 @@ func TestAdminResetPassword_InvalidatesSessions(t *testing.T) {
 	require.Equal(t, http.StatusOK, status)
 
 	// Alice's session is invalidated.
-	status, _ = e.do(aliceClient, http.MethodGet, "/tracks", nil, nil)
+	status, _ = e.do(aliceClient, http.MethodGet, "/tracks/editing", nil, nil)
 	assert.Equal(t, http.StatusUnauthorized, status)
 }
 
