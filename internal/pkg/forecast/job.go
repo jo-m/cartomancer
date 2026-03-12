@@ -48,7 +48,6 @@ type pendingFile struct {
 	referenceTime time.Time
 	validTime     time.Time
 	variable      string
-	horizonSecs   int64
 	boundsMinLat  sql.NullFloat64
 	boundsMinLon  sql.NullFloat64
 	boundsMaxLat  sql.NullFloat64
@@ -124,8 +123,7 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		localPath := filepath.Join(tmpDir, fmt.Sprintf("%04d.grib2", i))
 		logg.Debug(ctx, "Downloading forecast file",
 			"variable", item.Properties.Variable,
-			"horizon", item.Properties.Horizon,
-			"horizonSecs", int64(horizon.Seconds()))
+			"horizon", item.Properties.Horizon)
 		if downloadErr := downloadFile(ctx, assetURL, localPath); downloadErr != nil {
 			return fmt.Errorf("download %s/%s: %w",
 				item.Properties.Variable, item.Properties.Horizon, downloadErr)
@@ -136,7 +134,6 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 			referenceTime: refTime,
 			validTime:     refTime.Add(horizon),
 			variable:      item.Properties.Variable,
-			horizonSecs:   int64(horizon.Seconds()),
 		}
 		nullBBoxFromItem(item, &pf)
 		files = append(files, pf)
@@ -170,15 +167,14 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 				ReferenceTime: f.referenceTime,
 				ValidTime:     f.validTime,
 				Variable:      f.variable,
-				HorizonSecs:   f.horizonSecs,
 				BoundsMinLat:  f.boundsMinLat,
 				BoundsMinLon:  f.boundsMinLon,
 				BoundsMaxLat:  f.boundsMaxLat,
 				BoundsMaxLon:  f.boundsMaxLon,
 				BlobID:        b.ID,
 			}); dbErr != nil {
-				return fmt.Errorf("create forecast_file record for %s horizon=%ds: %w",
-					f.variable, f.horizonSecs, dbErr)
+				return fmt.Errorf("create forecast_file record for %s validTime=%s: %w",
+					f.variable, f.validTime.Format(time.RFC3339), dbErr)
 			}
 		}
 		return nil

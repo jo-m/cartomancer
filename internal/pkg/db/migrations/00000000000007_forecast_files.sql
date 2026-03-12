@@ -12,8 +12,6 @@ CREATE TABLE forecast_files (
 
     -- variable is the forecast variable name, e.g. 'U_10M', 'V_10M', 'TOT_PREC'.
     variable TEXT NOT NULL,
-    -- horizon_secs is the duration in seconds from reference_time to valid_time.
-    horizon_secs INTEGER NOT NULL,
 
     -- Bounding box of the spatial domain covered by this file (WGS84 degrees).
     bounds_min_lat REAL,
@@ -24,7 +22,7 @@ CREATE TABLE forecast_files (
     blob_id INTEGER NOT NULL,
 
     FOREIGN KEY(blob_id) REFERENCES blobs(id) ON DELETE RESTRICT,
-    UNIQUE(reference_time, variable, horizon_secs)
+    UNIQUE(reference_time, variable, valid_time)
 );
 -- When a forecast_file is deleted, delete its blob (unless another forecast_file still references it).
 CREATE TRIGGER forecast_files_delete_blob AFTER DELETE ON forecast_files

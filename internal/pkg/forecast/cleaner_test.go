@@ -24,7 +24,6 @@ func insertForecastFileWithValidTime(t *testing.T, d *db.DB, validTime time.Time
 		ReferenceTime: refTime,
 		ValidTime:     validTime,
 		Variable:      "U_10M",
-		HorizonSecs:   3600,
 		BlobID:        b.ID,
 	})
 	require.NoError(t, err)

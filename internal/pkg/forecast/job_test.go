@@ -61,14 +61,12 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
 	validTime := refTime.Add(10 * time.Hour)
-	const horizonSecs = int64(10 * 3600)
 
 	f, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
 		CreatedAt:     time.Now(),
 		ReferenceTime: refTime,
 		ValidTime:     validTime,
 		Variable:      "TOT_PREC",
-		HorizonSecs:   horizonSecs,
 		BoundsMinLat:  sql.NullFloat64{Float64: 45.7, Valid: true},
 		BoundsMinLon:  sql.NullFloat64{Float64: 5.9, Valid: true},
 		BoundsMaxLat:  sql.NullFloat64{Float64: 47.8, Valid: true},
@@ -78,7 +76,6 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 	require.NoError(t, err)
 	require.Greater(t, f.ID, int64(0))
 	require.Equal(t, "TOT_PREC", f.Variable)
-	require.Equal(t, horizonSecs, f.HorizonSecs)
 	require.InDelta(t, 45.7, f.BoundsMinLat.Float64, 1e-9)
 
 	latest, err := d.QueryRO().GetLatestForecastReferenceTime(ctx)
@@ -106,12 +103,11 @@ func TestCreateForecastFile_uniqueConstraint(t *testing.T) {
 			ReferenceTime: refTime,
 			ValidTime:     refTime.Add(time.Hour),
 			Variable:      "U_10M",
-			HorizonSecs:   3600,
 			BlobID:        blobID,
 		})
 		return err
 	}
 
 	require.NoError(t, insert(insertBlob()))
-	require.Error(t, insert(insertBlob()), "duplicate (reference_time, variable, horizon_secs) must be rejected")
+	require.Error(t, insert(insertBlob()), "duplicate (reference_time, variable, valid_time) must be rejected")
 }
