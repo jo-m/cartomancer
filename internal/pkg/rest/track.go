@@ -256,7 +256,7 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 	opts.Color = sv.appConfig.TrackColor
 
 	// Compute ETag before the expensive blob load so 304s are cheap.
-	eTag := fmt.Sprintf(`"%d-%d-%s"`, t.UpdatedAt.UnixMilli(), opts.Size, opts.Color)
+	eTag := fmt.Sprintf(`"%d-%d-%s-v0"`, t.UpdatedAt.UnixMilli(), opts.Size, opts.Color)
 	if r.Header.Get("If-None-Match") == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -326,7 +326,7 @@ func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.R
 	opts.Color = sv.appConfig.TrackColor
 
 	// Compute ETag before the expensive blob load so 304s are cheap.
-	eTag := fmt.Sprintf(`"%d-%d-%s"`, t.UpdatedAt.UnixMilli(), opts.Size, opts.Color)
+	eTag := fmt.Sprintf(`"%d-%d-%s-v0"`, t.UpdatedAt.UnixMilli(), opts.Size, opts.Color)
 	if r.Header.Get("If-None-Match") == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
