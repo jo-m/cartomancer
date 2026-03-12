@@ -212,7 +212,7 @@ func (pts Points) PreviewSVG(opts PreviewOptions, bounds *Bounds) string {
 	)
 }
 
-const profileElevationRange = 1000.0 // meters; fixed Y-axis range for ProfileSVG.
+const profileElevationRange = 1500.0 // meters; fixed Y-axis range for ProfileSVG.
 
 // ProfileSVG renders the track's altitude profile as an SVG image.
 // X is cumulative distance along the track; Y is elevation normalized to the
