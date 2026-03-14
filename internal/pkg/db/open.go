@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/pressly/goose/v3"
@@ -29,7 +30,7 @@ var embedMigrations embed.FS
 
 func buildDSN(path string, readOnly bool, busyTimeout time.Duration) string {
 	query := url.Values{}
-	query.Add("_txlock", "deferred")
+	query.Add("_txlock", "deferred") // TODO: Immediate?
 	query.Add("_time_format", "sqlite")
 	query.Add("_busy_timeout", fmt.Sprint(busyTimeout.Milliseconds()))
 	if readOnly {
@@ -38,11 +39,13 @@ func buildDSN(path string, readOnly bool, busyTimeout time.Duration) string {
 		query.Add("mode", "rwc")
 	}
 
-	// See https://phiresky.github.io/blog/2020/sqlite-performance-tuning/.
+	// See https://phiresky.github.io/blog/2020/sqlite-performance-tuning/
+	// and https://kerkour.com/sqlite-for-servers.
 	pragmas := map[string]string{
 		"journal_mode": "WAL",
 		"synchronous":  "NORMAL",
 		"temp_store":   "MEMORY",
+		"cache_size":   "1000000000",
 		"foreign_keys": "true",
 		"mmap_size":    "2147483648", // 2 GiB
 	}
@@ -151,6 +154,7 @@ func Open(ctx context.Context, path string) (db *DB, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db (ro): %w", err)
 	}
+	ro.SetMaxOpenConns(max(4, runtime.NumCPU()))
 
 	// Prepare and run migrations.
 	files, err := fs.Sub(embedMigrations, migrations)
