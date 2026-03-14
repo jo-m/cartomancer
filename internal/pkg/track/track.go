@@ -81,8 +81,14 @@ type Track struct {
 	pts []Point
 }
 
+// Len returns the number of points in the track.
 func (t *Track) Len() int {
 	return len(t.pts)
+}
+
+// Points returns the track's point sequence.
+func (t *Track) Points() Points {
+	return Points(t.pts)
 }
 
 func (t *Track) computeDistanceM() float64 {

@@ -1013,6 +1013,93 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/{uuid}/forecast:
+    post:
+      summary: Get weather forecast along a track
+      operationId: getTrackForecast
+      tags: [Tracks]
+      description: >
+        Computes a time series of weather conditions at interpolated points
+        along the track, given an assumed start time and average speed.
+        Requires **user** access.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: startTime
+          in: query
+          required: true
+          description: Start time in RFC3339 format.
+          schema:
+            type: string
+            format: date-time
+        - name: speedKmh
+          in: query
+          required: true
+          description: Average speed in km/h (must be positive, max 200).
+          schema:
+            type: number
+            minimum: 0.1
+            maximum: 200
+      responses:
+        "200":
+          description: Forecast time series along the track
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [points]
+                properties:
+                  points:
+                    type: array
+                    items:
+                      type: object
+                      required: [distanceM, lat, lon, time, temperatureC, precipitationRate]
+                      properties:
+                        distanceM:
+                          type: number
+                          description: Cumulative distance in meters from the start.
+                        lat:
+                          type: number
+                        lon:
+                          type: number
+                        time:
+                          type: string
+                          format: date-time
+                          description: Estimated time at this point.
+                        temperatureC:
+                          type: number
+                          description: Temperature in degrees Celsius.
+                        precipitationRate:
+                          type: number
+                          description: Precipitation rate.
+        "400":
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Track not found or no forecast data available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Track has too few points
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /tracks/statistics:
     get:
       summary: Get track statistics

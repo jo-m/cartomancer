@@ -7,6 +7,7 @@ import { z } from "zod"
 import { $api } from "../api/client"
 import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
+import ForecastChart from "../components/ForecastChart"
 import TagsInput from "../components/TagsInput"
 import Toast from "../components/Toast"
 import {
@@ -309,6 +310,14 @@ export default function Track() {
           Download original file
         </a>
       </div>
+
+      {user && (
+        <ForecastChart
+          trackUuid={data.uuid}
+          totalDistanceM={data.totalDistanceM}
+          onError={setToastMessage}
+        />
+      )}
 
       {data.isOwner && (
         <div className="mt-8 border-t border-gray-200 pt-6">

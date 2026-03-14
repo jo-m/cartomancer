@@ -138,6 +138,59 @@ func TestSubsample(t *testing.T) {
 	})
 }
 
+func TestPoints(t *testing.T) {
+	tr := &Track{pts: []Point{berlin, paris}}
+	pts := tr.Points()
+	require.Len(t, pts, 2)
+	require.Equal(t, berlin.Lat, pts[0].Lat)
+	require.Equal(t, paris.Lat, pts[1].Lat)
+}
+
+func TestInterpolateByDistance(t *testing.T) {
+	t.Run("nil for fewer than two points", func(t *testing.T) {
+		require.Nil(t, Points(nil).InterpolateByDistance(100))
+		require.Nil(t, Points{berlin}.InterpolateByDistance(100))
+	})
+
+	t.Run("nil for zero interval", func(t *testing.T) {
+		require.Nil(t, Points{berlin, paris}.InterpolateByDistance(0))
+	})
+
+	t.Run("first and last always included", func(t *testing.T) {
+		pts := Points{berlin, paris}
+		result := pts.InterpolateByDistance(1_000_000) // Larger than the total distance.
+		require.GreaterOrEqual(t, len(result), 2)
+		require.InDelta(t, 0, result[0].DistanceM, 1e-9)
+		require.InDelta(t, berlin.Lat, result[0].Lat, 1e-9)
+		require.InDelta(t, berlin.Lon, result[0].Lon, 1e-9)
+		last := result[len(result)-1]
+		require.InDelta(t, paris.Lat, last.Lat, 1e-9)
+		require.InDelta(t, paris.Lon, last.Lon, 1e-9)
+	})
+
+	t.Run("spacing", func(t *testing.T) {
+		// Three points along the equator, each ~111 km apart.
+		pts := Points{
+			{Lat: 0, Lon: 0},
+			{Lat: 0, Lon: 1},
+			{Lat: 0, Lon: 2},
+		}
+		result := pts.InterpolateByDistance(50_000) // 50 km interval.
+		require.Greater(t, len(result), 4)
+
+		// All distances should be monotonically increasing.
+		for i := 1; i < len(result); i++ {
+			require.Greater(t, result[i].DistanceM, result[i-1].DistanceM)
+		}
+
+		// Intermediate points should be spaced at ~50 km.
+		for i := 1; i < len(result)-1; i++ {
+			gap := result[i].DistanceM - result[i-1].DistanceM
+			require.InDelta(t, 50_000, gap, 1)
+		}
+	})
+}
+
 func TestComputeElevationBounds(t *testing.T) {
 	t.Run("empty track", func(t *testing.T) {
 		tr := &Track{}

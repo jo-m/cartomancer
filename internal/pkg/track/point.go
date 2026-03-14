@@ -316,6 +316,56 @@ func (pts Points) ProfileSVG(opts PreviewOptions) string {
 	)
 }
 
+// InterpolatedPoint is a point along a track at a known cumulative distance.
+type InterpolatedPoint struct {
+	DistanceM float64
+	Lat, Lon  float64
+}
+
+// InterpolateByDistance walks the point sequence and emits points at fixed
+// distance intervals. The first and last original points are always included.
+// Returns nil if there are fewer than two points.
+func (pts Points) InterpolateByDistance(intervalM float64) []InterpolatedPoint {
+	if len(pts) < 2 || intervalM <= 0 {
+		return nil
+	}
+
+	result := []InterpolatedPoint{{DistanceM: 0, Lat: pts[0].Lat, Lon: pts[0].Lon}}
+	nextDist := intervalM
+	cumDist := 0.0
+
+	for i := 1; i < len(pts); i++ {
+		segLen := pts[i-1].MetersTo(&pts[i])
+		segStart := cumDist
+
+		for nextDist <= segStart+segLen {
+			frac := (nextDist - segStart) / segLen
+			p := pts[i-1].Interpolate(&pts[i], frac)
+			result = append(result, InterpolatedPoint{
+				DistanceM: nextDist,
+				Lat:       p.Lat,
+				Lon:       p.Lon,
+			})
+			nextDist += intervalM
+		}
+
+		cumDist += segLen
+	}
+
+	// Always include the last point.
+	last := pts[len(pts)-1]
+	lastResult := result[len(result)-1]
+	if lastResult.Lat != last.Lat || lastResult.Lon != last.Lon {
+		result = append(result, InterpolatedPoint{
+			DistanceM: cumDist,
+			Lat:       last.Lat,
+			Lon:       last.Lon,
+		})
+	}
+
+	return result
+}
+
 // Subsample returns a subset of points such that consecutive points are at
 // least minDistM meters apart. The first and last points are always included.
 func (pts Points) Subsample(minDistM float64) Points {

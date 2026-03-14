@@ -80,6 +80,7 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 		r.Use(sv.requireUser)
 
 		r.Post("/tracks", sv.handleUploadTrack)
+		r.Post("/tracks/{uuid}/forecast", sv.handleGetTrackForecast)
 		r.Post("/tracks/{uuid}/star", sv.handleStarTrack)
 		r.Delete("/tracks/{uuid}/star", sv.handleUnstarTrack)
 		r.Patch("/tracks", sv.handleBulkEditTracks)
