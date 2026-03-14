@@ -39,8 +39,6 @@ var _ jobs.Job[cleanerArgs] = (*Cleaner)(nil)
 
 // Run implements [jobs.Job].
 // It deletes all forecast_files rows whose valid_time is in the past.
-// The database trigger forecast_files_delete_blob handles cascading deletion
-// of orphaned blobs automatically.
 func (c *Cleaner) Run(ctx context.Context, _ cleanerArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()

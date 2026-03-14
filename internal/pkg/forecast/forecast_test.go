@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/forecast"
 	"jo-m.ch/go/detour/internal/pkg/logg"
@@ -26,21 +25,18 @@ func seedDB(t *testing.T, d *db.DB) time.Time {
 	ctx := logg.WithDiscardHandler(t.Context())
 	refTime := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
 
-	// Insert grid constants.
+	// Insert forecast row with grid constants and bounds.
 	gridContent, err := os.ReadFile(gridTestdata)
 	require.NoError(t, err)
 
-	err = d.WithTx(ctx, func(tx *db.Queries) error {
-		b, bErr := blob.Create(ctx, tx, gridContent, blob.CompressionNone)
-		if bErr != nil {
-			return bErr
-		}
-		_, bErr = tx.CreateForecastGrid(ctx, db.CreateForecastGridParams{
-			CreatedAt:     time.Now(),
-			ReferenceTime: refTime,
-			BlobID:        b.ID,
-		})
-		return bErr
+	fc, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+		CreatedAt:     time.Now(),
+		ReferenceTime: refTime,
+		BoundsMinLat:  sql.NullFloat64{Float64: 43.0, Valid: true},
+		BoundsMinLon:  sql.NullFloat64{Float64: 2.0, Valid: true},
+		BoundsMaxLat:  sql.NullFloat64{Float64: 50.0, Valid: true},
+		BoundsMaxLon:  sql.NullFloat64{Float64: 16.0, Valid: true},
+		GridFile:      gridContent,
 	})
 	require.NoError(t, err)
 
@@ -48,23 +44,11 @@ func seedDB(t *testing.T, d *db.DB) time.Time {
 	t2mContent, err := os.ReadFile(t2mTestdata)
 	require.NoError(t, err)
 
-	err = d.WithTx(ctx, func(tx *db.Queries) error {
-		b, bErr := blob.Create(ctx, tx, t2mContent, blob.CompressionNone)
-		if bErr != nil {
-			return bErr
-		}
-		_, bErr = tx.CreateForecastFile(ctx, db.CreateForecastFileParams{
-			CreatedAt:     time.Now(),
-			ReferenceTime: refTime,
-			ValidTime:     refTime,
-			Variable:      "T_2M",
-			BoundsMinLat:  sql.NullFloat64{Float64: 43.0, Valid: true},
-			BoundsMinLon:  sql.NullFloat64{Float64: 2.0, Valid: true},
-			BoundsMaxLat:  sql.NullFloat64{Float64: 50.0, Valid: true},
-			BoundsMaxLon:  sql.NullFloat64{Float64: 16.0, Valid: true},
-			BlobID:        b.ID,
-		})
-		return bErr
+	_, err = d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+		ValidTime:  refTime,
+		Variable:   "T_2M",
+		File:       t2mContent,
+		ForecastID: fc.ID,
 	})
 	require.NoError(t, err)
 

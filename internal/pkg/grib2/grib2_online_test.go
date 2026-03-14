@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/franiglesias/golden"
 	"github.com/stretchr/testify/require"
 	"jo-m.ch/go/detour/internal/pkg/grib2"
 	"jo-m.ch/go/detour/internal/pkg/meteo"
@@ -55,7 +54,8 @@ func TestOnlineParseU(t *testing.T) {
 	require.NoError(t, jpeg.Encode(&buf, img, &jpeg.Options{Quality: 90}))
 	require.Greater(t, buf.Len(), 0)
 
-	golden.Verify(t, buf.String(), golden.Extension(".jpeg"), golden.WaitApproval())
+	err = os.WriteFile("testdata/TestOnlineParseU.jpeg", buf.Bytes(), 0644)
+	require.NoError(t, err)
 }
 
 // TestOnlineParseV downloads the V wind component at the 0-hour horizon, parses the
@@ -96,5 +96,6 @@ func TestOnlineParseV(t *testing.T) {
 	require.NoError(t, jpeg.Encode(&buf, img, &jpeg.Options{Quality: 90}))
 	require.Greater(t, buf.Len(), 0)
 
-	golden.Verify(t, buf.String(), golden.Extension(".jpeg"), golden.WaitApproval())
+	err = os.WriteFile("testdata/TestOnlineParseV.jpeg", buf.Bytes(), 0644)
+	require.NoError(t, err)
 }

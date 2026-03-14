@@ -12,7 +12,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/DataDog/zstd"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/grib2"
 )
@@ -53,21 +52,16 @@ type Handle struct {
 func Load(ctx context.Context, d *db.DB, start, end time.Time, bbox BBox) (*Handle, error) {
 	q := d.QueryRO()
 
-	// Load the latest grid constants.
-	gridRow, err := q.GetLatestForecastGrid(ctx)
+	// Load the latest forecast row (contains grid constants).
+	forecastRow, err := q.GetLatestForecast(ctx)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNoData
 	}
 	if err != nil {
-		return nil, fmt.Errorf("query grid constants: %w", err)
+		return nil, fmt.Errorf("query forecast: %w", err)
 	}
 
-	gridContent, err := decompressBlob(gridRow.Content, gridRow.Compression)
-	if err != nil {
-		return nil, fmt.Errorf("decompress grid blob: %w", err)
-	}
-
-	grid, err := grib2.ParseGrid(bytes.NewReader(gridContent))
+	grid, err := grib2.ParseGrid(bytes.NewReader(forecastRow.GridFile))
 	if err != nil {
 		return nil, fmt.Errorf("parse grid constants: %w", err)
 	}
@@ -91,12 +85,7 @@ func Load(ctx context.Context, d *db.DB, start, end time.Time, bbox BBox) (*Hand
 	// Parse each GRIB2 file and group messages by variable.
 	messages := make(map[string][]timedMessage)
 	for _, row := range rows {
-		content, decErr := decompressBlob(row.Content, row.Compression)
-		if decErr != nil {
-			return nil, fmt.Errorf("decompress blob id=%d: %w", row.BlobID, decErr)
-		}
-
-		msgs, parseErr := grib2.Parse(bytes.NewReader(content))
+		msgs, parseErr := grib2.Parse(bytes.NewReader(row.File))
 		if parseErr != nil {
 			return nil, fmt.Errorf("parse GRIB2 for variable=%s validTime=%s: %w",
 				row.Variable, row.ValidTime.Format(time.RFC3339), parseErr)
@@ -173,16 +162,4 @@ func (h *Handle) Sample(variable string, t time.Time, lat, lon float64) float32 
 	}
 
 	return h.grid.ValueAt(msgs[idx].msg, lat, lon)
-}
-
-// decompressBlob returns the raw content, decompressing if needed.
-func decompressBlob(content []byte, compression int64) ([]byte, error) {
-	switch compression {
-	case 0: // No compression.
-		return content, nil
-	case 1: // Zstd.
-		return zstd.Decompress(nil, content)
-	default:
-		return nil, fmt.Errorf("unknown compression type: %d", compression)
-	}
 }

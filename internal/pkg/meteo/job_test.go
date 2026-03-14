@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 	"jo-m.ch/go/detour/internal/pkg/meteo/stac"
@@ -58,27 +57,29 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 
 	ctx := logg.WithDiscardHandler(t.Context())
 
-	b, err := blob.Create(ctx, d.QueryRW(), []byte("grib data"), blob.CompressionZstd)
-	require.NoError(t, err)
-
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
 	validTime := refTime.Add(10 * time.Hour)
 
-	f, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+	forecast, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
 		CreatedAt:     time.Now(),
 		ReferenceTime: refTime,
-		ValidTime:     validTime,
-		Variable:      vars.VarTotPr.Name,
 		BoundsMinLat:  sql.NullFloat64{Float64: 45.7, Valid: true},
 		BoundsMinLon:  sql.NullFloat64{Float64: 5.9, Valid: true},
 		BoundsMaxLat:  sql.NullFloat64{Float64: 47.8, Valid: true},
 		BoundsMaxLon:  sql.NullFloat64{Float64: 10.5, Valid: true},
-		BlobID:        b.ID,
+		GridFile:      []byte("grid data"),
+	})
+	require.NoError(t, err)
+
+	f, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+		ValidTime:  validTime,
+		Variable:   vars.VarTotPr.Name,
+		File:       []byte("grib data"),
+		ForecastID: forecast.ID,
 	})
 	require.NoError(t, err)
 	require.Greater(t, f.ID, int64(0))
 	require.Equal(t, vars.VarTotPr.Name, f.Variable)
-	require.InDelta(t, 45.7, f.BoundsMinLat.Float64, 1e-9)
 
 	latest, err := d.QueryRO().GetLatestForecastReferenceTime(ctx)
 	require.NoError(t, err)
@@ -91,25 +92,52 @@ func TestCreateForecastFile_uniqueConstraint(t *testing.T) {
 
 	ctx := logg.WithDiscardHandler(t.Context())
 
-	insertBlob := func() int64 {
-		b, err := blob.Create(ctx, d.QueryRW(), []byte("grib data"), blob.CompressionNone)
-		require.NoError(t, err)
-		return b.ID
-	}
-
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
 
-	insert := func(blobID int64) error {
+	forecast, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+		CreatedAt:     time.Now(),
+		ReferenceTime: refTime,
+		GridFile:      []byte("grid data"),
+	})
+	require.NoError(t, err)
+
+	insert := func() error {
 		_, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
-			CreatedAt:     time.Now(),
-			ReferenceTime: refTime,
-			ValidTime:     refTime.Add(time.Hour),
-			Variable:      vars.VarU10m.Name,
-			BlobID:        blobID,
+			ValidTime:  refTime.Add(time.Hour),
+			Variable:   vars.VarU10m.Name,
+			File:       []byte("grib data"),
+			ForecastID: forecast.ID,
 		})
 		return err
 	}
 
-	require.NoError(t, insert(insertBlob()))
-	require.Error(t, insert(insertBlob()), "duplicate (reference_time, variable, valid_time) must be rejected")
+	require.NoError(t, insert())
+	require.Error(t, insert(), "duplicate (forecast_id, variable, valid_time) must be rejected")
+}
+
+func TestForecastExistsForReferenceTime(t *testing.T) {
+	d := db.GetTestDB(t)
+	defer d.Close()
+
+	ctx := logg.WithDiscardHandler(t.Context())
+
+	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
+
+	// Should not exist yet.
+	exists, err := d.QueryRO().ForecastExistsForReferenceTime(ctx, refTime)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), exists)
+
+	// Create the forecast row.
+	_, err = d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+		CreatedAt:     time.Now(),
+		ReferenceTime: refTime,
+		GridFile:      []byte("grid data"),
+	})
+	require.NoError(t, err)
+
+	// Should exist now.
+	exists, err = d.QueryRO().ForecastExistsForReferenceTime(ctx, refTime)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), exists)
 }

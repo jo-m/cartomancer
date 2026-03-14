@@ -7,6 +7,8 @@ import (
 	"math"
 	"strings"
 	"time"
+
+	"jo-m.ch/go/detour/internal/pkg/utl"
 )
 
 // ListTracksParams defines the filter and pagination parameters for listing tracks.
@@ -192,8 +194,6 @@ func lonDeltaDeg(radiusM, lat float64) float64 {
 	return radiusM / (111320.0 * math.Abs(cosLat))
 }
 
-func ptr[T any](v T) *T { return &v }
-
 // ListTracks returns a paginated list of tracks matching the given filters.
 // Each returned track includes an Starred field indicating whether ViewerUserID
 // has starred it (always false when ViewerUserID is empty).
@@ -209,18 +209,18 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	if p.StartNearLat != nil && p.StartNearLon != nil && p.StartNearRadiusM != nil {
 		dLat := latDeltaDeg(*p.StartNearRadiusM)
 		dLon := lonDeltaDeg(*p.StartNearRadiusM, *p.StartNearLat)
-		p.StartLatMin = ptr(*p.StartNearLat - dLat)
-		p.StartLatMax = ptr(*p.StartNearLat + dLat)
-		p.StartLonMin = ptr(*p.StartNearLon - dLon)
-		p.StartLonMax = ptr(*p.StartNearLon + dLon)
+		p.StartLatMin = utl.Ptr(*p.StartNearLat - dLat)
+		p.StartLatMax = utl.Ptr(*p.StartNearLat + dLat)
+		p.StartLonMin = utl.Ptr(*p.StartNearLon - dLon)
+		p.StartLonMax = utl.Ptr(*p.StartNearLon + dLon)
 	}
 	if p.EndNearLat != nil && p.EndNearLon != nil && p.EndNearRadiusM != nil {
 		dLat := latDeltaDeg(*p.EndNearRadiusM)
 		dLon := lonDeltaDeg(*p.EndNearRadiusM, *p.EndNearLat)
-		p.EndLatMin = ptr(*p.EndNearLat - dLat)
-		p.EndLatMax = ptr(*p.EndNearLat + dLat)
-		p.EndLonMin = ptr(*p.EndNearLon - dLon)
-		p.EndLonMax = ptr(*p.EndNearLon + dLon)
+		p.EndLatMin = utl.Ptr(*p.EndNearLat - dLat)
+		p.EndLatMax = utl.Ptr(*p.EndNearLat + dLat)
+		p.EndLonMin = utl.Ptr(*p.EndNearLon - dLon)
+		p.EndLonMax = utl.Ptr(*p.EndNearLon + dLon)
 	}
 
 	var b queryBuilder

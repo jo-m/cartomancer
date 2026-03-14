@@ -41,6 +41,8 @@ type FileMeta struct {
 	Variable string
 	// Horizon is the duration from the reference time to the forecast valid time.
 	Horizon time.Duration
+	// ReferenceTime is the model run initialisation time reported by the STAC item.
+	ReferenceTime time.Time
 	// ValidTime is the time at which the forecast values are valid.
 	ValidTime time.Time
 	// Perturbed indicates whether this is a perturbed ensemble member.
@@ -119,7 +121,7 @@ func GetNewestForecast(ctx context.Context, variables []vars.Variable, maxHorizo
 		paramNames[i] = v.Name
 	}
 	logg.Debug(ctx, "Fetching STAC items", "variables", paramNames, "maxHorizon", maxHorizon, "perturbed", perturbed)
-	items, refTime, err := stac.FetchItemsForVariables(ctx, vars.CollectionBaseURL, paramNames)
+	items, coll, err := stac.FetchItemsForVariables(ctx, stac.GetCollectionURL(), paramNames, perturbed)
 	if err != nil {
 		return nil, fmt.Errorf("fetching STAC items: %w", err)
 	}
@@ -127,11 +129,7 @@ func GetNewestForecast(ctx context.Context, variables []vars.Variable, maxHorizo
 		return nil, fmt.Errorf("no forecast items found for variables %v", variables)
 	}
 
-	coll, err := stac.FetchJSON[stac.Collection](ctx, vars.CollectionBaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("fetching STAC collection: %w", err)
-	}
-
+	refTime := coll.NewestReferenceTime()
 	horizAsset, ok := coll.Assets[horizConstAssetKey]
 	if !ok {
 		return nil, fmt.Errorf("asset %q not found in collection", horizConstAssetKey)
@@ -143,22 +141,16 @@ func GetNewestForecast(ctx context.Context, variables []vars.Variable, maxHorizo
 
 	var files []ForecastFile
 	for _, item := range items {
-		horizon, parseErr := stac.ParseISO8601Duration(item.Properties.Horizon)
+		horizon, parseErr := stac.ParseISO8601Duration(item.Props.Horizon)
 		if parseErr != nil {
 			return nil, fmt.Errorf("parsing horizon for item %s: %w", item.ID, parseErr)
 		}
 
 		if horizon > maxHorizon {
 			logg.Trace(ctx, "Skipping item: horizon exceeds limit",
-				"variable", item.Properties.Variable,
+				"variable", item.Props.Variable,
 				"horizon", horizon,
 				"maxHorizon", maxHorizon)
-			continue
-		}
-		if item.Properties.Perturbed != perturbed {
-			logg.Trace(ctx, "Skipping item: perturbed mismatch",
-				"variable", item.Properties.Variable,
-				"perturbed", item.Properties.Perturbed)
 			continue
 		}
 
@@ -175,10 +167,11 @@ func GetNewestForecast(ctx context.Context, variables []vars.Variable, maxHorizo
 		f := ForecastFile{
 			URL: assetURL,
 			Meta: FileMeta{
-				Variable:  item.Properties.Variable,
-				Horizon:   horizon,
-				ValidTime: refTime.Add(horizon),
-				Perturbed: item.Properties.Perturbed,
+				Variable:      item.Props.Variable,
+				Horizon:       horizon,
+				ReferenceTime: item.Props.ReferenceDatetime,
+				ValidTime:     item.Props.ValidDatetime,
+				Perturbed:     item.Props.Perturbed,
 			},
 		}
 		parseBBox(item, &f.Meta)
@@ -269,18 +262,15 @@ func Download(ctx context.Context, variables []vars.Variable, maxHorizon time.Du
 	return DownloadForecast(ctx, manifest)
 }
 
-// FetchLatestReferenceTime queries the STAC catalog and returns the model
-// initialisation time of the newest available forecast run. It returns the
-// zero time with a nil error when the catalog contains no items.
+// FetchLatestReferenceTime queries the STAC collection and returns the model
+// initialisation time of the newest available forecast run from the temporal
+// extent. It returns the zero time with a nil error when the extent is empty.
 func FetchLatestReferenceTime(ctx context.Context) (time.Time, error) {
-	// Pass nil variables: FetchItemsForVariables scans all items to find the
-	// max reference time before filtering, so the reference time is accurate
-	// regardless of the variable filter.
-	_, refTime, err := stac.FetchItemsForVariables(ctx, vars.CollectionBaseURL, nil)
+	coll, err := stac.FetchJSON[stac.Collection](ctx, stac.GetCollectionURL())
 	if err != nil {
-		return time.Time{}, fmt.Errorf("fetching STAC items: %w", err)
+		return time.Time{}, fmt.Errorf("fetching STAC collection: %w", err)
 	}
-	return refTime, nil
+	return coll.NewestReferenceTime(), nil
 }
 
 // parseBBox fills the bounding-box fields of m from the STAC item's BBox slice,

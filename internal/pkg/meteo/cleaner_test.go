@@ -6,26 +6,46 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 )
 
-// insertForecastFileWithValidTime is a test helper that creates a blob and a
-// forecast_files row with the given valid_time, returning the file ID.
+// ensureForecast is a test helper that inserts a forecasts row for the given
+// reference time if one does not already exist, and returns its ID.
+func ensureForecast(t *testing.T, d *db.DB, refTime time.Time) int64 {
+	t.Helper()
+	ctx := logg.WithDiscardHandler(t.Context())
+
+	existing, err := d.QueryRO().ForecastExistsForReferenceTime(ctx, refTime)
+	require.NoError(t, err)
+	if existing != 0 {
+		row, err := d.QueryRO().GetLatestForecast(ctx)
+		require.NoError(t, err)
+		return row.ID
+	}
+
+	row, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+		CreatedAt:     time.Now(),
+		ReferenceTime: refTime,
+		GridFile:      []byte("grid"),
+	})
+	require.NoError(t, err)
+	return row.ID
+}
+
+// insertForecastFileWithValidTime is a test helper that inserts a forecast_files
+// row with the given valid_time, returning the file ID.
 func insertForecastFileWithValidTime(t *testing.T, d *db.DB, validTime time.Time) int64 {
 	t.Helper()
 	ctx := logg.WithDiscardHandler(t.Context())
-	b, err := blob.Create(ctx, d.QueryRW(), []byte("grib"), blob.CompressionNone)
-	require.NoError(t, err)
 	refTime := validTime.Add(-time.Hour)
+	forecastID := ensureForecast(t, d, refTime)
 	f, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
-		CreatedAt:     time.Now(),
-		ReferenceTime: refTime,
-		ValidTime:     validTime,
-		Variable:      vars.VarU10m.Name,
-		BlobID:        b.ID,
+		ValidTime:  validTime,
+		Variable:   vars.VarU10m.Name,
+		File:       []byte("grib"),
+		ForecastID: forecastID,
 	})
 	require.NoError(t, err)
 	return f.ID
@@ -78,7 +98,7 @@ func TestCleaner_AllFutureFiles_NoOp(t *testing.T) {
 	err := cleaner.Run(ctx, cleanerArgs{})
 	require.NoError(t, err)
 
-	// Both files must still exist — check by querying the latest reference_time.
+	// Both files must still exist.
 	_, err = d.QueryRO().GetLatestForecastReferenceTime(ctx)
 	require.NoError(t, err, "future files must not be deleted")
 }
@@ -97,6 +117,17 @@ func TestCleaner_AllPastFiles(t *testing.T) {
 	err := cleaner.Run(ctx, cleanerArgs{})
 	require.NoError(t, err)
 
-	_, err = d.QueryRO().GetLatestForecastReferenceTime(ctx)
-	require.ErrorIs(t, err, sql.ErrNoRows, "all past files should be deleted")
+	// All forecast files should be deleted; forecast rows remain but have no files.
+	// Verify by trying to get the latest reference time - it still exists (forecast
+	// rows are not deleted), but a window query should return nothing.
+	rows, err := d.QueryRO().ListForecastFilesForWindow(ctx, db.ListForecastFilesForWindowParams{
+		Start:  now.Add(-24 * time.Hour),
+		End:    now.Add(24 * time.Hour),
+		MaxLat: sql.NullFloat64{},
+		MinLat: sql.NullFloat64{},
+		MaxLon: sql.NullFloat64{},
+		MinLon: sql.NullFloat64{},
+	})
+	require.NoError(t, err)
+	require.Empty(t, rows, "all past files should be deleted")
 }

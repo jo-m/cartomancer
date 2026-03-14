@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	CollectionBaseURL = "https://data.geo.admin.ch/api/stac/v0.9/collections/ch.meteoschweiz.ogd-forecasting-icon-ch1"
-	CsvAssetKey       = "params_icon-ch1-eps.csv"
+	CsvAssetKey = "params_icon-ch1-eps.csv"
 )
 
 // Variable describes a meteorological forecast variable available in the
@@ -42,7 +41,7 @@ type Variable struct {
 // The CSV is fetched at runtime from the collection's asset href, so the caller
 // must have network access to the Swiss government STAC API.
 func FetchVariables(ctx context.Context) ([]Variable, error) {
-	coll, err := stac.FetchJSON[stac.Collection](ctx, CollectionBaseURL)
+	coll, err := stac.FetchJSON[stac.Collection](ctx, stac.GetCollectionURL())
 	if err != nil {
 		return nil, fmt.Errorf("fetching STAC collection: %w", err)
 	}

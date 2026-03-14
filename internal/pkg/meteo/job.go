@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/logg"
@@ -41,60 +40,44 @@ func NewDownloader(d *db.DB) *Downloader {
 
 var _ jobs.Job[DownloaderArgs] = (*Downloader)(nil)
 
-// meteoFileKey is the natural unique key for a forecast_files row.
-type meteoFileKey struct {
-	variable  string
-	validTime time.Time
-}
-
 // Run implements [jobs.Job].
-// It fetches the manifest for the newest STAC forecast run, determines which
-// files are not yet stored in the database, downloads only those files to a
-// temporary directory, and then commits them atomically to the blobs and
-// forecast_files tables.
+// It checks whether the newest forecast run available online is already stored
+// in the database. If the reference time already exists, it returns early.
+// Otherwise it downloads all files for that run and commits them atomically.
 func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
-	// Stage 1: fetch file manifest from STAC (no downloads yet).
+	// Stage 1: fetch the newest reference time from the STAC API (lightweight).
+	latestRefTime, err := FetchLatestReferenceTime(ctx)
+	if err != nil {
+		return fmt.Errorf("fetch latest reference time: %w", err)
+	}
+	if latestRefTime.IsZero() {
+		logg.Info(ctx, "No forecast runs available online")
+		return nil
+	}
+
+	// Stage 2: check if a forecast row already exists for this reference time.
+	exists, err := d.d.QueryRO().ForecastExistsForReferenceTime(ctx, latestRefTime)
+	if err != nil {
+		return fmt.Errorf("check existing forecast: %w", err)
+	}
+	if exists != 0 {
+		logg.Info(ctx, "Forecast already stored", "referenceTime", latestRefTime)
+		return nil
+	}
+
+	// Stage 3: fetch full manifest and download all files.
 	manifest, err := GetNewestForecast(ctx, DownloadVariables, NoHorizonLimit, false)
 	if err != nil {
 		return fmt.Errorf("fetch forecast manifest: %w", err)
 	}
 
-	// Stage 2: determine which files are not yet in the database (read-only, no lock held).
-	existingRows, err := d.d.QueryRO().ListForecastFileKeysForReferenceTime(ctx, manifest.ReferenceTime)
-	if err != nil {
-		return fmt.Errorf("query existing forecast files: %w", err)
-	}
-	existing := make(map[meteoFileKey]struct{}, len(existingRows))
-	for _, row := range existingRows {
-		existing[meteoFileKey{row.Variable, row.ValidTime}] = struct{}{}
-	}
-
-	gridExists, err := d.d.QueryRO().ForecastGridExistsForReferenceTime(ctx, manifest.ReferenceTime)
-	if err != nil {
-		return fmt.Errorf("check existing grid constants: %w", err)
-	}
-	needGrid := gridExists == 0
-
-	var newFiles []ForecastFile
-	for _, f := range manifest.Files {
-		if _, ok := existing[meteoFileKey{f.Meta.Variable, f.Meta.ValidTime}]; !ok {
-			newFiles = append(newFiles, f)
-		}
-	}
-	if len(newFiles) == 0 && !needGrid {
-		logg.Info(ctx, "All forecast files already stored", "referenceTime", manifest.ReferenceTime)
-		return nil
-	}
-	manifest.Files = newFiles
-
-	logg.Info(ctx, "Downloading new forecast files",
+	logg.Info(ctx, "Downloading new forecast",
 		"referenceTime", manifest.ReferenceTime,
-		"count", len(manifest.Files))
+		"fileCount", len(manifest.Files))
 
-	// Stage 3: download only the new files (long operation, no DB lock held).
 	result, err := DownloadForecast(ctx, manifest)
 	if err != nil {
 		return fmt.Errorf("download forecast: %w", err)
@@ -105,8 +88,55 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		}
 	}()
 
-	// Stage 4: atomically write all new blobs, forecast_files, and grid constants.
+	// Consistency check: every downloaded file must report the same reference
+	// time as the manifest.
+	for _, f := range result.Files {
+		if !f.Meta.ReferenceTime.Equal(manifest.ReferenceTime) {
+			return fmt.Errorf(
+				"reference time mismatch for %s: manifest=%s, file=%s",
+				f.Meta.Variable,
+				manifest.ReferenceTime.Format(time.RFC3339),
+				f.Meta.ReferenceTime.Format(time.RFC3339),
+			)
+		}
+	}
+
+	// Stage 4: atomically write forecast row and all forecast_files.
 	err = d.d.WithTx(ctx, func(tx *db.Queries) error {
+		gridPath := filepath.Join(result.Dir, result.GridConstantsPath)
+		gridContent, readErr := os.ReadFile(gridPath)
+		if readErr != nil {
+			return fmt.Errorf("read grid constants: %w", readErr)
+		}
+
+		// Use the bounding box from the first file (all files in a run
+		// share the same spatial domain).
+		var boundsMinLat, boundsMinLon, boundsMaxLat, boundsMaxLon float64
+		boundsMinLat = math.NaN()
+		boundsMinLon = math.NaN()
+		boundsMaxLat = math.NaN()
+		boundsMaxLon = math.NaN()
+		if len(result.Files) > 0 {
+			boundsMinLat = result.Files[0].Meta.BoundsMinLat
+			boundsMinLon = result.Files[0].Meta.BoundsMinLon
+			boundsMaxLat = result.Files[0].Meta.BoundsMaxLat
+			boundsMaxLon = result.Files[0].Meta.BoundsMaxLon
+		}
+
+		forecastRow, dbErr := tx.CreateForecast(ctx, db.CreateForecastParams{
+			CreatedAt:     time.Now(),
+			ReferenceTime: result.ReferenceTime,
+			BoundsMinLat:  nullFloat(boundsMinLat),
+			BoundsMinLon:  nullFloat(boundsMinLon),
+			BoundsMaxLat:  nullFloat(boundsMaxLat),
+			BoundsMaxLon:  nullFloat(boundsMaxLon),
+			GridFile:      gridContent,
+		})
+		if dbErr != nil {
+			return fmt.Errorf("create forecast record: %w", dbErr)
+		}
+		logg.Info(ctx, "Stored forecast", "referenceTime", result.ReferenceTime)
+
 		for _, f := range result.Files {
 			absPath := filepath.Join(result.Dir, f.Path)
 			content, readErr := os.ReadFile(absPath)
@@ -114,47 +144,15 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 				return fmt.Errorf("read %s: %w", absPath, readErr)
 			}
 
-			b, blobErr := blob.Create(ctx, tx, content, blob.CompressionNone)
-			if blobErr != nil {
-				return fmt.Errorf("create blob for %s: %w", f.Path, blobErr)
-			}
-
 			if _, dbErr := tx.CreateForecastFile(ctx, db.CreateForecastFileParams{
-				CreatedAt:     time.Now(),
-				ReferenceTime: result.ReferenceTime,
-				ValidTime:     f.Meta.ValidTime,
-				Variable:      f.Meta.Variable,
-				BoundsMinLat:  nullFloat(f.Meta.BoundsMinLat),
-				BoundsMinLon:  nullFloat(f.Meta.BoundsMinLon),
-				BoundsMaxLat:  nullFloat(f.Meta.BoundsMaxLat),
-				BoundsMaxLon:  nullFloat(f.Meta.BoundsMaxLon),
-				BlobID:        b.ID,
+				ValidTime:  f.Meta.ValidTime,
+				Variable:   f.Meta.Variable,
+				File:       content,
+				ForecastID: forecastRow.ID,
 			}); dbErr != nil {
 				return fmt.Errorf("create forecast_file record for %s validTime=%s: %w",
 					f.Meta.Variable, f.Meta.ValidTime.Format(time.RFC3339), dbErr)
 			}
-		}
-
-		if needGrid {
-			gridPath := filepath.Join(result.Dir, result.GridConstantsPath)
-			gridContent, readErr := os.ReadFile(gridPath)
-			if readErr != nil {
-				return fmt.Errorf("read grid constants: %w", readErr)
-			}
-
-			b, blobErr := blob.Create(ctx, tx, gridContent, blob.CompressionNone)
-			if blobErr != nil {
-				return fmt.Errorf("create blob for grid constants: %w", blobErr)
-			}
-
-			if _, dbErr := tx.CreateForecastGrid(ctx, db.CreateForecastGridParams{
-				CreatedAt:     time.Now(),
-				ReferenceTime: result.ReferenceTime,
-				BlobID:        b.ID,
-			}); dbErr != nil {
-				return fmt.Errorf("create forecast_grid record: %w", dbErr)
-			}
-			logg.Info(ctx, "Stored grid constants", "referenceTime", result.ReferenceTime)
 		}
 
 		return nil

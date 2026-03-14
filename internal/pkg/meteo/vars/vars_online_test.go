@@ -15,7 +15,7 @@ import (
 // TestOnlineFetchVariablesCSV verifies that the variables CSV file is up to date.
 func TestOnlineFetchVariablesCSV(t *testing.T) {
 	ctx := context.Background()
-	coll, err := stac.FetchJSON[stac.Collection](ctx, CollectionBaseURL)
+	coll, err := stac.FetchJSON[stac.Collection](ctx, stac.GetCollectionURL())
 	require.NoError(t, err)
 
 	csvAsset, ok := coll.Assets[CsvAssetKey]
