@@ -10,6 +10,7 @@ import StarIcon from "../assets/StarIcon"
 import ForecastChart from "../components/ForecastChart"
 import TagsInput from "../components/TagsInput"
 import Toast from "../components/Toast"
+import TrackMap from "../components/TrackMap"
 import {
   SPORT_LABELS,
   SUB_SPORT_LABELS,
@@ -63,6 +64,10 @@ export default function Track() {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const { data, isLoading, error } = $api.useQuery("get", "/tracks/{uuid}", {
+    params: { path: { uuid: uuid! } },
+  })
+
+  const { data: pointsData } = $api.useQuery("get", "/tracks/{uuid}/points", {
     params: { path: { uuid: uuid! } },
   })
 
@@ -194,12 +199,18 @@ export default function Track() {
         <p className="mt-2 text-sm text-gray-600">{data.description}</p>
       )}
 
-      <div className="mt-6 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
-        <img
-          src={`/api/tracks/${data.uuid}/preview.svg?size=512`}
-          alt="Track preview"
-          className="w-full object-contain"
-        />
+      <div className="mt-6">
+        {pointsData?.points && pointsData.points.length > 0 ? (
+          <TrackMap points={pointsData.points as [number, number][]} />
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+            <img
+              src={`/api/tracks/${data.uuid}/preview.svg?size=512`}
+              alt="Track preview"
+              className="w-full object-contain"
+            />
+          </div>
+        )}
       </div>
 
       <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">

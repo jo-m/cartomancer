@@ -436,6 +436,81 @@ func TestDeleteTrack_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, status)
 }
 
+func TestGetTrackPoints_PublicTrack(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, uploaded := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	trackUUID := uploaded["uuid"].(string)
+	e.makeTrackPublic(alice, trackUUID, uploaded["name"].(string))
+
+	anon := e.newClient()
+	var resp map[string]any
+	status, _ = e.do(anon, http.MethodGet, "/tracks/"+trackUUID+"/points", nil, &resp)
+	assert.Equal(t, http.StatusOK, status)
+
+	points, ok := resp["points"].([]any)
+	require.True(t, ok, "response must contain points array")
+	assert.Greater(t, len(points), 2, "subsampled track should have at least 3 points")
+
+	// Each point must be a [lat, lon] pair.
+	first := points[0].([]any)
+	assert.Len(t, first, 2)
+	assert.IsType(t, float64(0), first[0])
+	assert.IsType(t, float64(0), first[1])
+}
+
+func TestGetTrackPoints_PrivateTrack_Forbidden(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, uploaded := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	trackUUID := uploaded["uuid"].(string)
+
+	anon := e.newClient()
+	status, _ = e.do(anon, http.MethodGet, "/tracks/"+trackUUID+"/points", nil, nil)
+	assert.Equal(t, http.StatusNotFound, status)
+}
+
+func TestGetTrackPoints_ETag(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, uploaded := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	trackUUID := uploaded["uuid"].(string)
+
+	// First request: get the ETag.
+	req, err := http.NewRequest(http.MethodGet, e.ts.URL+"/tracks/"+trackUUID+"/points", nil)
+	require.NoError(t, err)
+	resp, err := alice.Do(req)
+	require.NoError(t, err)
+	resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	eTag := resp.Header.Get("ETag")
+	require.NotEmpty(t, eTag)
+
+	// Second request with If-None-Match should return 304.
+	req, err = http.NewRequest(http.MethodGet, e.ts.URL+"/tracks/"+trackUUID+"/points", nil)
+	require.NoError(t, err)
+	req.Header.Set("If-None-Match", eTag)
+	resp, err = alice.Do(req)
+	require.NoError(t, err)
+	resp.Body.Close()
+	assert.Equal(t, http.StatusNotModified, resp.StatusCode)
+}
+
 func TestGetTrack_IsOwner(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("alice@example.com", "Alice", "secret", false)

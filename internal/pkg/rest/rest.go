@@ -74,6 +74,7 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 	mux.Get("/tracks/{uuid}/download", sv.handleDownloadTrackBlob)
 	mux.Get("/tracks/{uuid}/preview.svg", sv.handleDownloadTrackSVG)
 	mux.Get("/tracks/{uuid}/profile.svg", sv.handleDownloadTrackProfileSVG)
+	mux.Get("/tracks/{uuid}/points", sv.handleGetTrackPoints)
 	mux.Get("/tags", sv.handleSuggestTags)
 
 	mux.Group(func(r chi.Router) {

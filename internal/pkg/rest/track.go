@@ -371,6 +371,62 @@ func parseSVGOptions(r *http.Request) (track.PreviewOptions, error) {
 	return opts, nil
 }
 
+// handleGetTrackPoints returns track points as [lat, lon] pairs.
+// Public tracks are accessible without authentication; private tracks require the owner.
+func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+	trackUUID := chi.URLParam(r, "uuid")
+
+	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "track not found")
+			return
+		}
+		logg.Error(ctx, "failed to get track", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
+		writeError(w, http.StatusNotFound, "track not found")
+		return
+	}
+
+	eTag := fmt.Sprintf(`"%d-points-v0"`, t.UpdatedAt.UnixMilli())
+	if r.Header.Get("If-None-Match") == eTag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
+	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
+	if err != nil {
+		logg.Error(ctx, "failed to get track blob", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
+	if err != nil {
+		logg.Error(ctx, "failed to parse track blob", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	tr := track.New(src, 0)
+	pts := tr.Points()
+
+	points := make([][2]float64, len(pts))
+	for i, p := range pts {
+		points[i] = [2]float64{p.Lat, p.Lon}
+	}
+
+	w.Header().Set("Cache-Control", "private, max-age=3600")
+	w.Header().Set("ETag", eTag)
+	writeJSON(w, http.StatusOK, map[string]any{"points": points})
+}
+
 type editTrackRequest struct {
 	Name          string   `json:"name"`
 	Description   string   `json:"description"`
