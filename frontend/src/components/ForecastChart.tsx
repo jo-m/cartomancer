@@ -1,4 +1,15 @@
-import { useState } from "react"
+import { useState, useCallback } from "react"
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Line,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceLine,
+} from "recharts"
 import { fetchClient } from "../api/client"
 
 interface ForecastPoint {
@@ -10,52 +21,29 @@ interface ForecastPoint {
   precipitationRate: number
 }
 
+interface ChartDatum {
+  ts: number
+  label: string
+  temperatureC: number
+  precipitationRate: number
+}
+
 interface Props {
   trackUuid: string
   totalDistanceM: number
   onError: (msg: string) => void
 }
 
-const WIDTH = 600
-const HEIGHT = 200
-const PAD_LEFT = 50
-const PAD_RIGHT = 20
-const PAD_TOP = 20
-const PAD_BOTTOM = 40
-const INNER_W = WIDTH - PAD_LEFT - PAD_RIGHT
-const INNER_H = HEIGHT - PAD_TOP - PAD_BOTTOM
-
-/** Formats a Date as HH:MM in 24-hour format. */
-function fmtTime(d: Date): string {
-  return d.toLocaleTimeString(undefined, {
+/** Formats a timestamp as HH:MM in 24-hour format. */
+function fmtTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   })
 }
 
-/** Builds an SVG polyline points string from data. */
-function polyline(
-  points: ForecastPoint[],
-  minT: number,
-  maxT: number,
-  getValue: (p: ForecastPoint) => number,
-  minV: number,
-  maxV: number
-): string {
-  const rangeV = maxV - minV || 1
-  const rangeT = maxT - minT || 1
-  return points
-    .map((p) => {
-      const t = new Date(p.time).getTime()
-      const x = PAD_LEFT + ((t - minT) / rangeT) * INNER_W
-      const y = PAD_TOP + (1 - (getValue(p) - minV) / rangeV) * INNER_H
-      return `${x.toFixed(1)},${y.toFixed(1)}`
-    })
-    .join(" ")
-}
-
-/** Renders the forecast temperature and precipitation chart as an inline SVG. */
+/** Renders the forecast temperature and precipitation chart. */
 export default function ForecastChart({
   trackUuid,
   totalDistanceM,
@@ -112,7 +100,6 @@ export default function ForecastChart({
     }
   }
 
-  // Estimate duration for display.
   const speed = parseFloat(speedKmh)
   const estDurationH =
     !isNaN(speed) && speed > 0 ? totalDistanceM / 1000 / speed : 0
@@ -178,7 +165,7 @@ export default function ForecastChart({
           disabled={loading}
           className="rounded border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading ? "Loading…" : "Generate forecast"}
+          {loading ? "Loading..." : "Generate forecast"}
         </button>
         {estDurationH > 0 && (
           <span className="text-xs text-gray-500">
@@ -187,128 +174,111 @@ export default function ForecastChart({
         )}
       </div>
 
-      {points && <Chart points={points} />}
+      {points && <Charts points={points} />}
     </div>
   )
 }
 
-/** Renders temperature and precipitation as two stacked SVG charts. */
-function Chart({ points }: { points: ForecastPoint[] }) {
-  const times = points.map((p) => new Date(p.time).getTime())
-  const minT = Math.min(...times)
-  const maxT = Math.max(...times)
+/** Renders temperature and precipitation as two vertically stacked recharts. */
+function Charts({ points }: { points: ForecastPoint[] }) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
-  const temps = points.map((p) => p.temperatureC).filter((v) => isFinite(v))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleMouseMove = useCallback((state: any) => {
+    if (state?.activeTooltipIndex != null) {
+      setActiveIndex(state.activeTooltipIndex as number)
+    }
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    setActiveIndex(null)
+  }, [])
+
+  const data: ChartDatum[] = points.map((p) => ({
+    ts: new Date(p.time).getTime(),
+    label: fmtTime(new Date(p.time).getTime()),
+    temperatureC: Math.round(p.temperatureC * 10) / 10,
+    precipitationRate: Math.round(p.precipitationRate * 100) / 100,
+  }))
+
+  const temps = data.map((d) => d.temperatureC).filter(isFinite)
   const minTemp = temps.length ? Math.floor(Math.min(...temps)) - 1 : 0
   const maxTemp = temps.length ? Math.ceil(Math.max(...temps)) + 1 : 20
 
-  const precips = points.map((p) => p.precipitationRate)
-  const maxPrecip = Math.max(0.1, ...precips)
+  const tickFormatter = (ts: number) => fmtTime(ts)
 
-  // Generate ~5 time ticks.
-  const timeRange = maxT - minT
-  const timeTicks: number[] = []
-  if (timeRange > 0) {
-    const step = timeRange / 5
-    for (let i = 0; i <= 5; i++) {
-      timeTicks.push(minT + i * step)
-    }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tooltipFormatter = (value: any, name: any) => {
+    if (name === "temperatureC") return [`${value} C`, "Temperature"]
+    if (name === "precipitationRate") return [`${value}`, "Precipitation"]
+    return [value, name]
   }
 
-  // Generate ~4 temp ticks.
-  const tempRange = maxTemp - minTemp
-  const tempStep = Math.ceil(tempRange / 4) || 1
-  const tempTicks: number[] = []
-  for (let v = minTemp; v <= maxTemp; v += tempStep) {
-    tempTicks.push(v)
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tooltipLabelFormatter = (ts: any) => fmtTime(ts as number)
 
-  const tempLine = polyline(
-    points,
-    minT,
-    maxT,
-    (p) => p.temperatureC,
-    minTemp,
-    maxTemp
-  )
+  // Shared cursor position via activeIndex: we render a ReferenceLine in each chart.
+  const activeTs = activeIndex != null ? data[activeIndex]?.ts : null
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="mt-4 space-y-2">
       {/* Temperature chart */}
       <div>
         <p className="mb-1 text-xs font-medium text-gray-500">
           Temperature (C)
         </p>
-        <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className="w-full rounded border border-gray-200 bg-white"
-        >
-          {/* Grid lines */}
-          {tempTicks.map((v) => {
-            const y =
-              PAD_TOP + (1 - (v - minTemp) / (maxTemp - minTemp)) * INNER_H
-            return (
-              <g key={v}>
-                <line
-                  x1={PAD_LEFT}
-                  x2={WIDTH - PAD_RIGHT}
-                  y1={y}
-                  y2={y}
-                  stroke="#e5e7eb"
-                  strokeWidth="0.5"
-                />
-                <text
-                  x={PAD_LEFT - 6}
-                  y={y + 3}
-                  textAnchor="end"
-                  fontSize="9"
-                  fill="#6b7280"
-                >
-                  {v}
-                </text>
-              </g>
-            )
-          })}
-
-          {/* Time axis */}
-          {timeTicks.map((t) => {
-            const x = PAD_LEFT + ((t - minT) / (maxT - minT || 1)) * INNER_W
-            return (
-              <text
-                key={t}
-                x={x}
-                y={HEIGHT - 8}
-                textAnchor="middle"
-                fontSize="9"
-                fill="#6b7280"
-              >
-                {fmtTime(new Date(t))}
-              </text>
-            )
-          })}
-
-          {/* Zero line */}
-          {minTemp < 0 && maxTemp > 0 && (
-            <line
-              x1={PAD_LEFT}
-              x2={WIDTH - PAD_RIGHT}
-              y1={PAD_TOP + (1 - (0 - minTemp) / (maxTemp - minTemp)) * INNER_H}
-              y2={PAD_TOP + (1 - (0 - minTemp) / (maxTemp - minTemp)) * INNER_H}
-              stroke="#9ca3af"
-              strokeWidth="0.5"
-              strokeDasharray="4 2"
+        <ResponsiveContainer width="100%" height={180}>
+          <ComposedChart
+            data={data}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            syncId="forecast"
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis
+              dataKey="ts"
+              type="number"
+              domain={["dataMin", "dataMax"]}
+              tickFormatter={tickFormatter}
+              tick={{ fontSize: 11, fill: "#6b7280" }}
+              stroke="#d1d5db"
             />
-          )}
-
-          <polyline
-            points={tempLine}
-            fill="none"
-            stroke="#ef4444"
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
-        </svg>
+            <YAxis
+              domain={[minTemp, maxTemp]}
+              tick={{ fontSize: 11, fill: "#6b7280" }}
+              stroke="#d1d5db"
+              width={36}
+            />
+            <Tooltip
+              formatter={tooltipFormatter}
+              labelFormatter={tooltipLabelFormatter}
+              contentStyle={{
+                fontSize: 12,
+                borderColor: "#e5e7eb",
+                borderRadius: 4,
+              }}
+            />
+            {minTemp < 0 && maxTemp > 0 && (
+              <ReferenceLine
+                y={0}
+                stroke="#9ca3af"
+                strokeDasharray="4 2"
+                strokeWidth={0.5}
+              />
+            )}
+            {activeTs != null && (
+              <ReferenceLine x={activeTs} stroke="#9ca3af" strokeWidth={1} />
+            )}
+            <Line
+              type="monotone"
+              dataKey="temperatureC"
+              stroke="#ef4444"
+              strokeWidth={1.5}
+              dot={false}
+              activeDot={{ r: 3, fill: "#ef4444" }}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Precipitation chart */}
@@ -316,47 +286,47 @@ function Chart({ points }: { points: ForecastPoint[] }) {
         <p className="mb-1 text-xs font-medium text-gray-500">
           Precipitation rate
         </p>
-        <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT / 2 + PAD_BOTTOM}`}
-          className="w-full rounded border border-gray-200 bg-white"
-        >
-          {/* Time axis */}
-          {timeTicks.map((t) => {
-            const x = PAD_LEFT + ((t - minT) / (maxT - minT || 1)) * INNER_W
-            return (
-              <text
-                key={t}
-                x={x}
-                y={HEIGHT / 2 + PAD_BOTTOM - 8}
-                textAnchor="middle"
-                fontSize="9"
-                fill="#6b7280"
-              >
-                {fmtTime(new Date(t))}
-              </text>
-            )
-          })}
-
-          {/* Bars */}
-          {points.map((p, i) => {
-            const t = new Date(p.time).getTime()
-            const x = PAD_LEFT + ((t - minT) / (maxT - minT || 1)) * INNER_W
-            const barH =
-              (p.precipitationRate / maxPrecip) * (HEIGHT / 2 - PAD_TOP)
-            const barW = Math.max(1, INNER_W / points.length - 0.5)
-            return (
-              <rect
-                key={i}
-                x={x - barW / 2}
-                y={HEIGHT / 2 - barH}
-                width={barW}
-                height={barH}
-                fill="#3b82f6"
-                opacity="0.7"
-              />
-            )
-          })}
-        </svg>
+        <ResponsiveContainer width="100%" height={120}>
+          <ComposedChart
+            data={data}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            syncId="forecast"
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis
+              dataKey="ts"
+              type="number"
+              domain={["dataMin", "dataMax"]}
+              tickFormatter={tickFormatter}
+              tick={{ fontSize: 11, fill: "#6b7280" }}
+              stroke="#d1d5db"
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: "#6b7280" }}
+              stroke="#d1d5db"
+              width={36}
+            />
+            <Tooltip
+              formatter={tooltipFormatter}
+              labelFormatter={tooltipLabelFormatter}
+              contentStyle={{
+                fontSize: 12,
+                borderColor: "#e5e7eb",
+                borderRadius: 4,
+              }}
+            />
+            {activeTs != null && (
+              <ReferenceLine x={activeTs} stroke="#9ca3af" strokeWidth={1} />
+            )}
+            <Bar
+              dataKey="precipitationRate"
+              fill="#3b82f6"
+              opacity={0.7}
+              maxBarSize={8}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
       </div>
     </div>
   )
