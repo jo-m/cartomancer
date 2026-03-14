@@ -16,10 +16,10 @@ import (
 	"github.com/google/uuid"
 	"jo-m.ch/go/detour/internal/pkg/app"
 	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/forecast"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 	"jo-m.ch/go/detour/internal/pkg/mail"
+	"jo-m.ch/go/detour/internal/pkg/meteo"
 	"jo-m.ch/go/detour/internal/pkg/password"
 	"jo-m.ch/go/detour/internal/pkg/rest"
 	"jo-m.ch/go/detour/internal/pkg/session"
@@ -143,13 +143,13 @@ func main() {
 	jobs.MustRegisterJob(w, session.NewCleaner(d))
 	jobs.MustRegisterJob(w, mail.NewMailer(c.MailerConfig))
 	jobs.MustRegisterJob(w, users.NewEmailVerificationCleaner(d))
-	jobs.MustRegisterJob(w, forecast.NewDownloader(d))
-	jobs.MustRegisterJob(w, forecast.NewCleaner(d))
+	jobs.MustRegisterJob(w, meteo.NewDownloader(d))
+	jobs.MustRegisterJob(w, meteo.NewCleaner(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute)
 	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour)
-	jobs.Periodic(ctxJobs, w.Submitter(), forecast.DownloaderArgs{}, time.Hour)
-	jobs.Periodic(ctxJobs, w.Submitter(), forecast.CleanerArgs(), time.Hour)
-	jobs.Submit(ctxJobs, w.Submitter(), forecast.DownloaderArgs{}, jobs.Params{}) // Run immediately.
+	jobs.Periodic(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, time.Hour)
+	jobs.Periodic(ctxJobs, w.Submitter(), meteo.CleanerArgs(), time.Hour)
+	jobs.Submit(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, jobs.Params{}) // Run immediately.
 
 	// TODO: clean shutdown via context.
 	w.RunInBackground(ctxJobs)

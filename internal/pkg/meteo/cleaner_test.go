@@ -1,4 +1,4 @@
-package forecast
+package meteo
 
 import (
 	"database/sql"
@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/forecast/vars"
 	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 )
 
 // insertForecastFileWithValidTime is a test helper that creates a blob and a
-// forecast_file row with the given valid_time, returning the file ID.
+// forecast_files row with the given valid_time, returning the file ID.
 func insertForecastFileWithValidTime(t *testing.T, d *db.DB, validTime time.Time) int64 {
 	t.Helper()
 	ctx := logg.WithDiscardHandler(t.Context())

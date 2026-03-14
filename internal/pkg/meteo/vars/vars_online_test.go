@@ -8,7 +8,7 @@ import (
 
 	"github.com/franiglesias/golden"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/forecast/stac"
+	"jo-m.ch/go/detour/internal/pkg/meteo/stac"
 	"jo-m.ch/go/detour/internal/pkg/utl"
 )
 

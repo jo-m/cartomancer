@@ -13,9 +13,9 @@ import (
 
 	"github.com/franiglesias/golden"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/forecast"
-	"jo-m.ch/go/detour/internal/pkg/forecast/vars"
 	"jo-m.ch/go/detour/internal/pkg/grib2"
+	"jo-m.ch/go/detour/internal/pkg/meteo"
+	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 )
 
 // TestOnlineParseU downloads the U wind component at the 0-hour horizon, parses the
@@ -24,7 +24,7 @@ import (
 // lowest-level field to a JPEG for visual inspection.
 func TestOnlineParseU(t *testing.T) {
 	ctx := context.Background()
-	result, err := forecast.Download(ctx, []vars.Variable{vars.VarU}, 0, false)
+	result, err := meteo.Download(ctx, []vars.Variable{vars.VarU}, 0, false)
 	require.NoError(t, err)
 	defer os.RemoveAll(result.Dir)
 
@@ -65,7 +65,7 @@ func TestOnlineParseU(t *testing.T) {
 func TestOnlineParseV(t *testing.T) {
 	ctx := context.Background()
 	// Forecast runs every 6h and horizon is 33h, so with 8h horizon we always get some files.
-	result, err := forecast.Download(ctx, []vars.Variable{vars.VarV}, 0, false)
+	result, err := meteo.Download(ctx, []vars.Variable{vars.VarV}, 0, false)
 	require.NoError(t, err)
 	defer os.RemoveAll(result.Dir)
 

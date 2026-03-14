@@ -1,4 +1,4 @@
-package forecast
+package meteo
 
 import (
 	"context"
@@ -11,20 +11,20 @@ import (
 
 	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/forecast/vars"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 )
 
-// targetDownloadVariables is the list of forecast variables stored by the downloader job.
-var targetDownloadVariables = []vars.Variable{vars.VarU10m, vars.VarV10m, vars.VarTotPr, vars.VarT2m}
+// DownloadVariables is the list of forecast variables stored by the downloader job.
+var DownloadVariables = []vars.Variable{vars.VarU10m, vars.VarV10m, vars.VarTotPr, vars.VarT2m}
 
 // DownloaderArgs are the arguments for the forecast downloader job.
 // No configuration fields are needed; behaviour is fixed at registration time.
 type DownloaderArgs struct{}
 
 // Kind implements [jobs.Args].
-func (DownloaderArgs) Kind() string { return "forecast.downloader" }
+func (DownloaderArgs) Kind() string { return "meteo.downloader" }
 
 var _ jobs.Args = (*DownloaderArgs)(nil)
 
@@ -41,8 +41,8 @@ func NewDownloader(d *db.DB) *Downloader {
 
 var _ jobs.Job[DownloaderArgs] = (*Downloader)(nil)
 
-// forecastFileKey is the natural unique key for a forecast file row.
-type forecastFileKey struct {
+// meteoFileKey is the natural unique key for a forecast_files row.
+type meteoFileKey struct {
 	variable  string
 	validTime time.Time
 }
@@ -57,7 +57,7 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	defer cancel()
 
 	// Stage 1: fetch file manifest from STAC (no downloads yet).
-	manifest, err := GetNewestForecast(ctx, targetDownloadVariables, NoHorizonLimit, false)
+	manifest, err := GetNewestForecast(ctx, DownloadVariables, NoHorizonLimit, false)
 	if err != nil {
 		return fmt.Errorf("fetch forecast manifest: %w", err)
 	}
@@ -67,18 +67,24 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	if err != nil {
 		return fmt.Errorf("query existing forecast files: %w", err)
 	}
-	existing := make(map[forecastFileKey]struct{}, len(existingRows))
+	existing := make(map[meteoFileKey]struct{}, len(existingRows))
 	for _, row := range existingRows {
-		existing[forecastFileKey{row.Variable, row.ValidTime}] = struct{}{}
+		existing[meteoFileKey{row.Variable, row.ValidTime}] = struct{}{}
 	}
+
+	gridExists, err := d.d.QueryRO().ForecastGridExistsForReferenceTime(ctx, manifest.ReferenceTime)
+	if err != nil {
+		return fmt.Errorf("check existing grid constants: %w", err)
+	}
+	needGrid := gridExists == 0
 
 	var newFiles []ForecastFile
 	for _, f := range manifest.Files {
-		if _, ok := existing[forecastFileKey{f.Meta.Variable, f.Meta.ValidTime}]; !ok {
+		if _, ok := existing[meteoFileKey{f.Meta.Variable, f.Meta.ValidTime}]; !ok {
 			newFiles = append(newFiles, f)
 		}
 	}
-	if len(newFiles) == 0 {
+	if len(newFiles) == 0 && !needGrid {
 		logg.Info(ctx, "All forecast files already stored", "referenceTime", manifest.ReferenceTime)
 		return nil
 	}
@@ -99,7 +105,7 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		}
 	}()
 
-	// Stage 4: atomically write all new blobs and forecast_file records.
+	// Stage 4: atomically write all new blobs, forecast_files, and grid constants.
 	err = d.d.WithTx(ctx, func(tx *db.Queries) error {
 		for _, f := range result.Files {
 			absPath := filepath.Join(result.Dir, f.Path)
@@ -128,6 +134,29 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 					f.Meta.Variable, f.Meta.ValidTime.Format(time.RFC3339), dbErr)
 			}
 		}
+
+		if needGrid {
+			gridPath := filepath.Join(result.Dir, result.GridConstantsPath)
+			gridContent, readErr := os.ReadFile(gridPath)
+			if readErr != nil {
+				return fmt.Errorf("read grid constants: %w", readErr)
+			}
+
+			b, blobErr := blob.Create(ctx, tx, gridContent, blob.CompressionNone)
+			if blobErr != nil {
+				return fmt.Errorf("create blob for grid constants: %w", blobErr)
+			}
+
+			if _, dbErr := tx.CreateForecastGrid(ctx, db.CreateForecastGridParams{
+				CreatedAt:     time.Now(),
+				ReferenceTime: result.ReferenceTime,
+				BlobID:        b.ID,
+			}); dbErr != nil {
+				return fmt.Errorf("create forecast_grid record: %w", dbErr)
+			}
+			logg.Info(ctx, "Stored grid constants", "referenceTime", result.ReferenceTime)
+		}
+
 		return nil
 	})
 	if err != nil {

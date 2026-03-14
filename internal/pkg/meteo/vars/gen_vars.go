@@ -3,7 +3,7 @@
 // gen_vars.go reads testdata/TestOnlineFetchVariablesCSV.csv and writes
 // vars.gen.go containing named Variable vars and the Variables slice.
 //
-// Run via: go generate ./internal/pkg/forecast/vars/
+// Run via: go generate ./internal/pkg/meteo/vars/
 package main
 
 import (

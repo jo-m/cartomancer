@@ -18,9 +18,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"jo-m.ch/go/detour/internal/pkg/forecast"
-	"jo-m.ch/go/detour/internal/pkg/forecast/vars"
 	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/meteo"
+	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 	"jo-m.ch/go/detour/internal/pkg/utl"
 )
 
@@ -30,7 +30,7 @@ func main() {
 	logger := logg.New(logg.LoggConfig{LogPretty: true, LogLevel: logg.LevelTrace})
 	slog.SetDefault(logger)
 
-	result, err := forecast.Download(context.Background(), []vars.Variable{vars.VarT2m, vars.VarTotPr}, 0, false)
+	result, err := meteo.Download(context.Background(), []vars.Variable{vars.VarT2m, vars.VarTotPr}, 0, false)
 	must(err)
 	defer os.RemoveAll(result.Dir)
 

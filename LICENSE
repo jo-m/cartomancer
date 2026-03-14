@@ -1,7 +1,7 @@
 Third-party data included in this repository
 ============================================
 
-Some files in internal/pkg/forecast/ and internal/pkg/grib2/ are licensed
+Some files in internal/pkg/meteo/ and internal/pkg/grib2/ are licensed
 under different licenses. See notices in respective LICENSE files.
 
 Everything else

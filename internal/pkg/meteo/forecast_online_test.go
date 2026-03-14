@@ -1,6 +1,6 @@
 //go:build online
 
-package forecast_test
+package meteo_test
 
 import (
 	"context"
@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/forecast"
-	"jo-m.ch/go/detour/internal/pkg/forecast/vars"
 	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/meteo"
+	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 )
 
 // TestOnlineDownload verifies that GRIB2 files for a small variable selection can be
@@ -22,7 +22,7 @@ func TestOnlineDownload(t *testing.T) {
 	logger := logg.New(logg.LoggConfig{LogPretty: false, LogLevel: logg.LevelTrace})
 	slog.SetDefault(logger)
 
-	result, err := forecast.Download(context.Background(), []vars.Variable{vars.VarT2m, vars.VarTotPr}, 0, false)
+	result, err := meteo.Download(context.Background(), []vars.Variable{vars.VarT2m, vars.VarTotPr}, 0, false)
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(result.Dir) })
 

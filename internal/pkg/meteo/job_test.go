@@ -1,4 +1,4 @@
-package forecast
+package meteo
 
 import (
 	"database/sql"
@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/forecast/stac"
-	"jo-m.ch/go/detour/internal/pkg/forecast/vars"
 	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/meteo/stac"
+	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 )
 
 func TestParseISO8601Duration(t *testing.T) {
