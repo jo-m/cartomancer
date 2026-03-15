@@ -19,8 +19,9 @@
 - [x] Store vertical+horizontal grid data for forecasts
 - [ ] Show track owner/user in frontend
 - [x] Aggressive caching with etag headers for all expensive endpoints
-- [ ] Forecast also wind, incl. direction, and sunshine duration
-- [ ] Track names in DB: Strip whitespace before saving. Strip any leading dots. Do not allow empty. On upload, assign some name if empty.
+- [ ] Forecast also wind, incl. direction, and CLCH surface cloud cover
+- [x] Track names in DB: Strip whitespace before saving. Strip any leading dots. Do not allow empty. On upload, assign some name if empty.
+- [ ] Update to Vite 8
 
 ## Test
 
