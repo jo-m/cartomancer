@@ -1155,6 +1155,15 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 
 	meta := t.EnhancedMetadata()
 
+	meta.Name = strings.TrimSpace(meta.Name)
+	if meta.Name == "" {
+		name := strings.TrimSuffix(header.Filename, filepath.Ext(header.Filename))
+		meta.Name = strings.TrimSpace(name)
+	}
+	if meta.Name == "" {
+		meta.Name = "Track uploaded " + time.Now().UTC().Format("2006-01-02 15:04:05")
+	}
+
 	if meta.TotalDistanceM < minTrackDistM {
 		writeError(w, http.StatusUnprocessableEntity, "track distance must be at least 10 m")
 		return

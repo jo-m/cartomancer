@@ -9,6 +9,7 @@ import (
 	"net/textproto"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,17 +20,15 @@ const testGPXFile = "../load/testdata/COURSE_436298480.gpx"
 const testGPXFile2 = "../load/testdata/2022-05-25_781839002_BP LA - Granadilla - Vilaflor - Boca Tauce - Arona (Road).gpx"
 
 // doUpload sends a multipart POST /tracks request with the given file.
-func (e *testEnv) doUpload(client *http.Client, filename string) (int, map[string]any) {
+// doUploadRaw sends a multipart POST /tracks request with given content and upload filename.
+func (e *testEnv) doUploadRaw(client *http.Client, content []byte, uploadFilename string) (int, map[string]any) {
 	e.t.Helper()
-
-	content, err := os.ReadFile(filename)
-	require.NoError(e.t, err)
 
 	var buf bytes.Buffer
 	mw := multipart.NewWriter(&buf)
 
 	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition", `form-data; name="file"; filename="`+filepath.Base(filename)+`"`)
+	h.Set("Content-Disposition", `form-data; name="file"; filename="`+uploadFilename+`"`)
 	h.Set("Content-Type", "application/gpx+xml")
 	part, err := mw.CreatePart(h)
 	require.NoError(e.t, err)
@@ -54,6 +53,15 @@ func (e *testEnv) doUpload(client *http.Client, filename string) (int, map[strin
 	}
 
 	return resp.StatusCode, result
+}
+
+func (e *testEnv) doUpload(client *http.Client, filename string) (int, map[string]any) {
+	e.t.Helper()
+
+	content, err := os.ReadFile(filename)
+	require.NoError(e.t, err)
+
+	return e.doUploadRaw(client, content, filepath.Base(filename))
 }
 
 func TestUploadTrack_Unauthenticated(t *testing.T) {
@@ -537,4 +545,53 @@ func TestGetTrack_IsOwner(t *testing.T) {
 	status, _ = e.do(bob, http.MethodGet, "/tracks/"+trackUUID, nil, &track)
 	assert.Equal(t, http.StatusOK, status)
 	assert.Equal(t, false, track["isOwner"])
+}
+
+// makeGPXWithName builds a minimal valid GPX with the given track name.
+func makeGPXWithName(name string) []byte {
+	return []byte(`<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><name>` + name + `</name><trkseg>
+    <trkpt lat="47.3769" lon="8.5417"><ele>408</ele></trkpt>
+    <trkpt lat="47.3779" lon="8.5427"><ele>410</ele></trkpt>
+    <trkpt lat="47.3789" lon="8.5437"><ele>412</ele></trkpt>
+    <trkpt lat="47.3799" lon="8.5447"><ele>414</ele></trkpt>
+    <trkpt lat="47.3809" lon="8.5457"><ele>416</ele></trkpt>
+  </trkseg></trk>
+</gpx>`)
+}
+
+func TestUploadTrack_NameFromMetadata(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	status, resp := e.doUploadRaw(client, makeGPXWithName("  My Track  "), "whatever.gpx")
+	require.Equal(t, http.StatusCreated, status)
+	assert.Equal(t, "My Track", resp["name"])
+}
+
+func TestUploadTrack_NameFallsBackToFilename(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	status, resp := e.doUploadRaw(client, makeGPXWithName("   "), "my-ride.gpx")
+	require.Equal(t, http.StatusCreated, status)
+	assert.Equal(t, "my-ride", resp["name"])
+}
+
+func TestUploadTrack_NameFallsBackToTimestamp(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	status, resp := e.doUploadRaw(client, makeGPXWithName(""), "  .gpx")
+	require.Equal(t, http.StatusCreated, status)
+	name, ok := resp["name"].(string)
+	require.True(t, ok)
+	assert.True(t, strings.HasPrefix(name, "Track uploaded "), "expected timestamp fallback, got: %s", name)
 }
