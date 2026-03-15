@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react"
+import { useEffect, useRef, useCallback, memo } from "react"
 import OlMap from "ol/Map"
 import OlView from "ol/View"
 import TileLayer from "ol/layer/Tile"
@@ -12,6 +12,8 @@ import { get as getProjection } from "ol/proj"
 import proj4 from "proj4"
 import { Circle, Fill, Stroke, Style } from "ol/style"
 import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
+
+import type { HoverStore } from "../hooks/useHoverSync"
 
 import "ol/ol.css"
 
@@ -44,18 +46,12 @@ interface TrackPoint {
 interface TrackMapProps {
   /** Array of track point objects in WGS84. */
   points: TrackPoint[]
-  /** Currently hovered point index, or null. */
-  hoverIndex: number | null
-  /** Callback when hover index changes from map interaction. */
-  onHoverIndexChange: (index: number | null) => void
+  /** Shared hover store for cross-component synchronization. */
+  hoverStore: HoverStore
 }
 
 /** Renders an interactive swisstopo map with the track line and hover marker. */
-export default function TrackMap({
-  points,
-  hoverIndex,
-  onHoverIndexChange,
-}: TrackMapProps) {
+export default memo(function TrackMap({ points, hoverStore }: TrackMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<OlMap | null>(null)
   const coordsRef = useRef<number[][]>([])
@@ -156,11 +152,11 @@ export default function TrackMap({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onPointerMove = (evt: any) => {
       const idx = findNearest(evt.pixel as number[])
-      onHoverIndexChange(idx)
+      hoverStore.set(idx)
     }
 
     const onPointerLeave = () => {
-      onHoverIndexChange(null)
+      hoverStore.set(null)
     }
 
     map.on("pointermove" as never, onPointerMove)
@@ -171,22 +167,25 @@ export default function TrackMap({
       map.un("pointermove" as never, onPointerMove)
       viewport.removeEventListener("pointerleave", onPointerLeave)
     }
-  }, [points, findNearest, onHoverIndexChange])
+  }, [points, findNearest, hoverStore])
 
-  // Update marker position based on hoverIndex.
+  // Update marker position imperatively when hover index changes.
   useEffect(() => {
-    const marker = markerFeature.current
-    if (!marker) return
+    return hoverStore.subscribe(() => {
+      const marker = markerFeature.current
+      if (!marker) return
 
-    const coords = coordsRef.current
-    if (hoverIndex != null && hoverIndex >= 0 && hoverIndex < coords.length) {
-      const geom = marker.getGeometry() as Point
-      geom.setCoordinates(coords[hoverIndex])
-      marker.setStyle(markerVisibleStyle)
-    } else {
-      marker.setStyle(markerHiddenStyle)
-    }
-  }, [hoverIndex])
+      const coords = coordsRef.current
+      const idx = hoverStore.get()
+      if (idx != null && idx >= 0 && idx < coords.length) {
+        const geom = marker.getGeometry() as Point
+        geom.setCoordinates(coords[idx])
+        marker.setStyle(markerVisibleStyle)
+      } else {
+        marker.setStyle(markerHiddenStyle)
+      }
+    })
+  }, [hoverStore])
 
   return (
     <div
@@ -194,4 +193,4 @@ export default function TrackMap({
       className="h-[400px] w-full rounded-lg border border-gray-200"
     />
   )
-}
+})

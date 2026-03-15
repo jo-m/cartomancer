@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { useForm, Controller } from "react-hook-form"
@@ -12,6 +12,7 @@ import ForecastChart from "../components/ForecastChart"
 import TagsInput from "../components/TagsInput"
 import Toast from "../components/Toast"
 import TrackMap from "../components/TrackMap"
+import { useHoverStore } from "../hooks/useHoverSync"
 import {
   SPORT_LABELS,
   SUB_SPORT_LABELS,
@@ -63,12 +64,7 @@ export default function Track() {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
-
-  const handleHoverIndexChange = useCallback(
-    (index: number | null) => setHoverIndex(index),
-    []
-  )
+  const hoverStore = useHoverStore()
 
   const { data, isLoading, error } = $api.useQuery("get", "/tracks/{uuid}", {
     params: { path: { uuid: uuid! } },
@@ -212,11 +208,7 @@ export default function Track() {
 
       <div className="mt-6">
         {trackPoints && trackPoints.length > 0 ? (
-          <TrackMap
-            points={trackPoints}
-            hoverIndex={hoverIndex}
-            onHoverIndexChange={handleHoverIndexChange}
-          />
+          <TrackMap points={trackPoints} hoverStore={hoverStore} />
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
             <img
@@ -229,11 +221,7 @@ export default function Track() {
       </div>
 
       {trackPoints && trackPoints.length > 0 && (
-        <ElevationProfile
-          points={trackPoints}
-          hoverIndex={hoverIndex}
-          onHoverIndexChange={handleHoverIndexChange}
-        />
+        <ElevationProfile points={trackPoints} hoverStore={hoverStore} />
       )}
 
       {user && (
@@ -241,8 +229,7 @@ export default function Track() {
           trackUuid={data.uuid}
           totalDistanceM={data.totalDistanceM}
           onError={setToastMessage}
-          hoverIndex={hoverIndex}
-          onHoverIndexChange={handleHoverIndexChange}
+          hoverStore={hoverStore}
         />
       )}
 

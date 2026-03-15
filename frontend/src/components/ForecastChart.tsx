@@ -11,6 +11,7 @@ import {
   ReferenceLine,
 } from "recharts"
 import { fetchClient } from "../api/client"
+import { useHoverValue, type HoverStore } from "../hooks/useHoverSync"
 
 interface ForecastPoint {
   index: number
@@ -35,8 +36,7 @@ interface Props {
   trackUuid: string
   totalDistanceM: number
   onError: (msg: string) => void
-  hoverIndex?: number | null
-  onHoverIndexChange?: (index: number | null) => void
+  hoverStore: HoverStore
 }
 
 /** Formats a timestamp as HH:MM in 24-hour format. */
@@ -53,8 +53,7 @@ export default function ForecastChart({
   trackUuid,
   totalDistanceM,
   onError,
-  hoverIndex,
-  onHoverIndexChange,
+  hoverStore,
 }: Props) {
   const [points, setPoints] = useState<ForecastPoint[] | null>(null)
   const [loading, setLoading] = useState(false)
@@ -181,13 +180,7 @@ export default function ForecastChart({
         )}
       </div>
 
-      {points && (
-        <Charts
-          points={points}
-          hoverIndex={hoverIndex ?? null}
-          onHoverIndexChange={onHoverIndexChange}
-        />
-      )}
+      {points && <Charts points={points} hoverStore={hoverStore} />}
     </div>
   )
 }
@@ -195,13 +188,12 @@ export default function ForecastChart({
 /** Renders temperature and precipitation as two vertically stacked recharts. */
 function Charts({
   points,
-  hoverIndex,
-  onHoverIndexChange,
+  hoverStore,
 }: {
   points: ForecastPoint[]
-  hoverIndex: number | null
-  onHoverIndexChange?: (index: number | null) => void
+  hoverStore: HoverStore
 }) {
+  const hoverIndex = useHoverValue(hoverStore)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   const data: ChartDatum[] = useMemo(
@@ -223,22 +215,25 @@ function Charts({
       if (state?.activeTooltipIndex != null) {
         const idx = state.activeTooltipIndex as number
         setActiveIndex(idx)
-        if (onHoverIndexChange && data[idx]) {
-          onHoverIndexChange(data[idx].index)
+        if (data[idx]) {
+          hoverStore.set(data[idx].index)
         }
       }
     },
-    [onHoverIndexChange, data]
+    [hoverStore, data]
   )
 
   const handleMouseLeave = useCallback(() => {
     setActiveIndex(null)
-    onHoverIndexChange?.(null)
-  }, [onHoverIndexChange])
+    hoverStore.set(null)
+  }, [hoverStore])
 
-  const temps = data.map((d) => d.temperatureC).filter(isFinite)
-  const minTemp = temps.length ? Math.floor(Math.min(...temps)) - 1 : 0
-  const maxTemp = temps.length ? Math.ceil(Math.max(...temps)) + 1 : 20
+  const [minTemp, maxTemp] = useMemo(() => {
+    const temps = data.map((d) => d.temperatureC).filter(isFinite)
+    const lo = temps.length ? Math.floor(Math.min(...temps)) - 1 : 0
+    const hi = temps.length ? Math.ceil(Math.max(...temps)) + 1 : 20
+    return [lo, hi]
+  }, [data])
 
   const tickFormatter = (ts: number) => fmtTime(ts)
 
@@ -252,12 +247,8 @@ function Charts({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tooltipLabelFormatter = (ts: any) => fmtTime(ts as number)
 
-  // Internal cursor from hovering this chart directly.
   const internalActiveTs = activeIndex != null ? data[activeIndex]?.ts : null
 
-  // External cursor from hoverIndex (map or elevation profile).
-  // Both endpoints share the same subsampled points, so the hoverIndex
-  // directly corresponds to the forecast data array index.
   let externalActiveTs: number | null = null
   if (hoverIndex != null && activeIndex == null && data[hoverIndex]) {
     externalActiveTs = data[hoverIndex].ts

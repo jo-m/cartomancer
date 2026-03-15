@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react"
+import { useCallback, useMemo, memo } from "react"
 import {
   ResponsiveContainer,
   AreaChart,
@@ -9,6 +9,7 @@ import {
   Tooltip,
   ReferenceLine,
 } from "recharts"
+import { useHoverValue, type HoverStore } from "../hooks/useHoverSync"
 
 interface TrackPoint {
   lat: number
@@ -19,16 +20,13 @@ interface TrackPoint {
 
 interface Props {
   points: TrackPoint[]
-  hoverIndex: number | null
-  onHoverIndexChange: (index: number | null) => void
+  hoverStore: HoverStore
 }
 
 /** Renders an interactive elevation profile chart using recharts. */
-export default function ElevationProfile({
-  points,
-  hoverIndex,
-  onHoverIndexChange,
-}: Props) {
+export default memo(function ElevationProfile({ points, hoverStore }: Props) {
+  const hoverIndex = useHoverValue(hoverStore)
+
   const data = useMemo(
     () =>
       points.map((p) => ({
@@ -38,27 +36,30 @@ export default function ElevationProfile({
     [points]
   )
 
-  const elevations = data.map((d) => d.ele).filter(isFinite)
-  const minEle = elevations.length
-    ? Math.floor(Math.min(...elevations) / 50) * 50
-    : 0
-  const maxEle = elevations.length
-    ? Math.ceil(Math.max(...elevations) / 50) * 50
-    : 1000
+  const [minEle, maxEle] = useMemo(() => {
+    const elevations = data.map((d) => d.ele).filter(isFinite)
+    const lo = elevations.length
+      ? Math.floor(Math.min(...elevations) / 50) * 50
+      : 0
+    const hi = elevations.length
+      ? Math.ceil(Math.max(...elevations) / 50) * 50
+      : 1000
+    return [lo, hi]
+  }, [data])
 
   const handleMouseMove = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (state: any) => {
       if (state?.activeTooltipIndex != null) {
-        onHoverIndexChange(state.activeTooltipIndex as number)
+        hoverStore.set(state.activeTooltipIndex as number)
       }
     },
-    [onHoverIndexChange]
+    [hoverStore]
   )
 
   const handleMouseLeave = useCallback(() => {
-    onHoverIndexChange(null)
-  }, [onHoverIndexChange])
+    hoverStore.set(null)
+  }, [hoverStore])
 
   const hoveredDKm = hoverIndex != null ? data[hoverIndex]?.dKm : null
 
@@ -122,4 +123,4 @@ export default function ElevationProfile({
       </ResponsiveContainer>
     </div>
   )
-}
+})
