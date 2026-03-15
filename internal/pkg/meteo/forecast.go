@@ -29,6 +29,11 @@ const (
 	horizConstAssetKey = "horizontal_constants_icon-ch1-eps.grib2"
 	vertConstAssetKey  = "vertical_constants_icon-ch1-eps.grib2"
 
+	// horizConstFilename is the local filename for the downloaded horizontal grid constants.
+	horizConstFilename = "horiz_const.grib2"
+	// vertConstFilename is the local filename for the downloaded vertical grid constants.
+	vertConstFilename = "vert_const.grib2"
+
 	// NoHorizonLimit can be passed as maxHorizon to [GetNewestForecast] to include all
 	// available forecast horizons without restriction.
 	NoHorizonLimit = time.Duration(math.MaxInt64)
@@ -200,16 +205,14 @@ func DownloadForecast(ctx context.Context, manifest *ForecastManifest) (*Downloa
 		return nil, fmt.Errorf("creating temp dir: %w", err)
 	}
 
-	const gridConstName = "horiz_const.grib2"
-	logg.Debug(ctx, "Downloading horizontal grid constants", "dest", gridConstName)
-	if err := downloadFile(ctx, manifest.GridConstantsURL, filepath.Join(dir, gridConstName)); err != nil {
+	logg.Debug(ctx, "Downloading horizontal grid constants", "dest", horizConstFilename)
+	if err := downloadFile(ctx, manifest.GridConstantsURL, filepath.Join(dir, horizConstFilename)); err != nil {
 		_ = os.RemoveAll(dir)
 		return nil, fmt.Errorf("downloading horizontal grid constants: %w", err)
 	}
 
-	const vertConstName = "vert_const.grib2"
-	logg.Debug(ctx, "Downloading vertical grid constants", "dest", vertConstName)
-	if err := downloadFile(ctx, manifest.VertConstantsURL, filepath.Join(dir, vertConstName)); err != nil {
+	logg.Debug(ctx, "Downloading vertical grid constants", "dest", vertConstFilename)
+	if err := downloadFile(ctx, manifest.VertConstantsURL, filepath.Join(dir, vertConstFilename)); err != nil {
 		_ = os.RemoveAll(dir)
 		return nil, fmt.Errorf("downloading vertical grid constants: %w", err)
 	}
@@ -240,8 +243,8 @@ func DownloadForecast(ctx context.Context, manifest *ForecastManifest) (*Downloa
 		Dir:               dir,
 		ReferenceTime:     manifest.ReferenceTime,
 		Files:             downloaded,
-		GridConstantsPath: gridConstName,
-		VertConstantsPath: vertConstName,
+		GridConstantsPath: horizConstFilename,
+		VertConstantsPath: vertConstFilename,
 	}, nil
 }
 

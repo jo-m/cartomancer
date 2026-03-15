@@ -12,12 +12,14 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/meteo/stac"
 	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 )
 
-// FileValidityDuration is the duration for which a single forecast file is
-// considered valid, forming the half-open interval [valid_time, valid_time + FileValidityDuration).
-const FileValidityDuration = 1 * time.Hour
+const (
+	// downloaderTimeout is the maximum time the downloader job is allowed to run.
+	downloaderTimeout = 10 * time.Minute
+)
 
 // DownloadVariables is the list of forecast variables stored by the downloader job.
 var DownloadVariables = []vars.Variable{vars.VarU10m, vars.VarV10m, vars.VarTotPr, vars.VarT2m}
@@ -49,7 +51,7 @@ var _ jobs.Job[DownloaderArgs] = (*Downloader)(nil)
 // in the database. If the reference time already exists, it returns early.
 // Otherwise it downloads all files for that run and commits them atomically.
 func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, downloaderTimeout)
 	defer cancel()
 
 	// Stage 1: fetch the newest reference time from the STAC API (lightweight).
@@ -156,8 +158,8 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 			BoundsMaxLon:       nullFloat(boundsMaxLon),
 			HorizontalGridFile: gridContent,
 			VerticalGridFile:   vertGridContent,
-			Attribution:        "MeteoSwiss (CC-BY)",
-			AttributionHref:    "https://www.meteoswiss.admin.ch/",
+			Attribution:        stac.Attribution,
+			AttributionHref:    stac.AttributionHref,
 		})
 		if dbErr != nil {
 			return fmt.Errorf("create forecast record: %w", dbErr)
@@ -173,7 +175,7 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 
 			if _, dbErr := tx.CreateForecastFile(ctx, db.CreateForecastFileParams{
 				ValidTime:      f.Meta.ValidTime,
-				ValidUntilTime: f.Meta.ValidTime.Add(FileValidityDuration),
+				ValidUntilTime: f.Meta.ValidTime.Add(stac.FileValidityDuration),
 				Variable:       f.Meta.Variable,
 				File:           content,
 				ForecastID:     forecastRow.ID,

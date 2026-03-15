@@ -25,9 +25,21 @@ import (
 // https://data.geo.admin.ch/api/stac/v1/search?collections=ch.meteoschweiz.ogd-forecasting-icon-ch1
 // https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-forecasting-icon-ch1
 const (
-	APIBaseURL        = "https://data.geo.admin.ch/api/stac/v1"
-	CollectionID      = "ch.meteoschweiz.ogd-forecasting-icon-ch1"
-	CollectionHorizon = time.Hour * 33 // We use that to compute the latest reference time from collection temporal extent.
+	APIBaseURL   = "https://data.geo.admin.ch/api/stac/v1"
+	CollectionID = "ch.meteoschweiz.ogd-forecasting-icon-ch1"
+
+	// Attribution is the data attribution label for MeteoSwiss forecast data.
+	Attribution = "MeteoSwiss (CC-BY)"
+	// AttributionHref is the URL for MeteoSwiss attribution.
+	AttributionHref = "https://www.meteoswiss.admin.ch/"
+
+	// We use that to compute the latest reference time from collection temporal extent.
+	CollectionHorizon = 33 * time.Hour
+	// FileValidityDuration is the duration for which a single forecast file is
+	// considered valid, forming the half-open interval [valid_time, valid_time + FileValidityDuration).
+	FileValidityDuration = 1 * time.Hour
+	// modelRunInterval is the time between consecutive ICON-CH1-EPS model runs.
+	modelRunInterval = 6 * time.Hour
 )
 
 // GetCollectionURL returns the URL for the ICON-CH1-EPS STAC collection.
@@ -273,9 +285,6 @@ func nextCursor(links []Link) string {
 	}
 	return ""
 }
-
-// modelRunInterval is the time between consecutive ICON-CH1-EPS model runs.
-const modelRunInterval = 3 * time.Hour
 
 // maxRefTimeRetries is the number of older reference times to probe when
 // the newest computed reference time has no items yet (e.g. because the
