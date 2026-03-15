@@ -23,6 +23,16 @@ register(proj4)
 
 const lv95 = getProjection("EPSG:2056")!
 
+const markerVisibleStyle = new Style({
+  image: new Circle({
+    radius: 6,
+    fill: new Fill({ color: "#e11d48" }),
+    stroke: new Stroke({ color: "#ffffff", width: 2 }),
+  }),
+})
+
+const markerHiddenStyle = new Style({})
+
 interface TrackPoint {
   lat: number
   lon: number
@@ -72,16 +82,7 @@ export default function TrackMap({
     const vectorSource = new VectorSource({ features: [trackFeature] })
 
     const marker = new Feature({ geometry: new Point(coords[0]) })
-    marker.setStyle(
-      new Style({
-        image: new Circle({
-          radius: 6,
-          fill: new Fill({ color: "#e11d48" }),
-          stroke: new Stroke({ color: "#ffffff", width: 2 }),
-        }),
-      })
-    )
-    marker.setProperties({ visible: false })
+    marker.setStyle(markerHiddenStyle)
     markerFeature.current = marker
 
     const mSource = new VectorSource({ features: [marker] })
@@ -181,17 +182,9 @@ export default function TrackMap({
     if (hoverIndex != null && hoverIndex >= 0 && hoverIndex < coords.length) {
       const geom = marker.getGeometry() as Point
       geom.setCoordinates(coords[hoverIndex])
-      marker.setStyle(
-        new Style({
-          image: new Circle({
-            radius: 6,
-            fill: new Fill({ color: "#e11d48" }),
-            stroke: new Stroke({ color: "#ffffff", width: 2 }),
-          }),
-        })
-      )
+      marker.setStyle(markerVisibleStyle)
     } else {
-      marker.setStyle(new Style({}))
+      marker.setStyle(markerHiddenStyle)
     }
   }, [hoverIndex])
 

@@ -401,7 +401,7 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eTag := fmt.Sprintf(`"%d-points-v1"`, t.UpdatedAt.UnixMilli())
+	eTag := fmt.Sprintf(`"%d-points-v2"`, t.UpdatedAt.UnixMilli())
 	if r.Header.Get("If-None-Match") == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -422,7 +422,7 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tr := track.New(src, 0)
-	pts := tr.Points()
+	pts := tr.Points().Subsample(TrackSubsampleM)
 
 	points := make([]trackPoint, len(pts))
 	cumDist := 0.0
@@ -1087,6 +1087,10 @@ func boolToInt(b bool) int {
 	}
 	return 0
 }
+
+// TrackSubsampleM is the minimum distance in meters between consecutive points
+// when subsampling a track for the points and forecast endpoints.
+const TrackSubsampleM = 10.0
 
 const (
 	maxUploadSize         = 5 << 20 // 5 MiB

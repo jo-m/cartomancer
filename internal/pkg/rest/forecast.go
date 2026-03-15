@@ -18,9 +18,8 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/track"
 )
 
-const forecastIntervalM = 300.0
-
 type forecastPointResponse struct {
+	Index             int     `json:"index"`
 	DistanceM         float64 `json:"distanceM"`
 	Lat               float64 `json:"lat"`
 	Lon               float64 `json:"lon"`
@@ -95,21 +94,21 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	}
 
 	tr := track.New(src, 0)
-	pts := tr.Points()
+	pts := tr.Points().Subsample(TrackSubsampleM)
 	if len(pts) < 2 {
 		writeError(w, http.StatusUnprocessableEntity, "track has too few points")
 		return
 	}
 
-	interpolated := pts.InterpolateByDistance(forecastIntervalM)
-	if len(interpolated) == 0 {
-		writeError(w, http.StatusUnprocessableEntity, "track has too few points")
-		return
+	// Compute cumulative distances for the subsampled points.
+	distances := make([]float64, len(pts))
+	for i := 1; i < len(pts); i++ {
+		distances[i] = distances[i-1] + pts[i-1].MetersTo(&pts[i])
 	}
 
 	speedMs := speedKmh / 3.6
-	lastPt := interpolated[len(interpolated)-1]
-	endTime := startTime.Add(time.Duration(lastPt.DistanceM/speedMs) * time.Second)
+	totalDist := distances[len(distances)-1]
+	endTime := startTime.Add(time.Duration(totalDist/speedMs) * time.Second)
 
 	bbox := forecast.BBox{
 		MinLat: t.BoundsMinLat.Float64,
@@ -138,11 +137,11 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	result := make([]forecastPointResponse, len(interpolated))
-	for i, ip := range interpolated {
-		pointTime := startTime.Add(time.Duration(ip.DistanceM/speedMs) * time.Second)
-		tempK := h.Sample("T_2M", pointTime, ip.Lat, ip.Lon)
-		precip := h.Sample("TOT_PR", pointTime, ip.Lat, ip.Lon)
+	result := make([]forecastPointResponse, len(pts))
+	for i, p := range pts {
+		pointTime := startTime.Add(time.Duration(distances[i]/speedMs) * time.Second)
+		tempK := h.Sample("T_2M", pointTime, p.Lat, p.Lon)
+		precip := h.Sample("TOT_PR", pointTime, p.Lat, p.Lon)
 
 		tempC := float64(tempK) - 273.15
 		if math.IsNaN(float64(tempK)) {
@@ -154,9 +153,10 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		}
 
 		result[i] = forecastPointResponse{
-			DistanceM:         ip.DistanceM,
-			Lat:               ip.Lat,
-			Lon:               ip.Lon,
+			Index:             i,
+			DistanceM:         distances[i],
+			Lat:               p.Lat,
+			Lon:               p.Lon,
 			Time:              pointTime.Format(time.RFC3339),
 			TemperatureC:      tempC,
 			PrecipitationRate: precipRate,

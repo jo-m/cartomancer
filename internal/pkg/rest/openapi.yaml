@@ -1074,8 +1074,9 @@ paths:
       operationId: getTrackForecast
       tags: [Tracks]
       description: >
-        Computes a time series of weather conditions at interpolated points
+        Computes a time series of weather conditions at subsampled points
         along the track, given an assumed start time and average speed.
+        Points share the same subsampled index space as the /points endpoint.
         Requires **user** access.
       parameters:
         - name: uuid
@@ -1111,8 +1112,11 @@ paths:
                     type: array
                     items:
                       type: object
-                      required: [distanceM, lat, lon, time, temperatureC, precipitationRate]
+                      required: [index, distanceM, lat, lon, time, temperatureC, precipitationRate]
                       properties:
+                        index:
+                          type: integer
+                          description: Index into the subsampled points array (shared with /points endpoint).
                         distanceM:
                           type: number
                           description: Cumulative distance in meters from the start.

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -13,6 +13,7 @@ import {
 import { fetchClient } from "../api/client"
 
 interface ForecastPoint {
+  index: number
   distanceM: number
   lat: number
   lon: number
@@ -21,14 +22,8 @@ interface ForecastPoint {
   precipitationRate: number
 }
 
-interface TrackPoint {
-  lat: number
-  lon: number
-  ele: number
-  d: number
-}
-
 interface ChartDatum {
+  index: number
   ts: number
   distanceM: number
   label: string
@@ -40,7 +35,6 @@ interface Props {
   trackUuid: string
   totalDistanceM: number
   onError: (msg: string) => void
-  trackPoints?: TrackPoint[]
   hoverIndex?: number | null
   onHoverIndexChange?: (index: number | null) => void
 }
@@ -54,47 +48,11 @@ function fmtTime(ts: number): string {
   })
 }
 
-/** Finds the index of the track point closest to the given distance in meters. */
-function findClosestTrackIndex(
-  trackPoints: TrackPoint[],
-  distanceM: number
-): number {
-  let bestIdx = 0
-  let bestDiff = Math.abs(trackPoints[0].d - distanceM)
-  for (let i = 1; i < trackPoints.length; i++) {
-    const diff = Math.abs(trackPoints[i].d - distanceM)
-    if (diff < bestDiff) {
-      bestDiff = diff
-      bestIdx = i
-    }
-  }
-  return bestIdx
-}
-
-/** Finds the forecast chart index closest to a given track distance in meters. */
-function findClosestForecastIndex(
-  data: ChartDatum[],
-  distanceM: number
-): number | null {
-  if (data.length === 0) return null
-  let bestIdx = 0
-  let bestDiff = Math.abs(data[0].distanceM - distanceM)
-  for (let i = 1; i < data.length; i++) {
-    const diff = Math.abs(data[i].distanceM - distanceM)
-    if (diff < bestDiff) {
-      bestDiff = diff
-      bestIdx = i
-    }
-  }
-  return bestIdx
-}
-
 /** Renders the forecast temperature and precipitation chart. */
 export default function ForecastChart({
   trackUuid,
   totalDistanceM,
   onError,
-  trackPoints,
   hoverIndex,
   onHoverIndexChange,
 }: Props) {
@@ -226,7 +184,6 @@ export default function ForecastChart({
       {points && (
         <Charts
           points={points}
-          trackPoints={trackPoints}
           hoverIndex={hoverIndex ?? null}
           onHoverIndexChange={onHoverIndexChange}
         />
@@ -238,24 +195,27 @@ export default function ForecastChart({
 /** Renders temperature and precipitation as two vertically stacked recharts. */
 function Charts({
   points,
-  trackPoints,
   hoverIndex,
   onHoverIndexChange,
 }: {
   points: ForecastPoint[]
-  trackPoints?: TrackPoint[]
   hoverIndex: number | null
   onHoverIndexChange?: (index: number | null) => void
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
-  const data: ChartDatum[] = points.map((p) => ({
-    ts: new Date(p.time).getTime(),
-    distanceM: p.distanceM,
-    label: fmtTime(new Date(p.time).getTime()),
-    temperatureC: Math.round(p.temperatureC * 10) / 10,
-    precipitationRate: Math.round(p.precipitationRate * 100) / 100,
-  }))
+  const data: ChartDatum[] = useMemo(
+    () =>
+      points.map((p) => ({
+        index: p.index,
+        ts: new Date(p.time).getTime(),
+        distanceM: p.distanceM,
+        label: fmtTime(new Date(p.time).getTime()),
+        temperatureC: Math.round(p.temperatureC * 10) / 10,
+        precipitationRate: Math.round(p.precipitationRate * 100) / 100,
+      })),
+    [points]
+  )
 
   const handleMouseMove = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -263,16 +223,12 @@ function Charts({
       if (state?.activeTooltipIndex != null) {
         const idx = state.activeTooltipIndex as number
         setActiveIndex(idx)
-        if (trackPoints && onHoverIndexChange && data[idx]) {
-          const trackIdx = findClosestTrackIndex(
-            trackPoints,
-            data[idx].distanceM
-          )
-          onHoverIndexChange(trackIdx)
+        if (onHoverIndexChange && data[idx]) {
+          onHoverIndexChange(data[idx].index)
         }
       }
     },
-    [trackPoints, onHoverIndexChange, data]
+    [onHoverIndexChange, data]
   )
 
   const handleMouseLeave = useCallback(() => {
@@ -300,20 +256,11 @@ function Charts({
   const internalActiveTs = activeIndex != null ? data[activeIndex]?.ts : null
 
   // External cursor from hoverIndex (map or elevation profile).
+  // Both endpoints share the same subsampled points, so the hoverIndex
+  // directly corresponds to the forecast data array index.
   let externalActiveTs: number | null = null
-  if (
-    hoverIndex != null &&
-    trackPoints &&
-    trackPoints[hoverIndex] &&
-    activeIndex == null
-  ) {
-    const forecastIdx = findClosestForecastIndex(
-      data,
-      trackPoints[hoverIndex].d
-    )
-    if (forecastIdx != null) {
-      externalActiveTs = data[forecastIdx].ts
-    }
+  if (hoverIndex != null && activeIndex == null && data[hoverIndex]) {
+    externalActiveTs = data[hoverIndex].ts
   }
 
   const referenceTs = internalActiveTs ?? externalActiveTs

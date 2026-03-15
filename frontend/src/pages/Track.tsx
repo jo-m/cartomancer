@@ -241,7 +241,6 @@ export default function Track() {
           trackUuid={data.uuid}
           totalDistanceM={data.totalDistanceM}
           onError={setToastMessage}
-          trackPoints={trackPoints}
           hoverIndex={hoverIndex}
           onHoverIndexChange={handleHoverIndexChange}
         />

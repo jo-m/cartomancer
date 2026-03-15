@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+import { useCallback, useMemo } from "react"
 import {
   ResponsiveContainer,
   AreaChart,
@@ -29,10 +29,14 @@ export default function ElevationProfile({
   hoverIndex,
   onHoverIndexChange,
 }: Props) {
-  const data = points.map((p) => ({
-    dKm: Math.round((p.d / 1000) * 100) / 100,
-    ele: Math.round(p.ele),
-  }))
+  const data = useMemo(
+    () =>
+      points.map((p) => ({
+        dKm: Math.round((p.d / 1000) * 100) / 100,
+        ele: Math.round(p.ele),
+      })),
+    [points]
+  )
 
   const elevations = data.map((d) => d.ele).filter(isFinite)
   const minEle = elevations.length
