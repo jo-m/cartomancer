@@ -8,7 +8,7 @@
 - [ ] Track/forecast view
   - [x] Hide data from the forecast charts if no forecast data available.
   - [x] Hovering the map view should show forecast values and distance and time in tooltip
-  - [ ] Maybe debounce the tooltip
+  - [x] Maybe debounce the tooltip
   - [x] Remove the time and speed input boxes, leave only the buttons, and show forecast immediately when clicking one of them
   - [x] Make time and speed inputs global for the track view, not only for forecast. In all the x axes and tooltips show wall clock time and elapsed time.
   - [x] Simply always show the forecast if available.

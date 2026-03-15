@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react"
+import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { useForm, Controller } from "react-hook-form"
@@ -32,6 +32,7 @@ const FILE_FORMAT_LABELS: Record<number, string> = {
   1: "FIT",
 }
 
+const HOVER_DEBOUNCE_MS = 100
 const START_HOUR_OPTIONS = [1, 2, 5, 12]
 const SPEED_OPTIONS = [20, 25, 28, 30]
 
@@ -641,7 +642,18 @@ function MapHoverOverlay({
   trackPoints: { lat: number; lon: number; ele: number; d: number }[]
   forecastTimes?: number[]
 }) {
-  const hoverIndex = useHoverValue(hoverStore)
+  const rawIndex = useHoverValue(hoverStore)
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    const delay = rawIndex == null ? 0 : HOVER_DEBOUNCE_MS
+    timerRef.current = setTimeout(() => setHoverIndex(rawIndex), delay)
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [rawIndex])
 
   if (hoverIndex == null || hoverIndex < 0 || hoverIndex >= trackPoints.length)
     return null
