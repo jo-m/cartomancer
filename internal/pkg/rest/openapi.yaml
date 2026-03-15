@@ -1073,11 +1073,12 @@ paths:
       summary: Get weather forecast along a track
       operationId: getTrackForecast
       tags: [Tracks]
+      security: []
       description: >
         Computes a time series of weather conditions at subsampled points
         along the track, given an assumed start time and average speed.
         Points share the same subsampled index space as the /points endpoint.
-        Requires **user** access.
+        Public tracks are accessible anonymously; private tracks require ownership.
       parameters:
         - name: uuid
           in: path

@@ -75,13 +75,13 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 	mux.Get("/tracks/{uuid}/preview.svg", sv.handleDownloadTrackSVG)
 	mux.Get("/tracks/{uuid}/profile.svg", sv.handleDownloadTrackProfileSVG)
 	mux.Get("/tracks/{uuid}/points", sv.handleGetTrackPoints)
+	mux.Post("/tracks/{uuid}/forecast", sv.handleGetTrackForecast)
 	mux.Get("/tags", sv.handleSuggestTags)
 
 	mux.Group(func(r chi.Router) {
 		r.Use(sv.requireUser)
 
 		r.Post("/tracks", sv.handleUploadTrack)
-		r.Post("/tracks/{uuid}/forecast", sv.handleGetTrackForecast)
 		r.Post("/tracks/{uuid}/star", sv.handleStarTrack)
 		r.Delete("/tracks/{uuid}/star", sv.handleUnstarTrack)
 		r.Patch("/tracks", sv.handleBulkEditTracks)

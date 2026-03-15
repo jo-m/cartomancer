@@ -48,12 +48,28 @@ func seedForecastDB(t *testing.T, d *db.DB, refTime time.Time) {
 	require.NoError(t, err)
 }
 
-func TestGetTrackForecast_Unauthenticated(t *testing.T) {
+func TestGetTrackForecast_Unauthenticated_NotFound(t *testing.T) {
 	e := newTestEnv(t)
 	client := e.newClient()
 
 	status, _ := e.do(client, http.MethodPost, "/tracks/nonexistent/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, nil)
-	assert.Equal(t, http.StatusUnauthorized, status)
+	assert.Equal(t, http.StatusNotFound, status)
+}
+
+func TestGetTrackForecast_Unauthenticated_PrivateTrack(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	owner := e.newClient()
+	e.login(owner, "alice@example.com", "secret")
+
+	status, resp := e.doUpload(owner, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	uuid := resp["uuid"].(string)
+
+	// Anonymous client cannot see a private track.
+	anon := e.newClient()
+	status, _ = e.do(anon, http.MethodPost, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, nil)
+	assert.Equal(t, http.StatusNotFound, status)
 }
 
 func TestGetTrackForecast_NotFound(t *testing.T) {
