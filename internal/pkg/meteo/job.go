@@ -156,6 +156,8 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 			BoundsMaxLon:       nullFloat(boundsMaxLon),
 			HorizontalGridFile: gridContent,
 			VerticalGridFile:   vertGridContent,
+			Attribution:        "MeteoSwiss (CC-BY)",
+			AttributionHref:    "https://www.meteoswiss.admin.ch/",
 		})
 		if dbErr != nil {
 			return fmt.Errorf("create forecast record: %w", dbErr)

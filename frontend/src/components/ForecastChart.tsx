@@ -34,10 +34,12 @@ interface ChartDatum {
 interface Props {
   points: ForecastPoint[]
   hoverStore: HoverStore
+  attribution?: string
+  attributionHref?: string
 }
 
 /** Renders temperature and precipitation as two vertically stacked recharts. */
-export default function ForecastChart({ points, hoverStore }: Props) {
+export default function ForecastChart({ points, hoverStore, attribution, attributionHref }: Props) {
   const hoverIndex = useHoverValue(hoverStore)
 
   const data: ChartDatum[] = useMemo(
@@ -230,6 +232,23 @@ export default function ForecastChart({ points, hoverStore }: Props) {
           )}
         </div>
       </div>
+      {attribution && (
+        <p className="mt-1 text-right text-[10px] text-gray-400">
+          Source:{" "}
+          {attributionHref ? (
+            <a
+              href={attributionHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-gray-600"
+            >
+              {attribution}
+            </a>
+          ) : (
+            attribution
+          )}
+        </p>
+      )}
     </div>
   )
 }

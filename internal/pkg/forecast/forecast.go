@@ -42,6 +42,11 @@ type Handle struct {
 	grid *grib2.Grid
 	// messages is keyed by variable name; each slice is sorted by valid time.
 	messages map[string][]timedMessage
+
+	// Attribution is the human-readable data source credit.
+	Attribution string
+	// AttributionHref is the URL for the data source.
+	AttributionHref string
 }
 
 // Load queries the database for GRIB2 files matching the given time window
@@ -108,7 +113,12 @@ func Load(ctx context.Context, d *db.DB, start, end time.Time, bbox BBox) (*Hand
 		})
 	}
 
-	h := &Handle{grid: grid, messages: messages}
+	h := &Handle{
+		grid:            grid,
+		messages:        messages,
+		Attribution:     forecastRow.Attribution,
+		AttributionHref: forecastRow.AttributionHref,
+	}
 
 	// Check coverage: whether loaded data spans the full requested window.
 	if !h.coversWindow(start, end) {

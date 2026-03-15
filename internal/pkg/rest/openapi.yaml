@@ -1107,8 +1107,14 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [forecastStatus, points]
+                required: [forecastStatus, attribution, attributionHref, points]
                 properties:
+                  attribution:
+                    type: string
+                    description: Human-readable data source credit.
+                  attributionHref:
+                    type: string
+                    description: URL for the data source.
                   forecastStatus:
                     type: string
                     enum: [full, partial, none]

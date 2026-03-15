@@ -95,6 +95,8 @@ export default function Track() {
   )
   const [forecastLoading, setForecastLoading] = useState(false)
   const [forecastStatus, setForecastStatus] = useState<string | null>(null)
+  const [forecastAttribution, setForecastAttribution] = useState("")
+  const [forecastAttributionHref, setForecastAttributionHref] = useState("")
   const [startHoursOffset, setStartHoursOffset] = useState(2)
   const [speedKmh, setSpeedKmh] = useState(28)
 
@@ -138,6 +140,8 @@ export default function Track() {
           return
         }
         setForecastStatus(result.forecastStatus ?? null)
+        setForecastAttribution(result.attribution ?? "")
+        setForecastAttributionHref(result.attributionHref ?? "")
         setForecastPoints(result.points as ForecastPoint[])
       } catch (err) {
         setToastMessage((err as Error).message)
@@ -381,7 +385,12 @@ export default function Track() {
       )}
 
       {forecastPoints && (
-        <ForecastChart points={forecastPoints} hoverStore={hoverStore} />
+        <ForecastChart
+          points={forecastPoints}
+          hoverStore={hoverStore}
+          attribution={forecastAttribution}
+          attributionHref={forecastAttributionHref}
+        />
       )}
 
       <dl className="mt-6 grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">

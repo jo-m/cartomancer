@@ -29,8 +29,10 @@ type forecastPointResponse struct {
 }
 
 type forecastResponse struct {
-	ForecastStatus string                  `json:"forecastStatus"`
-	Points         []forecastPointResponse `json:"points"`
+	ForecastStatus  string                  `json:"forecastStatus"`
+	Attribution     string                  `json:"attribution"`
+	AttributionHref string                  `json:"attributionHref"`
+	Points          []forecastPointResponse `json:"points"`
 }
 
 // handleGetTrackForecast returns a weather forecast time series along a track.
@@ -167,5 +169,10 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		result[i] = rp
 	}
 
-	writeJSON(w, http.StatusOK, forecastResponse{ForecastStatus: status, Points: result})
+	resp := forecastResponse{ForecastStatus: status, Points: result}
+	if h != nil {
+		resp.Attribution = h.Attribution
+		resp.AttributionHref = h.AttributionHref
+	}
+	writeJSON(w, http.StatusOK, resp)
 }

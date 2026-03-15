@@ -18,7 +18,13 @@ CREATE TABLE forecasts (
     horizontal_grid_file BLOB NOT NULL,
 
     -- vertical_grid_file holds the raw GRIB2 vertical grid constants file content.
-    vertical_grid_file BLOB NOT NULL
+    vertical_grid_file BLOB NOT NULL,
+
+    -- attribution is the human-readable data source credit.
+    attribution TEXT NOT NULL DEFAULT '',
+
+    -- attribution_href is the URL for the data source.
+    attribution_href TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE forecast_files (
