@@ -26,13 +26,14 @@ func seedForecastDB(t *testing.T, d *db.DB, refTime time.Time) {
 	require.NoError(t, err)
 
 	fc, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
-		CreatedAt:     time.Now(),
-		ReferenceTime: refTime,
-		BoundsMinLat:  sql.NullFloat64{Float64: 43.0, Valid: true},
-		BoundsMinLon:  sql.NullFloat64{Float64: 2.0, Valid: true},
-		BoundsMaxLat:  sql.NullFloat64{Float64: 50.0, Valid: true},
-		BoundsMaxLon:  sql.NullFloat64{Float64: 16.0, Valid: true},
-		GridFile:      gridContent,
+		CreatedAt:          time.Now(),
+		ReferenceTime:      refTime,
+		BoundsMinLat:       sql.NullFloat64{Float64: 43.0, Valid: true},
+		BoundsMinLon:       sql.NullFloat64{Float64: 2.0, Valid: true},
+		BoundsMaxLat:       sql.NullFloat64{Float64: 50.0, Valid: true},
+		BoundsMaxLon:       sql.NullFloat64{Float64: 16.0, Valid: true},
+		HorizontalGridFile: gridContent,
+		VerticalGridFile:   []byte("vert grid"),
 	})
 	require.NoError(t, err)
 

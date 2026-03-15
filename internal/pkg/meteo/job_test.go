@@ -61,13 +61,14 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 	validTime := refTime.Add(10 * time.Hour)
 
 	forecast, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
-		CreatedAt:     time.Now(),
-		ReferenceTime: refTime,
-		BoundsMinLat:  sql.NullFloat64{Float64: 45.7, Valid: true},
-		BoundsMinLon:  sql.NullFloat64{Float64: 5.9, Valid: true},
-		BoundsMaxLat:  sql.NullFloat64{Float64: 47.8, Valid: true},
-		BoundsMaxLon:  sql.NullFloat64{Float64: 10.5, Valid: true},
-		GridFile:      []byte("grid data"),
+		CreatedAt:          time.Now(),
+		ReferenceTime:      refTime,
+		BoundsMinLat:       sql.NullFloat64{Float64: 45.7, Valid: true},
+		BoundsMinLon:       sql.NullFloat64{Float64: 5.9, Valid: true},
+		BoundsMaxLat:       sql.NullFloat64{Float64: 47.8, Valid: true},
+		BoundsMaxLon:       sql.NullFloat64{Float64: 10.5, Valid: true},
+		HorizontalGridFile: []byte("grid data"),
+		VerticalGridFile:   []byte("vert grid data"),
 	})
 	require.NoError(t, err)
 
@@ -96,9 +97,10 @@ func TestCreateForecastFile_uniqueConstraint(t *testing.T) {
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
 
 	forecast, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
-		CreatedAt:     time.Now(),
-		ReferenceTime: refTime,
-		GridFile:      []byte("grid data"),
+		CreatedAt:          time.Now(),
+		ReferenceTime:      refTime,
+		HorizontalGridFile: []byte("grid data"),
+		VerticalGridFile:   []byte("vert grid data"),
 	})
 	require.NoError(t, err)
 
@@ -132,9 +134,10 @@ func TestForecastExistsForReferenceTime(t *testing.T) {
 
 	// Create the forecast row.
 	_, err = d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
-		CreatedAt:     time.Now(),
-		ReferenceTime: refTime,
-		GridFile:      []byte("grid data"),
+		CreatedAt:          time.Now(),
+		ReferenceTime:      refTime,
+		HorizontalGridFile: []byte("grid data"),
+		VerticalGridFile:   []byte("vert grid data"),
 	})
 	require.NoError(t, err)
 

@@ -14,7 +14,7 @@
   - [x] Simply always show the forecast if available.
   - [ ] Allow to make track map full screen.
   - [ ] Make forecasts access public
-- [ ] Store vertical+horizontal grid data for forecasts
+- [x] Store vertical+horizontal grid data for forecasts
 - [ ] Show track owner/user in frontend
 - [x] Aggressive caching with etag headers for all expensive endpoints
 - [ ] Frontend meteo data attribution

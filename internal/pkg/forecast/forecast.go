@@ -62,7 +62,7 @@ func Load(ctx context.Context, d *db.DB, start, end time.Time, bbox BBox) (*Hand
 		return nil, fmt.Errorf("query forecast: %w", err)
 	}
 
-	grid, err := grib2.ParseGrid(bytes.NewReader(forecastRow.GridFile))
+	grid, err := grib2.ParseGrid(bytes.NewReader(forecastRow.HorizontalGridFile))
 	if err != nil {
 		return nil, fmt.Errorf("parse grid constants: %w", err)
 	}

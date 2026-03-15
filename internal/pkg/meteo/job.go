@@ -124,7 +124,13 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		gridPath := filepath.Join(result.Dir, result.GridConstantsPath)
 		gridContent, readErr := os.ReadFile(gridPath)
 		if readErr != nil {
-			return fmt.Errorf("read grid constants: %w", readErr)
+			return fmt.Errorf("read horizontal grid constants: %w", readErr)
+		}
+
+		vertGridPath := filepath.Join(result.Dir, result.VertConstantsPath)
+		vertGridContent, readErr := os.ReadFile(vertGridPath)
+		if readErr != nil {
+			return fmt.Errorf("read vertical grid constants: %w", readErr)
 		}
 
 		// Use the bounding box from the first file (all files in a run
@@ -142,13 +148,14 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		}
 
 		forecastRow, dbErr := tx.CreateForecast(ctx, db.CreateForecastParams{
-			CreatedAt:     time.Now(),
-			ReferenceTime: result.ReferenceTime,
-			BoundsMinLat:  nullFloat(boundsMinLat),
-			BoundsMinLon:  nullFloat(boundsMinLon),
-			BoundsMaxLat:  nullFloat(boundsMaxLat),
-			BoundsMaxLon:  nullFloat(boundsMaxLon),
-			GridFile:      gridContent,
+			CreatedAt:          time.Now(),
+			ReferenceTime:      result.ReferenceTime,
+			BoundsMinLat:       nullFloat(boundsMinLat),
+			BoundsMinLon:       nullFloat(boundsMinLon),
+			BoundsMaxLat:       nullFloat(boundsMaxLat),
+			BoundsMaxLon:       nullFloat(boundsMaxLon),
+			HorizontalGridFile: gridContent,
+			VerticalGridFile:   vertGridContent,
 		})
 		if dbErr != nil {
 			return fmt.Errorf("create forecast record: %w", dbErr)

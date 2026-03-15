@@ -14,8 +14,11 @@ CREATE TABLE forecasts (
     bounds_max_lat REAL,
     bounds_max_lon REAL,
 
-    -- grid_file holds the raw GRIB2 horizontal grid constants file content.
-    grid_file BLOB NOT NULL
+    -- horizontal_grid_file holds the raw GRIB2 horizontal grid constants file content.
+    horizontal_grid_file BLOB NOT NULL,
+
+    -- vertical_grid_file holds the raw GRIB2 vertical grid constants file content.
+    vertical_grid_file BLOB NOT NULL
 );
 
 CREATE TABLE forecast_files (

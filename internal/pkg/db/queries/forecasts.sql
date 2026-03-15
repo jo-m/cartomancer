@@ -35,11 +35,11 @@ ORDER BY mf.variable, mf.valid_time;
 INSERT INTO forecasts (
     created_at, reference_time,
     bounds_min_lat, bounds_min_lon, bounds_max_lat, bounds_max_lon,
-    grid_file
+    horizontal_grid_file, vertical_grid_file
 ) VALUES (
     ?, ?,
     ?, ?, ?, ?,
-    ?
+    ?, ?
 )
 RETURNING *;
 

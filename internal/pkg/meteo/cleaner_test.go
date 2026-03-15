@@ -26,9 +26,10 @@ func ensureForecast(t *testing.T, d *db.DB, refTime time.Time) int64 {
 	}
 
 	row, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
-		CreatedAt:     time.Now(),
-		ReferenceTime: refTime,
-		GridFile:      []byte("grid"),
+		CreatedAt:          time.Now(),
+		ReferenceTime:      refTime,
+		HorizontalGridFile: []byte("grid"),
+		VerticalGridFile:   []byte("vert grid"),
 	})
 	require.NoError(t, err)
 	return row.ID
