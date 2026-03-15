@@ -653,7 +653,7 @@ function MapHoverOverlay({
   if (forecastTimes && forecastTimes.length > hoverIndex) {
     const ts = forecastTimes[hoverIndex]
     const startTs = forecastTimes[0]
-    timeInfo = ` — +${fmtElapsed(ts - startTs)} — ${fmtClock(ts)}`
+    timeInfo = ` · +${fmtElapsed(ts - startTs)} · ${fmtClock(ts)}`
   }
 
   return (

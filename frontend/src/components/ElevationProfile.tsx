@@ -10,7 +10,6 @@ import {
   ReferenceLine,
 } from "recharts"
 import { useHoverValue, type HoverStore } from "../hooks/useHoverSync"
-import { fmtElapsed, fmtClock } from "../lib/time"
 
 interface TrackPoint {
   lat: number
@@ -51,11 +50,6 @@ export default memo(function ElevationProfile({
       })),
     [points, forecastTimes]
   )
-
-  const startTs = useMemo(() => {
-    if (!forecastTimes || forecastTimes.length === 0) return 0
-    return forecastTimes[0]
-  }, [forecastTimes])
 
   const [minEle, maxEle] = useMemo(() => {
     const elevations = data.map((d) => d.ele).filter(isFinite)
@@ -137,13 +131,6 @@ export default memo(function ElevationProfile({
         {hoveredDatum && (
           <div className="pointer-events-none absolute bottom-2 left-12 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">
             {hoveredDatum.dKm} km &middot; {hoveredDatum.ele} m
-            {hoveredDatum.ts != null && startTs > 0 && (
-              <>
-                {" "}
-                &middot; +{fmtElapsed(hoveredDatum.ts - startTs)} &middot;{" "}
-                {fmtClock(hoveredDatum.ts)}
-              </>
-            )}
           </div>
         )}
       </div>

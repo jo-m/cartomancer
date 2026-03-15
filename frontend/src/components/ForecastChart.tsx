@@ -11,7 +11,6 @@ import {
   ReferenceLine,
 } from "recharts"
 import { useHoverValue, type HoverStore } from "../hooks/useHoverSync"
-import { fmtElapsed, fmtClock } from "../lib/time"
 
 export interface ForecastPoint {
   index: number
@@ -39,7 +38,12 @@ interface Props {
 }
 
 /** Renders temperature and precipitation as two vertically stacked recharts. */
-export default function ForecastChart({ points, hoverStore, attribution, attributionHref }: Props) {
+export default function ForecastChart({
+  points,
+  hoverStore,
+  attribution,
+  attributionHref,
+}: Props) {
   const hoverIndex = useHoverValue(hoverStore)
 
   const data: ChartDatum[] = useMemo(
@@ -57,8 +61,6 @@ export default function ForecastChart({ points, hoverStore, attribution, attribu
       })),
     [points]
   )
-
-  const startTs = data.length > 0 ? data[0].ts : 0
 
   const handleMouseMove = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -167,9 +169,7 @@ export default function ForecastChart({ points, hoverStore, attribution, attribu
           </ResponsiveContainer>
           {nearestForecast && nearestForecast.temperatureC != null && (
             <div className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">
-              {nearestForecast.dKm} km &middot; +
-              {fmtElapsed(nearestForecast.ts - startTs)} &middot;{" "}
-              {fmtClock(nearestForecast.ts)} &middot;{" "}
+              {nearestForecast.dKm} km &middot;
               {nearestForecast.temperatureC} C
             </div>
           )}
