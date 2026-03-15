@@ -1107,13 +1107,20 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [points]
+                required: [forecastStatus, points]
                 properties:
+                  forecastStatus:
+                    type: string
+                    enum: [full, partial, none]
+                    description: >
+                      Indicates weather data availability: "full" means all points have
+                      weather data, "partial" means some points may have gaps, "none" means
+                      no weather data is available (time/distance fields are still populated).
                   points:
                     type: array
                     items:
                       type: object
-                      required: [index, distanceM, lat, lon, time, temperatureC, precipitationRate]
+                      required: [index, distanceM, lat, lon, time]
                       properties:
                         index:
                           type: integer
@@ -1131,10 +1138,12 @@ paths:
                           description: Estimated time at this point.
                         temperatureC:
                           type: number
-                          description: Temperature in degrees Celsius.
+                          nullable: true
+                          description: Temperature in degrees Celsius, or null if unavailable.
                         precipitationRate:
                           type: number
-                          description: Precipitation rate.
+                          nullable: true
+                          description: Precipitation rate, or null if unavailable.
         "400":
           description: Invalid query parameter
           content:
@@ -1142,7 +1151,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "404":
-          description: Track not found or no forecast data available
+          description: Track not found
           content:
             application/json:
               schema:

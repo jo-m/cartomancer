@@ -19,17 +19,18 @@ import (
 )
 
 type forecastPointResponse struct {
-	Index             int     `json:"index"`
-	DistanceM         float64 `json:"distanceM"`
-	Lat               float64 `json:"lat"`
-	Lon               float64 `json:"lon"`
-	Time              string  `json:"time"`
-	TemperatureC      float64 `json:"temperatureC"`
-	PrecipitationRate float64 `json:"precipitationRate"`
+	Index             int      `json:"index"`
+	DistanceM         float64  `json:"distanceM"`
+	Lat               float64  `json:"lat"`
+	Lon               float64  `json:"lon"`
+	Time              string   `json:"time"`
+	TemperatureC      *float64 `json:"temperatureC"`
+	PrecipitationRate *float64 `json:"precipitationRate"`
 }
 
 type forecastResponse struct {
-	Points []forecastPointResponse `json:"points"`
+	ForecastStatus string                  `json:"forecastStatus"`
+	Points         []forecastPointResponse `json:"points"`
 }
 
 // handleGetTrackForecast returns a weather forecast time series along a track.
@@ -127,11 +128,13 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	}
 
 	h, err := forecast.Load(ctx, sv.d, startTime, endTime, bbox)
-	if errors.Is(err, forecast.ErrNoData) {
-		writeError(w, http.StatusNotFound, "no forecast data available")
-		return
-	}
-	if err != nil && !errors.Is(err, forecast.ErrIncomplete) {
+	status := "full"
+	switch {
+	case errors.Is(err, forecast.ErrNoData):
+		status = "none"
+	case errors.Is(err, forecast.ErrIncomplete):
+		status = "partial"
+	case err != nil:
 		logg.Error(ctx, "failed to load forecast", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
@@ -140,28 +143,29 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	result := make([]forecastPointResponse, len(pts))
 	for i, p := range pts {
 		pointTime := startTime.Add(time.Duration(distances[i]/speedMs) * time.Second)
-		tempK := h.Sample("T_2M", pointTime, p.Lat, p.Lon)
-		precip := h.Sample("TOT_PR", pointTime, p.Lat, p.Lon)
-
-		tempC := float64(tempK) - 273.15
-		if math.IsNaN(float64(tempK)) {
-			tempC = math.NaN()
-		}
-		precipRate := float64(precip)
-		if math.IsNaN(precipRate) {
-			precipRate = 0
+		rp := forecastPointResponse{
+			Index:     i,
+			DistanceM: distances[i],
+			Lat:       p.Lat,
+			Lon:       p.Lon,
+			Time:      pointTime.Format(time.RFC3339),
 		}
 
-		result[i] = forecastPointResponse{
-			Index:             i,
-			DistanceM:         distances[i],
-			Lat:               p.Lat,
-			Lon:               p.Lon,
-			Time:              pointTime.Format(time.RFC3339),
-			TemperatureC:      tempC,
-			PrecipitationRate: precipRate,
+		if status != "none" {
+			tempK := h.Sample("T_2M", pointTime, p.Lat, p.Lon)
+			if !math.IsNaN(float64(tempK)) {
+				v := float64(tempK) - 273.15
+				rp.TemperatureC = &v
+			}
+			precip := h.Sample("TOT_PR", pointTime, p.Lat, p.Lon)
+			if !math.IsNaN(float64(precip)) {
+				v := float64(precip)
+				rp.PrecipitationRate = &v
+			}
 		}
+
+		result[i] = rp
 	}
 
-	writeJSON(w, http.StatusOK, forecastResponse{Points: result})
+	writeJSON(w, http.StatusOK, forecastResponse{ForecastStatus: status, Points: result})
 }

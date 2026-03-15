@@ -111,8 +111,20 @@ func TestGetTrackForecast_NoForecastData(t *testing.T) {
 	require.Equal(t, http.StatusCreated, status)
 	uuid := resp["uuid"].(string)
 
-	status, _ = e.do(client, http.MethodPost, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, nil)
-	assert.Equal(t, http.StatusNotFound, status)
+	var result map[string]any
+	status, _ = e.do(client, http.MethodPost, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, &result)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, "none", result["forecastStatus"])
+
+	points, ok := result["points"].([]any)
+	require.True(t, ok)
+	require.Greater(t, len(points), 0)
+
+	first := points[0].(map[string]any)
+	assert.Equal(t, float64(0), first["distanceM"])
+	assert.NotEmpty(t, first["time"])
+	assert.Nil(t, first["temperatureC"])
+	assert.Nil(t, first["precipitationRate"])
 }
 
 func TestGetTrackForecast_Success(t *testing.T) {
@@ -131,6 +143,8 @@ func TestGetTrackForecast_Success(t *testing.T) {
 	var result map[string]any
 	status, _ = e.do(client, http.MethodPost, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, &result)
 	assert.Equal(t, http.StatusOK, status)
+	// The seeded test data only covers one time step, so the forecast is partial.
+	assert.Equal(t, "partial", result["forecastStatus"])
 
 	points, ok := result["points"].([]any)
 	require.True(t, ok)

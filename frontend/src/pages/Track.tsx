@@ -1,18 +1,20 @@
-import { useState } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { $api } from "../api/client"
+import { $api, fetchClient } from "../api/client"
 import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
 import ElevationProfile from "../components/ElevationProfile"
 import ForecastChart from "../components/ForecastChart"
+import type { ForecastPoint } from "../components/ForecastChart"
 import TagsInput from "../components/TagsInput"
 import Toast from "../components/Toast"
 import TrackMap from "../components/TrackMap"
-import { useHoverStore } from "../hooks/useHoverSync"
+import { useHoverStore, useHoverValue } from "../hooks/useHoverSync"
+import { fmtElapsed, fmtClock, buildForecastTimes } from "../lib/time"
 import {
   SPORT_LABELS,
   SUB_SPORT_LABELS,
@@ -29,6 +31,9 @@ const FILE_FORMAT_LABELS: Record<number, string> = {
   0: "GPX",
   1: "FIT",
 }
+
+const START_HOUR_OPTIONS = [1, 2, 5, 12]
+const SPEED_OPTIONS = [20, 25, 28, 30]
 
 function formatDistance(m: number): string {
   return `${(m / 1000).toFixed(1)} km`
@@ -83,6 +88,72 @@ export default function Track() {
   const trackPoints = pointsData?.points as
     | { lat: number; lon: number; ele: number; d: number }[]
     | undefined
+
+  // Forecast state.
+  const [forecastPoints, setForecastPoints] = useState<ForecastPoint[] | null>(
+    null
+  )
+  const [forecastLoading, setForecastLoading] = useState(false)
+  const [forecastStatus, setForecastStatus] = useState<string | null>(null)
+  const [startHoursOffset, setStartHoursOffset] = useState(2)
+  const [speedKmh, setSpeedKmh] = useState(28)
+
+  const forecastTimes = useMemo(() => {
+    if (!forecastPoints || !trackPoints) return undefined
+    return buildForecastTimes(forecastPoints, trackPoints.length)
+  }, [forecastPoints, trackPoints])
+
+  const estDurationH =
+    data && speedKmh > 0 ? data.totalDistanceM / 1000 / speedKmh : 0
+
+  /** Fetches forecast data from the API with the given parameters. */
+  const fetchForecast = useCallback(
+    async (hoursOffset: number, speed: number) => {
+      if (!uuid) return
+      const startDate = new Date()
+      startDate.setMinutes(0, 0, 0)
+      startDate.setHours(startDate.getHours() + hoursOffset)
+
+      setForecastLoading(true)
+      setForecastStatus(null)
+      try {
+        const { data: result, error: apiError } = await fetchClient.POST(
+          "/tracks/{uuid}/forecast",
+          {
+            params: {
+              path: { uuid },
+              query: {
+                startTime: startDate.toISOString(),
+                speedKmh: speed,
+              },
+            },
+          }
+        )
+        if (apiError) {
+          throw new Error(
+            (apiError as { msg?: string }).msg ?? "Forecast failed"
+          )
+        }
+        if (!result?.points?.length) {
+          return
+        }
+        setForecastStatus(result.forecastStatus ?? null)
+        setForecastPoints(result.points as ForecastPoint[])
+      } catch (err) {
+        setToastMessage((err as Error).message)
+      } finally {
+        setForecastLoading(false)
+      }
+    },
+    [uuid]
+  )
+
+  // Auto-load forecast on first render.
+  useEffect(() => {
+    if (uuid) {
+      fetchForecast(startHoursOffset, speedKmh)
+    }
+  }, [uuid]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const starMutation = $api.useMutation("post", "/tracks/{uuid}/star")
   const unstarMutation = $api.useMutation("delete", "/tracks/{uuid}/star")
@@ -214,11 +285,18 @@ export default function Track() {
 
       <div className="mt-6">
         {trackPoints && trackPoints.length > 0 ? (
-          <TrackMap
-            points={trackPoints}
-            hoverStore={hoverStore}
-            color={trackColor}
-          />
+          <div className="relative">
+            <TrackMap
+              points={trackPoints}
+              hoverStore={hoverStore}
+              color={trackColor}
+            />
+            <MapHoverOverlay
+              hoverStore={hoverStore}
+              trackPoints={trackPoints}
+              forecastTimes={forecastTimes}
+            />
+          </div>
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
             <img
@@ -230,21 +308,75 @@ export default function Track() {
         )}
       </div>
 
+      <div className="mt-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">Start in:</span>
+            {START_HOUR_OPTIONS.map((h) => (
+              <button
+                key={h}
+                type="button"
+                onClick={() => {
+                  setStartHoursOffset(h)
+                  fetchForecast(h, speedKmh)
+                }}
+                className={`rounded border px-1.5 py-1 text-xs ${
+                  startHoursOffset === h
+                    ? "border-gray-400 bg-gray-200 font-medium text-gray-800"
+                    : "border-gray-200 text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                +{h}h
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">Est. speed:</span>
+            {SPEED_OPTIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  setSpeedKmh(s)
+                  fetchForecast(startHoursOffset, s)
+                }}
+                className={`rounded border px-1.5 py-1 text-xs ${
+                  speedKmh === s
+                    ? "border-gray-400 bg-gray-200 font-medium text-gray-800"
+                    : "border-gray-200 text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                {s}km/h
+              </button>
+            ))}
+          </div>
+          {forecastLoading && (
+            <span className="text-xs text-gray-400">Loading...</span>
+          )}
+          {!forecastLoading && estDurationH > 0 && (
+            <span className="text-xs text-gray-400">
+              Est. {estDurationH.toFixed(1)}h
+            </span>
+          )}
+        </div>
+        {forecastStatus === "none" && (
+          <p className="mt-2 text-xs text-amber-600">
+            No weather forecast data available. Time estimates are still shown.
+          </p>
+        )}
+      </div>
+
       {trackPoints && trackPoints.length > 0 && (
         <ElevationProfile
           points={trackPoints}
           hoverStore={hoverStore}
           color={trackColor}
+          forecastTimes={forecastTimes}
         />
       )}
 
-      {user && (
-        <ForecastChart
-          trackUuid={data.uuid}
-          totalDistanceM={data.totalDistanceM}
-          onError={setToastMessage}
-          hoverStore={hoverStore}
-        />
+      {forecastPoints && (
+        <ForecastChart points={forecastPoints} hoverStore={hoverStore} />
       )}
 
       <dl className="mt-6 grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
@@ -481,6 +613,38 @@ export default function Track() {
           </form>
         </div>
       )}
+    </div>
+  )
+}
+
+/** Overlay on the map showing hover info with forecast timing. */
+function MapHoverOverlay({
+  hoverStore,
+  trackPoints,
+  forecastTimes,
+}: {
+  hoverStore: ReturnType<typeof useHoverStore>
+  trackPoints: { lat: number; lon: number; ele: number; d: number }[]
+  forecastTimes?: number[]
+}) {
+  const hoverIndex = useHoverValue(hoverStore)
+
+  if (hoverIndex == null || hoverIndex < 0 || hoverIndex >= trackPoints.length)
+    return null
+
+  const p = trackPoints[hoverIndex]
+  const dKm = (p.d / 1000).toFixed(1)
+
+  let timeInfo = ""
+  if (forecastTimes && forecastTimes.length > hoverIndex) {
+    const ts = forecastTimes[hoverIndex]
+    const startTs = forecastTimes[0]
+    timeInfo = ` — +${fmtElapsed(ts - startTs)} — ${fmtClock(ts)}`
+  }
+
+  return (
+    <div className="pointer-events-none absolute bottom-2 left-2 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">
+      {dKm} km &middot; {Math.round(p.ele)} m{timeInfo}
     </div>
   )
 }
