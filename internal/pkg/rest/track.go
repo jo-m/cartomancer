@@ -371,7 +371,14 @@ func parseSVGOptions(r *http.Request) (track.PreviewOptions, error) {
 	return opts, nil
 }
 
-// handleGetTrackPoints returns track points as [lat, lon] pairs.
+type trackPoint struct {
+	Lat float64 `json:"lat"`
+	Lon float64 `json:"lon"`
+	Ele float64 `json:"ele"`
+	D   float64 `json:"d"`
+}
+
+// handleGetTrackPoints returns track points with elevation and cumulative distance.
 // Public tracks are accessible without authentication; private tracks require the owner.
 func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -394,7 +401,7 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eTag := fmt.Sprintf(`"%d-points-v0"`, t.UpdatedAt.UnixMilli())
+	eTag := fmt.Sprintf(`"%d-points-v1"`, t.UpdatedAt.UnixMilli())
 	if r.Header.Get("If-None-Match") == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -417,9 +424,13 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 	tr := track.New(src, 0)
 	pts := tr.Points()
 
-	points := make([][2]float64, len(pts))
+	points := make([]trackPoint, len(pts))
+	cumDist := 0.0
 	for i, p := range pts {
-		points[i] = [2]float64{p.Lat, p.Lon}
+		if i > 0 {
+			cumDist += pts[i-1].MetersTo(&p)
+		}
+		points[i] = trackPoint{Lat: p.Lat, Lon: p.Lon, Ele: p.Elevation, D: cumDist}
 	}
 
 	w.Header().Set("Cache-Control", "private, max-age=3600")

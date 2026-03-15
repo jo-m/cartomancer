@@ -1019,7 +1019,7 @@ paths:
       operationId: getTrackPoints
       tags: [Tracks]
       description: >
-        Returns track points as [lat, lon] pairs.
+        Returns track points with elevation and cumulative distance.
         Public tracks are accessible without authentication; private tracks
         require the owner's session.
       parameters:
@@ -1040,11 +1040,19 @@ paths:
                   points:
                     type: array
                     items:
-                      type: array
-                      items:
-                        type: number
-                      minItems: 2
-                      maxItems: 2
+                      type: object
+                      required: [lat, lon, ele, d]
+                      properties:
+                        lat:
+                          type: number
+                        lon:
+                          type: number
+                        ele:
+                          type: number
+                          description: Elevation in meters
+                        d:
+                          type: number
+                          description: Cumulative distance in meters
         "304":
           description: Not modified
         "404":

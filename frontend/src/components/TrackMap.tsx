@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import OlMap from "ol/Map"
 import OlView from "ol/View"
 import TileLayer from "ol/layer/Tile"
@@ -6,11 +6,11 @@ import VectorLayer from "ol/layer/Vector"
 import VectorSource from "ol/source/Vector"
 import WMTS from "ol/source/WMTS"
 import Feature from "ol/Feature"
-import { LineString } from "ol/geom"
+import { LineString, Point } from "ol/geom"
 import { register } from "ol/proj/proj4"
 import { get as getProjection } from "ol/proj"
 import proj4 from "proj4"
-import { Stroke, Style } from "ol/style"
+import { Circle, Fill, Stroke, Style } from "ol/style"
 import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
 
 import "ol/ol.css"
@@ -23,34 +23,69 @@ register(proj4)
 
 const lv95 = getProjection("EPSG:2056")!
 
-/** Props for the TrackMap component. */
-interface TrackMapProps {
-  /** Array of [lat, lon] coordinate pairs in WGS84. */
-  points: [number, number][]
+interface TrackPoint {
+  lat: number
+  lon: number
+  ele: number
+  d: number
 }
 
-/** Renders an interactive swisstopo map with the track line. */
-export default function TrackMap({ points }: TrackMapProps) {
+/** Props for the TrackMap component. */
+interface TrackMapProps {
+  /** Array of track point objects in WGS84. */
+  points: TrackPoint[]
+  /** Currently hovered point index, or null. */
+  hoverIndex: number | null
+  /** Callback when hover index changes from map interaction. */
+  onHoverIndexChange: (index: number | null) => void
+}
+
+/** Renders an interactive swisstopo map with the track line and hover marker. */
+export default function TrackMap({
+  points,
+  hoverIndex,
+  onHoverIndexChange,
+}: TrackMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<OlMap | null>(null)
+  const coordsRef = useRef<number[][]>([])
+  const markerFeature = useRef<Feature | null>(null)
+  const markerSource = useRef<VectorSource | null>(null)
 
   useEffect(() => {
     if (!mapRef.current || points.length === 0) return
 
-    const coords = points.map(([lat, lon]) =>
-      proj4("EPSG:4326", "EPSG:2056", [lon, lat])
+    const coords = points.map((p) =>
+      proj4("EPSG:4326", "EPSG:2056", [p.lon, p.lat])
     )
+    coordsRef.current = coords
 
     const trackFeature = new Feature({
       geometry: new LineString(coords),
     })
     trackFeature.setStyle(
       new Style({
-        stroke: new Stroke({ color: "#e11d48", width: 3 }),
+        stroke: new Stroke({ color: "#e11d48", width: 4 }),
       })
     )
 
     const vectorSource = new VectorSource({ features: [trackFeature] })
+
+    const marker = new Feature({ geometry: new Point(coords[0]) })
+    marker.setStyle(
+      new Style({
+        image: new Circle({
+          radius: 6,
+          fill: new Fill({ color: "#e11d48" }),
+          stroke: new Stroke({ color: "#ffffff", width: 2 }),
+        }),
+      })
+    )
+    marker.setProperties({ visible: false })
+    markerFeature.current = marker
+
+    const mSource = new VectorSource({ features: [marker] })
+    markerSource.current = mSource
 
     const tileGrid = getLV95TileGrid()
     const tileLayer = new TileLayer({
@@ -66,11 +101,12 @@ export default function TrackMap({ points }: TrackMapProps) {
     })
 
     const vectorLayer = new VectorLayer({ source: vectorSource })
+    const markerLayer = new VectorLayer({ source: mSource })
 
     const viewConfig = getLV95ViewConfig()
     const map = new OlMap({
       target: mapRef.current,
-      layers: [tileLayer, vectorLayer],
+      layers: [tileLayer, vectorLayer, markerLayer],
       view: new OlView(viewConfig),
     })
 
@@ -84,8 +120,80 @@ export default function TrackMap({ points }: TrackMapProps) {
     return () => {
       map.setTarget(undefined)
       mapInstance.current = null
+      markerFeature.current = null
+      markerSource.current = null
     }
   }, [points])
+
+  // Find nearest track point to a map coordinate.
+  const findNearest = useCallback((pixel: number[]) => {
+    const map = mapInstance.current
+    if (!map) return null
+    const coord = map.getCoordinateFromPixel(pixel)
+    if (!coord) return null
+
+    const coords = coordsRef.current
+    let bestIdx = 0
+    let bestDist = Infinity
+    for (let i = 0; i < coords.length; i++) {
+      const dx = coords[i][0] - coord[0]
+      const dy = coords[i][1] - coord[1]
+      const dist = dx * dx + dy * dy
+      if (dist < bestDist) {
+        bestDist = dist
+        bestIdx = i
+      }
+    }
+    return bestIdx
+  }, [])
+
+  // Pointer move handler.
+  useEffect(() => {
+    const map = mapInstance.current
+    if (!map) return
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onPointerMove = (evt: any) => {
+      const idx = findNearest(evt.pixel as number[])
+      onHoverIndexChange(idx)
+    }
+
+    const onPointerLeave = () => {
+      onHoverIndexChange(null)
+    }
+
+    map.on("pointermove" as never, onPointerMove)
+    const viewport = map.getViewport()
+    viewport.addEventListener("pointerleave", onPointerLeave)
+
+    return () => {
+      map.un("pointermove" as never, onPointerMove)
+      viewport.removeEventListener("pointerleave", onPointerLeave)
+    }
+  }, [points, findNearest, onHoverIndexChange])
+
+  // Update marker position based on hoverIndex.
+  useEffect(() => {
+    const marker = markerFeature.current
+    if (!marker) return
+
+    const coords = coordsRef.current
+    if (hoverIndex != null && hoverIndex >= 0 && hoverIndex < coords.length) {
+      const geom = marker.getGeometry() as Point
+      geom.setCoordinates(coords[hoverIndex])
+      marker.setStyle(
+        new Style({
+          image: new Circle({
+            radius: 6,
+            fill: new Fill({ color: "#e11d48" }),
+            stroke: new Stroke({ color: "#ffffff", width: 2 }),
+          }),
+        })
+      )
+    } else {
+      marker.setStyle(new Style({}))
+    }
+  }, [hoverIndex])
 
   return (
     <div

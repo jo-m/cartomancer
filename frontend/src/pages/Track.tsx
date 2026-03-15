@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { useForm, Controller } from "react-hook-form"
@@ -7,6 +7,7 @@ import { z } from "zod"
 import { $api } from "../api/client"
 import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
+import ElevationProfile from "../components/ElevationProfile"
 import ForecastChart from "../components/ForecastChart"
 import TagsInput from "../components/TagsInput"
 import Toast from "../components/Toast"
@@ -62,6 +63,12 @@ export default function Track() {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
+
+  const handleHoverIndexChange = useCallback(
+    (index: number | null) => setHoverIndex(index),
+    []
+  )
 
   const { data, isLoading, error } = $api.useQuery("get", "/tracks/{uuid}", {
     params: { path: { uuid: uuid! } },
@@ -70,6 +77,10 @@ export default function Track() {
   const { data: pointsData } = $api.useQuery("get", "/tracks/{uuid}/points", {
     params: { path: { uuid: uuid! } },
   })
+
+  const trackPoints = pointsData?.points as
+    | { lat: number; lon: number; ele: number; d: number }[]
+    | undefined
 
   const starMutation = $api.useMutation("post", "/tracks/{uuid}/star")
   const unstarMutation = $api.useMutation("delete", "/tracks/{uuid}/star")
@@ -155,7 +166,7 @@ export default function Track() {
   if (isLoading) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">
-        <p className="text-gray-500">Loading…</p>
+        <p className="text-gray-500">Loading...</p>
       </div>
     )
   }
@@ -200,8 +211,12 @@ export default function Track() {
       )}
 
       <div className="mt-6">
-        {pointsData?.points && pointsData.points.length > 0 ? (
-          <TrackMap points={pointsData.points as [number, number][]} />
+        {trackPoints && trackPoints.length > 0 ? (
+          <TrackMap
+            points={trackPoints}
+            hoverIndex={hoverIndex}
+            onHoverIndexChange={handleHoverIndexChange}
+          />
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
             <img
@@ -213,13 +228,24 @@ export default function Track() {
         )}
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
-        <img
-          src={`/api/tracks/${data.uuid}/profile.svg?size=512`}
-          alt="Elevation profile"
-          className="w-full"
+      {trackPoints && trackPoints.length > 0 && (
+        <ElevationProfile
+          points={trackPoints}
+          hoverIndex={hoverIndex}
+          onHoverIndexChange={handleHoverIndexChange}
         />
-      </div>
+      )}
+
+      {user && (
+        <ForecastChart
+          trackUuid={data.uuid}
+          totalDistanceM={data.totalDistanceM}
+          onError={setToastMessage}
+          trackPoints={trackPoints}
+          hoverIndex={hoverIndex}
+          onHoverIndexChange={handleHoverIndexChange}
+        />
+      )}
 
       <dl className="mt-6 grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
         <div>
@@ -322,14 +348,6 @@ export default function Track() {
         </a>
       </div>
 
-      {user && (
-        <ForecastChart
-          trackUuid={data.uuid}
-          totalDistanceM={data.totalDistanceM}
-          onError={setToastMessage}
-        />
-      )}
-
       {data.isOwner && (
         <div className="mt-8 border-t border-gray-200 pt-6">
           <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
@@ -420,7 +438,7 @@ export default function Track() {
                 disabled={isSubmitting || editMutation.isPending}
                 className="rounded border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {editMutation.isPending ? "Saving…" : "Save"}
+                {editMutation.isPending ? "Saving..." : "Save"}
               </button>
 
               {editMutation.isSuccess && (
@@ -439,7 +457,7 @@ export default function Track() {
                       disabled={deleteMutation.isPending}
                       className="rounded border border-red-300 bg-white px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
-                      {deleteMutation.isPending ? "Deleting…" : "Confirm"}
+                      {deleteMutation.isPending ? "Deleting..." : "Confirm"}
                     </button>
                     <button
                       type="button"

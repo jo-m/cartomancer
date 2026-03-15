@@ -457,11 +457,13 @@ func TestGetTrackPoints_PublicTrack(t *testing.T) {
 	require.True(t, ok, "response must contain points array")
 	assert.Greater(t, len(points), 2, "subsampled track should have at least 3 points")
 
-	// Each point must be a [lat, lon] pair.
-	first := points[0].([]any)
-	assert.Len(t, first, 2)
-	assert.IsType(t, float64(0), first[0])
-	assert.IsType(t, float64(0), first[1])
+	// Each point must be an object with lat, lon, ele, d.
+	first := points[0].(map[string]any)
+	assert.IsType(t, float64(0), first["lat"])
+	assert.IsType(t, float64(0), first["lon"])
+	assert.IsType(t, float64(0), first["ele"])
+	assert.IsType(t, float64(0), first["d"])
+	assert.Equal(t, float64(0), first["d"], "first point should have zero cumulative distance")
 }
 
 func TestGetTrackPoints_PrivateTrack_Forbidden(t *testing.T) {

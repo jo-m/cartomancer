@@ -21,8 +21,16 @@ interface ForecastPoint {
   precipitationRate: number
 }
 
+interface TrackPoint {
+  lat: number
+  lon: number
+  ele: number
+  d: number
+}
+
 interface ChartDatum {
   ts: number
+  distanceM: number
   label: string
   temperatureC: number
   precipitationRate: number
@@ -32,6 +40,9 @@ interface Props {
   trackUuid: string
   totalDistanceM: number
   onError: (msg: string) => void
+  trackPoints?: TrackPoint[]
+  hoverIndex?: number | null
+  onHoverIndexChange?: (index: number | null) => void
 }
 
 /** Formats a timestamp as HH:MM in 24-hour format. */
@@ -43,11 +54,49 @@ function fmtTime(ts: number): string {
   })
 }
 
+/** Finds the index of the track point closest to the given distance in meters. */
+function findClosestTrackIndex(
+  trackPoints: TrackPoint[],
+  distanceM: number
+): number {
+  let bestIdx = 0
+  let bestDiff = Math.abs(trackPoints[0].d - distanceM)
+  for (let i = 1; i < trackPoints.length; i++) {
+    const diff = Math.abs(trackPoints[i].d - distanceM)
+    if (diff < bestDiff) {
+      bestDiff = diff
+      bestIdx = i
+    }
+  }
+  return bestIdx
+}
+
+/** Finds the forecast chart index closest to a given track distance in meters. */
+function findClosestForecastIndex(
+  data: ChartDatum[],
+  distanceM: number
+): number | null {
+  if (data.length === 0) return null
+  let bestIdx = 0
+  let bestDiff = Math.abs(data[0].distanceM - distanceM)
+  for (let i = 1; i < data.length; i++) {
+    const diff = Math.abs(data[i].distanceM - distanceM)
+    if (diff < bestDiff) {
+      bestDiff = diff
+      bestIdx = i
+    }
+  }
+  return bestIdx
+}
+
 /** Renders the forecast temperature and precipitation chart. */
 export default function ForecastChart({
   trackUuid,
   totalDistanceM,
   onError,
+  trackPoints,
+  hoverIndex,
+  onHoverIndexChange,
 }: Props) {
   const [points, setPoints] = useState<ForecastPoint[] | null>(null)
   const [loading, setLoading] = useState(false)
@@ -174,32 +223,62 @@ export default function ForecastChart({
         )}
       </div>
 
-      {points && <Charts points={points} />}
+      {points && (
+        <Charts
+          points={points}
+          trackPoints={trackPoints}
+          hoverIndex={hoverIndex ?? null}
+          onHoverIndexChange={onHoverIndexChange}
+        />
+      )}
     </div>
   )
 }
 
 /** Renders temperature and precipitation as two vertically stacked recharts. */
-function Charts({ points }: { points: ForecastPoint[] }) {
+function Charts({
+  points,
+  trackPoints,
+  hoverIndex,
+  onHoverIndexChange,
+}: {
+  points: ForecastPoint[]
+  trackPoints?: TrackPoint[]
+  hoverIndex: number | null
+  onHoverIndexChange?: (index: number | null) => void
+}) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleMouseMove = useCallback((state: any) => {
-    if (state?.activeTooltipIndex != null) {
-      setActiveIndex(state.activeTooltipIndex as number)
-    }
-  }, [])
-
-  const handleMouseLeave = useCallback(() => {
-    setActiveIndex(null)
-  }, [])
 
   const data: ChartDatum[] = points.map((p) => ({
     ts: new Date(p.time).getTime(),
+    distanceM: p.distanceM,
     label: fmtTime(new Date(p.time).getTime()),
     temperatureC: Math.round(p.temperatureC * 10) / 10,
     precipitationRate: Math.round(p.precipitationRate * 100) / 100,
   }))
+
+  const handleMouseMove = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (state: any) => {
+      if (state?.activeTooltipIndex != null) {
+        const idx = state.activeTooltipIndex as number
+        setActiveIndex(idx)
+        if (trackPoints && onHoverIndexChange && data[idx]) {
+          const trackIdx = findClosestTrackIndex(
+            trackPoints,
+            data[idx].distanceM
+          )
+          onHoverIndexChange(trackIdx)
+        }
+      }
+    },
+    [trackPoints, onHoverIndexChange, data]
+  )
+
+  const handleMouseLeave = useCallback(() => {
+    setActiveIndex(null)
+    onHoverIndexChange?.(null)
+  }, [onHoverIndexChange])
 
   const temps = data.map((d) => d.temperatureC).filter(isFinite)
   const minTemp = temps.length ? Math.floor(Math.min(...temps)) - 1 : 0
@@ -217,12 +296,30 @@ function Charts({ points }: { points: ForecastPoint[] }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tooltipLabelFormatter = (ts: any) => fmtTime(ts as number)
 
-  // Shared cursor position via activeIndex: we render a ReferenceLine in each chart.
-  const activeTs = activeIndex != null ? data[activeIndex]?.ts : null
+  // Internal cursor from hovering this chart directly.
+  const internalActiveTs = activeIndex != null ? data[activeIndex]?.ts : null
+
+  // External cursor from hoverIndex (map or elevation profile).
+  let externalActiveTs: number | null = null
+  if (
+    hoverIndex != null &&
+    trackPoints &&
+    trackPoints[hoverIndex] &&
+    activeIndex == null
+  ) {
+    const forecastIdx = findClosestForecastIndex(
+      data,
+      trackPoints[hoverIndex].d
+    )
+    if (forecastIdx != null) {
+      externalActiveTs = data[forecastIdx].ts
+    }
+  }
+
+  const referenceTs = internalActiveTs ?? externalActiveTs
 
   return (
     <div className="mt-4 space-y-2">
-      {/* Temperature chart */}
       <div>
         <p className="mb-1 text-xs font-medium text-gray-500">
           Temperature (C)
@@ -266,8 +363,8 @@ function Charts({ points }: { points: ForecastPoint[] }) {
                 strokeWidth={0.5}
               />
             )}
-            {activeTs != null && (
-              <ReferenceLine x={activeTs} stroke="#9ca3af" strokeWidth={1} />
+            {referenceTs != null && (
+              <ReferenceLine x={referenceTs} stroke="#9ca3af" strokeWidth={1} />
             )}
             <Line
               type="monotone"
@@ -281,7 +378,6 @@ function Charts({ points }: { points: ForecastPoint[] }) {
         </ResponsiveContainer>
       </div>
 
-      {/* Precipitation chart */}
       <div>
         <p className="mb-1 text-xs font-medium text-gray-500">
           Precipitation rate
@@ -316,8 +412,8 @@ function Charts({ points }: { points: ForecastPoint[] }) {
                 borderRadius: 4,
               }}
             />
-            {activeTs != null && (
-              <ReferenceLine x={activeTs} stroke="#9ca3af" strokeWidth={1} />
+            {referenceTs != null && (
+              <ReferenceLine x={referenceTs} stroke="#9ca3af" strokeWidth={1} />
             )}
             <Bar
               dataKey="precipitationRate"
