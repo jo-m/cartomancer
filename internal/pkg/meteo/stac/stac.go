@@ -22,13 +22,13 @@ import (
 // https://data.geo.admin.ch/api/stac/static/spec/v1/api.html
 // https://data.geo.admin.ch/api/stac/static/spec/v1/openapi.yaml
 // https://opendatadocs.meteoswiss.ch/e-forecast-data/e2-e3-numerical-weather-forecasting-model
+// https://data.geo.admin.ch/api/stac/v1/search?collections=ch.meteoschweiz.ogd-forecasting-icon-ch1
+// https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-forecasting-icon-ch1
 const (
 	APIBaseURL        = "https://data.geo.admin.ch/api/stac/v1"
 	CollectionID      = "ch.meteoschweiz.ogd-forecasting-icon-ch1"
 	CollectionHorizon = time.Hour * 33 // We use that to compute the latest reference time from collection temporal extent.
 )
-
-// https://data.geo.admin.ch/api/stac/v1/search?collections=ch.meteoschweiz.ogd-forecasting-icon-ch1
 
 // GetCollectionURL returns the URL for the ICON-CH1-EPS STAC collection.
 func GetCollectionURL() string {

@@ -364,6 +364,11 @@ export default function Track() {
             No weather forecast data available. Time estimates are still shown.
           </p>
         )}
+        {forecastStatus === "partial" && (
+          <p className="mt-2 text-xs text-amber-600">
+            Weather forecast only partially covers the requested time window.
+          </p>
+        )}
       </div>
 
       {trackPoints && trackPoints.length > 0 && (

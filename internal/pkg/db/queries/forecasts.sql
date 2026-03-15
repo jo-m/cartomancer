@@ -1,8 +1,8 @@
 -- name: CreateForecastFile :one
 INSERT INTO forecast_files (
-    valid_time, variable, file, forecast_id
+    valid_time, valid_until_time, variable, file, forecast_id
 ) VALUES (
-    ?, ?, ?, ?
+    ?, ?, ?, ?, ?
 )
 RETURNING *;
 
@@ -22,7 +22,7 @@ WHERE valid_time < ?;
 SELECT mf.* FROM forecast_files mf
 JOIN forecasts f ON mf.forecast_id = f.id
 WHERE f.reference_time = (SELECT MAX(reference_time) FROM forecasts)
-  AND mf.valid_time >= sqlc.arg(start)
+  AND mf.valid_until_time > sqlc.arg(start)
   AND mf.valid_time <= sqlc.arg(end)
   AND (f.bounds_min_lat IS NULL OR f.bounds_min_lat <= sqlc.arg(max_lat))
   AND (f.bounds_max_lat IS NULL OR f.bounds_max_lat >= sqlc.arg(min_lat))

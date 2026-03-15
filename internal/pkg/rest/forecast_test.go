@@ -40,10 +40,11 @@ func seedForecastDB(t *testing.T, d *db.DB, refTime time.Time) {
 	require.NoError(t, err)
 
 	_, err = d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
-		ValidTime:  refTime,
-		Variable:   "T_2M",
-		File:       t2mContent,
-		ForecastID: fc.ID,
+		ValidTime:      refTime,
+		ValidUntilTime: refTime.Add(time.Hour),
+		Variable:       "T_2M",
+		File:           t2mContent,
+		ForecastID:     fc.ID,
 	})
 	require.NoError(t, err)
 }
@@ -143,8 +144,9 @@ func TestGetTrackForecast_Success(t *testing.T) {
 	var result map[string]any
 	status, _ = e.do(client, http.MethodPost, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, &result)
 	assert.Equal(t, http.StatusOK, status)
-	// The seeded test data only covers one time step, so the forecast is partial.
-	assert.Equal(t, "partial", result["forecastStatus"])
+	// The seeded test data covers one 1h step starting at refTime, which is
+	// enough for the short test track at 25 km/h.
+	assert.Equal(t, "full", result["forecastStatus"])
 
 	points, ok := result["points"].([]any)
 	require.True(t, ok)

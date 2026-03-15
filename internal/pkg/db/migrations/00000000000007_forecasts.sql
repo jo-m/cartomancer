@@ -25,6 +25,10 @@ CREATE TABLE forecast_files (
     -- (horizon is the duration from reference_time to valid_time).
     valid_time DATETIME NOT NULL,
 
+    -- valid_until_time is the exclusive upper bound of the validity interval
+    -- [valid_time, valid_until_time).
+    valid_until_time DATETIME NOT NULL,
+
     -- variable is the forecast variable name, e.g. 'U_10M', 'V_10M', 'TOT_PREC'.
     variable TEXT NOT NULL,
 

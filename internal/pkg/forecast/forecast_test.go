@@ -45,10 +45,11 @@ func seedDB(t *testing.T, d *db.DB) time.Time {
 	require.NoError(t, err)
 
 	_, err = d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
-		ValidTime:  refTime,
-		Variable:   "T_2M",
-		File:       t2mContent,
-		ForecastID: fc.ID,
+		ValidTime:      refTime,
+		ValidUntilTime: refTime.Add(time.Hour),
+		Variable:       "T_2M",
+		File:           t2mContent,
+		ForecastID:     fc.ID,
 	})
 	require.NoError(t, err)
 

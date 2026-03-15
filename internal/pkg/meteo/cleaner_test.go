@@ -42,10 +42,11 @@ func insertForecastFileWithValidTime(t *testing.T, d *db.DB, validTime time.Time
 	refTime := validTime.Add(-time.Hour)
 	forecastID := ensureForecast(t, d, refTime)
 	f, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
-		ValidTime:  validTime,
-		Variable:   vars.VarU10m.Name,
-		File:       []byte("grib"),
-		ForecastID: forecastID,
+		ValidTime:      validTime,
+		ValidUntilTime: validTime.Add(time.Hour),
+		Variable:       vars.VarU10m.Name,
+		File:           []byte("grib"),
+		ForecastID:     forecastID,
 	})
 	require.NoError(t, err)
 	return f.ID

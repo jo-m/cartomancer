@@ -30,10 +30,11 @@ type BBox struct {
 	MinLat, MaxLat, MinLon, MaxLon float64
 }
 
-// timedMessage pairs a parsed GRIB2 message with its valid time for sorting.
+// timedMessage pairs a parsed GRIB2 message with its validity interval for sorting.
 type timedMessage struct {
-	validTime time.Time
-	msg       *grib2.Message
+	validTime      time.Time
+	validUntilTime time.Time
+	msg            *grib2.Message
 }
 
 // Handle holds decoded GRIB2 messages in memory, ready for point sampling.
@@ -93,8 +94,9 @@ func Load(ctx context.Context, d *db.DB, start, end time.Time, bbox BBox) (*Hand
 
 		for _, m := range msgs {
 			messages[row.Variable] = append(messages[row.Variable], timedMessage{
-				validTime: row.ValidTime,
-				msg:       m,
+				validTime:      row.ValidTime,
+				validUntilTime: row.ValidUntilTime,
+				msg:            m,
 			})
 		}
 	}
@@ -117,15 +119,17 @@ func Load(ctx context.Context, d *db.DB, start, end time.Time, bbox BBox) (*Hand
 }
 
 // coversWindow checks whether the loaded messages span the full [start, end]
-// window for at least one variable.
+// window for at least one variable. Each message covers [validTime, validUntilTime),
+// so coverage requires the first message to start at or before start and the last
+// message's validity to extend to or past end.
 func (h *Handle) coversWindow(start, end time.Time) bool {
 	for _, msgs := range h.messages {
 		if len(msgs) == 0 {
 			continue
 		}
 		first := msgs[0].validTime
-		last := msgs[len(msgs)-1].validTime
-		if !first.After(start) && !last.Before(end) {
+		lastUntil := msgs[len(msgs)-1].validUntilTime
+		if !first.After(start) && !lastUntil.Before(end) {
 			return true
 		}
 	}
@@ -143,9 +147,9 @@ func (h *Handle) Variables() []string {
 }
 
 // Sample returns the forecast value for the given variable at the given time
-// and location. It picks the message with the closest valid_time <= t.
-// Returns NaN if the variable is unknown, no message covers the time, or the
-// point is outside the grid domain.
+// and location. It picks the message whose validity interval [validTime, validUntilTime)
+// contains t. Returns NaN if the variable is unknown, no message covers the time,
+// or the point is outside the grid domain.
 func (h *Handle) Sample(variable string, t time.Time, lat, lon float64) float32 {
 	msgs, ok := h.messages[variable]
 	if !ok || len(msgs) == 0 {
@@ -158,6 +162,11 @@ func (h *Handle) Sample(variable string, t time.Time, lat, lon float64) float32 
 	}) - 1
 
 	if idx < 0 {
+		return float32(math.NaN())
+	}
+
+	// Check that t falls within the message's validity interval.
+	if !t.Before(msgs[idx].validUntilTime) {
 		return float32(math.NaN())
 	}
 

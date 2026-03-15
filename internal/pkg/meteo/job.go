@@ -15,6 +15,10 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 )
 
+// FileValidityDuration is the duration for which a single forecast file is
+// considered valid, forming the half-open interval [valid_time, valid_time + FileValidityDuration).
+const FileValidityDuration = 1 * time.Hour
+
 // DownloadVariables is the list of forecast variables stored by the downloader job.
 var DownloadVariables = []vars.Variable{vars.VarU10m, vars.VarV10m, vars.VarTotPr, vars.VarT2m}
 
@@ -145,10 +149,11 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 			}
 
 			if _, dbErr := tx.CreateForecastFile(ctx, db.CreateForecastFileParams{
-				ValidTime:  f.Meta.ValidTime,
-				Variable:   f.Meta.Variable,
-				File:       content,
-				ForecastID: forecastRow.ID,
+				ValidTime:      f.Meta.ValidTime,
+				ValidUntilTime: f.Meta.ValidTime.Add(FileValidityDuration),
+				Variable:       f.Meta.Variable,
+				File:           content,
+				ForecastID:     forecastRow.ID,
 			}); dbErr != nil {
 				return fmt.Errorf("create forecast_file record for %s validTime=%s: %w",
 					f.Meta.Variable, f.Meta.ValidTime.Format(time.RFC3339), dbErr)

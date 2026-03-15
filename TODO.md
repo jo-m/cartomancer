@@ -21,6 +21,10 @@
 - [ ] Forecast also wind, incl. direction, and sunshine duration
 - [ ] Track names in DB: Strip whitespace before saving. Strip any leading dots. Do not allow empty. On upload, assign some name if empty.
 
+## Test
+
+- [ ] Forecasts - incomplete and missing data
+
 ## Before initial push/deploy
 
 - [ ] Update README.md

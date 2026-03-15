@@ -72,10 +72,11 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 	require.NoError(t, err)
 
 	f, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
-		ValidTime:  validTime,
-		Variable:   vars.VarTotPr.Name,
-		File:       []byte("grib data"),
-		ForecastID: forecast.ID,
+		ValidTime:      validTime,
+		ValidUntilTime: validTime.Add(time.Hour),
+		Variable:       vars.VarTotPr.Name,
+		File:           []byte("grib data"),
+		ForecastID:     forecast.ID,
 	})
 	require.NoError(t, err)
 	require.Greater(t, f.ID, int64(0))
@@ -103,10 +104,11 @@ func TestCreateForecastFile_uniqueConstraint(t *testing.T) {
 
 	insert := func() error {
 		_, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
-			ValidTime:  refTime.Add(time.Hour),
-			Variable:   vars.VarU10m.Name,
-			File:       []byte("grib data"),
-			ForecastID: forecast.ID,
+			ValidTime:      refTime.Add(time.Hour),
+			ValidUntilTime: refTime.Add(2 * time.Hour),
+			Variable:       vars.VarU10m.Name,
+			File:           []byte("grib data"),
+			ForecastID:     forecast.ID,
 		})
 		return err
 	}
