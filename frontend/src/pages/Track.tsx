@@ -66,6 +66,12 @@ export default function Track() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const hoverStore = useHoverStore()
 
+  const { data: appConfig } = $api.useQuery("get", "/app_config")
+  const trackColor =
+    appConfig?.trackColor && appConfig.trackColor !== "currentColor"
+      ? appConfig.trackColor
+      : "#111827"
+
   const { data, isLoading, error } = $api.useQuery("get", "/tracks/{uuid}", {
     params: { path: { uuid: uuid! } },
   })
@@ -208,7 +214,11 @@ export default function Track() {
 
       <div className="mt-6">
         {trackPoints && trackPoints.length > 0 ? (
-          <TrackMap points={trackPoints} hoverStore={hoverStore} />
+          <TrackMap
+            points={trackPoints}
+            hoverStore={hoverStore}
+            color={trackColor}
+          />
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
             <img
@@ -221,7 +231,11 @@ export default function Track() {
       </div>
 
       {trackPoints && trackPoints.length > 0 && (
-        <ElevationProfile points={trackPoints} hoverStore={hoverStore} />
+        <ElevationProfile
+          points={trackPoints}
+          hoverStore={hoverStore}
+          color={trackColor}
+        />
       )}
 
       {user && (

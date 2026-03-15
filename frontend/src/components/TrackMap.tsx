@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, memo } from "react"
+import { useEffect, useRef, useCallback, useMemo, memo } from "react"
 import OlMap from "ol/Map"
 import OlView from "ol/View"
 import TileLayer from "ol/layer/Tile"
@@ -25,14 +25,6 @@ register(proj4)
 
 const lv95 = getProjection("EPSG:2056")!
 
-const markerVisibleStyle = new Style({
-  image: new Circle({
-    radius: 6,
-    fill: new Fill({ color: "#e11d48" }),
-    stroke: new Stroke({ color: "#ffffff", width: 2 }),
-  }),
-})
-
 const markerHiddenStyle = new Style({})
 
 interface TrackPoint {
@@ -48,15 +40,33 @@ interface TrackMapProps {
   points: TrackPoint[]
   /** Shared hover store for cross-component synchronization. */
   hoverStore: HoverStore
+  /** Stroke color for the track line and hover marker. */
+  color: string
 }
 
 /** Renders an interactive swisstopo map with the track line and hover marker. */
-export default memo(function TrackMap({ points, hoverStore }: TrackMapProps) {
+export default memo(function TrackMap({
+  points,
+  hoverStore,
+  color,
+}: TrackMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<OlMap | null>(null)
   const coordsRef = useRef<number[][]>([])
   const markerFeature = useRef<Feature | null>(null)
   const markerSource = useRef<VectorSource | null>(null)
+
+  const markerVisibleStyle = useMemo(
+    () =>
+      new Style({
+        image: new Circle({
+          radius: 6,
+          fill: new Fill({ color }),
+          stroke: new Stroke({ color: "#ffffff", width: 2 }),
+        }),
+      }),
+    [color]
+  )
 
   useEffect(() => {
     if (!mapRef.current || points.length === 0) return
@@ -71,7 +81,7 @@ export default memo(function TrackMap({ points, hoverStore }: TrackMapProps) {
     })
     trackFeature.setStyle(
       new Style({
-        stroke: new Stroke({ color: "#e11d48", width: 4 }),
+        stroke: new Stroke({ color, width: 4 }),
       })
     )
 
@@ -120,7 +130,7 @@ export default memo(function TrackMap({ points, hoverStore }: TrackMapProps) {
       markerFeature.current = null
       markerSource.current = null
     }
-  }, [points])
+  }, [points, color])
 
   // Find nearest track point to a map coordinate.
   const findNearest = useCallback((pixel: number[]) => {
@@ -185,7 +195,7 @@ export default memo(function TrackMap({ points, hoverStore }: TrackMapProps) {
         marker.setStyle(markerHiddenStyle)
       }
     })
-  }, [hoverStore])
+  }, [hoverStore, markerVisibleStyle])
 
   return (
     <div

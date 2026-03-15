@@ -21,10 +21,15 @@ interface TrackPoint {
 interface Props {
   points: TrackPoint[]
   hoverStore: HoverStore
+  color: string
 }
 
 /** Renders an interactive elevation profile chart using recharts. */
-export default memo(function ElevationProfile({ points, hoverStore }: Props) {
+export default memo(function ElevationProfile({
+  points,
+  hoverStore,
+  color,
+}: Props) {
   const hoverIndex = useHoverValue(hoverStore)
 
   const data = useMemo(
@@ -112,12 +117,12 @@ export default memo(function ElevationProfile({ points, hoverStore }: Props) {
           <Area
             type="monotone"
             dataKey="ele"
-            stroke="#e11d48"
+            stroke={color}
             strokeWidth={1.5}
-            fill="#e11d48"
+            fill={color}
             fillOpacity={0.1}
             dot={false}
-            activeDot={{ r: 3, fill: "#e11d48" }}
+            activeDot={{ r: 3, fill: color }}
           />
         </AreaChart>
       </ResponsiveContainer>

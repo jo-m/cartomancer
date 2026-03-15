@@ -1793,10 +1793,13 @@ components:
       required:
         - externalBaseUrl
         - appName
+        - trackColor
       properties:
         externalBaseUrl:
           type: string
         appName:
+          type: string
+        trackColor:
           type: string
 
     RegisterRequest:
