@@ -198,9 +198,19 @@ export default memo(function TrackMap({
   }, [hoverStore, markerVisibleStyle])
 
   return (
-    <div
-      ref={mapRef}
-      className="h-[400px] w-full rounded-lg border border-gray-200"
-    />
+    <div className="relative h-[400px] w-full rounded-lg border border-gray-200">
+      <div ref={mapRef} className="h-full w-full" />
+      <div className="pointer-events-none absolute bottom-0 right-0 z-10 px-1.5 py-0.5 text-xs text-gray-600 bg-white/80">
+        Map data:
+        <a
+          href="https://www.swisstopo.admin.ch/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="pointer-events-auto hover:underline"
+        >
+          SwissTopo
+        </a>
+      </div>
+    </div>
   )
 })
