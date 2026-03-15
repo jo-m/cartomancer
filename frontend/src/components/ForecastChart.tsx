@@ -26,8 +26,7 @@ interface ForecastPoint {
 interface ChartDatum {
   index: number
   ts: number
-  distanceM: number
-  label: string
+  dKm: number
   temperatureC: number
   precipitationRate: number
 }
@@ -37,6 +36,15 @@ interface Props {
   totalDistanceM: number
   onError: (msg: string) => void
   hoverStore: HoverStore
+}
+
+/** Formats a duration in milliseconds as "Xh YYmin". */
+function fmtElapsed(ms: number): string {
+  const totalMin = Math.round(ms / 60000)
+  const h = Math.floor(totalMin / 60)
+  const m = totalMin % 60
+  if (h === 0) return `${m}min`
+  return `${h}h ${m.toString().padStart(2, "0")}min`
 }
 
 /** Formats a timestamp as HH:MM in 24-hour format. */
@@ -201,13 +209,14 @@ function Charts({
       points.map((p) => ({
         index: p.index,
         ts: new Date(p.time).getTime(),
-        distanceM: p.distanceM,
-        label: fmtTime(new Date(p.time).getTime()),
+        dKm: Math.round((p.distanceM / 1000) * 100) / 100,
         temperatureC: Math.round(p.temperatureC * 10) / 10,
         precipitationRate: Math.round(p.precipitationRate * 100) / 100,
       })),
     [points]
   )
+
+  const startTs = data.length > 0 ? data[0].ts : 0
 
   const handleMouseMove = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -235,26 +244,54 @@ function Charts({
     return [lo, hi]
   }, [data])
 
-  const tickFormatter = (ts: number) => fmtTime(ts)
+  const xTickFormatter = (v: number) => `${v}`
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tooltipFormatter = (value: any, name: any) => {
-    if (name === "temperatureC") return [`${value} C`, "Temperature"]
-    if (name === "precipitationRate") return [`${value}`, "Precipitation"]
-    return [value, name]
-  }
+  // Build the tooltip content for a given data index.
+  const renderTooltipContent = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ({ active, payload }: any) => {
+      if (!active || !payload?.length) return null
+      const d = payload[0].payload as ChartDatum
+      const elapsed = fmtElapsed(d.ts - startTs)
+      const clock = fmtTime(d.ts)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tooltipLabelFormatter = (ts: any) => fmtTime(ts as number)
+      // Gather values from all payload entries.
+      const lines: [string, string][] = []
+      for (const entry of payload) {
+        if (entry.dataKey === "temperatureC") {
+          lines.push(["Temperature", `${entry.value} C`])
+        } else if (entry.dataKey === "precipitationRate") {
+          lines.push(["Precipitation", `${entry.value}`])
+        }
+      }
 
-  const internalActiveTs = activeIndex != null ? data[activeIndex]?.ts : null
+      return (
+        <div
+          className="rounded border border-gray-200 bg-white px-3 py-2 text-xs shadow-sm"
+          style={{ fontSize: 12 }}
+        >
+          <p className="mb-1 font-medium text-gray-700">
+            {d.dKm} km &middot; +{elapsed} &middot; {clock}
+          </p>
+          {lines.map(([label, val]) => (
+            <p key={label} className="text-gray-600">
+              {label}: {val}
+            </p>
+          ))}
+        </div>
+      )
+    },
+    [startTs]
+  )
 
-  let externalActiveTs: number | null = null
+  const internalDKm = activeIndex != null ? data[activeIndex]?.dKm : null
+
+  let externalDKm: number | null = null
   if (hoverIndex != null && activeIndex == null && data[hoverIndex]) {
-    externalActiveTs = data[hoverIndex].ts
+    externalDKm = data[hoverIndex].dKm
   }
 
-  const referenceTs = internalActiveTs ?? externalActiveTs
+  const referenceDKm = internalDKm ?? externalDKm
 
   return (
     <div className="mt-4 space-y-2">
@@ -271,12 +308,18 @@ function Charts({
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
-              dataKey="ts"
+              dataKey="dKm"
               type="number"
               domain={["dataMin", "dataMax"]}
-              tickFormatter={tickFormatter}
+              tickFormatter={xTickFormatter}
               tick={{ fontSize: 11, fill: "#6b7280" }}
               stroke="#d1d5db"
+              label={{
+                value: "km",
+                position: "insideBottomRight",
+                offset: -5,
+                style: { fontSize: 10, fill: "#9ca3af" },
+              }}
             />
             <YAxis
               domain={[minTemp, maxTemp]}
@@ -284,15 +327,7 @@ function Charts({
               stroke="#d1d5db"
               width={36}
             />
-            <Tooltip
-              formatter={tooltipFormatter}
-              labelFormatter={tooltipLabelFormatter}
-              contentStyle={{
-                fontSize: 12,
-                borderColor: "#e5e7eb",
-                borderRadius: 4,
-              }}
-            />
+            <Tooltip content={renderTooltipContent} />
             {minTemp < 0 && maxTemp > 0 && (
               <ReferenceLine
                 y={0}
@@ -301,8 +336,12 @@ function Charts({
                 strokeWidth={0.5}
               />
             )}
-            {referenceTs != null && (
-              <ReferenceLine x={referenceTs} stroke="#9ca3af" strokeWidth={1} />
+            {referenceDKm != null && (
+              <ReferenceLine
+                x={referenceDKm}
+                stroke="#9ca3af"
+                strokeWidth={1}
+              />
             )}
             <Line
               type="monotone"
@@ -329,29 +368,31 @@ function Charts({
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
-              dataKey="ts"
+              dataKey="dKm"
               type="number"
               domain={["dataMin", "dataMax"]}
-              tickFormatter={tickFormatter}
+              tickFormatter={xTickFormatter}
               tick={{ fontSize: 11, fill: "#6b7280" }}
               stroke="#d1d5db"
+              label={{
+                value: "km",
+                position: "insideBottomRight",
+                offset: -5,
+                style: { fontSize: 10, fill: "#9ca3af" },
+              }}
             />
             <YAxis
               tick={{ fontSize: 11, fill: "#6b7280" }}
               stroke="#d1d5db"
               width={36}
             />
-            <Tooltip
-              formatter={tooltipFormatter}
-              labelFormatter={tooltipLabelFormatter}
-              contentStyle={{
-                fontSize: 12,
-                borderColor: "#e5e7eb",
-                borderRadius: 4,
-              }}
-            />
-            {referenceTs != null && (
-              <ReferenceLine x={referenceTs} stroke="#9ca3af" strokeWidth={1} />
+            <Tooltip content={renderTooltipContent} />
+            {referenceDKm != null && (
+              <ReferenceLine
+                x={referenceDKm}
+                stroke="#9ca3af"
+                strokeWidth={1}
+              />
             )}
             <Bar
               dataKey="precipitationRate"
