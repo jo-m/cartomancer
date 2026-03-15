@@ -13,7 +13,9 @@ import (
 func (d *DB) GetTrackByUUIDForViewer(ctx context.Context, uuid, viewerUserID string) (TrackWithStarred, error) {
 	query := fmt.Sprintf(
 		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred"+
-			" FROM tracks LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"+
+			" FROM tracks"+
+			" JOIN users ON users.uuid = tracks.user_id"+
+			" LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"+
 			" WHERE tracks.uuid = ?",
 		trackAllCols,
 	)
@@ -37,7 +39,9 @@ func (d *DB) GetTrackByUUIDForViewer(ctx context.Context, uuid, viewerUserID str
 func (d *DB) ListTracksForEditingForViewer(ctx context.Context, userID string) ([]TrackWithStarred, error) {
 	query := fmt.Sprintf(
 		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred"+
-			" FROM tracks LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"+
+			" FROM tracks"+
+			" JOIN users ON users.uuid = tracks.user_id"+
+			" LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"+
 			" WHERE tracks.user_id = ? AND tracks.initial_editing_completed = 0"+
 			" ORDER BY tracks.created_at DESC",
 		trackAllCols,
@@ -72,6 +76,7 @@ func (d *DB) GetStarredTracks(ctx context.Context, starredByUserID, viewerUserID
 			"SELECT %s, 0 AS starred"+
 				" FROM track_stars ts_owner"+
 				" JOIN tracks ON tracks.uuid = ts_owner.track_id"+
+				" JOIN users ON users.uuid = tracks.user_id"+
 				" WHERE ts_owner.user_id = ? AND tracks.public = 1"+
 				" ORDER BY ts_owner.created_at DESC",
 			trackAllCols,
@@ -82,6 +87,7 @@ func (d *DB) GetStarredTracks(ctx context.Context, starredByUserID, viewerUserID
 			"SELECT %s, CASE WHEN ts_viewer.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred"+
 				" FROM track_stars ts_owner"+
 				" JOIN tracks ON tracks.uuid = ts_owner.track_id"+
+				" JOIN users ON users.uuid = tracks.user_id"+
 				" LEFT JOIN track_stars ts_viewer ON ts_viewer.track_id = tracks.uuid AND ts_viewer.user_id = ?"+
 				" WHERE ts_owner.user_id = ? AND (tracks.public = 1 OR tracks.user_id = ?)"+
 				" ORDER BY ts_owner.created_at DESC",

@@ -54,6 +54,8 @@ type trackResponse struct {
 	InitialEditingCompleted bool     `json:"initialEditingCompleted"`
 	Starred                 bool     `json:"starred"`
 	IsOwner                 bool     `json:"isOwner"`
+	UserName                string   `json:"userName"`
+	UserUUID                string   `json:"userUuid"`
 	Tags                    []string `json:"tags"`
 }
 
@@ -92,10 +94,11 @@ func nullStringVal(ns sql.NullString) string {
 	return ""
 }
 
-func trackResponseFromDB(t db.Track, tags []string, starred bool, isOwner bool) trackResponse {
+func trackResponseFromDB(tw db.TrackWithStarred, tags []string, isOwner bool) trackResponse {
 	if tags == nil {
 		tags = []string{}
 	}
+	t := tw.Track
 	resp := trackResponse{
 		UUID:                    t.Uuid,
 		Name:                    t.Name,
@@ -124,8 +127,10 @@ func trackResponseFromDB(t db.Track, tags []string, starred bool, isOwner bool) 
 		UpdatedAt:               t.UpdatedAt.Format(time.RFC3339),
 		Public:                  t.Public != 0,
 		InitialEditingCompleted: t.InitialEditingCompleted != 0,
-		Starred:                 starred,
+		Starred:                 tw.Starred,
 		IsOwner:                 isOwner,
+		UserName:                tw.UserName,
+		UserUUID:                t.UserID,
 		Tags:                    tags,
 	}
 	if t.OriginalCreatedAt.Valid {
@@ -179,7 +184,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, trackResponseFromDB(t.Track, tags, t.Starred, user != nil && user.Uuid == t.UserID))
+	writeJSON(w, http.StatusOK, trackResponseFromDB(t, tags, user != nil && user.Uuid == t.UserID))
 }
 
 func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request) {
@@ -551,7 +556,12 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, trackResponseFromDB(updated, req.Tags, starCount > 0, true))
+	writeJSON(w, http.StatusOK, trackResponseFromDB(db.TrackWithStarred{
+		Track:          updated,
+		Starred:        starCount > 0,
+		UserName:       user.Name,
+		UserAvatarSeed: user.AvatarSeed,
+	}, req.Tags, true))
 }
 
 // handleDeleteTrack handles DELETE /tracks/{uuid}.
@@ -889,7 +899,7 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t.Track, tags, t.Starred, user != nil && user.Uuid == t.UserID)
+		responses[i] = trackResponseFromDB(t, tags, user != nil && user.Uuid == t.UserID)
 	}
 
 	if params.Page == 0 {
@@ -995,7 +1005,7 @@ func (sv *server) handleListTracksForEditing(w http.ResponseWriter, r *http.Requ
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t.Track, tags, t.Starred, true)
+		responses[i] = trackResponseFromDB(t, tags, true)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"tracks": responses})
@@ -1259,5 +1269,9 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, trackResponseFromDB(created, nil, false, true))
+	writeJSON(w, http.StatusCreated, trackResponseFromDB(db.TrackWithStarred{
+		Track:          created,
+		UserName:       user.Name,
+		UserAvatarSeed: user.AvatarSeed,
+	}, nil, true))
 }

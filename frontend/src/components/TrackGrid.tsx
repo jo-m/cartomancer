@@ -538,10 +538,18 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                     />
                   </div>
                   <div className="p-2.5">
-                    <p className="truncate text-sm font-medium text-gray-900">
-                      {track.name}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <img
+                        src={`/api/users/${track.userUuid}/avatar`}
+                        alt=""
+                        className="h-4 w-4 shrink-0 rounded-full"
+                      />
+                      <p className="truncate text-sm font-medium text-gray-900">
+                        {track.name}
+                      </p>
+                    </div>
                     <p className="mt-0.5 text-xs text-gray-500">
+                      {track.userName} &middot;{" "}
                       {formatDistance(track.totalDistanceM)} &middot;{" "}
                       {formatAscent(track.totalAscentM)}
                     </p>

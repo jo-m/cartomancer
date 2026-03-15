@@ -284,7 +284,16 @@ export default function Track() {
         ← Tracks
       </Link>
 
-      <div className="mt-4 flex items-start justify-between gap-4">
+      <div className="mt-4 flex items-center gap-2">
+        <img
+          src={`/api/users/${data.userUuid}/avatar`}
+          alt=""
+          className="h-6 w-6 shrink-0 rounded-full"
+        />
+        <span className="text-sm text-gray-500">{data.userName}</span>
+      </div>
+
+      <div className="mt-2 flex items-start justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900">{data.name}</h1>
         {user && (
           <button

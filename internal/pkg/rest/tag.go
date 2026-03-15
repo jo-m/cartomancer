@@ -78,7 +78,7 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, trackResponseFromDB(track.Track, tags, track.Starred, true))
+	writeJSON(w, http.StatusOK, trackResponseFromDB(track, tags, true))
 }
 
 type tagSuggestionResponse struct {

@@ -92,10 +92,12 @@ type ListTracksParams struct {
 	PageSize int
 }
 
-// TrackWithStarred pairs a Track with the viewing user's star status for that track.
+// TrackWithStarred pairs a Track with the viewing user's star status and the track user's info.
 type TrackWithStarred struct {
 	Track
-	Starred bool
+	Starred        bool
+	UserName       string
+	UserAvatarSeed string
 }
 
 // ListTracksResult holds a page of tracks and the total count.
@@ -104,15 +106,16 @@ type ListTracksResult struct {
 	TotalCount int
 }
 
-// trackAllCols lists all 31 track columns with the tracks. table prefix,
-// suitable for use in queries that JOIN against other tables.
-const trackAllCols = `tracks.uuid, tracks.created_at, tracks.updated_at, tracks.initial_editing_completed, tracks.user_id, tracks.public, tracks.blob_id, tracks.file_format, tracks.original_filename, tracks.name, tracks.description, tracks.source, tracks.author, tracks.author_link_url, tracks.track_type, tracks.link_url, tracks.sport, tracks.sub_sport, tracks.total_distance_m, tracks.total_ascent_m, tracks.start_lat, tracks.start_lon, tracks.end_lat, tracks.end_lon, tracks.bounds_min_lat, tracks.bounds_min_lon, tracks.bounds_max_lat, tracks.bounds_max_lon, tracks.min_elevation_m, tracks.max_elevation_m, tracks.original_created_at`
+// trackAllCols lists all 31 track columns followed by the owner's name and avatar_seed,
+// with the tracks. and users. table prefixes for use in queries that JOIN against other tables.
+const trackAllCols = `tracks.uuid, tracks.created_at, tracks.updated_at, tracks.initial_editing_completed, tracks.user_id, tracks.public, tracks.blob_id, tracks.file_format, tracks.original_filename, tracks.name, tracks.description, tracks.source, tracks.author, tracks.author_link_url, tracks.track_type, tracks.link_url, tracks.sport, tracks.sub_sport, tracks.total_distance_m, tracks.total_ascent_m, tracks.start_lat, tracks.start_lon, tracks.end_lat, tracks.end_lon, tracks.bounds_min_lat, tracks.bounds_min_lon, tracks.bounds_max_lat, tracks.bounds_max_lon, tracks.min_elevation_m, tracks.max_elevation_m, tracks.original_created_at, users.name AS user_name, users.avatar_seed AS user_avatar_seed`
 
-// scanTrackWithStar scans a row containing all 31 track columns (in trackAllCols order)
-// followed by a single integer starred column.
+// scanTrackWithStar scans a row containing all 31 track columns plus owner_name
+// and owner_avatar_seed (in trackAllCols order) followed by a single integer starred column.
 func scanTrackWithStar(rows *sql.Rows) (TrackWithStarred, error) {
 	var i Track
 	var starred int64
+	var userName, userAvatarSeed string
 	err := rows.Scan(
 		&i.Uuid,
 		&i.CreatedAt,
@@ -145,9 +148,11 @@ func scanTrackWithStar(rows *sql.Rows) (TrackWithStarred, error) {
 		&i.MinElevationM,
 		&i.MaxElevationM,
 		&i.OriginalCreatedAt,
+		&userName,
+		&userAvatarSeed,
 		&starred,
 	)
-	return TrackWithStarred{Track: i, Starred: starred != 0}, err
+	return TrackWithStarred{Track: i, Starred: starred != 0, UserName: userName, UserAvatarSeed: userAvatarSeed}, err
 }
 
 type queryBuilder struct {
@@ -334,15 +339,15 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	}
 
 	where := b.whereClause()
-	// The LEFT JOIN computes starred for the viewer; an empty ViewerUserID never
-	// matches any row, so starred is always 0 for anonymous callers.
-	const join = " LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"
+	// The JOIN on users fetches owner info; the LEFT JOIN computes starred for the viewer.
+	const joins = " JOIN users ON users.uuid = tracks.user_id" +
+		" LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"
 
 	// The ViewerUserID arg comes first, before the WHERE args, matching the JOIN position.
 	baseArgs := append([]any{p.ViewerUserID}, b.args...)
 
 	var total int
-	countSQL := "SELECT COUNT(*) FROM tracks" + join + where
+	countSQL := "SELECT COUNT(*) FROM tracks" + joins + where
 	if err := d.ro.QueryRowContext(ctx, countSQL, baseArgs...).Scan(&total); err != nil {
 		return ListTracksResult{}, fmt.Errorf("count tracks: %w", err)
 	}
@@ -350,7 +355,7 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	offset := (p.Page - 1) * p.PageSize
 	dataSQL := fmt.Sprintf(
 		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred FROM tracks%s%s ORDER BY tracks.created_at DESC LIMIT ? OFFSET ?",
-		trackAllCols, join, where,
+		trackAllCols, joins, where,
 	)
 	dataArgs := append(append([]any{}, baseArgs...), int64(p.PageSize), int64(offset))
 

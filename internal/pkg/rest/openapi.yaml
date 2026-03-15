@@ -2034,6 +2034,8 @@ components:
         - updatedAt
         - public
         - tags
+        - userName
+        - userUuid
       properties:
         uuid:
           type: string
@@ -2112,6 +2114,10 @@ components:
           type: boolean
         isOwner:
           type: boolean
+        userName:
+          type: string
+        userUuid:
+          type: string
         tags:
           type: array
           items:
