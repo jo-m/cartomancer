@@ -64,14 +64,14 @@ func newTestEnv(t *testing.T) *testEnv {
 		CookieName:      testCookieName,
 		CookiePath:      "/",
 	}
-	sess, err := session.NewStore(d, sessConf, app.AppConfig{AppName: "test"})
+	sess, err := session.NewStore(d, sessConf, app.AppConfig{InstanceName: "test"})
 	require.NoError(t, err)
 
 	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
 	mux.Use(logg.AttachLogger(logger))
 	mux.Use(sess.Middleware)
-	appConf := app.AppConfig{AppName: "test", EmailJWTSecret: rest.TestEmailJWTSecret}
+	appConf := app.AppConfig{InstanceName: "test", EmailJWTSecret: rest.TestEmailJWTSecret}
 	apiHandler, err := rest.New(d, sess, workers.Submitter(), appConf)
 	require.NoError(t, err)
 	mux.Mount("/", apiHandler)

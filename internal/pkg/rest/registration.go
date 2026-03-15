@@ -142,7 +142,7 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := signEmailToken(verID.String(), sv.appConfig.EmailVerificationExpiry, sv.emailJWTSecret, sv.appConfig.AppName)
+	token, err := signEmailToken(verID.String(), sv.appConfig.EmailVerificationExpiry, sv.emailJWTSecret, sv.appConfig.InstanceName)
 	if err != nil {
 		logg.Error(ctx, "failed to sign email verification token", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
@@ -178,7 +178,7 @@ func (sv *server) handleConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	verUUID, err := verifyEmailToken(req.Token, sv.emailJWTSecret, sv.appConfig.AppName)
+	verUUID, err := verifyEmailToken(req.Token, sv.emailJWTSecret, sv.appConfig.InstanceName)
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			writeError(w, http.StatusGone, "token expired")

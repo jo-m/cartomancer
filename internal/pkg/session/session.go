@@ -22,14 +22,12 @@ import (
 //
 //revive:disable:exported Naming necessary for struct embedding.
 type SessionConfig struct {
-	// Required.
-	IdleTimeout     time.Duration `arg:"--session-idle-timeout,env:SESSION_IDLE_TIMEOUT" default:"0" help:"Session idle timeout" placeholder:"DUR"`
-	AbsoluteTimeout time.Duration `arg:"--session-abs-timeout,env:SESSION_ABS_TIMEOUT" default:"0" help:"Session absolute timeout" placeholder:"DUR"`
-	CookieName      string        `arg:"--session-cookie-name,env:SESSION_COOKIE_NAME" default:"" help:"Session cookie name" placeholder:"NAME"`
-	// Optional.
-	JWTSecret    string `arg:"--session-jwt-secret,env:SESSION_JWT_SECRET" help:"Secret to sign JWT, generated on startup if not set" placeholder:"SECRET"`
-	CookieDomain string `arg:"--session-cookie-domain,env:SESSION_COOKIE_DOMAIN" default:"" help:"Session cookie domain" placeholder:"HOST"`
-	CookiePath   string `arg:"--session-cookie-path,env:SESSION_COOKIE_PATH" default:"/" help:"Session cookie path" placeholder:"PATH"`
+	IdleTimeout     time.Duration `arg:"--session-idle-timeout,env:SESSION_IDLE_TIMEOUT" default:"2h" help:"Session idle timeout" placeholder:"DUR"`
+	AbsoluteTimeout time.Duration `arg:"--session-abs-timeout,env:SESSION_ABS_TIMEOUT" default:"24h" help:"Session absolute timeout" placeholder:"DUR"`
+	CookieName      string        `arg:"--session-cookie-name,env:SESSION_COOKIE_NAME" default:"sid" help:"Session cookie name" placeholder:"NAME"`
+	JWTSecret       string        `arg:"--session-jwt-secret,env:SESSION_JWT_SECRET" help:"Secret to sign JWT, generated on startup if not set" placeholder:"SECRET"`
+	CookieDomain    string        `arg:"--session-cookie-domain,env:SESSION_COOKIE_DOMAIN" default:"" help:"Session cookie domain" placeholder:"HOST"`
+	CookiePath      string        `arg:"--session-cookie-path,env:SESSION_COOKIE_PATH" default:"/" help:"Session cookie path" placeholder:"PATH"`
 	// Default is safe.
 	insecureUseOnlyForTests bool
 }
@@ -103,7 +101,7 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 	}
 
 	now := time.Now()
-	claims, err := jwtParseAndVerify(cookie.Value, now, []byte(s.c.JWTSecret), s.ac.AppName)
+	claims, err := jwtParseAndVerify(cookie.Value, now, []byte(s.c.JWTSecret), s.ac.InstanceName)
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			return nil, ErrSessionExpiredAbsolute
@@ -183,7 +181,7 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 		return nil, fmt.Errorf("failed to create session in db: %w", err)
 	}
 
-	claims := claimsForSession(id.String(), now, s.c.AbsoluteTimeout, s.ac.AppName)
+	claims := claimsForSession(id.String(), now, s.c.AbsoluteTimeout, s.ac.InstanceName)
 	token, err := jwtSign(claims, []byte(s.c.JWTSecret))
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign JWT: %w", err)

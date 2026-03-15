@@ -283,7 +283,7 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := signEmailToken(verID.String(), sv.appConfig.EmailVerificationExpiry, sv.emailJWTSecret, sv.appConfig.AppName)
+	token, err := signEmailToken(verID.String(), sv.appConfig.EmailVerificationExpiry, sv.emailJWTSecret, sv.appConfig.InstanceName)
 	if err != nil {
 		logg.Error(ctx, "failed to sign email verification token", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)

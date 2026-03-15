@@ -4,14 +4,15 @@ import "net/http"
 
 type appConfigResponse struct {
 	ExternalBaseURL string `json:"externalBaseUrl"`
-	AppName         string `json:"appName"`
+	InstanceName    string `json:"instanceName"`
 	TrackColor      string `json:"trackColor"`
 }
 
 func (sv *server) handleGetAppConfig(w http.ResponseWriter, r *http.Request) {
+	// TODO: Update OpenAPI YAML.
 	writeJSON(w, http.StatusOK, appConfigResponse{
 		ExternalBaseURL: sv.appConfig.ExternalBaseURL,
-		AppName:         sv.appConfig.AppName,
+		InstanceName:    sv.appConfig.InstanceName,
 		TrackColor:      sv.appConfig.TrackColor,
 	})
 }

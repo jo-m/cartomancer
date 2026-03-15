@@ -1792,12 +1792,12 @@ components:
       type: object
       required:
         - externalBaseUrl
-        - appName
+        - instanceName
         - trackColor
       properties:
         externalBaseUrl:
           type: string
-        appName:
+        instanceName:
           type: string
         trackColor:
           type: string

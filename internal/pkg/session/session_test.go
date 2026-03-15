@@ -142,7 +142,7 @@ func TestSessionMiddleware(t *testing.T) {
 		insecureUseOnlyForTests: true,
 	}
 	appConf := app.AppConfig{
-		AppName: "testapp",
+		InstanceName: "testapp",
 	}
 	sessionStore, err := NewStore(d, conf, appConf)
 	require.NoError(t, err)
@@ -241,7 +241,7 @@ func TestSessionExpiry(t *testing.T) {
 		insecureUseOnlyForTests: true,
 	}
 	appConf := app.AppConfig{
-		AppName: "testapp",
+		InstanceName: "testapp",
 	}
 	store, err := NewStore(d, conf, appConf)
 	require.NoError(t, err)
