@@ -129,7 +129,7 @@ func GetNewestForecast(ctx context.Context, variables []vars.Variable, maxHorizo
 		return nil, fmt.Errorf("no forecast items found for variables %v", variables)
 	}
 
-	refTime := coll.NewestReferenceTime()
+	refTime := items[0].Props.ReferenceDatetime
 	horizAsset, ok := coll.Assets[horizConstAssetKey]
 	if !ok {
 		return nil, fmt.Errorf("asset %q not found in collection", horizConstAssetKey)

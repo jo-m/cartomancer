@@ -78,6 +78,20 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		return fmt.Errorf("fetch forecast manifest: %w", err)
 	}
 
+	// Re-check: the actual reference time may differ from the collection extent
+	// estimate (e.g. the newest model run is still uploading), so verify the
+	// resolved reference time is not already stored.
+	if !manifest.ReferenceTime.Equal(latestRefTime) {
+		exists, dbErr := d.d.QueryRO().ForecastExistsForReferenceTime(ctx, manifest.ReferenceTime)
+		if dbErr != nil {
+			return fmt.Errorf("re-check existing forecast: %w", dbErr)
+		}
+		if exists != 0 {
+			logg.Info(ctx, "Forecast already stored (after probing)", "referenceTime", manifest.ReferenceTime)
+			return nil
+		}
+	}
+
 	logg.Info(ctx, "Downloading new forecast",
 		"referenceTime", manifest.ReferenceTime,
 		"fileCount", len(manifest.Files))

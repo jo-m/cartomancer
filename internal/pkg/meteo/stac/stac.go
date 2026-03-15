@@ -274,9 +274,22 @@ func nextCursor(links []Link) string {
 	return ""
 }
 
+// modelRunInterval is the time between consecutive ICON-CH1-EPS model runs.
+const modelRunInterval = 3 * time.Hour
+
+// maxRefTimeRetries is the number of older reference times to probe when
+// the newest computed reference time has no items yet (e.g. because the
+// model run is still in progress).
+const maxRefTimeRetries = 8
+
 // FetchItemsForVariables fetches the STAC collection to determine the newest
 // forecast reference datetime from the temporal extent, then uses the Search API
 // to retrieve items matching each requested variable for that reference time.
+//
+// Because the collection's temporal extent may advertise a model run that is
+// still being uploaded, the function probes a single variable first. If no items
+// are returned, it steps back by [modelRunInterval] (3 h) and retries up to
+// [maxRefTimeRetries] times before giving up.
 //
 // The returned Collection can be used by callers to extract additional metadata
 // (e.g. grid constants asset URLs) without a second fetch.
@@ -294,9 +307,37 @@ func FetchItemsForVariables(ctx context.Context, collectionURL string, variables
 		return nil, &coll, nil
 	}
 
-	refTimeStr := refTime.Format(time.RFC3339)
-	logg.Debug(ctx, "Newest reference time from collection extent", "refTime", refTimeStr)
+	// Probe with the first variable to find a reference time that has data.
+	probeVar := strings.ToUpper(variables[0])
+	for attempt := range maxRefTimeRetries {
+		candidate := refTime.Add(-time.Duration(attempt) * modelRunInterval)
+		candidateStr := candidate.Format(time.RFC3339)
 
+		probeItems, searchErr := SearchItems(ctx, SearchReq{
+			Collections:         []string{CollectionID},
+			ForecastRefDatetime: candidateStr,
+			ForecastVariable:    probeVar,
+			ForecastPerturbed:   &perturbed,
+		})
+		if searchErr != nil {
+			return nil, nil, fmt.Errorf("probing reference time %s for variable %s: %w", candidateStr, probeVar, searchErr)
+		}
+
+		if len(probeItems) > 0 {
+			refTime = candidate
+			logg.Debug(ctx, "Found available reference time", "refTime", candidateStr, "attempt", attempt)
+			break
+		}
+
+		logg.Debug(ctx, "No items for reference time, stepping back", "refTime", candidateStr)
+		if attempt == maxRefTimeRetries-1 {
+			return nil, &coll, nil
+		}
+	}
+
+	refTimeStr := refTime.Format(time.RFC3339)
+
+	// Fetch all variables for the confirmed reference time.
 	var allItems []Item
 	for _, v := range variables {
 		items, searchErr := SearchItems(ctx, SearchReq{

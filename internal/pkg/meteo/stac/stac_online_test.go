@@ -54,17 +54,28 @@ func TestOnlineStacSearchItems(t *testing.T) {
 	coll, err := stac.FetchJSON[stac.Collection](ctx, stac.GetCollectionURL())
 	require.NoError(t, err)
 
+	// The collection extent may advertise a model run that is still uploading,
+	// so step back in 3 h increments until we find one with data.
 	refTime := coll.NewestReferenceTime()
-	t.Logf("refTime: %s", refTime)
+	t.Logf("initial refTime from extent: %s", refTime)
 	require.False(t, refTime.IsZero())
 
-	items, err := stac.SearchItems(ctx, stac.SearchReq{
-		Collections:         []string{stac.CollectionID},
-		ForecastRefDatetime: refTime.Format(time.RFC3339),
-		ForecastVariable:    "T_2M",
-		ForecastPerturbed:   utl.Ptr(false),
-	})
-	require.NoError(t, err)
+	var items []stac.Item
+	for attempt := range 8 {
+		candidate := refTime.Add(-time.Duration(attempt) * 3 * time.Hour)
+		items, err = stac.SearchItems(ctx, stac.SearchReq{
+			Collections:         []string{stac.CollectionID},
+			ForecastRefDatetime: candidate.Format(time.RFC3339),
+			ForecastVariable:    "T_2M",
+			ForecastPerturbed:   utl.Ptr(false),
+		})
+		require.NoError(t, err)
+		if len(items) > 0 {
+			refTime = candidate
+			t.Logf("found data at refTime: %s (attempt %d)", refTime, attempt)
+			break
+		}
+	}
 	require.Len(t, items, 34)
 
 	for _, item := range items {
