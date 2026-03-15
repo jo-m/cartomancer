@@ -5,15 +5,15 @@
 ## Short term
 
 - [ ] Rename, icon, favicon, branding
-- [ ] Track/forecast view
+- [x] Track/forecast view
   - [x] Hide data from the forecast charts if no forecast data available.
   - [x] Hovering the map view should show forecast values and distance and time in tooltip
   - [x] Maybe debounce the tooltip
   - [x] Remove the time and speed input boxes, leave only the buttons, and show forecast immediately when clicking one of them
   - [x] Make time and speed inputs global for the track view, not only for forecast. In all the x axes and tooltips show wall clock time and elapsed time.
   - [x] Simply always show the forecast if available.
-  - [ ] Allow to make track map full screen.
-  - [ ] Make forecasts access public
+  - [x] Allow to make track map full screen.
+  - [x] Make forecasts access public
   - [x] Frontend meteo data attribution
   - [x] Attribution for map (Swisstopo)
 - [x] Store vertical+horizontal grid data for forecasts

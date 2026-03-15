@@ -1,9 +1,23 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from "react"
+import {
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef,
+  Fragment,
+} from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import {
+  Dialog,
+  DialogPanel,
+  Transition,
+  TransitionChild,
+} from "@headlessui/react"
+import { ArrowsPointingOutIcon, XMarkIcon } from "@heroicons/react/24/outline"
 import { $api, fetchClient } from "../api/client"
 import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
@@ -70,6 +84,7 @@ export default function Track() {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [mapFullscreen, setMapFullscreen] = useState(false)
   const hoverStore = useHoverStore()
 
   const { data: appConfig } = $api.useQuery("get", "/app_config")
@@ -301,6 +316,64 @@ export default function Track() {
               trackPoints={trackPoints}
               forecastTimes={forecastTimes}
             />
+            <button
+              type="button"
+              onClick={() => setMapFullscreen(true)}
+              className="absolute top-2 right-2 z-10 rounded bg-white/90 p-1.5 text-gray-600 shadow-sm hover:bg-white hover:text-gray-900"
+            >
+              <ArrowsPointingOutIcon className="h-5 w-5" />
+            </button>
+
+            <Transition show={mapFullscreen} as={Fragment}>
+              <Dialog
+                onClose={() => setMapFullscreen(false)}
+                className="relative z-50"
+              >
+                <TransitionChild
+                  as={Fragment}
+                  enter="ease-out duration-200"
+                  enterFrom="opacity-0"
+                  enterTo="opacity-100"
+                  leave="ease-in duration-150"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <div className="fixed inset-0 bg-black/40" />
+                </TransitionChild>
+                <TransitionChild
+                  as={Fragment}
+                  enter="ease-out duration-200"
+                  enterFrom="opacity-0 scale-95"
+                  enterTo="opacity-100 scale-100"
+                  leave="ease-in duration-150"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
+                >
+                  <DialogPanel className="fixed inset-0 flex flex-col bg-white">
+                    <button
+                      type="button"
+                      onClick={() => setMapFullscreen(false)}
+                      className="absolute top-3 right-3 z-10 rounded bg-white/90 p-1.5 text-gray-600 shadow-sm hover:bg-white hover:text-gray-900"
+                    >
+                      <XMarkIcon className="h-6 w-6" />
+                    </button>
+                    <div className="relative h-full w-full">
+                      <TrackMap
+                        points={trackPoints}
+                        hoverStore={hoverStore}
+                        color={trackColor}
+                        className="h-full w-full"
+                      />
+                      <MapHoverOverlay
+                        hoverStore={hoverStore}
+                        trackPoints={trackPoints}
+                        forecastTimes={forecastTimes}
+                      />
+                    </div>
+                  </DialogPanel>
+                </TransitionChild>
+              </Dialog>
+            </Transition>
           </div>
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50">

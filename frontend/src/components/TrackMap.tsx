@@ -42,6 +42,8 @@ interface TrackMapProps {
   hoverStore: HoverStore
   /** Stroke color for the track line and hover marker. */
   color: string
+  /** Optional CSS class for the outer container, overriding the default height. */
+  className?: string
 }
 
 /** Renders an interactive swisstopo map with the track line and hover marker. */
@@ -49,6 +51,7 @@ export default memo(function TrackMap({
   points,
   hoverStore,
   color,
+  className,
 }: TrackMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<OlMap | null>(null)
@@ -198,7 +201,12 @@ export default memo(function TrackMap({
   }, [hoverStore, markerVisibleStyle])
 
   return (
-    <div className="relative h-[400px] w-full rounded-lg border border-gray-200">
+    <div
+      className={
+        className ??
+        "relative h-[400px] w-full rounded-lg border border-gray-200"
+      }
+    >
       <div ref={mapRef} className="h-full w-full" />
       <div className="pointer-events-none absolute bottom-0 right-0 z-10 px-1.5 py-0.5 text-xs text-gray-600 bg-white/80">
         Map data:
