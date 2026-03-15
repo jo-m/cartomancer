@@ -40,6 +40,7 @@ Follow RESTful API design guidelines, and use appropriate HTTP methods and statu
 Use camelCase for any JSON fields (e.g. "SessionID string `json:"sessionId"`").
 Use the helpers in `internal/pkg/rest/error.go`.
 In most cases where an error is returned from a handler, the details should be logged.
+Caching: Endpoints which seldomly change and are expensive to compute should include aggressive caching/etag headers. Example: `handleDownloadTrackSVG()`.
 
 ### Middleware stack (applied in order in main.go)
 

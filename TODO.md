@@ -16,7 +16,7 @@
   - [ ] Make forecasts access public
 - [ ] Store vertical+horizontal grid data for forecasts
 - [ ] Show track owner/user in frontend
-- [ ] Aggressive caching with etag headers for all expensive endpoints
+- [x] Aggressive caching with etag headers for all expensive endpoints
 - [ ] Frontend meteo data attribution
 - [ ] Forecast also wind, incl. direction, and sunshine duration
 - [ ] Track names in DB: Strip whitespace before saving. Strip any leading dots. Do not allow empty. On upload, assign some name if empty.

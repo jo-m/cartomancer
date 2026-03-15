@@ -3,7 +3,9 @@ package rest
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"codeberg.org/Codeberg/avatars"
@@ -33,10 +35,19 @@ func (sv *server) handleGetUserAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	svg := avatars.MakeAvatar(u.AvatarSeed)
+	eTag := fmt.Sprintf(`"%s-v0"`, u.AvatarSeed)
+	if r.Header.Get("If-None-Match") == eTag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
+	svg := []byte(avatars.MakeAvatar(u.AvatarSeed))
 	w.Header().Set("Content-Type", "image/svg+xml")
 	w.Header().Set("Cache-Control", "public, max-age=86400")
-	_, _ = w.Write([]byte(svg))
+	w.Header().Set("ETag", eTag)
+	w.Header().Set("Content-Length", strconv.Itoa(len(svg)))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(svg)
 }
 
 // handleRotateAvatar generates a new random avatar seed for the current user
