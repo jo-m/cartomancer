@@ -56,3 +56,16 @@ LIMIT 1;
 SELECT EXISTS(
     SELECT 1 FROM forecasts WHERE reference_time = ?
 ) AS ok;
+
+-- name: ListForecastsWithFiles :many
+-- Returns all forecasts LEFT JOINed with their files (excluding blobs).
+-- Forecasts without files appear with NULL file columns.
+SELECT
+    f.id AS forecast_id, f.created_at, f.reference_time,
+    f.bounds_min_lat, f.bounds_min_lon, f.bounds_max_lat, f.bounds_max_lon,
+    f.attribution, f.attribution_href,
+    mf.id AS file_id, mf.valid_time, mf.valid_until_time, mf.variable,
+    length(mf.file) AS file_size
+FROM forecasts f
+LEFT JOIN forecast_files mf ON mf.forecast_id = f.id
+ORDER BY f.reference_time DESC, mf.variable, mf.valid_time;

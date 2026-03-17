@@ -108,6 +108,8 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 		r.Delete("/admin/users/{uuid}", sv.handleAdminDeleteUser)
 		r.Post("/admin/users/{uuid}/reset-password", sv.handleAdminResetUserPassword)
 		r.Post("/admin/users/{uuid}/confirm-email", sv.handleAdminConfirmEmail)
+
+		r.Get("/admin/forecasts", sv.handleAdminListForecasts)
 	})
 
 	return mux, nil

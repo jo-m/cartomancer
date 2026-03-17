@@ -33,7 +33,7 @@
 - [x] Tracks filter view is currently inconsistent
 - [x] Deduplicate track blobs between users
 - [ ] Explore by tags page
-- [ ] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step
+- [x] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step
 - [ ] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
 - [x] Make logg pkg capable of using t.Log() if it is inside a test
 

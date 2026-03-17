@@ -14,6 +14,7 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/forecast"
 	"jo-m.ch/go/detour/internal/pkg/load"
 	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 	"jo-m.ch/go/detour/internal/pkg/session"
 	"jo-m.ch/go/detour/internal/pkg/track"
 )
@@ -161,12 +162,12 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		}
 
 		if status != "none" {
-			tempK := h.Sample("T_2M", pointTime, p.Lat, p.Lon)
+			tempK := h.Sample(vars.VarT2m.Name, pointTime, p.Lat, p.Lon)
 			if !math.IsNaN(float64(tempK)) {
 				v := float64(tempK) - 273.15
 				rp.TemperatureC = &v
 			}
-			precip := h.Sample("TOT_PR", pointTime, p.Lat, p.Lon)
+			precip := h.Sample(vars.VarTotPr.Name, pointTime, p.Lat, p.Lon)
 			if !math.IsNaN(float64(precip)) {
 				// Convert from kg m-2 s-1 to mm/h (1 kg/m2 = 1 mm, so multiply by 3600).
 				v := float64(precip) * 3600
