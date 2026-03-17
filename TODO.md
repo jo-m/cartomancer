@@ -28,7 +28,7 @@
 - [ ] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
 - [ ] XSRF protection
 - [ ] ~~Update go tool air config~~
-- [ ] At / serve a robots.txt which disallows ANY robot on ANY page, except the front page. Make the front page have no dynamic content when not logged in.
+- [x] At / serve a robots.txt which disallows ANY robot on ANY page, except the front page. Make the front page have no dynamic content when not logged in.
 - [ ] On the tracks page allow sorting by distance, ascent, created_at ("uploaded at"), original_created_at ("file creation date")
 - [ ] Tracks filter view is currently inconsistent
 - [ ] Deduplicate track blobs between users

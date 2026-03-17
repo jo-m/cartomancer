@@ -31,6 +31,9 @@ export default function Layout() {
             Detour
           </Link>
           <div className="flex items-center gap-4 text-sm">
+            <Link to="/tracks" className="text-gray-700 hover:text-gray-900">
+              Tracks
+            </Link>
             {!loading &&
               (user ? (
                 <>

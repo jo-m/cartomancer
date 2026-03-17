@@ -4,6 +4,7 @@ import { setQueryClient } from "./api/client"
 import { SessionProvider } from "./context/SessionContext"
 import { ProtectedRoute, GuestRoute } from "./components/ProtectedRoute"
 import Layout from "./components/Layout"
+import Welcome from "./pages/Welcome"
 import Home from "./pages/Home"
 import Login from "./pages/Login"
 import Register from "./pages/Register"
@@ -23,7 +24,8 @@ export default function App() {
         <SessionProvider>
           <Routes>
             <Route element={<Layout />}>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Welcome />} />
+              <Route path="/tracks" element={<Home />} />
               <Route
                 path="/login"
                 element={
