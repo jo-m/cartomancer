@@ -2,6 +2,7 @@
 package cols
 
 //go:generate go run gen_cols.go
+//go:generate go run gen_feature_codes.go
 
 // BaseURL is the GeoNames data dump base URL, without trailing slash.
 const BaseURL = "https://download.geonames.org/export/dump"

@@ -10,12 +10,25 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/utl"
 )
 
-const readmeURL = BaseURL + "/readme.txt"
+const (
+	readmeURL       = BaseURL + "/readme.txt"
+	featureCodesURL = BaseURL + "/featureCodes_en.txt"
+)
 
 // TestOnlineDownloadReadme downloads the GeoNames readme.txt and verifies it
 // against a golden snapshot so that column format changes are detected.
 func TestOnlineDownloadReadme(t *testing.T) {
 	data, err := utl.DownloadFile(readmeURL)
+	require.NoError(t, err)
+	require.NotEmpty(t, data)
+
+	golden.Verify(t, string(data), golden.Extension(".txt")) // golden.WaitApproval()
+}
+
+// TestOnlineDownloadFeatureCodes downloads the GeoNames featureCodes_en.txt
+// and verifies it against a golden snapshot so that format changes are detected.
+func TestOnlineDownloadFeatureCodes(t *testing.T) {
+	data, err := utl.DownloadFile(featureCodesURL)
 	require.NoError(t, err)
 	require.NotEmpty(t, data)
 
