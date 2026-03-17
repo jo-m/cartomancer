@@ -37,6 +37,7 @@
 - [x] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step
 - [x] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
 - [x] Make logg pkg capable of using t.Log() if it is inside a test
+- [ ] Unified display of dates/times in frontend (iso and 24h format, "x ago")
 
 ## Test
 

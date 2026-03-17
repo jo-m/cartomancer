@@ -49,6 +49,14 @@ export default function Layout() {
                   >
                     Upload
                   </Link>
+                  {user.admin && (
+                    <Link
+                      to="/admin/users"
+                      className="text-gray-700 hover:text-gray-900"
+                    >
+                      Admin
+                    </Link>
+                  )}
                   <div
                     className="relative"
                     onMouseEnter={handleMouseEnter}

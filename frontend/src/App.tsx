@@ -2,7 +2,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { setQueryClient } from "./api/client"
 import { SessionProvider } from "./context/SessionContext"
-import { ProtectedRoute, GuestRoute } from "./components/ProtectedRoute"
+import {
+  ProtectedRoute,
+  GuestRoute,
+  AdminRoute,
+} from "./components/ProtectedRoute"
 import Layout from "./components/Layout"
 import Welcome from "./pages/Welcome"
 import Home from "./pages/Home"
@@ -13,6 +17,8 @@ import Account from "./pages/Account"
 import AccountTracks from "./pages/AccountTracks"
 import Upload from "./pages/Upload"
 import Track from "./pages/Track"
+import AdminUsers from "./pages/AdminUsers"
+import AdminForecasts from "./pages/AdminForecasts"
 
 const queryClient = new QueryClient()
 setQueryClient(queryClient)
@@ -68,6 +74,22 @@ export default function App() {
                 }
               />
               <Route path="/tracks/:uuid" element={<Track />} />
+              <Route
+                path="/admin/users"
+                element={
+                  <AdminRoute>
+                    <AdminUsers />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/forecasts"
+                element={
+                  <AdminRoute>
+                    <AdminForecasts />
+                  </AdminRoute>
+                }
+              />
             </Route>
           </Routes>
         </SessionProvider>
