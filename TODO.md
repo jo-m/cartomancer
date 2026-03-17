@@ -19,7 +19,8 @@
 - [x] Store vertical+horizontal grid data for forecasts
 - [x] Show track owner/user in frontend
 - [x] Aggressive caching with etag headers for all expensive endpoints
-- [ ] Forecast also wind, incl. direction, and CLCH surface cloud cover
+- [x] Forecast also wind, incl. direction
+- [ ] Analyze wind direction relative to travel direction (head/tailwind)
 - [x] Track names in DB: Strip whitespace before saving. Strip any leading dots. Do not allow empty. On upload, assign some name if empty.
 - [ ] Update to Vite 8
 - [ ] Move at least some page state to URL in frontend
@@ -34,7 +35,7 @@
 - [x] Deduplicate track blobs between users
 - [ ] Explore by tags page
 - [x] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step
-- [ ] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
+- [x] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
 - [x] Make logg pkg capable of using t.Log() if it is inside a test
 
 ## Test

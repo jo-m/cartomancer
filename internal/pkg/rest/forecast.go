@@ -27,12 +27,16 @@ type forecastPointResponse struct {
 	Time              string   `json:"time"`
 	TemperatureC      *float64 `json:"temperatureC"`
 	PrecipitationRate *float64 `json:"precipitationRate"`
+	WindSpeedMs       *float64 `json:"windSpeedMs"`
+	WindDirectionDeg  *float64 `json:"windDirectionDeg"`
 }
 
 // forecastUnits describes the display units for each time series field.
 type forecastUnits struct {
 	TemperatureC      string `json:"temperatureC"`
 	PrecipitationRate string `json:"precipitationRate"`
+	WindSpeedMs       string `json:"windSpeedMs"`
+	WindDirectionDeg  string `json:"windDirectionDeg"`
 }
 
 type forecastResponse struct {
@@ -173,6 +177,18 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 				v := float64(precip) * 3600
 				rp.PrecipitationRate = &v
 			}
+			uWind := h.Sample(vars.VarU10m.Name, pointTime, p.Lat, p.Lon)
+			vWind := h.Sample(vars.VarV10m.Name, pointTime, p.Lat, p.Lon)
+			if !math.IsNaN(float64(uWind)) && !math.IsNaN(float64(vWind)) {
+				speed := math.Hypot(float64(uWind), float64(vWind))
+				rp.WindSpeedMs = &speed
+				// Meteorological wind direction: direction wind blows FROM.
+				dir := math.Atan2(float64(uWind), float64(vWind))*180/math.Pi + 180
+				if dir >= 360 {
+					dir -= 360
+				}
+				rp.WindDirectionDeg = &dir
+			}
 		}
 
 		result[i] = rp
@@ -183,6 +199,8 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		Units: forecastUnits{
 			TemperatureC:      "C",
 			PrecipitationRate: "mm/h",
+			WindSpeedMs:       "m/s",
+			WindDirectionDeg:  "deg",
 		},
 		Points: result,
 	}

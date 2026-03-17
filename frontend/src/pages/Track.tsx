@@ -116,6 +116,8 @@ export default function Track() {
   const [forecastUnits, setForecastUnits] = useState<ForecastUnits>({
     temperatureC: "C",
     precipitationRate: "mm/h",
+    windSpeedMs: "m/s",
+    windDirectionDeg: "deg",
   })
   const [startHoursOffset, setStartHoursOffset] = useState(2)
   const [speedKmh, setSpeedKmh] = useState(28)

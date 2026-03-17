@@ -20,6 +20,8 @@ export interface ForecastPoint {
   time: string
   temperatureC: number | null
   precipitationRate: number | null
+  windSpeedMs: number | null
+  windDirectionDeg: number | null
 }
 
 interface ChartDatum {
@@ -28,11 +30,15 @@ interface ChartDatum {
   dKm: number
   temperatureC: number | null
   precipitationRate: number | null
+  windSpeedMs: number | null
+  windDirectionDeg: number | null
 }
 
 export interface ForecastUnits {
   temperatureC: string
   precipitationRate: string
+  windSpeedMs: string
+  windDirectionDeg: string
 }
 
 interface Props {
@@ -43,7 +49,15 @@ interface Props {
   attributionHref?: string
 }
 
-/** Renders temperature and precipitation as two vertically stacked recharts. */
+const WIND_DIRS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const
+
+/** Returns a cardinal direction label for a meteorological wind direction in degrees. */
+function windDirLabel(deg: number): string {
+  const idx = Math.round(deg / 45) % 8
+  return WIND_DIRS[idx]
+}
+
+/** Renders temperature, precipitation, and wind as vertically stacked recharts. */
 export default function ForecastChart({
   points,
   units,
@@ -65,6 +79,10 @@ export default function ForecastChart({
           p.precipitationRate != null
             ? Math.round(p.precipitationRate * 100) / 100
             : null,
+        windSpeedMs:
+          p.windSpeedMs != null ? Math.round(p.windSpeedMs * 10) / 10 : null,
+        windDirectionDeg:
+          p.windDirectionDeg != null ? Math.round(p.windDirectionDeg) : null,
       })),
     [points]
   )
@@ -239,6 +257,68 @@ export default function ForecastChart({
           )}
         </div>
       </div>
+      <div>
+        <p className="mb-1 text-xs font-medium text-gray-500">
+          Wind ({units.windSpeedMs})
+        </p>
+        <div className="relative">
+          <ResponsiveContainer width="100%" height={120}>
+            <ComposedChart
+              data={data}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              syncId="forecast"
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis
+                dataKey="dKm"
+                type="number"
+                domain={["dataMin", "dataMax"]}
+                tickFormatter={xTickFormatter}
+                tick={{ fontSize: 11, fill: "#6b7280" }}
+                stroke="#d1d5db"
+                label={{
+                  value: "km",
+                  position: "insideBottomRight",
+                  offset: -5,
+                  style: { fontSize: 10, fill: "#9ca3af" },
+                }}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: "#6b7280" }}
+                stroke="#d1d5db"
+                width={36}
+              />
+              <Tooltip content={() => null} />
+              {referenceDKm != null && (
+                <ReferenceLine
+                  x={referenceDKm}
+                  stroke="#9ca3af"
+                  strokeWidth={1}
+                />
+              )}
+              <Line
+                type="monotone"
+                dataKey="windSpeedMs"
+                stroke="#10b981"
+                strokeWidth={1.5}
+                dot={false}
+                activeDot={false}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+          {nearestForecast &&
+            nearestForecast.windSpeedMs != null &&
+            nearestForecast.windDirectionDeg != null && (
+              <div className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">
+                {nearestForecast.dKm} km &middot; {nearestForecast.windSpeedMs}{" "}
+                {units.windSpeedMs}{" "}
+                {windDirLabel(nearestForecast.windDirectionDeg)}
+              </div>
+            )}
+        </div>
+      </div>
+
       {attribution && (
         <p className="mt-1 text-right text-[10px] text-gray-400">
           Source:{" "}

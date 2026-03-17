@@ -1138,7 +1138,7 @@ paths:
                       no weather data is available (time/distance fields are still populated).
                   units:
                     type: object
-                    required: [temperatureC, precipitationRate]
+                    required: [temperatureC, precipitationRate, windSpeedMs, windDirectionDeg]
                     description: Display units for each time series field.
                     properties:
                       temperatureC:
@@ -1147,6 +1147,12 @@ paths:
                       precipitationRate:
                         type: string
                         description: Unit for the precipitationRate field (e.g. "mm/h").
+                      windSpeedMs:
+                        type: string
+                        description: Unit for the windSpeedMs field (e.g. "m/s").
+                      windDirectionDeg:
+                        type: string
+                        description: Unit for the windDirectionDeg field (e.g. "deg").
                   points:
                     type: array
                     items:
@@ -1175,6 +1181,14 @@ paths:
                           type: number
                           nullable: true
                           description: Precipitation rate in mm/h, or null if unavailable.
+                        windSpeedMs:
+                          type: number
+                          nullable: true
+                          description: Wind speed in m/s, or null if unavailable.
+                        windDirectionDeg:
+                          type: number
+                          nullable: true
+                          description: Meteorological wind direction in degrees (direction wind blows from, 0=N, 90=E), or null if unavailable.
         "400":
           description: Invalid query parameter
           content:
