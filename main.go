@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"jo-m.ch/go/detour/internal/pkg/app"
 	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/detour/internal/pkg/geocode"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 	"jo-m.ch/go/detour/internal/pkg/mail"
@@ -149,10 +150,12 @@ func main() {
 	jobs.MustRegisterJob(w, users.NewEmailVerificationCleaner(d))
 	jobs.MustRegisterJob(w, meteo.NewDownloader(d))
 	jobs.MustRegisterJob(w, meteo.NewCleaner(d))
+	jobs.MustRegisterJob(w, geocode.NewDownloader(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, time.Hour, true)
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.CleanerArgs(), time.Hour, false)
+	jobs.Periodic(ctxJobs, w.Submitter(), geocode.DownloaderArgs{}, 7*24*time.Hour, true)
 
 	// TODO: clean shutdown via context.
 	w.RunInBackground(ctxJobs)

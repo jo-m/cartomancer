@@ -2,6 +2,8 @@
 
 - Weather forecasts (currently only [MeteoSwiss](https://opendatadocs.meteoswiss.ch/de/))
 - Map view (currently only [SwissTopo](https://map.geo.admin.ch/))
+- Reverse geocoding
+- Except for map, does not need live APIs. Instead, will download data and query that locally (meteo and geo names).
 
 # Commands
 

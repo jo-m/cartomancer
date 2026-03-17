@@ -38,6 +38,9 @@
 - [x] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
 - [x] Make logg pkg capable of using t.Log() if it is inside a test
 - [ ] Unified display of dates/times in frontend (iso and 24h format, "x ago")
+- [ ] Geonames
+  - [ ] Attribution
+  - [x] Offline test with a subsample of downloaded data
 
 ## Test
 
@@ -93,7 +96,7 @@
 - [ ] https://brandur.org/two-phase-render
 - [ ] Skills/subagents
 - [ ] Load/show GPX wpts, see `internal/pkg/load/testdata/COURSE_436298480.gpx`
-- [ ] Geocoding and maybe reverse geocoding
+- [ ] Reverse geocoding via https://download.geonames.org/export/dump/
 - [ ] Calculate/fit model of bike ride speed dep. on terrain, from personal data
 - [ ] Frontend polishing
   - [ ] Ensure correct cursors used everywhere (buttons etc), why is this not standard?
