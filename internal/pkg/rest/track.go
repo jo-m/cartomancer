@@ -1216,9 +1216,22 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			return txErr
 		}
 
-		b, blobErr := blob.Create(ctx, q, content, blob.CompressionZstd)
-		if blobErr != nil {
-			return blobErr
+		// Reuse an existing blob if one with the same hash exists (cross-user dedup).
+		var blobID int64
+		existingID, txErr := q.GetBlobIDByHash(ctx, db.GetBlobIDByHashParams{
+			HashType: int64(blob.HashTypeSHA256),
+			Hash:     contentHash[:],
+		})
+		if txErr == nil {
+			blobID = existingID
+		} else if errors.Is(txErr, sql.ErrNoRows) {
+			b, blobErr := blob.Create(ctx, q, content, blob.CompressionZstd)
+			if blobErr != nil {
+				return blobErr
+			}
+			blobID = b.ID
+		} else {
+			return txErr
 		}
 
 		created, txErr = q.CreateTrack(ctx, db.CreateTrackParams{
@@ -1226,7 +1239,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			CreatedAt:         now,
 			UpdatedAt:         now,
 			UserID:            user.Uuid,
-			BlobID:            b.ID,
+			BlobID:            blobID,
 			FileFormat:        int64(fileFormatFromExt(header.Filename)),
 			OriginalFilename:  header.Filename,
 			Name:              meta.Name,

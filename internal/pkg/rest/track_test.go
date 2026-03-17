@@ -165,14 +165,21 @@ func TestUploadTrack_DuplicateAllowedForDifferentUser(t *testing.T) {
 
 	alice := e.newClient()
 	e.login(alice, "alice@example.com", "secret")
-	status, _ := e.doUpload(alice, testGPXFile)
+	status, aliceResp := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
 
 	// Same file uploaded by a different user must succeed.
 	bob := e.newClient()
 	e.login(bob, "bob@example.com", "secret2")
-	status, _ = e.doUpload(bob, testGPXFile)
+	status, bobResp := e.doUpload(bob, testGPXFile)
 	assert.Equal(t, http.StatusCreated, status)
+
+	// Both tracks must share the same blob (cross-user dedup).
+	aliceTrack, err := e.d.QueryRO().GetTrackByUUID(t.Context(), aliceResp["uuid"].(string))
+	require.NoError(t, err)
+	bobTrack, err := e.d.QueryRO().GetTrackByUUID(t.Context(), bobResp["uuid"].(string))
+	require.NoError(t, err)
+	assert.Equal(t, aliceTrack.BlobID, bobTrack.BlobID, "tracks from different users with identical content should share the same blob")
 }
 
 // makeTrackPublic patches the track to set public=true.

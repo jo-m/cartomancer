@@ -10,6 +10,11 @@ RETURNING *;
 SELECT * FROM blobs
 WHERE id = ? LIMIT 1;
 
+-- name: GetBlobIDByHash :one
+SELECT id FROM blobs
+WHERE hash_type = ? AND hash = ?
+LIMIT 1;
+
 -- name: TrackExistsByUserAndBlobHash :one
 SELECT t.uuid FROM tracks t
 JOIN blobs b ON b.id = t.blob_id
