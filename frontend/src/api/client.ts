@@ -18,6 +18,10 @@ export function setQueryClient(qc: QueryClient) {
 }
 
 fetchClient.use({
+  async onRequest({ request }) {
+    request.headers.set("X-Requested-With", "detour")
+    return request
+  },
   async onResponse({ request, response }) {
     if (!response.ok) {
       if (

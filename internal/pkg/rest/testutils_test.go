@@ -173,6 +173,11 @@ func (e *testEnv) do(client *http.Client, method, path string, body any, result 
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+	default:
+		req.Header.Set("X-Requested-With", "detour")
+	}
 
 	resp, err := client.Do(req)
 	require.NoError(e.t, err)

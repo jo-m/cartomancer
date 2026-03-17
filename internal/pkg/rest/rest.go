@@ -51,6 +51,7 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 	}
 
 	mux := chi.NewRouter()
+	mux.Use(csrfProtect)
 
 	mux.Get("/app_config", sv.handleGetAppConfig)
 	mux.Get("/users/{uuid}/avatar", sv.handleGetUserAvatar)
