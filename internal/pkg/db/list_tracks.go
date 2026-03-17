@@ -86,6 +86,14 @@ type ListTracksParams struct {
 	EndNearLon     *float64
 	EndNearRadiusM *float64
 
+	// SortBy specifies the column to sort by. Valid values: "created_at",
+	// "original_created_at", "total_distance_m", "total_ascent_m".
+	// Defaults to "created_at".
+	SortBy string
+	// SortOrder specifies the sort direction. Valid values: "asc", "desc".
+	// Defaults to "desc".
+	SortOrder string
+
 	// Page is 1-based. Defaults to 1.
 	Page int
 	// PageSize is the number of results per page. Defaults to 25.
@@ -208,6 +216,22 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	}
 	if p.PageSize < 1 {
 		p.PageSize = 25
+	}
+
+	// Validate and default sort parameters.
+	allowedSortCols := map[string]string{
+		"created_at":          "tracks.created_at",
+		"original_created_at": "tracks.original_created_at",
+		"total_distance_m":    "tracks.total_distance_m",
+		"total_ascent_m":      "tracks.total_ascent_m",
+	}
+	sortCol, ok := allowedSortCols[p.SortBy]
+	if !ok {
+		sortCol = "tracks.created_at"
+	}
+	sortDir := "DESC"
+	if p.SortOrder == "asc" {
+		sortDir = "ASC"
 	}
 
 	// Convert radial filters to bounding boxes.
@@ -354,8 +378,8 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 
 	offset := (p.Page - 1) * p.PageSize
 	dataSQL := fmt.Sprintf(
-		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred FROM tracks%s%s ORDER BY tracks.created_at DESC LIMIT ? OFFSET ?",
-		trackAllCols, joins, where,
+		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred FROM tracks%s%s ORDER BY %s %s LIMIT ? OFFSET ?",
+		trackAllCols, joins, where, sortCol, sortDir,
 	)
 	dataArgs := append(append([]any{}, baseArgs...), int64(p.PageSize), int64(offset))
 

@@ -862,6 +862,26 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Sort parameters.
+	if v := q.Get("sortBy"); v != "" {
+		switch v {
+		case "created_at", "original_created_at", "total_distance_m", "total_ascent_m":
+			params.SortBy = v
+		default:
+			writeError(w, http.StatusBadRequest, "invalid value for 'sortBy': must be one of created_at, original_created_at, total_distance_m, total_ascent_m")
+			return
+		}
+	}
+	if v := q.Get("sortOrder"); v != "" {
+		switch v {
+		case "asc", "desc":
+			params.SortOrder = v
+		default:
+			writeError(w, http.StatusBadRequest, "invalid value for 'sortOrder': must be asc or desc")
+			return
+		}
+	}
+
 	// Validate radial filters: all three or none.
 	startNearCount := boolToInt(params.StartNearLat != nil) + boolToInt(params.StartNearLon != nil) + boolToInt(params.StartNearRadiusM != nil)
 	if startNearCount > 0 && startNearCount < 3 {

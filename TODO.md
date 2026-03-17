@@ -29,8 +29,8 @@
 - [x] XSRF protection
 - [ ] ~~Update go tool air config~~
 - [x] At / serve a robots.txt which disallows ANY robot on ANY page, except the front page. Make the front page have no dynamic content when not logged in.
-- [ ] On the tracks page allow sorting by distance, ascent, created_at ("uploaded at"), original_created_at ("file creation date")
-- [ ] Tracks filter view is currently inconsistent
+- [x] On the tracks page allow sorting by distance, ascent, created_at ("uploaded at"), original_created_at ("file creation date")
+- [x] Tracks filter view is currently inconsistent
 - [x] Deduplicate track blobs between users
 - [ ] Explore by tags page
 - [ ] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step

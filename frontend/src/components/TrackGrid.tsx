@@ -154,6 +154,20 @@ type Range = [number, number]
 // All known sport IDs (excluding Unknown = 0 which is rarely useful as a filter).
 const SPORT_IDS = [1, 2] as const
 
+type SortBy =
+  | "created_at"
+  | "original_created_at"
+  | "total_distance_m"
+  | "total_ascent_m"
+type SortOrder = "asc" | "desc"
+
+const SORT_OPTIONS: { value: SortBy; label: string }[] = [
+  { value: "created_at", label: "Uploaded at" },
+  { value: "original_created_at", label: "File creation date" },
+  { value: "total_distance_m", label: "Distance" },
+  { value: "total_ascent_m", label: "Ascent" },
+]
+
 interface LiveFilters {
   search: string
   distRange: Range | null // km; null = full range
@@ -164,6 +178,8 @@ interface LiveFilters {
   subSports: number[]
   tags: string[]
   tagsAnd: boolean
+  sortBy: SortBy
+  sortOrder: SortOrder
 }
 
 const initialFilters: LiveFilters = {
@@ -176,6 +192,8 @@ const initialFilters: LiveFilters = {
   subSports: [],
   tags: [],
   tagsAnd: false,
+  sortBy: "created_at",
+  sortOrder: "desc",
 }
 
 export interface TrackGridProps {
@@ -327,6 +345,8 @@ export default function TrackGrid({ mode }: TrackGridProps) {
         ...(absMaxAscentM > 0 && appliedAscentMax < absMaxAscentM
           ? { totalAscentMMax: appliedAscentMax }
           : {}),
+        sortBy: applied.sortBy,
+        sortOrder: applied.sortOrder,
       },
     },
   })
@@ -335,11 +355,21 @@ export default function TrackGrid({ mode }: TrackGridProps) {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold text-gray-900">
-          {mode === "public" ? "Tracks" : "My Tracks"}
-        </h1>
-        <div className="flex items-center gap-3">
+      <h1 className="mb-4 text-xl font-semibold text-gray-900">
+        {mode === "public" ? "Tracks" : "My Tracks"}
+      </h1>
+
+      <div className="mb-6 rounded-lg border border-gray-200 bg-white px-4 pb-4 pt-3">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <input
+            type="search"
+            placeholder="Search by name..."
+            value={live.search}
+            onChange={(e) =>
+              setLive((prev) => ({ ...prev, search: e.target.value }))
+            }
+            className="w-56 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none"
+          />
           {mode === "user" && (
             <div className="flex rounded border border-gray-300 text-sm">
               {(["all", "public", "private"] as const).map((v) => (
@@ -376,19 +406,38 @@ export default function TrackGrid({ mode }: TrackGridProps) {
               Starred
             </button>
           )}
-          <input
-            type="search"
-            placeholder="Search by name..."
-            value={live.search}
-            onChange={(e) =>
-              setLive((prev) => ({ ...prev, search: e.target.value }))
-            }
-            className="w-56 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none"
-          />
+          <div className="ml-auto flex items-center gap-2">
+            <select
+              value={live.sortBy}
+              onChange={(e) =>
+                setLive((prev) => ({
+                  ...prev,
+                  sortBy: e.target.value as SortBy,
+                }))
+              }
+              className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-500 focus:outline-none"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() =>
+                setLive((prev) => ({
+                  ...prev,
+                  sortOrder: prev.sortOrder === "asc" ? "desc" : "asc",
+                }))
+              }
+              className="rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-700 hover:border-gray-400"
+              title={live.sortOrder === "asc" ? "Ascending" : "Descending"}
+            >
+              {live.sortOrder === "asc" ? "A-Z" : "Z-A"}
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="mb-6 rounded-lg border border-gray-200 bg-white px-4 pb-4 pt-3">
         <div className="grid grid-cols-2 gap-6">
           {absMaxDistKm > 0 && (
             <div>
