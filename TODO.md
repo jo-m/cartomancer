@@ -22,6 +22,22 @@
 - [ ] Forecast also wind, incl. direction, and CLCH surface cloud cover
 - [x] Track names in DB: Strip whitespace before saving. Strip any leading dots. Do not allow empty. On upload, assign some name if empty.
 - [ ] Update to Vite 8
+- [ ] Move at least some page state to URL in frontend
+- [ ] Run periodic jobs immediately the first time
+- [ ] In `App.tsx` let `QueryClient` use `staleTime`.
+- [ ] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
+- [ ] XSRF protection
+- [ ] Update go tool air config
+- [ ] At / serve a robots.txt which disallows ANY robot on ANY page, except the front page. Make the front page have no dynamic content when not logged in.
+- [ ] How could architecture of the db package be improved. Maybe split up "system" and "app" tables.
+- [ ] On the tracks page allow sorting by distance, ascent, created_at ("uploaded at"), original_created_at ("file creation date")
+- [ ] Tracks filter view is currently inconsistent
+- [ ] Deduplicate track blobs between users
+- [ ] Explore by tags page
+- [ ] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step
+- [ ] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
+- [ ] Allow to show meteo forecast in map overlay
+- [ ] Make logg pkg capable of using t.Log() if it is inside a test
 
 ## Test
 
@@ -29,30 +45,21 @@
 
 ## Before initial push/deploy
 
+(also: Periodic, see below)
+
 - [ ] Update README.md
 - [ ] Fixup/autosquash
+- [ ] Periodic db `VACUUM` and `.backup` (atomic via mv)
 - [ ] Check in the generated files
-- [ ] In `App.tsx` let `QueryClient` use `staleTime`.
-- [ ] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
+- [ ] Demo mode, locks user table via trigger, insert some initial data, delete data periodoically
 - [ ] Grep for TODO in code
-- [ ] XSRF protection
-- [ ] Update go tool air config
-- [ ] At / serve a robots.txt which disallows ANY robot on ANY page, except the front page. Make the front page have no dynamic content when not logged in.
-- [ ] How could architecture of the db package be improved. Maybe split up "system" and "app" tables.
 - [ ] Disable public signup by default
-- [ ] On the tracks page allow sorting by distance, ascent, created_at ("uploaded at"), original_created_at ("file creation date")
-- [ ] Tracks filter view is currently inconsistent
 - [ ] SQLite without rowid? https://sqlite.org/withoutrowid.html
 - [ ] Uncomment all the checks/linters in make check
-- [ ] Add https://go.dev/blog/gofix, https://go.dev/blog/inliner
+- [ ] Add https://go.dev/blog/gofix
 - [ ] Add CI setup/Docker build
-- [ ] In CI also run the online tests, but allow them to fail
-- [ ] Deduplicate track blobs between users
-- [ ] Explore by tags page
-- [ ] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step
-- [ ] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
-- [ ] Add admin contact email
-- [ ] Add privacy policy, impressum
+  - [ ] In CI also run the online tests, but allow them to fail
+- [ ] Add privacy policy, impressum, admin contact
 - [ ] App config
   - [ ] Split up/move around config to relevant config/module structs (e.g. separate struct for users, registrations)
   - [ ] Sensible defaults for everything
@@ -65,6 +72,7 @@
 ## Before enabling public signup
 
 - [ ] Improve email messages, include instance name and base URL
+- [ ] Password reset
 - [ ] Rate limiting for sensitive endpoints (login etc), or hint for deployment
 - [ ] Self-serve full data export for users
 - [ ] TOTP login for users
@@ -79,15 +87,12 @@
 - [ ] Add provider name to database
 - [ ] Make data attribution go through database
 
-## Later
+## Later (maybe)
 
-- [ ] Periodic db `VACUUM` and `.backup`
 - [ ] https://brandur.org/two-phase-render
 - [ ] Skills/subagents
-- [ ] Allow to show meteo forecast in map overlay
 - [ ] Load/show GPX wpts, see `internal/pkg/load/testdata/COURSE_436298480.gpx`
 - [ ] Geocoding and maybe reverse geocoding
-- [ ] Make logg pkg capable of using t.Log() if it is inside a test
 - [ ] Calculate/fit model of bike ride speed dep. on terrain, from personal data
 - [ ] Frontend polishing
   - [ ] Ensure correct cursors used everywhere (buttons etc), why is this not standard?
