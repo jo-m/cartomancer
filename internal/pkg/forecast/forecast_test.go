@@ -22,7 +22,7 @@ const (
 // Returns the reference time used.
 func seedDB(t *testing.T, d *db.DB) time.Time {
 	t.Helper()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 	refTime := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
 
 	// Insert forecast row with grid constants and bounds.
@@ -60,7 +60,7 @@ func seedDB(t *testing.T, d *db.DB) time.Time {
 func TestLoad_NoData(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 
 	start := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
 	end := start.Add(24 * time.Hour)
@@ -74,7 +74,7 @@ func TestLoad_NoData(t *testing.T) {
 func TestLoad_FullCoverage(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 
 	refTime := seedDB(t, d)
 
@@ -89,7 +89,7 @@ func TestLoad_FullCoverage(t *testing.T) {
 func TestLoad_Incomplete(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 
 	refTime := seedDB(t, d)
 
@@ -104,7 +104,7 @@ func TestLoad_Incomplete(t *testing.T) {
 func TestSample_KnownCity(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 
 	refTime := seedDB(t, d)
 
@@ -122,7 +122,7 @@ func TestSample_KnownCity(t *testing.T) {
 func TestSample_UnknownVariable(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 
 	refTime := seedDB(t, d)
 
@@ -137,7 +137,7 @@ func TestSample_UnknownVariable(t *testing.T) {
 func TestSample_OutsideDomain(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 
 	refTime := seedDB(t, d)
 
@@ -153,7 +153,7 @@ func TestSample_OutsideDomain(t *testing.T) {
 func TestSample_BeforeFirstMessage(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 
 	refTime := seedDB(t, d)
 

@@ -14,7 +14,7 @@ func GetTestDB(t *testing.T) *DB {
 	t.Helper()
 
 	dir := t.TempDir()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 	d, err := Open(ctx, filepath.Join(dir, "db"))
 	require.NoError(t, err)
 	return d

@@ -29,7 +29,6 @@
 - [ ] XSRF protection
 - [ ] ~~Update go tool air config~~
 - [ ] At / serve a robots.txt which disallows ANY robot on ANY page, except the front page. Make the front page have no dynamic content when not logged in.
-- [ ] How could architecture of the db package be improved. Maybe split up "system" and "app" tables.
 - [ ] On the tracks page allow sorting by distance, ascent, created_at ("uploaded at"), original_created_at ("file creation date")
 - [ ] Tracks filter view is currently inconsistent
 - [ ] Deduplicate track blobs between users
@@ -37,7 +36,7 @@
 - [ ] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step
 - [ ] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
 - [ ] Allow to show meteo forecast in map overlay
-- [ ] Make logg pkg capable of using t.Log() if it is inside a test
+- [x] Make logg pkg capable of using t.Log() if it is inside a test
 
 ## Test
 
@@ -100,6 +99,7 @@
   - [ ] Use full width on desktop
   - [ ] Use https://github.com/simonw/rodney to let Claude inspect the frontend and CSS, or https://github.com/ChromeDevTools/chrome-devtools-mcp/tree/main
   - [ ] Nicer UI for track UI editing
+- [ ] How could architecture of the db package be improved. Maybe split up "system" and "app" tables.
 
 ## Periodic
 

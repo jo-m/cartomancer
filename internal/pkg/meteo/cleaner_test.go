@@ -15,7 +15,7 @@ import (
 // reference time if one does not already exist, and returns its ID.
 func ensureForecast(t *testing.T, d *db.DB, refTime time.Time) int64 {
 	t.Helper()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 
 	existing, err := d.QueryRO().ForecastExistsForReferenceTime(ctx, refTime)
 	require.NoError(t, err)
@@ -39,7 +39,7 @@ func ensureForecast(t *testing.T, d *db.DB, refTime time.Time) int64 {
 // row with the given valid_time, returning the file ID.
 func insertForecastFileWithValidTime(t *testing.T, d *db.DB, validTime time.Time) int64 {
 	t.Helper()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 	refTime := validTime.Add(-time.Hour)
 	forecastID := ensureForecast(t, d, refTime)
 	f, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
@@ -57,7 +57,7 @@ func TestCleaner_DeletesPastFiles(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 	now := time.Now()
 
 	past := now.Add(-2 * time.Hour)
@@ -80,7 +80,7 @@ func TestCleaner_EmptyTable(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 	cleaner := NewCleaner(d)
 	err := cleaner.Run(ctx, cleanerArgs{})
 	require.NoError(t, err)
@@ -90,7 +90,7 @@ func TestCleaner_AllFutureFiles_NoOp(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 	now := time.Now()
 
 	insertForecastFileWithValidTime(t, d, now.Add(1*time.Hour))
@@ -109,7 +109,7 @@ func TestCleaner_AllPastFiles(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 	now := time.Now()
 
 	insertForecastFileWithValidTime(t, d, now.Add(-3*time.Hour))

@@ -144,6 +144,19 @@ func TestLoggLoggingJSON(t *testing.T) {
 `, deterministic)
 }
 
+func TestLoggWithTestLogger(t *testing.T) {
+	ctx := WithTestLogger(t.Context(), t)
+	logger := GetLogger(ctx)
+	require.NotNil(t, logger)
+
+	// Smoke test: all levels must not panic (except Panic itself).
+	Trace(ctx, "trace msg", "k", "v")
+	Debug(ctx, "debug msg", "k", "v")
+	Info(ctx, "info msg", "k", "v")
+	Warn(ctx, "warn msg", "k", "v")
+	Error(ctx, "error msg", "k", "v")
+}
+
 func TestLoggLoggingPretty(t *testing.T) {
 	buf := bytes.Buffer{}
 	conf := LoggConfig{LogPretty: true}

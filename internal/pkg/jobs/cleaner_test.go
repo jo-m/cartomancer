@@ -14,7 +14,7 @@ import (
 func TestCleanerDeletesOnlyOldJobs(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 
 	q := d.QueryRW()
 

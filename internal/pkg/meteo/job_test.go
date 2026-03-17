@@ -46,7 +46,7 @@ func TestGetLatestForecastReferenceTime_empty(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 	_, err := d.QueryRO().GetLatestForecastReferenceTime(ctx)
 	require.ErrorIs(t, err, sql.ErrNoRows)
 }
@@ -55,7 +55,7 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
 	validTime := refTime.Add(10 * time.Hour)
@@ -92,7 +92,7 @@ func TestCreateForecastFile_uniqueConstraint(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
 
@@ -123,7 +123,7 @@ func TestForecastExistsForReferenceTime(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
 

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -27,15 +26,6 @@ import (
 
 const testCookieName = "sid"
 
-// tWriter bridges slog output to testing.T so log lines show up
-// alongside test output and are captured on failure.
-type tWriter struct{ t *testing.T }
-
-func (w *tWriter) Write(p []byte) (int, error) {
-	w.t.Log(strings.TrimRight(string(p), "\n"))
-	return len(p), nil
-}
-
 // testEnv holds the test server and database for a single test.
 type testEnv struct {
 	t              *testing.T
@@ -50,10 +40,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	d := db.GetTestDB(t)
 	t.Cleanup(func() { _ = d.Close() })
 
-	logger := slog.New(logg.NewHandler(logg.LoggConfig{
-		LogPretty: false,
-		LogLevel:  slog.LevelDebug,
-	}, &tWriter{t: t}))
+	logger := slog.New(logg.NewTestHandler(t))
 
 	workers, err := jobs.NewWorkers(logg.WithLogger(t.Context(), logger), d, jobs.JobsConfig{MaxParallel: 1})
 	require.NoError(t, err)

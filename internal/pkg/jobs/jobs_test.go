@@ -80,7 +80,7 @@ func TestCheckArgsType(t *testing.T) {
 func TestUniqueKind(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
-	ctx := logg.WithDiscardHandler(t.Context())
+	ctx := logg.WithTestLogger(t.Context(), t)
 	c := JobsConfig{
 		MaxParallel:       1,
 		AutoCleanupPeriod: 0,
@@ -98,7 +98,7 @@ func TestUniqueWorkers(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(t.Context())
-	ctx = logg.WithDiscardHandler(ctx)
+	ctx = logg.WithTestLogger(ctx, t)
 	c := JobsConfig{
 		MaxParallel:       1,
 		AutoCleanupPeriod: 0,
@@ -120,7 +120,7 @@ func TestRunnerRunOnlyOnce(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(t.Context())
-	ctx = logg.WithDiscardHandler(ctx)
+	ctx = logg.WithTestLogger(ctx, t)
 	c := JobsConfig{
 		MaxParallel:       1,
 		AutoCleanupPeriod: 0,
@@ -194,7 +194,7 @@ func TestRunJobsParallel(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(t.Context())
-	ctx = logg.WithDiscardHandler(ctx)
+	ctx = logg.WithTestLogger(ctx, t)
 	c := JobsConfig{
 		MaxParallel:       15,
 		AutoCleanupPeriod: 0,
@@ -235,7 +235,7 @@ func TestRunJobsMaxRetries(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(t.Context())
-	ctx = logg.WithDiscardHandler(ctx)
+	ctx = logg.WithTestLogger(ctx, t)
 	c := JobsConfig{
 		MaxParallel:       15,
 		AutoCleanupPeriod: 0,
@@ -275,7 +275,7 @@ func TestRunJobsPanicMaxRetries(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(t.Context())
-	ctx = logg.WithDiscardHandler(ctx)
+	ctx = logg.WithTestLogger(ctx, t)
 	c := JobsConfig{
 		MaxParallel:       15,
 		AutoCleanupPeriod: 0,
@@ -315,7 +315,7 @@ func TestRunJobsAutoCleanup(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(t.Context())
-	ctx = logg.WithDiscardHandler(ctx)
+	ctx = logg.WithTestLogger(ctx, t)
 	c := JobsConfig{
 		MaxParallel:       30,
 		AutoCleanupPeriod: time.Second,
@@ -354,7 +354,7 @@ func TestRunJobsPeriodic(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(t.Context())
-	ctx = logg.WithDiscardHandler(ctx)
+	ctx = logg.WithTestLogger(ctx, t)
 	c := JobsConfig{
 		MaxParallel:       15,
 		AutoCleanupPeriod: 0,
@@ -418,7 +418,7 @@ func TestRunJobsDelay(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(t.Context())
-	ctx = logg.WithDiscardHandler(ctx)
+	ctx = logg.WithTestLogger(ctx, t)
 	c := JobsConfig{
 		MaxParallel: 2,
 	}
@@ -444,7 +444,7 @@ func TestRunJobsBackoff(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
 	ctx, cancel := context.WithCancel(t.Context())
-	ctx = logg.WithDiscardHandler(ctx)
+	ctx = logg.WithTestLogger(ctx, t)
 	c := JobsConfig{
 		MaxParallel: 2,
 	}
