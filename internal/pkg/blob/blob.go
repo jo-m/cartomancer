@@ -66,13 +66,13 @@ func Create(ctx context.Context, q *db.Queries, content []byte, compression Comp
 // acceptsZstd reports whether the request's Accept-Encoding header includes zstd
 // with a non-zero q-value.
 func acceptsZstd(r *http.Request) bool {
-	for _, part := range strings.Split(r.Header.Get("Accept-Encoding"), ",") {
+	for part := range strings.SplitSeq(r.Header.Get("Accept-Encoding"), ",") {
 		part = strings.TrimSpace(part)
 		enc := part
 		q := 1.0
-		if i := strings.IndexByte(part, ';'); i >= 0 {
-			enc = strings.TrimSpace(part[:i])
-			param := strings.TrimSpace(part[i+1:])
+		if before, after, ok := strings.Cut(part, ";"); ok {
+			enc = strings.TrimSpace(before)
+			param := strings.TrimSpace(after)
 			if strings.HasPrefix(param, "q=") {
 				if v, err := strconv.ParseFloat(param[2:], 64); err == nil {
 					q = v

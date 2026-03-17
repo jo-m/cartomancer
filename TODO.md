@@ -115,6 +115,7 @@
   - [ ] Update CLAUDE.md and README.md
   - [ ] Review all the panic()s (main.go, tests, and some special cases are ok)
   - [ ] Review any SQL queries which are not in sqlc
+- [ ] `go fix ./...`
 - [ ] Bump dependencies
   - [ ] Backend
   - [ ] Frontend
