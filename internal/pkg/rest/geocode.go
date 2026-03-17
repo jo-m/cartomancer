@@ -20,14 +20,11 @@ const (
 type reverseGeocodeResult struct {
 	Geonameid    int64   `json:"geonameid"`
 	Name         string  `json:"name"`
-	Asciiname    string  `json:"asciiname"`
 	Latitude     float64 `json:"latitude"`
 	Longitude    float64 `json:"longitude"`
 	FeatureClass string  `json:"featureClass"`
 	FeatureCode  string  `json:"featureCode"`
 	CountryCode  string  `json:"countryCode"`
-	Population   int64   `json:"population"`
-	Timezone     string  `json:"timezone"`
 	Admin1Code   string  `json:"admin1Code"`
 }
 
@@ -88,14 +85,11 @@ func (sv *server) handleReverseGeocode(w http.ResponseWriter, r *http.Request) {
 		results[i] = reverseGeocodeResult{
 			Geonameid:    row.Geonameid,
 			Name:         row.Name,
-			Asciiname:    row.Asciiname,
 			Latitude:     row.Latitude,
 			Longitude:    row.Longitude,
 			FeatureClass: row.FeatureClass,
 			FeatureCode:  row.FeatureCode,
 			CountryCode:  row.CountryCode,
-			Population:   row.Population,
-			Timezone:     row.Timezone,
 			Admin1Code:   row.Admin1Code,
 		}
 	}

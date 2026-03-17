@@ -1,6 +1,7 @@
 package geocode
 
 import (
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -23,18 +24,12 @@ func TestParseLine(t *testing.T) {
 	require.Equal(t, "P", p.FeatureClass)
 	require.Equal(t, "PPLA", p.FeatureCode)
 	require.Equal(t, "CH", p.CountryCode)
-	require.Equal(t, int64(415367), p.Population)
-	require.True(t, p.Elevation.Valid)
-	require.Equal(t, int64(408), p.Elevation.Int64)
-	require.Equal(t, "Europe/Zurich", p.Timezone)
 }
 
-func TestParseLine_emptyElevation(t *testing.T) {
-	line := "123\tPlace\tPlace\t\t10.0\t20.0\tP\tPPL\tXX\t\t\t\t\t\t0\t\t50\tEurope/London\t2024-01-01"
-	p, err := parseLine(line)
-	require.NoError(t, err)
-	require.Equal(t, int64(123), p.Geonameid)
-	require.False(t, p.Elevation.Valid)
+func TestParseLine_undersea(t *testing.T) {
+	line := "123\tSomeRidge\tSomeRidge\t\t10.0\t20.0\tU\tRDGU\tXX\t\t\t\t\t\t0\t\t50\tEurope/London\t2024-01-01"
+	_, err := parseLine(line)
+	require.ErrorIs(t, err, errSkipped)
 }
 
 func TestParseLine_tooFewFields(t *testing.T) {
@@ -99,6 +94,8 @@ func TestReverseGeocode(t *testing.T) {
 		"2661552\tBasel\tBasel\t\t47.55839\t7.57327\tP\tPPLA\tCH\t\tBS\t1200\t2701\t\t177654\t245\t279\tEurope/Zurich\t2024-09-08",
 		// Non-populated place, should not appear in reverse geocode results.
 		"100\tSomeRiver\tSomeRiver\t\t47.4\t8.5\tH\tSTM\tCH\t\t\t\t\t\t0\t\t400\tEurope/Zurich\t2024-01-01",
+		// Undersea feature, should be filtered out during import.
+		"101\tSomeRidge\tSomeRidge\t\t47.4\t8.5\tU\tRDGU\tCH\t\t\t\t\t\t0\t\t0\t\t2024-01-01",
 	}, "\n")
 
 	n, err := importFromReader(ctx, d, strings.NewReader(data))
@@ -127,12 +124,15 @@ func TestParseSubsampledFile(t *testing.T) {
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
 	require.Greater(t, len(lines), 100, "subsampled file should have many lines")
 
-	// Every line must parse successfully.
+	// Every line must either parse successfully or be skipped (e.g. undersea features).
 	for i, line := range lines {
 		if line == "" {
 			continue
 		}
 		_, err := parseLine(line)
+		if errors.Is(err, errSkipped) {
+			continue
+		}
 		require.NoError(t, err, "line %d failed to parse", i)
 	}
 }
@@ -169,6 +169,6 @@ func TestImportSubsampledFile(t *testing.T) {
 	// The subsampled file should contain at least some populated places in this region.
 	t.Logf("found %d results near Paris", len(results))
 	for _, r := range results {
-		t.Logf("  %s (%s), pop=%d", r.Name, r.CountryCode, r.Population)
+		t.Logf("  %s (%s)", r.Name, r.CountryCode)
 	}
 }

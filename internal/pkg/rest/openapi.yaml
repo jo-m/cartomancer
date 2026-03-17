@@ -1875,13 +1875,11 @@ paths:
                     type: array
                     items:
                       type: object
-                      required: [geonameid, name, asciiname, latitude, longitude, featureClass, featureCode, countryCode, population, timezone, admin1Code]
+                      required: [geonameid, name, latitude, longitude, featureClass, featureCode, countryCode, admin1Code]
                       properties:
                         geonameid:
                           type: integer
                         name:
-                          type: string
-                        asciiname:
                           type: string
                         latitude:
                           type: number
@@ -1892,10 +1890,6 @@ paths:
                         featureCode:
                           type: string
                         countryCode:
-                          type: string
-                        population:
-                          type: integer
-                        timezone:
                           type: string
                         admin1Code:
                           type: string

@@ -1,20 +1,16 @@
 -- name: InsertGeoname :exec
 INSERT OR REPLACE INTO geonames (
-    geonameid, name, asciiname, alternatenames,
+    geonameid, name,
     latitude, longitude,
     feature_class, feature_code,
     country_code, cc2,
-    admin1_code, admin2_code, admin3_code, admin4_code,
-    population, elevation, dem,
-    timezone, modification_date
+    admin1_code, admin2_code, admin3_code, admin4_code
 ) VALUES (
-    ?, ?, ?, ?,
     ?, ?,
     ?, ?,
     ?, ?,
-    ?, ?, ?, ?,
-    ?, ?, ?,
-    ?, ?
+    ?, ?,
+    ?, ?, ?, ?
 );
 
 -- name: DeleteAllGeonames :execrows
@@ -40,8 +36,8 @@ WHERE id NOT IN (
 -- name: ReverseGeocode :many
 -- Finds the nearest populated places to a given lat/lon within a bounding box.
 -- Uses feature_class 'P' (populated places) for best reverse geocoding results.
-SELECT geonameid, name, asciiname, latitude, longitude,
-       feature_class, feature_code, country_code, population, timezone,
+SELECT geonameid, name, latitude, longitude,
+       feature_class, feature_code, country_code,
        admin1_code,
        CAST((latitude - sqlc.arg(lat)) * (latitude - sqlc.arg(lat)) +
        (longitude - sqlc.arg(lon)) * (longitude - sqlc.arg(lon)) AS REAL) AS dist_sq

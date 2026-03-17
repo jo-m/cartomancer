@@ -5,7 +5,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"context"
-	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -106,7 +106,7 @@ func importFromReader(ctx context.Context, d *db.DB, r io.Reader) (int, error) {
 	}
 
 	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, 1024*1024), 1024*1024) // Some lines can be very long (alternatenames).
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 
 	total := 0
 	batch := make([]db.InsertGeonameParams, 0, insertBatchSize)
@@ -132,6 +132,9 @@ func importFromReader(ctx context.Context, d *db.DB, r io.Reader) (int, error) {
 		}
 
 		p, err := parseLine(line)
+		if errors.Is(err, errSkipped) {
+			continue
+		}
 		if err != nil {
 			logg.Debug(ctx, "Skipping malformed geonames line", "err", err)
 			continue
@@ -163,11 +166,20 @@ func importFromReader(ctx context.Context, d *db.DB, r io.Reader) (int, error) {
 	return total, nil
 }
 
+// errSkipped is returned by parseLine when a row should be silently skipped.
+var errSkipped = errors.New("skipped")
+
 // parseLine parses a single tab-delimited geonames line into insert params.
+// Returns [errSkipped] for rows that should be filtered out (e.g. undersea features).
 func parseLine(line string) (db.InsertGeonameParams, error) {
 	fields := strings.Split(line, "\t")
 	if len(fields) < cols.NumColumns {
 		return db.InsertGeonameParams{}, fmt.Errorf("expected %d fields, got %d", cols.NumColumns, len(fields))
+	}
+
+	// Skip undersea features (feature class "U") to save space.
+	if fields[cols.IdxFeatureClass] == "U" {
+		return db.InsertGeonameParams{}, errSkipped
 	}
 
 	geonameid, err := strconv.ParseInt(fields[cols.IdxGeonameid], 10, 64)
@@ -185,37 +197,18 @@ func parseLine(line string) (db.InsertGeonameParams, error) {
 		return db.InsertGeonameParams{}, fmt.Errorf("parse longitude: %w", err)
 	}
 
-	pop, _ := strconv.ParseInt(fields[cols.IdxPopulation], 10, 64)
-
-	var elevation sql.NullInt64
-	if fields[cols.IdxElevation] != "" {
-		v, err := strconv.ParseInt(fields[cols.IdxElevation], 10, 64)
-		if err == nil {
-			elevation = sql.NullInt64{Int64: v, Valid: true}
-		}
-	}
-
-	dem, _ := strconv.ParseInt(fields[cols.IdxDem], 10, 64)
-
 	return db.InsertGeonameParams{
-		Geonameid:        geonameid,
-		Name:             fields[cols.IdxName],
-		Asciiname:        fields[cols.IdxAsciiname],
-		Alternatenames:   fields[cols.IdxAlternatenames],
-		Latitude:         lat,
-		Longitude:        lon,
-		FeatureClass:     fields[cols.IdxFeatureClass],
-		FeatureCode:      fields[cols.IdxFeatureCode],
-		CountryCode:      fields[cols.IdxCountryCode],
-		Cc2:              fields[cols.IdxCc2],
-		Admin1Code:       fields[cols.IdxAdmin1Code],
-		Admin2Code:       fields[cols.IdxAdmin2Code],
-		Admin3Code:       fields[cols.IdxAdmin3Code],
-		Admin4Code:       fields[cols.IdxAdmin4Code],
-		Population:       pop,
-		Elevation:        elevation,
-		Dem:              dem,
-		Timezone:         fields[cols.IdxTimezone],
-		ModificationDate: fields[cols.IdxModificationDate],
+		Geonameid:    geonameid,
+		Name:         fields[cols.IdxName],
+		Latitude:     lat,
+		Longitude:    lon,
+		FeatureClass: fields[cols.IdxFeatureClass],
+		FeatureCode:  fields[cols.IdxFeatureCode],
+		CountryCode:  fields[cols.IdxCountryCode],
+		Cc2:          fields[cols.IdxCc2],
+		Admin1Code:   fields[cols.IdxAdmin1Code],
+		Admin2Code:   fields[cols.IdxAdmin2Code],
+		Admin3Code:   fields[cols.IdxAdmin3Code],
+		Admin4Code:   fields[cols.IdxAdmin4Code],
 	}, nil
 }
