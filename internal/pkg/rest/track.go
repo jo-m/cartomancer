@@ -865,10 +865,10 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 	// Sort parameters.
 	if v := q.Get("sortBy"); v != "" {
 		switch v {
-		case "created_at", "original_created_at", "total_distance_m", "total_ascent_m":
+		case "created_at", "total_distance_m", "total_ascent_m":
 			params.SortBy = v
 		default:
-			writeError(w, http.StatusBadRequest, "invalid value for 'sortBy': must be one of created_at, original_created_at, total_distance_m, total_ascent_m")
+			writeError(w, http.StatusBadRequest, "invalid value for 'sortBy': must be one of created_at, total_distance_m, total_ascent_m")
 			return
 		}
 	}

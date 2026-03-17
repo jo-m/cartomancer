@@ -369,7 +369,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [created_at, original_created_at, total_distance_m, total_ascent_m]
+            enum: [created_at, total_distance_m, total_ascent_m]
             default: created_at
           description: Column to sort results by.
         - name: sortOrder

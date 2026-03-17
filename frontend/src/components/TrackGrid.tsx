@@ -154,16 +154,11 @@ type Range = [number, number]
 // All known sport IDs (excluding Unknown = 0 which is rarely useful as a filter).
 const SPORT_IDS = [1, 2] as const
 
-type SortBy =
-  | "created_at"
-  | "original_created_at"
-  | "total_distance_m"
-  | "total_ascent_m"
+type SortBy = "created_at" | "total_distance_m" | "total_ascent_m"
 type SortOrder = "asc" | "desc"
 
 const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: "created_at", label: "Uploaded at" },
-  { value: "original_created_at", label: "File creation date" },
   { value: "total_distance_m", label: "Distance" },
   { value: "total_ascent_m", label: "Ascent" },
 ]

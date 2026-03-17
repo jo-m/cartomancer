@@ -87,8 +87,7 @@ type ListTracksParams struct {
 	EndNearRadiusM *float64
 
 	// SortBy specifies the column to sort by. Valid values: "created_at",
-	// "original_created_at", "total_distance_m", "total_ascent_m".
-	// Defaults to "created_at".
+	// "total_distance_m", "total_ascent_m". Defaults to "created_at".
 	SortBy string
 	// SortOrder specifies the sort direction. Valid values: "asc", "desc".
 	// Defaults to "desc".
@@ -220,10 +219,9 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 
 	// Validate and default sort parameters.
 	allowedSortCols := map[string]string{
-		"created_at":          "tracks.created_at",
-		"original_created_at": "tracks.original_created_at",
-		"total_distance_m":    "tracks.total_distance_m",
-		"total_ascent_m":      "tracks.total_ascent_m",
+		"created_at":       "tracks.created_at",
+		"total_distance_m": "tracks.total_distance_m",
+		"total_ascent_m":   "tracks.total_ascent_m",
 	}
 	sortCol, ok := allowedSortCols[p.SortBy]
 	if !ok {
