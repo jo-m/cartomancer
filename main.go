@@ -145,11 +145,10 @@ func main() {
 	jobs.MustRegisterJob(w, users.NewEmailVerificationCleaner(d))
 	jobs.MustRegisterJob(w, meteo.NewDownloader(d))
 	jobs.MustRegisterJob(w, meteo.NewCleaner(d))
-	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute)
-	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour)
-	jobs.Periodic(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, time.Hour)
-	jobs.Periodic(ctxJobs, w.Submitter(), meteo.CleanerArgs(), time.Hour)
-	jobs.Submit(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, jobs.Params{}) // Run immediately.
+	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute, false)
+	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour, false)
+	jobs.Periodic(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, time.Hour, true)
+	jobs.Periodic(ctxJobs, w.Submitter(), meteo.CleanerArgs(), time.Hour, false)
 
 	// TODO: clean shutdown via context.
 	w.RunInBackground(ctxJobs)

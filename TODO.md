@@ -23,11 +23,11 @@
 - [x] Track names in DB: Strip whitespace before saving. Strip any leading dots. Do not allow empty. On upload, assign some name if empty.
 - [ ] Update to Vite 8
 - [ ] Move at least some page state to URL in frontend
-- [ ] Run periodic jobs immediately the first time
+- [x] Run periodic jobs immediately the first time
 - [ ] In `App.tsx` let `QueryClient` use `staleTime`.
 - [ ] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
 - [ ] XSRF protection
-- [ ] Update go tool air config
+- [ ] ~~Update go tool air config~~
 - [ ] At / serve a robots.txt which disallows ANY robot on ANY page, except the front page. Make the front page have no dynamic content when not logged in.
 - [ ] How could architecture of the db package be improved. Maybe split up "system" and "app" tables.
 - [ ] On the tracks page allow sorting by distance, ascent, created_at ("uploaded at"), original_created_at ("file creation date")
@@ -98,7 +98,7 @@
   - [ ] Ensure correct cursors used everywhere (buttons etc), why is this not standard?
   - [ ] Mobile friendly and responsive
   - [ ] Use full width on desktop
-  - [ ] Use https://github.com/simonw/rodney to let Claude inspect the frontend and CSS
+  - [ ] Use https://github.com/simonw/rodney to let Claude inspect the frontend and CSS, or https://github.com/ChromeDevTools/chrome-devtools-mcp/tree/main
   - [ ] Nicer UI for track UI editing
 
 ## Periodic

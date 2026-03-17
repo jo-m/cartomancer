@@ -368,7 +368,7 @@ func TestRunJobsPeriodic(t *testing.T) {
 
 	// Run.
 	s := w.Submitter()
-	Periodic(ctx, s, TestIntArgs{Val: 0}, time.Millisecond*10)
+	Periodic(ctx, s, TestIntArgs{Val: 0}, time.Millisecond*10, false)
 	time.Sleep(time.Millisecond * 100)
 	w.RunInBackground(ctx)
 	time.Sleep(time.Millisecond * 100)

@@ -99,7 +99,7 @@ func NewWorkers(ctx context.Context, d *db.DB, c JobsConfig) (*Workers, error) {
 		s := w.Submitter()
 		Periodic(ctx, s, cleanerArgs{
 			MinAge: c.AutoCleanupMinAge,
-		}, c.AutoCleanupPeriod)
+		}, c.AutoCleanupPeriod, false)
 	}
 
 	return w, nil
@@ -385,12 +385,26 @@ func Submit[T Args](ctx context.Context, s *Submitter, jobArgs T, params Params)
 
 // Periodic schedules a job for periodic submission to the queue.
 // Retries and delay cannot be set for periodic jobs and default to 0.
-func Periodic[T Args](ctx context.Context, s *Submitter, jobArgs T, period time.Duration) {
+// If runOnStartup is true, the job is also submitted immediately before the first tick.
+func Periodic[T Args](ctx context.Context, s *Submitter, jobArgs T, period time.Duration, runOnStartup bool) {
 	go func() {
 		tick := time.NewTicker(period)
 		defer tick.Stop()
 
 		logger := logg.GetLogger(ctx).With("kind", jobArgs.Kind(), "period", period, "args", jobArgs)
+
+		submit := func() {
+			err := Submit(ctx, s, jobArgs, Params{})
+			if err == nil {
+				logger.Debug("Submitted periodic job")
+			} else {
+				logger.Error("Failed to submit periodic job", "err", err)
+			}
+		}
+
+		if runOnStartup {
+			submit()
+		}
 
 		for {
 			select {
@@ -398,13 +412,7 @@ func Periodic[T Args](ctx context.Context, s *Submitter, jobArgs T, period time.
 				logger.Info("Shutting down", "err", ctx.Err())
 				return
 			case <-tick.C:
-				err := Submit(ctx, s, jobArgs, Params{})
-
-				if err == nil {
-					logger.Debug("Submitted periodic job")
-				} else {
-					logger.Error("Failed to submit periodic job", "err", err)
-				}
+				submit()
 			}
 		}
 	}()
