@@ -30,8 +30,14 @@ interface ChartDatum {
   precipitationRate: number | null
 }
 
+export interface ForecastUnits {
+  temperatureC: string
+  precipitationRate: string
+}
+
 interface Props {
   points: ForecastPoint[]
+  units: ForecastUnits
   hoverStore: HoverStore
   attribution?: string
   attributionHref?: string
@@ -40,6 +46,7 @@ interface Props {
 /** Renders temperature and precipitation as two vertically stacked recharts. */
 export default function ForecastChart({
   points,
+  units,
   hoverStore,
   attribution,
   attributionHref,
@@ -110,7 +117,7 @@ export default function ForecastChart({
     <div className="mt-4 space-y-2">
       <div>
         <p className="mb-1 text-xs font-medium text-gray-500">
-          Temperature (C)
+          Temperature ({units.temperatureC})
         </p>
         <div className="relative">
           <ResponsiveContainer width="100%" height={180}>
@@ -169,8 +176,8 @@ export default function ForecastChart({
           </ResponsiveContainer>
           {nearestForecast && nearestForecast.temperatureC != null && (
             <div className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">
-              {nearestForecast.dKm} km &middot;
-              {nearestForecast.temperatureC} C
+              {nearestForecast.dKm} km &middot; {nearestForecast.temperatureC}{" "}
+              {units.temperatureC}
             </div>
           )}
         </div>
@@ -178,7 +185,7 @@ export default function ForecastChart({
 
       <div>
         <p className="mb-1 text-xs font-medium text-gray-500">
-          Precipitation rate
+          Precipitation ({units.precipitationRate})
         </p>
         <div className="relative">
           <ResponsiveContainer width="100%" height={120}>
@@ -226,8 +233,8 @@ export default function ForecastChart({
           </ResponsiveContainer>
           {nearestForecast && nearestForecast.precipitationRate != null && (
             <div className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">
-              {nearestForecast.dKm} km &middot; Precip:{" "}
-              {nearestForecast.precipitationRate}
+              {nearestForecast.dKm} km &middot;{" "}
+              {nearestForecast.precipitationRate} {units.precipitationRate}
             </div>
           )}
         </div>

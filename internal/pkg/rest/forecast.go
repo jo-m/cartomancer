@@ -28,10 +28,17 @@ type forecastPointResponse struct {
 	PrecipitationRate *float64 `json:"precipitationRate"`
 }
 
+// forecastUnits describes the display units for each time series field.
+type forecastUnits struct {
+	TemperatureC      string `json:"temperatureC"`
+	PrecipitationRate string `json:"precipitationRate"`
+}
+
 type forecastResponse struct {
 	ForecastStatus  string                  `json:"forecastStatus"`
 	Attribution     string                  `json:"attribution"`
 	AttributionHref string                  `json:"attributionHref"`
+	Units           forecastUnits           `json:"units"`
 	Points          []forecastPointResponse `json:"points"`
 }
 
@@ -161,7 +168,8 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 			}
 			precip := h.Sample("TOT_PR", pointTime, p.Lat, p.Lon)
 			if !math.IsNaN(float64(precip)) {
-				v := float64(precip)
+				// Convert from kg m-2 s-1 to mm/h (1 kg/m2 = 1 mm, so multiply by 3600).
+				v := float64(precip) * 3600
 				rp.PrecipitationRate = &v
 			}
 		}
@@ -169,7 +177,14 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		result[i] = rp
 	}
 
-	resp := forecastResponse{ForecastStatus: status, Points: result}
+	resp := forecastResponse{
+		ForecastStatus: status,
+		Units: forecastUnits{
+			TemperatureC:      "C",
+			PrecipitationRate: "mm/h",
+		},
+		Points: result,
+	}
 	if h != nil {
 		resp.Attribution = h.Attribution
 		resp.AttributionHref = h.AttributionHref

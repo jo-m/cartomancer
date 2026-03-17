@@ -23,7 +23,7 @@ import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
 import ElevationProfile from "../components/ElevationProfile"
 import ForecastChart from "../components/ForecastChart"
-import type { ForecastPoint } from "../components/ForecastChart"
+import type { ForecastPoint, ForecastUnits } from "../components/ForecastChart"
 import TagsInput from "../components/TagsInput"
 import Toast from "../components/Toast"
 import TrackMap from "../components/TrackMap"
@@ -113,6 +113,10 @@ export default function Track() {
   const [forecastStatus, setForecastStatus] = useState<string | null>(null)
   const [forecastAttribution, setForecastAttribution] = useState("")
   const [forecastAttributionHref, setForecastAttributionHref] = useState("")
+  const [forecastUnits, setForecastUnits] = useState<ForecastUnits>({
+    temperatureC: "C",
+    precipitationRate: "mm/h",
+  })
   const [startHoursOffset, setStartHoursOffset] = useState(2)
   const [speedKmh, setSpeedKmh] = useState(28)
 
@@ -158,6 +162,9 @@ export default function Track() {
         setForecastStatus(result.forecastStatus ?? null)
         setForecastAttribution(result.attribution ?? "")
         setForecastAttributionHref(result.attributionHref ?? "")
+        if (result.units) {
+          setForecastUnits(result.units as ForecastUnits)
+        }
         setForecastPoints(result.points as ForecastPoint[])
       } catch (err) {
         setToastMessage((err as Error).message)
@@ -470,6 +477,7 @@ export default function Track() {
       {forecastPoints && (
         <ForecastChart
           points={forecastPoints}
+          units={forecastUnits}
           hoverStore={hoverStore}
           attribution={forecastAttribution}
           attributionHref={forecastAttributionHref}

@@ -1121,7 +1121,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [forecastStatus, attribution, attributionHref, points]
+                required: [forecastStatus, attribution, attributionHref, units, points]
                 properties:
                   attribution:
                     type: string
@@ -1136,6 +1136,17 @@ paths:
                       Indicates weather data availability: "full" means all points have
                       weather data, "partial" means some points may have gaps, "none" means
                       no weather data is available (time/distance fields are still populated).
+                  units:
+                    type: object
+                    required: [temperatureC, precipitationRate]
+                    description: Display units for each time series field.
+                    properties:
+                      temperatureC:
+                        type: string
+                        description: Unit for the temperatureC field (e.g. "C").
+                      precipitationRate:
+                        type: string
+                        description: Unit for the precipitationRate field (e.g. "mm/h").
                   points:
                     type: array
                     items:
@@ -1163,7 +1174,7 @@ paths:
                         precipitationRate:
                           type: number
                           nullable: true
-                          description: Precipitation rate, or null if unavailable.
+                          description: Precipitation rate in mm/h, or null if unavailable.
         "400":
           description: Invalid query parameter
           content:

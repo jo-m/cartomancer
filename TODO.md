@@ -35,12 +35,12 @@
 - [ ] Explore by tags page
 - [ ] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step
 - [ ] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
-- [ ] Allow to show meteo forecast in map overlay
 - [x] Make logg pkg capable of using t.Log() if it is inside a test
 
 ## Test
 
 - [ ] Forecasts - incomplete and missing data
+- [ ] Forecasts - reasonable data for precip
 
 ## Before initial push/deploy
 
@@ -101,6 +101,7 @@
   - [ ] Nicer UI for track UI editing
 - [ ] How could architecture of the db package be improved. Maybe split up "system" and "app" tables.
 - [ ] Improve error JSON struct, e.g. https://platform.claude.com/docs/en/api/errors#error-shapes
+- [ ] Allow to show meteo forecast in map overlay
 
 ## Periodic
 
