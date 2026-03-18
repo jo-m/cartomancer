@@ -39,6 +39,9 @@
 - [x] Make logg pkg capable of using t.Log() if it is inside a test
 - [x] Track on map - add white line/background along track
 - [ ] Tracks grouping
+  - [x] Job
+  - [ ] REST API
+  - [ ] Show in frontend
 - [x] Remove anonymous sessions
 - [ ] Periodically compute wind rose and average temp for tracks
 - [x] Geonames

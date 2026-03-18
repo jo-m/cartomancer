@@ -24,6 +24,7 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/password"
 	"jo-m.ch/go/detour/internal/pkg/rest"
 	"jo-m.ch/go/detour/internal/pkg/session"
+	"jo-m.ch/go/detour/internal/pkg/trackgroup"
 	"jo-m.ch/go/detour/internal/pkg/users"
 )
 
@@ -152,11 +153,13 @@ func main() {
 	jobs.MustRegisterJob(w, meteo.NewCleaner(d))
 	jobs.MustRegisterJob(w, geocode.NewDownloader(d))
 	jobs.MustRegisterJob(w, geocode.NewLabeler(d))
+	jobs.MustRegisterJob(w, trackgroup.NewGrouper(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, time.Hour, true)
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.CleanerArgs(), time.Hour, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), geocode.DownloaderArgs{}, 7*24*time.Hour, true)
+	jobs.Periodic(ctxJobs, w.Submitter(), trackgroup.GrouperArgs(), 15*time.Minute, false)
 
 	// TODO: clean shutdown via context.
 	w.RunInBackground(ctxJobs)
