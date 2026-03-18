@@ -4,7 +4,7 @@
 
 ## Short term
 
-- [ ] Rename, icon, favicon, branding
+- [ ] Rename
 - [x] Track/forecast view
   - [x] Hide data from the forecast charts if no forecast data available.
   - [x] Hovering the map view should show forecast values and distance and time in tooltip
@@ -23,14 +23,10 @@
 - [x] Forecast also wind, incl. direction
 - [x] Analyze wind direction relative to travel direction (head/tailwind)
 - [x] Track names in DB: Strip whitespace before saving. Strip any leading dots. Do not allow empty. On upload, assign some name if empty.
-- [ ] Update to Vite 8
-- [ ] Move at least some page state to URL in frontend
 - [x] Run periodic jobs immediately the first time
-- [ ] In `App.tsx` let `QueryClient` use `staleTime`.
-- [ ] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
 - [x] XSRF protection
 - [ ] ~~Update go tool air config~~
-- [ ] Disallow reset admin password functionality for admin's own accounts
+- [ ] Disallow reset admin password functionality for admin's own accounts (too dangerous)
 - [ ] Only show email confirm if there actually is a pending one
 - [ ] Admins should be allowed to also confirm admin emails and their own email
 - [x] At / serve a robots.txt which disallows ANY robot on ANY page, except the front page. Make the front page have no dynamic content when not logged in.
@@ -42,9 +38,10 @@
 - [x] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
 - [x] Make logg pkg capable of using t.Log() if it is inside a test
 - [x] Track on map - add white line/background along track
+- [ ] Tracks grouping
 - [x] Remove anonymous sessions
-- [ ] Unified display of dates/times in frontend (iso and 24h format, "x ago")
-- [ ] Geonames
+- [ ] Periodically compute wind rose and average temp for tracks
+- [x] Geonames
   - [x] Attribution
   - [x] Offline test with a subsample of downloaded data
   - [x] Filter out any undersea U features.
@@ -52,7 +49,20 @@
   - [x] Also load the admin1CodesASCII.txt and admin2Codes.txt files and load them into tables
   - [x] Drop the following cols: modification date, timezone, dem, elevation, population
   - [x] Maybe do import in a temp table which is then renamed
-  - [ ] Improve the tracks geoname labelling algorithm
+- [ ] Frontend polishing
+  - [ ] Unified display of dates/times in frontend (iso and 24h format, "x ago")
+  - [ ] Shared components
+  - [ ] Theming
+  - [ ] Branding
+  - [ ] Favicon, Logo
+  - [ ] Move at least some page state to URL in frontend
+  - [ ] Ensure correct cursors used everywhere (buttons etc), why is this not standard?
+  - [ ] Mobile friendly and responsive
+  - [ ] Use full width on desktop
+  - [ ] Use https://github.com/simonw/rodney to let Claude inspect the frontend and CSS, or https://github.com/ChromeDevTools/chrome-devtools-mcp/tree/main
+  - [ ] Nicer UI for track editing
+  - [ ] In `App.tsx` let `QueryClient` use `staleTime`.
+  - [ ] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
 
 ## Test
 
@@ -68,16 +78,15 @@
 - [ ] Improve data sources attribution CC-BY 4.0 for meteo, geonames, map (https://wiki.creativecommons.org/wiki/Recommended_practices_for_attribution#Attributing_materials_from_multiple_sources).
   - [ ] Systematically add online unit tests which ensure the license has not changed.
 - [ ] Periodic db `VACUUM` and `.backup` (atomic via mv)
-- [ ] Check in the generated files
 - [ ] Demo mode, locks user table via trigger, insert some initial data, delete data periodoically
 - [ ] Grep for TODO in code
 - [ ] Disable public signup by default
 - [ ] SQLite without rowid? https://sqlite.org/withoutrowid.html
 - [ ] Uncomment all the checks/linters in make check
-- [ ] Add https://go.dev/blog/gofix
 - [ ] Add CI setup/Docker build
   - [ ] In CI also run the online tests, but allow them to fail
-- [ ] Add privacy policy, impressum, admin contact
+- [ ] Add privacy policy, imprint, admin contact
+- [ ] Extract all the hardcoded consts/limits into app settings
 - [ ] App config
   - [ ] Split up/move around config to relevant config/module structs (e.g. separate struct for users, registrations)
   - [ ] Sensible defaults for everything
@@ -100,27 +109,24 @@
   - [ ] Advanced email normalization (e.g. Gmail dots, +tags)
   - [ ] Warning that for public tracks original file will be public
 
-## To enable additional weather providers
-
-- [ ] Add provider name to database
-- [ ] Make data attribution go through database
-
 ## Later (maybe)
 
+- [ ] Check in the generated files
+- [ ] Update to Vite 8
 - [ ] https://brandur.org/two-phase-render
 - [ ] Skills/subagents
 - [ ] Load/show GPX wpts, see `internal/pkg/load/testdata/COURSE_436298480.gpx`
 - [x] Reverse geocoding via https://download.geonames.org/export/dump/
 - [ ] Calculate/fit model of bike ride speed dep. on terrain, from personal data
-- [ ] Frontend polishing
-  - [ ] Ensure correct cursors used everywhere (buttons etc), why is this not standard?
-  - [ ] Mobile friendly and responsive
-  - [ ] Use full width on desktop
-  - [ ] Use https://github.com/simonw/rodney to let Claude inspect the frontend and CSS, or https://github.com/ChromeDevTools/chrome-devtools-mcp/tree/main
-  - [ ] Nicer UI for track UI editing
 - [ ] How could architecture of the db package be improved. Maybe split up "system" and "app" tables.
 - [ ] Improve error JSON struct, e.g. https://platform.claude.com/docs/en/api/errors#error-shapes
 - [ ] Allow to show meteo forecast in map overlay
+- [ ] Improve the tracks geoname labelling algorithm
+
+## To enable additional weather providers
+
+- [ ] Add provider name to database
+- [ ] Make data attribution go through database
 
 ## Periodic
 
