@@ -41,11 +41,20 @@ func withSession(ctx context.Context, sess db.Session) context.Context {
 	return context.WithValue(ctx, ctxKeySession{}, sess)
 }
 
+// Get returns the session attached to a context, or nil if there is none.
+// This is the case for anonymous requests where no session cookie was sent.
+func Get(ctx context.Context) *db.Session {
+	if ret, ok := ctx.Value(ctxKeySession{}).(db.Session); ok {
+		return &ret
+	}
+	return nil
+}
+
 // MustGet returns the session attached to a context
 // and panics if there is none.
 func MustGet(ctx context.Context) db.Session {
-	if ret, ok := ctx.Value(ctxKeySession{}).(db.Session); ok {
-		return ret
+	if s := Get(ctx); s != nil {
+		return *s
 	}
 
 	logg.Panic(ctx, "No session attached to context")

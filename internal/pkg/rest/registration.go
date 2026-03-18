@@ -188,7 +188,7 @@ func (sv *server) handleConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oldSess := session.MustGet(ctx)
+	oldSess := session.Get(ctx)
 
 	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
 		ver, txErr := q.GetEmailVerification(ctx, verUUID)
@@ -225,7 +225,7 @@ func (sv *server) handleConfirmEmail(w http.ResponseWriter, r *http.Request) {
 				return txErr
 			}
 			// Invalidate all other sessions so they must re-authenticate with the new email.
-			if oldSess.UserID.Valid {
+			if oldSess != nil && oldSess.UserID.Valid {
 				_, txErr = q.DeleteOtherUserSessions(ctx, db.DeleteOtherUserSessionsParams{
 					UserID: oldSess.UserID,
 					Uuid:   oldSess.Uuid,
@@ -256,8 +256,8 @@ func (sv *server) handleConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If the current session is authenticated, destroy it so the user must log in fresh.
-	if oldSess.UserID.Valid {
-		if delErr := session.Delete(ctx, &oldSess); delErr != nil {
+	if oldSess != nil && oldSess.UserID.Valid {
+		if delErr := session.Delete(ctx, oldSess); delErr != nil {
 			logg.Error(ctx, "failed to delete session after confirmation", "err", delErr)
 		}
 	}

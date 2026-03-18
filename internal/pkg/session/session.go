@@ -257,52 +257,44 @@ func (s *Store) cleanup(ctx context.Context, now time.Time) error {
 	return err
 }
 
-// Middleware automatically issues sessions for each request,
-// sends the session token to the user as cookie,
-// and attaches session and user info to the request context.
+// Middleware loads existing sessions from cookies and attaches session and user
+// info to the request context. Anonymous requests without a valid session cookie
+// proceed without a session; handlers that need one can call [Create] on demand.
 func (s *Store) Middleware(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		tx, err := s.d.BeginTX(r.Context())
+		ctx := r.Context()
+
+		// Always attach request context so Create/Delete work from handlers.
+		ctx = withRequest(ctx, requestCtx{w: w, r: r, s: s})
+
+		tx, err := s.d.BeginTX(ctx)
 		if err != nil {
-			logg.Error(r.Context(), "Failed to  begin transaction", "err", err)
+			logg.Error(ctx, "Failed to begin transaction", "err", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		defer tx.Rollback()
 
 		sess, err := s.get(r, tx)
-		ctx := r.Context()
 		if err != nil {
 			logg.Debug(ctx, "No session found", "err", err)
-
-			newSession, err := s.create(w, r, tx, sql.NullString{}, nil)
-			if err != nil {
-				logg.Error(ctx, "Failed to create session", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			logg.Debug(ctx, "Created session", "id", newSession.Uuid)
-			sess = newSession
-		}
-		if sess == nil {
-			logg.Panic(ctx, "Session must not be nil at this point")
 		}
 
-		// Attach to context.
-		logg.Debug(ctx, "Attaching session", "id", sess.Uuid)
-		ctx = withSession(ctx, *sess)
-		ctx = withRequest(ctx, requestCtx{w: w, r: r, s: s})
+		if sess != nil {
+			logg.Debug(ctx, "Attaching session", "id", sess.Uuid)
+			ctx = withSession(ctx, *sess)
 
-		// Fetch and attach user.
-		if sess.UserID.Valid {
-			user, err := tx.GetUser(ctx, sess.UserID.String)
-			if err != nil {
-				logg.Error(ctx, "Failed to retrieve user", "err", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
+			// Fetch and attach user.
+			if sess.UserID.Valid {
+				user, err := tx.GetUser(ctx, sess.UserID.String)
+				if err != nil {
+					logg.Error(ctx, "Failed to retrieve user", "err", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				logg.Debug(ctx, "Attaching user", "id", user.Uuid)
+				ctx = withUser(ctx, user)
 			}
-			logg.Debug(ctx, "Attaching user", "id", user.Uuid)
-			ctx = withUser(ctx, user)
 		}
 
 		err = tx.Commit()

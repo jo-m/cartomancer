@@ -67,8 +67,8 @@ func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	logg.Info(ctx, "login succeeded", "user", user.Uuid)
 
-	oldSess := session.MustGet(ctx)
-	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: user.Uuid}, &oldSess)
+	oldSess := session.Get(ctx)
+	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: user.Uuid}, oldSess)
 	if err != nil {
 		logg.Error(ctx, "creating session failed", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
@@ -91,8 +91,12 @@ func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 func (sv *server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	sess := session.MustGet(ctx)
-	err := session.Delete(ctx, &sess)
+	sess := session.Get(ctx)
+	if sess == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	err := session.Delete(ctx, sess)
 	if err != nil {
 		logg.Error(ctx, "logout failed", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
@@ -106,9 +110,9 @@ func (sv *server) handleLogout(w http.ResponseWriter, r *http.Request) {
 func (sv *server) handleGetSession(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	sess := session.MustGet(ctx)
-	resp := sessionResponse{
-		SessionUUID: sess.Uuid,
+	var resp sessionResponse
+	if sess := session.Get(ctx); sess != nil {
+		resp.SessionUUID = sess.Uuid
 	}
 
 	if user := session.GetUser(ctx); user != nil {

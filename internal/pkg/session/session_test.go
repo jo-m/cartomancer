@@ -21,8 +21,12 @@ import (
 func TestContext(t *testing.T) {
 	ctx := t.Context()
 
+	// No session attached yet.
+	assert.Nil(t, Get(ctx))
+
 	sess := db.Session{Uuid: "asdf"}
 	ctx = withSession(ctx, sess)
+	assert.Equal(t, &sess, Get(ctx))
 	assert.Equal(t, sess, MustGet(ctx))
 
 	user := db.User{Uuid: "asdf"}
@@ -88,8 +92,12 @@ func createUser(t *testing.T, d *db.DB) {
 
 func sessionHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	sess := MustGet(r.Context())
-	fmt.Fprint(w, "session ", sess.Uuid)
+	sess := Get(r.Context())
+	if sess != nil {
+		fmt.Fprint(w, "session ", sess.Uuid)
+	} else {
+		fmt.Fprint(w, "session nil")
+	}
 }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
@@ -103,8 +111,8 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
-	sess := MustGet(r.Context())
-	_, err := Create(r.Context(), sql.NullString{Valid: true, String: userID}, &sess)
+	oldSess := Get(r.Context())
+	_, err := Create(r.Context(), sql.NullString{Valid: true, String: userID}, oldSess)
 	if err != nil {
 		panic(err)
 	}
@@ -157,24 +165,24 @@ func TestSessionMiddleware(t *testing.T) {
 	defer ts.Close()
 	client := newTestClient(t)
 
-	// Create the first session.
+	// Anonymous request: no session created.
 	body, cookies, _ := client.doRequest(http.MethodGet, ts.URL+"/user", nil, http.StatusOK)
-	assert.Len(t, cookies, 1)
+	assert.Empty(t, cookies)
 	assert.Equal(t, "user nil", body)
-	assertSessionsCount(t, d, 1)
+	assertSessionsCount(t, d, 0)
 
-	// Same session.
+	// Still no session for anonymous requests.
 	body0, cookies, _ := client.doRequest(http.MethodGet, ts.URL+"/session", nil, http.StatusOK)
 	assert.Empty(t, cookies)
-	assertSessionsCount(t, d, 1)
-	body1, _, _ := client.doRequest(http.MethodGet, ts.URL+"/session", nil, http.StatusOK)
-	assert.Equal(t, body0, body1)
+	assert.Equal(t, "session nil", body0)
+	assertSessionsCount(t, d, 0)
 
-	// Login.
+	// Login creates a session without needing an old one.
 	client.doRequest(http.MethodPost, ts.URL+"/login", nil, http.StatusNoContent)
 	assertSessionsCount(t, d, 1)
 	body2, _, _ := client.doRequest(http.MethodGet, ts.URL+"/session", nil, http.StatusOK)
-	assert.NotEqual(t, body0, body2)
+	assert.Contains(t, body2, "session ")
+	assert.NotEqual(t, "session nil", body2)
 	body3, _, _ := client.doRequest(http.MethodGet, ts.URL+"/user", nil, http.StatusOK)
 	assert.Equal(t, "user "+userID, body3)
 
@@ -182,7 +190,7 @@ func TestSessionMiddleware(t *testing.T) {
 	_, cookies, _ = client.doRequest(http.MethodPost, ts.URL+"/logout", nil, http.StatusNoContent)
 	assertSessionsCount(t, d, 0)
 	body4, _, _ := client.doRequest(http.MethodGet, ts.URL+"/session", nil, http.StatusOK)
-	assert.NotEqual(t, body2, body4)
+	assert.Equal(t, "session nil", body4)
 	// Cookie was deleted.
 	assert.Len(t, cookies, 1)
 	assert.Equal(t, cookieName, cookies[0].Name)

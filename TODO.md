@@ -42,6 +42,7 @@
 - [x] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
 - [x] Make logg pkg capable of using t.Log() if it is inside a test
 - [x] Track on map - add white line/background along track
+- [x] Remove anonymous sessions
 - [ ] Unified display of dates/times in frontend (iso and 24h format, "x ago")
 - [ ] Geonames
   - [x] Attribution

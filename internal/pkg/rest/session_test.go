@@ -15,7 +15,7 @@ func TestGetSession_Anonymous(t *testing.T) {
 	var resp map[string]any
 	status, _ := e.do(client, http.MethodGet, "/sessions", nil, &resp)
 	assert.Equal(t, http.StatusOK, status)
-	assert.NotEmpty(t, resp["sessionUuid"])
+	assert.Empty(t, resp["sessionUuid"])
 	assert.Nil(t, resp["user"])
 }
 
