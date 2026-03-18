@@ -78,7 +78,6 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 	mux.Get("/tracks/{uuid}/points", sv.handleGetTrackPoints)
 	mux.Post("/tracks/{uuid}/forecast", sv.handleGetTrackForecast)
 	mux.Get("/tags", sv.handleSuggestTags)
-	mux.Get("/geocode/reverse", sv.handleReverseGeocode)
 
 	mux.Group(func(r chi.Router) {
 		r.Use(sv.requireUser)

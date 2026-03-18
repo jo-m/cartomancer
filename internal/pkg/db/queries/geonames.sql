@@ -33,23 +33,6 @@ WHERE id NOT IN (
     SELECT id FROM geoname_imports ORDER BY created_at DESC LIMIT 1
 );
 
--- name: ReverseGeocode :many
--- Finds the nearest populated places to a given lat/lon within a bounding box.
--- Uses feature_class 'P' (populated places) for best reverse geocoding results.
-SELECT geonameid, name, latitude, longitude,
-       feature_class, feature_code, country_code,
-       admin1_code,
-       CAST((latitude - sqlc.arg(lat)) * (latitude - sqlc.arg(lat)) +
-       (longitude - sqlc.arg(lon)) * (longitude - sqlc.arg(lon)) AS REAL) AS dist_sq
-FROM geonames
-WHERE feature_class = 'P'
-  AND latitude >= sqlc.arg(min_lat)
-  AND latitude <= sqlc.arg(max_lat)
-  AND longitude >= sqlc.arg(min_lon)
-  AND longitude <= sqlc.arg(max_lon)
-ORDER BY dist_sq
-LIMIT sqlc.arg(max_results);
-
 -- name: CountGeonames :one
 SELECT COUNT(*) FROM geonames;
 
