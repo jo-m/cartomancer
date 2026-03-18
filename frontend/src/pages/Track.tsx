@@ -597,6 +597,29 @@ export default function Track() {
         </div>
       )}
 
+      {data.similarTracks.length > 0 && (
+        <div className="mt-6">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            Similar tracks
+          </p>
+          <ul className="mt-2 space-y-1">
+            {data.similarTracks.map((st) => (
+              <li key={st.uuid}>
+                <Link
+                  to={`/tracks/${st.uuid}`}
+                  className="text-sm text-gray-700 hover:text-gray-900"
+                >
+                  {st.name}
+                  <span className="ml-1.5 text-gray-400">
+                    {formatDistance(st.totalDistanceM)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="mt-6">
         <a
           href={`/api/tracks/${data.uuid}/download`}
