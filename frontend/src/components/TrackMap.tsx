@@ -82,11 +82,10 @@ export default memo(function TrackMap({
     const trackFeature = new Feature({
       geometry: new LineString(coords),
     })
-    trackFeature.setStyle(
-      new Style({
-        stroke: new Stroke({ color, width: 4 }),
-      })
-    )
+    trackFeature.setStyle([
+      new Style({ stroke: new Stroke({ color: "#ffffff", width: 7 }) }),
+      new Style({ stroke: new Stroke({ color, width: 4 }) }),
+    ])
 
     const vectorSource = new VectorSource({ features: [trackFeature] })
 
