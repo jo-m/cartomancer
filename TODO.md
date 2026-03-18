@@ -50,7 +50,7 @@
   - [x] Also load the featureCodes_en.txt file in an online test and generate the codes as Go code.
   - [x] Also load the admin1CodesASCII.txt and admin2Codes.txt files and load them into tables
   - [x] Drop the following cols: modification date, timezone, dem, elevation, population
-  - [ ] Maybe do import in a temp table which is then renamed
+  - [x] Maybe do import in a temp table which is then renamed
   - [ ] Improve the tracks geoname labelling algorithm
 
 ## Test

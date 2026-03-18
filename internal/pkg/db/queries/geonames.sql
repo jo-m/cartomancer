@@ -13,9 +13,6 @@ INSERT OR REPLACE INTO geonames (
     ?, ?, ?, ?
 );
 
--- name: DeleteAllGeonames :execrows
-DELETE FROM geonames;
-
 -- name: CreateGeonameImport :one
 INSERT INTO geoname_imports (created_at, row_count)
 VALUES (?, ?)

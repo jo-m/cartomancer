@@ -74,6 +74,12 @@ func (d *DB) QueryRW() *Queries {
 	return New(d.rw)
 }
 
+// RW returns the underlying read/write [*sql.DB] for raw SQL operations
+// that cannot be expressed through sqlc-generated queries.
+func (d *DB) RW() *sql.DB {
+	return d.rw
+}
+
 // BeginTX returns a Queries object, with a read/write transaction connection.
 // You must call [Commit] or [Rollback] on the returned object when done.
 func (d *DB) BeginTX(ctx context.Context) (*Queries, error) {

@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -25,8 +26,15 @@ const (
 	// allCountriesEntry is the filename inside the zip archive.
 	allCountriesEntry = "allCountries.txt"
 
-	// insertBatchSize is the number of rows inserted per batch in a transaction.
-	insertBatchSize = 10000
+	// insertBatchSize is the number of rows per transaction during staging import.
+	insertBatchSize = 50000
+
+	// multiInsertRows is the number of rows per multi-row INSERT statement.
+	// With 12 columns this uses 12*500 = 6000 parameters, well within SQLite limits.
+	multiInsertRows = 500
+
+	// geonamesCols is the number of columns in the geonames table.
+	geonamesCols = 12
 )
 
 // DownloadAllCountries downloads the allCountries.zip file to a temporary file
@@ -93,18 +101,111 @@ func ImportAllCountries(ctx context.Context, d *db.DB, zipPath string) (int, err
 	return importFromReader(ctx, d, rc)
 }
 
+// stagingTable is the name of the temporary staging table used during import.
+const stagingTable = "geonames_staging"
+
 // importFromReader parses tab-delimited geoname rows from r and inserts them
-// into the database, replacing all existing data.
+// into a staging table, then atomically swaps it with the live geonames table.
+// This approach keeps the old data queryable throughout the import and avoids
+// long-held write locks by deferring index creation until after all inserts.
 func importFromReader(ctx context.Context, d *db.DB, r io.Reader) (int, error) {
-	// First, delete all existing rows.
-	err := d.WithTx(ctx, func(tx *db.Queries) error {
-		_, txErr := tx.DeleteAllGeonames(ctx)
-		return txErr
-	})
-	if err != nil {
-		return 0, fmt.Errorf("delete existing geonames: %w", err)
+	rw := d.RW()
+
+	// Prepare the staging table (unindexed for fast inserts).
+	if err := createStagingTable(ctx, rw); err != nil {
+		return 0, err
 	}
 
+	// On failure, clean up the staging table.
+	committed := false
+	defer func() {
+		if !committed {
+			_, _ = rw.ExecContext(ctx, "DROP TABLE IF EXISTS "+stagingTable)
+		}
+	}()
+
+	// Parse and insert all rows into the staging table.
+	total, err := insertIntoStaging(ctx, rw, r)
+	if err != nil {
+		return total, err
+	}
+
+	// Atomically swap the staging table into place.
+	if err := swapStagingTable(ctx, rw); err != nil {
+		return total, fmt.Errorf("swap staging table: %w", err)
+	}
+	committed = true
+
+	// Build indexes on the now-live table. Queries work during this time but
+	// may be slower until indexes are ready. This avoids index name conflicts
+	// between the old and staging tables, and keeps the swap instant.
+	if err := createGeonamesIndexes(ctx, rw); err != nil {
+		return total, fmt.Errorf("create indexes: %w", err)
+	}
+
+	return total, nil
+}
+
+// createStagingTable creates the staging table, dropping any leftover from a previous failed import.
+func createStagingTable(ctx context.Context, rw *sql.DB) error {
+	_, err := rw.ExecContext(ctx, "DROP TABLE IF EXISTS "+stagingTable)
+	if err != nil {
+		return fmt.Errorf("drop old staging table: %w", err)
+	}
+
+	_, err = rw.ExecContext(ctx, `CREATE TABLE `+stagingTable+` (
+		geonameid INTEGER PRIMARY KEY,
+		name TEXT NOT NULL,
+		latitude REAL NOT NULL,
+		longitude REAL NOT NULL,
+		feature_class TEXT NOT NULL DEFAULT '',
+		feature_code TEXT NOT NULL DEFAULT '',
+		country_code TEXT NOT NULL DEFAULT '',
+		cc2 TEXT NOT NULL DEFAULT '',
+		admin1_code TEXT NOT NULL DEFAULT '',
+		admin2_code TEXT NOT NULL DEFAULT '',
+		admin3_code TEXT NOT NULL DEFAULT '',
+		admin4_code TEXT NOT NULL DEFAULT ''
+	)`)
+	if err != nil {
+		return fmt.Errorf("create staging table: %w", err)
+	}
+	return nil
+}
+
+// createGeonamesIndexes builds the indexes on the geonames table.
+// Called after the staging table has been renamed to geonames.
+func createGeonamesIndexes(ctx context.Context, rw *sql.DB) error {
+	for _, ddl := range []string{
+		`CREATE INDEX IF NOT EXISTS idx_geonames_reverse ON geonames (feature_class, latitude, longitude)`,
+		`CREATE INDEX IF NOT EXISTS idx_geonames_country ON geonames (country_code, feature_class)`,
+	} {
+		if _, err := rw.ExecContext(ctx, ddl); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// swapStagingTable atomically replaces the live geonames table with the staging table.
+func swapStagingTable(ctx context.Context, rw *sql.DB) error {
+	tx, err := rw.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin swap tx: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	if _, err := tx.ExecContext(ctx, "DROP TABLE IF EXISTS geonames"); err != nil {
+		return fmt.Errorf("drop live table: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, "ALTER TABLE "+stagingTable+" RENAME TO geonames"); err != nil {
+		return fmt.Errorf("rename staging table: %w", err)
+	}
+	return tx.Commit()
+}
+
+// insertIntoStaging parses rows from r and bulk-inserts them into the staging table.
+func insertIntoStaging(ctx context.Context, rw *sql.DB, r io.Reader) (int, error) {
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 
@@ -115,14 +216,7 @@ func importFromReader(ctx context.Context, d *db.DB, r io.Reader) (int, error) {
 		if len(batch) == 0 {
 			return nil
 		}
-		return d.WithTx(ctx, func(tx *db.Queries) error {
-			for _, p := range batch {
-				if txErr := tx.InsertGeoname(ctx, p); txErr != nil {
-					return txErr
-				}
-			}
-			return nil
-		})
+		return flushToStaging(ctx, rw, batch)
 	}
 
 	for scanner.Scan() {
@@ -157,13 +251,53 @@ func importFromReader(ctx context.Context, d *db.DB, r io.Reader) (int, error) {
 		return total, fmt.Errorf("scan: %w", err)
 	}
 
-	// Flush remaining rows.
 	if err := flushBatch(); err != nil {
 		return total, fmt.Errorf("flush final batch: %w", err)
 	}
 	total += len(batch)
 
 	return total, nil
+}
+
+// flushToStaging inserts a batch of rows into the staging table using multi-row
+// INSERT statements within a single transaction.
+func flushToStaging(ctx context.Context, rw *sql.DB, batch []db.InsertGeonameParams) error {
+	tx, err := rw.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	for i := 0; i < len(batch); i += multiInsertRows {
+		end := min(i+multiInsertRows, len(batch))
+		chunk := batch[i:end]
+
+		if err := insertChunk(ctx, tx, chunk); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+// insertChunk inserts a chunk of rows using a single multi-row INSERT statement.
+func insertChunk(ctx context.Context, tx *sql.Tx, chunk []db.InsertGeonameParams) error {
+	var sb strings.Builder
+	sb.WriteString("INSERT INTO " + stagingTable + " (geonameid, name, latitude, longitude, feature_class, feature_code, country_code, cc2, admin1_code, admin2_code, admin3_code, admin4_code) VALUES ")
+
+	args := make([]any, 0, len(chunk)*geonamesCols)
+	for i, p := range chunk {
+		if i > 0 {
+			sb.WriteByte(',')
+		}
+		sb.WriteString("(?,?,?,?,?,?,?,?,?,?,?,?)")
+		args = append(args, p.Geonameid, p.Name, p.Latitude, p.Longitude,
+			p.FeatureClass, p.FeatureCode, p.CountryCode, p.Cc2,
+			p.Admin1Code, p.Admin2Code, p.Admin3Code, p.Admin4Code)
+	}
+
+	_, err := tx.ExecContext(ctx, sb.String(), args...)
+	return err
 }
 
 // errSkipped is returned by parseLine when a row should be silently skipped.
