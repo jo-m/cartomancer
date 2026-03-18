@@ -53,38 +53,41 @@ type fileInfo struct {
 // replaces any existing track_groups rows for that user with the new results.
 // It skips the expensive work if the set of groupable tracks has not changed
 // since the last run (tracked via the newest track UUID as a watermark).
-func GroupUser(ctx context.Context, d *db.DB, userID string) error {
+// Returns true if grouping was actually performed, false if skipped.
+func GroupUser(ctx context.Context, d *db.DB, userID string) (bool, error) {
 	latestUUID, err := d.QueryRO().GetLatestTrackUUIDByUser(ctx, userID)
 	if errors.Is(err, sql.ErrNoRows) {
 		// No groupable tracks at all; clear any stale state.
-		return clearGroups(ctx, d, userID)
+		return true, clearGroups(ctx, d, userID)
 	}
 	if err != nil {
-		return fmt.Errorf("getting latest track UUID: %w", err)
+		return false, fmt.Errorf("getting latest track UUID: %w", err)
 	}
 
 	state, err := d.QueryRO().GetTrackGroupState(ctx, userID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("getting group state: %w", err)
+		return false, fmt.Errorf("getting group state: %w", err)
 	}
 	if err == nil && state.LatestTrackUuid == latestUUID {
-		return nil
+		return false, nil
 	}
 
 	entries, err := loadTracks(ctx, d, userID)
 	if err != nil {
-		return fmt.Errorf("loading tracks: %w", err)
+		return false, fmt.Errorf("loading tracks: %w", err)
 	}
+	logg.Info(ctx, "Grouping tracks for user.", "userID", userID, "tracks", len(entries))
 
 	var groups [][]string
 	if len(entries) >= 2 {
 		groups, err = groupHierarchically(ctx, d, entries)
 		if err != nil {
-			return fmt.Errorf("grouping: %w", err)
+			return false, fmt.Errorf("grouping: %w", err)
 		}
 	}
 
-	return replaceGroups(ctx, d, userID, groups, latestUUID)
+	logg.Info(ctx, "Grouped tracks for user.", "userID", userID, "groups", len(groups))
+	return true, replaceGroups(ctx, d, userID, groups, latestUUID)
 }
 
 // clearGroups removes all groups and state for a user who has no groupable tracks.

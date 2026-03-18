@@ -95,7 +95,7 @@ func TestGroupUser_NoTracks(t *testing.T) {
 	t.Cleanup(func() { _ = d.Close() })
 
 	userID := createTestUser(t, d)
-	err := GroupUser(t.Context(), d, userID)
+	_, err := GroupUser(t.Context(), d, userID)
 	require.NoError(t, err)
 
 	rows, err := d.QueryRO().ListTrackGroupsByUser(t.Context(), userID)
@@ -111,7 +111,7 @@ func TestGroupUser_SingleTrack(t *testing.T) {
 	gpx := gpxLine(52.50, 13.00, 52.50, 14.00, 200)
 	createTestTrack(t, d, userID, gpx, 5000)
 
-	err := GroupUser(t.Context(), d, userID)
+	_, err := GroupUser(t.Context(), d, userID)
 	require.NoError(t, err)
 
 	rows, err := d.QueryRO().ListTrackGroupsByUser(t.Context(), userID)
@@ -128,7 +128,7 @@ func TestGroupUser_IdenticalTracks(t *testing.T) {
 	id1 := createTestTrack(t, d, userID, gpx, 5000)
 	id2 := createTestTrack(t, d, userID, gpx, 5000)
 
-	err := GroupUser(t.Context(), d, userID)
+	_, err := GroupUser(t.Context(), d, userID)
 	require.NoError(t, err)
 
 	rows, err := d.QueryRO().ListTrackGroupsByUser(t.Context(), userID)
@@ -149,7 +149,7 @@ func TestGroupUser_DisjointTracks(t *testing.T) {
 	createTestTrack(t, d, userID, gpxA, 5000)
 	createTestTrack(t, d, userID, gpxB, 5000)
 
-	err := GroupUser(t.Context(), d, userID)
+	_, err := GroupUser(t.Context(), d, userID)
 	require.NoError(t, err)
 
 	rows, err := d.QueryRO().ListTrackGroupsByUser(t.Context(), userID)
@@ -167,7 +167,7 @@ func TestGroupUser_ExcludesLongTracks(t *testing.T) {
 	createTestTrack(t, d, userID, gpx, 5000)
 	createTestTrack(t, d, userID, gpx, maxTrackDistanceM+1)
 
-	err := GroupUser(t.Context(), d, userID)
+	_, err := GroupUser(t.Context(), d, userID)
 	require.NoError(t, err)
 
 	// Only one track qualifies, so no group can be formed.
@@ -185,7 +185,7 @@ func TestGroupUser_SkipsWhenUnchanged(t *testing.T) {
 	createTestTrack(t, d, userID, gpx, 5000)
 	createTestTrack(t, d, userID, gpx, 5000)
 
-	err := GroupUser(t.Context(), d, userID)
+	_, err := GroupUser(t.Context(), d, userID)
 	require.NoError(t, err)
 	rows1, err := d.QueryRO().ListTrackGroupsByUser(t.Context(), userID)
 	require.NoError(t, err)
@@ -193,8 +193,9 @@ func TestGroupUser_SkipsWhenUnchanged(t *testing.T) {
 	groupUUID1 := rows1[0].Uuid
 
 	// Second call with no new tracks should be a no-op; group UUIDs stay the same.
-	err = GroupUser(t.Context(), d, userID)
+	regrouped, err := GroupUser(t.Context(), d, userID)
 	require.NoError(t, err)
+	require.False(t, regrouped)
 	rows2, err := d.QueryRO().ListTrackGroupsByUser(t.Context(), userID)
 	require.NoError(t, err)
 	require.Len(t, rows2, 2)
@@ -210,7 +211,7 @@ func TestGroupUser_RerunsAfterNewTrack(t *testing.T) {
 	createTestTrack(t, d, userID, gpx, 5000)
 	createTestTrack(t, d, userID, gpx, 5000)
 
-	err := GroupUser(t.Context(), d, userID)
+	_, err := GroupUser(t.Context(), d, userID)
 	require.NoError(t, err)
 	rows1, err := d.QueryRO().ListTrackGroupsByUser(t.Context(), userID)
 	require.NoError(t, err)
@@ -219,8 +220,9 @@ func TestGroupUser_RerunsAfterNewTrack(t *testing.T) {
 
 	// Add a third track; grouping should re-run and produce new group UUIDs.
 	createTestTrack(t, d, userID, gpx, 5000)
-	err = GroupUser(t.Context(), d, userID)
+	regrouped, err := GroupUser(t.Context(), d, userID)
 	require.NoError(t, err)
+	require.True(t, regrouped)
 	rows2, err := d.QueryRO().ListTrackGroupsByUser(t.Context(), userID)
 	require.NoError(t, err)
 	require.Len(t, rows2, 3)
@@ -241,8 +243,10 @@ func TestGroupUser_DoesNotAffectOtherUsers(t *testing.T) {
 	createTestTrack(t, d, bob, gpx, 5000)
 
 	// Group both users.
-	require.NoError(t, GroupUser(t.Context(), d, alice))
-	require.NoError(t, GroupUser(t.Context(), d, bob))
+	_, err := GroupUser(t.Context(), d, alice)
+	require.NoError(t, err)
+	_, err = GroupUser(t.Context(), d, bob)
+	require.NoError(t, err)
 
 	aliceRows, err := d.QueryRO().ListTrackGroupsByUser(t.Context(), alice)
 	require.NoError(t, err)
@@ -253,7 +257,8 @@ func TestGroupUser_DoesNotAffectOtherUsers(t *testing.T) {
 	require.Len(t, bobRows, 2)
 
 	// Re-grouping alice should not touch bob's groups.
-	require.NoError(t, GroupUser(t.Context(), d, alice))
+	_, err = GroupUser(t.Context(), d, alice)
+	require.NoError(t, err)
 	bobRows2, err := d.QueryRO().ListTrackGroupsByUser(t.Context(), bob)
 	require.NoError(t, err)
 	require.Equal(t, bobRows[0].Uuid, bobRows2[0].Uuid)

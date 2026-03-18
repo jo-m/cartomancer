@@ -87,6 +87,7 @@
 - [ ] Disable public signup by default
 - [ ] SQLite without rowid? https://sqlite.org/withoutrowid.html
 - [ ] Uncomment all the checks/linters in make check
+- [ ] Log message cleanup and unification (case, punctuation)
 - [ ] Add CI setup/Docker build
   - [ ] In CI also run the online tests, but allow them to fail
 - [ ] Add privacy policy, imprint, admin contact

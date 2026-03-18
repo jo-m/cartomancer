@@ -45,6 +45,8 @@ func (g *Grouper) Run(ctx context.Context, _ grouperArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
+	logg.Info(ctx, "Track grouping job started.")
+
 	cursor := ""
 	for {
 		batch, err := g.d.QueryRO().ListUserUUIDsAfter(ctx, db.ListUserUUIDsAfterParams{
@@ -55,15 +57,20 @@ func (g *Grouper) Run(ctx context.Context, _ grouperArgs) error {
 			return err
 		}
 		if len(batch) == 0 {
-			return nil
+			break
 		}
 
 		for _, userID := range batch {
-			if err := GroupUser(ctx, g.d, userID); err != nil {
+			_, err := GroupUser(ctx, g.d, userID)
+			if err != nil {
 				logg.Error(ctx, "Failed to group tracks for user, skipping.", "userID", userID, "err", err)
+				continue
 			}
 		}
 
 		cursor = batch[len(batch)-1]
 	}
+
+	logg.Info(ctx, "Track grouping job finished.")
+	return nil
 }
