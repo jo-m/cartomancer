@@ -159,7 +159,7 @@ func main() {
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, time.Hour, true)
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.CleanerArgs(), time.Hour, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), geocode.DownloaderArgs{}, 7*24*time.Hour, true)
-	jobs.Periodic(ctxJobs, w.Submitter(), trackgroup.GrouperArgs(), 15*time.Minute, false)
+	jobs.Periodic(ctxJobs, w.Submitter(), trackgroup.GrouperArgs(), 15*time.Minute, true)
 
 	// TODO: clean shutdown via context.
 	w.RunInBackground(ctxJobs)

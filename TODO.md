@@ -33,6 +33,7 @@
 - [x] On the tracks page allow sorting by distance, ascent, created_at ("uploaded at"), original_created_at ("file creation date")
 - [x] Tracks filter view is currently inconsistent
 - [x] Deduplicate track blobs between users
+- [ ] Ensure long running periodic jobs cannot pile up
 - [ ] Explore by tags page
 - [x] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step
 - [x] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py

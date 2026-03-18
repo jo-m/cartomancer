@@ -13,8 +13,8 @@ WHERE lower(name) = lower(?) LIMIT 1;
 -- name: GetUsers :many
 SELECT * FROM users ORDER BY uuid;
 
--- name: ListUserUUIDs :many
-SELECT uuid FROM users ORDER BY uuid;
+-- name: ListUserUUIDsAfter :many
+SELECT uuid FROM users WHERE uuid > ? ORDER BY uuid LIMIT ?;
 
 -- name: CreateUser :one
 INSERT INTO users (

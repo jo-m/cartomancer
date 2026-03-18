@@ -36,23 +36,34 @@ func NewGrouper(d *db.DB) *Grouper {
 
 var _ jobs.Job[grouperArgs] = (*Grouper)(nil)
 
-// Run implements [jobs.Job]. It iterates over all users and groups their tracks.
-// Individual user failures are logged and skipped so that one broken user does
-// not block the rest.
+const userBatchSize = 100
+
+// Run implements [jobs.Job]. It iterates over all users using cursor-based
+// pagination and groups their tracks. Individual user failures are logged and
+// skipped so that one broken user does not block the rest.
 func (g *Grouper) Run(ctx context.Context, _ grouperArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
-	rows, err := g.d.QueryRO().ListUserUUIDs(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, userID := range rows {
-		if err := GroupUser(ctx, g.d, userID); err != nil {
-			logg.Error(ctx, "Failed to group tracks for user, skipping.", "userID", userID, "err", err)
+	cursor := ""
+	for {
+		batch, err := g.d.QueryRO().ListUserUUIDsAfter(ctx, db.ListUserUUIDsAfterParams{
+			Uuid:  cursor,
+			Limit: userBatchSize,
+		})
+		if err != nil {
+			return err
 		}
-	}
+		if len(batch) == 0 {
+			return nil
+		}
 
-	return nil
+		for _, userID := range batch {
+			if err := GroupUser(ctx, g.d, userID); err != nil {
+				logg.Error(ctx, "Failed to group tracks for user, skipping.", "userID", userID, "err", err)
+			}
+		}
+
+		cursor = batch[len(batch)-1]
+	}
 }
