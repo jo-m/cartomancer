@@ -3,6 +3,17 @@ import createClient from "openapi-react-query"
 import type { QueryClient } from "@tanstack/react-query"
 import type { paths } from "./schema.gen"
 
+/** An error thrown for non-2xx API responses, carrying the HTTP status code. */
+export class ApiError extends Error {
+  readonly status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = "ApiError"
+    this.status = status
+  }
+}
+
 declare module "@tanstack/react-query" {
   interface Register {
     defaultError: Error
@@ -38,7 +49,7 @@ fetchClient.use({
         .json()
         .catch(() => null)
       const msg = (body as { msg?: string } | null)?.msg ?? response.statusText
-      throw new Error(`Error: ${msg}`)
+      throw new ApiError(`Error: ${msg}`, response.status)
     }
     return response
   },

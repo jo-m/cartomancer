@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Routes, Route } from "react-router-dom"
-import { setQueryClient } from "./api/client"
+import { ApiError, setQueryClient } from "./api/client"
 import { SessionProvider } from "./context/SessionContext"
 import {
   ProtectedRoute,
@@ -20,7 +20,22 @@ import Track from "./pages/Track"
 import AdminUsers from "./pages/AdminUsers"
 import AdminForecasts from "./pages/AdminForecasts"
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        if (
+          error instanceof ApiError &&
+          error.status >= 400 &&
+          error.status < 500
+        ) {
+          return false
+        }
+        return failureCount < 3
+      },
+    },
+  },
+})
 setQueryClient(queryClient)
 
 export default function App() {
