@@ -88,8 +88,8 @@ func Group(tracks []*Cells, matchMinRatio float64) (*GroupResult, error) {
 	// For each track, the group it belongs to.
 	groupIndex := map[int]int{}
 	for p, common := range pairsCommon {
-		ratioA := float64(common) / float64(tracks[p.a].NCells())
-		ratioB := float64(common) / float64(tracks[p.b].NCells())
+		ratioA := float64(common) / float64(tracks[p.a].NEdges())
+		ratioB := float64(common) / float64(tracks[p.b].NEdges())
 
 		minRatio := ratioA
 		if ratioB < minRatio {
@@ -102,13 +102,23 @@ func Group(tracks []*Cells, matchMinRatio float64) (*GroupResult, error) {
 
 		groupA, okA := groupIndex[p.a]
 		groupB, okB := groupIndex[p.b]
-		if okA {
+		switch {
+		case okA && okB && groupA == groupB:
+			// Already in the same group.
+		case okA && okB:
+			// Merge group B into group A.
+			for member := range groups[groupB] {
+				groups[groupA][member] = struct{}{}
+				groupIndex[member] = groupA
+			}
+			groups[groupB] = nil
+		case okA:
 			groups[groupA][p.b] = struct{}{}
 			groupIndex[p.b] = groupA
-		} else if okB {
+		case okB:
 			groups[groupB][p.a] = struct{}{}
 			groupIndex[p.a] = groupB
-		} else {
+		default:
 			group := map[int]struct{}{
 				p.a: {},
 				p.b: {},
@@ -119,8 +129,16 @@ func Group(tracks []*Cells, matchMinRatio float64) (*GroupResult, error) {
 		}
 	}
 
+	// Filter out nil groups left behind by merges.
+	compacted := make([]map[int]struct{}, 0, len(groups))
+	for _, g := range groups {
+		if g != nil {
+			compacted = append(compacted, g)
+		}
+	}
+
 	ret := &GroupResult{
-		Groups:     groups,
+		Groups:     compacted,
 		NotMatched: []int{},
 	}
 

@@ -95,6 +95,21 @@ func TestGroup_LowThresholdGroupsPartialOverlap(t *testing.T) {
 	require.Len(t, res.Groups, 1)
 }
 
+func TestGroup_MergesTransitiveGroups(t *testing.T) {
+	// Tracks A-B match, C-D match, and B-C also match. All four should end up
+	// in a single merged group rather than two separate groups.
+	a := makeCells(t, 52.50, 13.40, 52.55, 13.45, 20)
+	b := makeCells(t, 52.50, 13.40, 52.55, 13.45, 20)
+	c := makeCells(t, 52.50, 13.40, 52.55, 13.45, 20)
+	d := makeCells(t, 52.50, 13.40, 52.55, 13.45, 20)
+
+	res, err := Group([]*Cells{a, b, c, d}, 0.5)
+	require.NoError(t, err)
+	require.Len(t, res.Groups, 1)
+	require.Len(t, res.Groups[0], 4)
+	require.Empty(t, res.NotMatched)
+}
+
 func TestGroup_HighThresholdRejectsPartialOverlap(t *testing.T) {
 	// Same tracks as above, but a high threshold rejects them because the longer
 	// track has a low ratio of shared edges.

@@ -30,6 +30,12 @@ func (c *Cells) NCells() int {
 	return len(c.cells) - c.nZeros
 }
 
+// NEdges returns the number of directed edges in the track.
+// Each segment of N cells contributes N-1 edges.
+func (c *Cells) NEdges() int {
+	return c.NCells() - c.NSegments()
+}
+
 const (
 	// maxPointDistRecordedM is the maximum allowed distance in meters between consecutive
 	// points in a recorded track before a new segment is started.
