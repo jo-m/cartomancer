@@ -1322,6 +1322,62 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/groups:
+    get:
+      summary: List track groups
+      operationId: listTrackGroups
+      tags: [Tracks]
+      description: >
+        Returns all track groups belonging to the authenticated user.
+        Groups with only one member are excluded.
+      responses:
+        "200":
+          description: List of track groups
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListTrackGroupsResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tracks/groups/{uuid}:
+    get:
+      summary: Get track group details
+      operationId: getTrackGroup
+      tags: [Tracks]
+      description: >
+        Returns the member tracks of a single track group.
+        The group must belong to the authenticated user.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Track group with member tracks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackGroupDetailResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Group not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /admin/users:
     get:
       summary: List all users
@@ -2464,3 +2520,40 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AdminForecast"
+
+    TrackGroupEntry:
+      type: object
+      required:
+        - uuid
+        - memberCount
+        - sampleName
+      properties:
+        uuid:
+          type: string
+        memberCount:
+          type: integer
+        sampleName:
+          type: string
+
+    ListTrackGroupsResponse:
+      type: object
+      required:
+        - groups
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackGroupEntry"
+
+    TrackGroupDetailResponse:
+      type: object
+      required:
+        - uuid
+        - tracks
+      properties:
+        uuid:
+          type: string
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackResponse"

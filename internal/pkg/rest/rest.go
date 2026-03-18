@@ -82,6 +82,9 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 	mux.Group(func(r chi.Router) {
 		r.Use(sv.requireUser)
 
+		r.Get("/tracks/groups", sv.handleListTrackGroups)
+		r.Get("/tracks/groups/{uuid}", sv.handleGetTrackGroup)
+
 		r.Post("/tracks", sv.handleUploadTrack)
 		r.Post("/tracks/{uuid}/star", sv.handleStarTrack)
 		r.Delete("/tracks/{uuid}/star", sv.handleUnstarTrack)

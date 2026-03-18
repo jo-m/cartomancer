@@ -17,6 +17,8 @@ import Account from "./pages/Account"
 import AccountTracks from "./pages/AccountTracks"
 import Upload from "./pages/Upload"
 import Track from "./pages/Track"
+import Groups from "./pages/Groups"
+import GroupDetail from "./pages/GroupDetail"
 import AdminUsers from "./pages/AdminUsers"
 import AdminForecasts from "./pages/AdminForecasts"
 
@@ -85,6 +87,22 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Upload />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tracks/groups"
+                element={
+                  <ProtectedRoute>
+                    <Groups />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tracks/groups/:uuid"
+                element={
+                  <ProtectedRoute>
+                    <GroupDetail />
                   </ProtectedRoute>
                 }
               />

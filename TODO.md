@@ -39,10 +39,10 @@
 - [x] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
 - [x] Make logg pkg capable of using t.Log() if it is inside a test
 - [x] Track on map - add white line/background along track
-- [ ] Tracks grouping
+- [x] Tracks grouping
   - [x] Job
-  - [ ] REST API
-  - [ ] Show in frontend
+  - [x] REST API
+  - [x] Show in frontend
 - [x] Remove anonymous sessions
 - [ ] Periodically compute wind rose and average temp for tracks
 - [x] Geonames

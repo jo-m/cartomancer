@@ -44,6 +44,12 @@ export default function Layout() {
                     My Tracks
                   </Link>
                   <Link
+                    to="/tracks/groups"
+                    className="text-gray-700 hover:text-gray-900"
+                  >
+                    Groups
+                  </Link>
+                  <Link
                     to="/upload"
                     className="text-gray-700 hover:text-gray-900"
                   >
