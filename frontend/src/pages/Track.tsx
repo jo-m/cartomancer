@@ -118,6 +118,7 @@ export default function Track() {
     precipitationRate: "mm/h",
     windSpeedMs: "m/s",
     windDirectionDeg: "deg",
+    relativeWindDirectionDeg: "deg",
   })
   const [startHoursOffset, setStartHoursOffset] = useState(2)
   const [speedKmh, setSpeedKmh] = useState(28)

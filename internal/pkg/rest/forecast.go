@@ -20,23 +20,25 @@ import (
 )
 
 type forecastPointResponse struct {
-	Index             int      `json:"index"`
-	DistanceM         float64  `json:"distanceM"`
-	Lat               float64  `json:"lat"`
-	Lon               float64  `json:"lon"`
-	Time              string   `json:"time"`
-	TemperatureC      *float64 `json:"temperatureC"`
-	PrecipitationRate *float64 `json:"precipitationRate"`
-	WindSpeedMs       *float64 `json:"windSpeedMs"`
-	WindDirectionDeg  *float64 `json:"windDirectionDeg"`
+	Index                    int      `json:"index"`
+	DistanceM                float64  `json:"distanceM"`
+	Lat                      float64  `json:"lat"`
+	Lon                      float64  `json:"lon"`
+	Time                     string   `json:"time"`
+	TemperatureC             *float64 `json:"temperatureC"`
+	PrecipitationRate        *float64 `json:"precipitationRate"`
+	WindSpeedMs              *float64 `json:"windSpeedMs"`
+	WindDirectionDeg         *float64 `json:"windDirectionDeg"`
+	RelativeWindDirectionDeg *float64 `json:"relativeWindDirectionDeg"`
 }
 
 // forecastUnits describes the display units for each time series field.
 type forecastUnits struct {
-	TemperatureC      string `json:"temperatureC"`
-	PrecipitationRate string `json:"precipitationRate"`
-	WindSpeedMs       string `json:"windSpeedMs"`
-	WindDirectionDeg  string `json:"windDirectionDeg"`
+	TemperatureC             string `json:"temperatureC"`
+	PrecipitationRate        string `json:"precipitationRate"`
+	WindSpeedMs              string `json:"windSpeedMs"`
+	WindDirectionDeg         string `json:"windDirectionDeg"`
+	RelativeWindDirectionDeg string `json:"relativeWindDirectionDeg"`
 }
 
 type forecastResponse struct {
@@ -115,11 +117,14 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Compute cumulative distances for the subsampled points.
+	// Compute cumulative distances and travel bearings for the subsampled points.
 	distances := make([]float64, len(pts))
+	bearings := make([]float64, len(pts))
 	for i := 1; i < len(pts); i++ {
 		distances[i] = distances[i-1] + pts[i-1].MetersTo(&pts[i])
+		bearings[i] = forwardBearing(pts[i-1].Lat, pts[i-1].Lon, pts[i].Lat, pts[i].Lon)
 	}
+	bearings[0] = bearings[1]
 
 	speedMs := speedKmh / 3.6
 	totalDist := distances[len(distances)-1]
@@ -188,6 +193,11 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 					dir -= 360
 				}
 				rp.WindDirectionDeg = &dir
+
+				// Relative wind direction: 0 = headwind, 180 = tailwind.
+				rel := dir - bearings[i]
+				rel = math.Mod(rel+360, 360)
+				rp.RelativeWindDirectionDeg = &rel
 			}
 		}
 
@@ -197,10 +207,11 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	resp := forecastResponse{
 		ForecastStatus: status,
 		Units: forecastUnits{
-			TemperatureC:      "C",
-			PrecipitationRate: "mm/h",
-			WindSpeedMs:       "m/s",
-			WindDirectionDeg:  "deg",
+			TemperatureC:             "C",
+			PrecipitationRate:        "mm/h",
+			WindSpeedMs:              "m/s",
+			WindDirectionDeg:         "deg",
+			RelativeWindDirectionDeg: "deg",
 		},
 		Points: result,
 	}
@@ -209,4 +220,15 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		resp.AttributionHref = h.AttributionHref
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// forwardBearing computes the initial bearing in degrees [0, 360) from point 1 to point 2.
+func forwardBearing(lat1, lon1, lat2, lon2 float64) float64 {
+	lat1R := lat1 * math.Pi / 180
+	lat2R := lat2 * math.Pi / 180
+	dLon := (lon2 - lon1) * math.Pi / 180
+	y := math.Sin(dLon) * math.Cos(lat2R)
+	x := math.Cos(lat1R)*math.Sin(lat2R) - math.Sin(lat1R)*math.Cos(lat2R)*math.Cos(dLon)
+	brng := math.Atan2(y, x) * 180 / math.Pi
+	return math.Mod(brng+360, 360)
 }
