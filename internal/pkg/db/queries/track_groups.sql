@@ -35,7 +35,7 @@ DELETE FROM track_group_state WHERE user_id = ?;
 
 -- name: GetLatestTrackUUIDByUser :one
 SELECT uuid FROM tracks
-WHERE user_id = ? AND initial_editing_completed = 1
+WHERE user_id = ?
 ORDER BY uuid DESC LIMIT 1;
 
 -- name: GetSimilarTracks :many

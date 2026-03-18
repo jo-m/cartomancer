@@ -69,6 +69,7 @@ func GroupUser(ctx context.Context, d *db.DB, userID string) (bool, error) {
 		return false, fmt.Errorf("getting group state: %w", err)
 	}
 	if err == nil && state.LatestTrackUuid == latestUUID {
+		logg.Info(ctx, "No grouping to do for user, up to date.", "userID", userID)
 		return false, nil
 	}
 

@@ -61,9 +61,9 @@ func (g *Grouper) Run(ctx context.Context, _ grouperArgs) error {
 		}
 
 		for _, userID := range batch {
-			_, err := GroupUser(ctx, g.d, userID)
+			grouped, err := GroupUser(ctx, g.d, userID)
 			if err != nil {
-				logg.Error(ctx, "Failed to group tracks for user, skipping.", "userID", userID, "err", err)
+				logg.Error(ctx, "Failed to group tracks for user, skipping.", "userID", userID, "err", err, "grouped", grouped)
 				continue
 			}
 		}
