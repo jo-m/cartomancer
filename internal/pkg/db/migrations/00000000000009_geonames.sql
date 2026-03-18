@@ -35,6 +35,13 @@ CREATE TABLE geoname_admin2 (
     geonameid INTEGER NOT NULL
 );
 
+-- Generated geoname labels for tracks.
+CREATE TABLE track_geonames (
+    track_id TEXT PRIMARY KEY REFERENCES tracks(uuid) ON DELETE CASCADE,
+    label TEXT NOT NULL,
+    created_at DATETIME NOT NULL
+);
+
 -- Tracks when geonames data was last imported.
 CREATE TABLE geoname_imports (
     id INTEGER PRIMARY KEY,
@@ -45,6 +52,7 @@ CREATE TABLE geoname_imports (
 
 -- +goose Down
 -- +goose StatementBegin
+DROP TABLE IF EXISTS track_geonames;
 DROP TABLE IF EXISTS geoname_imports;
 DROP TABLE IF EXISTS geoname_admin2;
 DROP TABLE IF EXISTS geoname_admin1;

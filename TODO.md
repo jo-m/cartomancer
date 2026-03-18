@@ -16,6 +16,7 @@
   - [x] Make forecasts access public
   - [x] Frontend meteo data attribution
   - [x] Attribution for map (Swisstopo)
+  - [ ] Window averaging and subsampling of points on plots, if there are too many
 - [x] Store vertical+horizontal grid data for forecasts
 - [x] Show track owner/user in frontend
 - [x] Aggressive caching with etag headers for all expensive endpoints
@@ -29,6 +30,9 @@
 - [ ] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
 - [x] XSRF protection
 - [ ] ~~Update go tool air config~~
+- [ ] Disallow reset admin password functionality for admin's own accounts
+- [ ] Only show email confirm if there actually is a pending one
+- [ ] Admins should be allowed to also confirm admin emails and their own email
 - [x] At / serve a robots.txt which disallows ANY robot on ANY page, except the front page. Make the front page have no dynamic content when not logged in.
 - [x] On the tracks page allow sorting by distance, ascent, created_at ("uploaded at"), original_created_at ("file creation date")
 - [x] Tracks filter view is currently inconsistent
@@ -39,13 +43,14 @@
 - [x] Make logg pkg capable of using t.Log() if it is inside a test
 - [ ] Unified display of dates/times in frontend (iso and 24h format, "x ago")
 - [ ] Geonames
-  - [ ] Attribution
+  - [x] Attribution
   - [x] Offline test with a subsample of downloaded data
   - [x] Filter out any undersea U features.
   - [x] Also load the featureCodes_en.txt file in an online test and generate the codes as Go code.
   - [x] Also load the admin1CodesASCII.txt and admin2Codes.txt files and load them into tables
   - [x] Drop the following cols: modification date, timezone, dem, elevation, population
   - [ ] Maybe do import in a temp table which is then renamed
+  - [ ] Improve the tracks geoname labelling algorithm
 
 ## Test
 
@@ -58,6 +63,8 @@
 
 - [ ] Update README.md
 - [ ] Fixup/autosquash
+- [ ] Improve data sources attribution CC-BY 4.0 for meteo, geonames, map (https://wiki.creativecommons.org/wiki/Recommended_practices_for_attribution#Attributing_materials_from_multiple_sources).
+  - [ ] Systematically add online unit tests which ensure the license has not changed.
 - [ ] Periodic db `VACUUM` and `.backup` (atomic via mv)
 - [ ] Check in the generated files
 - [ ] Demo mode, locks user table via trigger, insert some initial data, delete data periodoically
@@ -101,7 +108,7 @@
 - [ ] https://brandur.org/two-phase-render
 - [ ] Skills/subagents
 - [ ] Load/show GPX wpts, see `internal/pkg/load/testdata/COURSE_436298480.gpx`
-- [ ] Reverse geocoding via https://download.geonames.org/export/dump/
+- [x] Reverse geocoding via https://download.geonames.org/export/dump/
 - [ ] Calculate/fit model of bike ride speed dep. on terrain, from personal data
 - [ ] Frontend polishing
   - [ ] Ensure correct cursors used everywhere (buttons etc), why is this not standard?

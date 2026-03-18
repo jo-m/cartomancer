@@ -151,6 +151,7 @@ func main() {
 	jobs.MustRegisterJob(w, meteo.NewDownloader(d))
 	jobs.MustRegisterJob(w, meteo.NewCleaner(d))
 	jobs.MustRegisterJob(w, geocode.NewDownloader(d))
+	jobs.MustRegisterJob(w, geocode.NewLabeler(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, time.Hour, true)

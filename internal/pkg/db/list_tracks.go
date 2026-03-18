@@ -105,6 +105,7 @@ type TrackWithStarred struct {
 	Starred        bool
 	UserName       string
 	UserAvatarSeed string
+	GeonameLabel   string
 }
 
 // ListTracksResult holds a page of tracks and the total count.
@@ -113,16 +114,18 @@ type ListTracksResult struct {
 	TotalCount int
 }
 
-// trackAllCols lists all 31 track columns followed by the owner's name and avatar_seed,
-// with the tracks. and users. table prefixes for use in queries that JOIN against other tables.
-const trackAllCols = `tracks.uuid, tracks.created_at, tracks.updated_at, tracks.initial_editing_completed, tracks.user_id, tracks.public, tracks.blob_id, tracks.file_format, tracks.original_filename, tracks.name, tracks.description, tracks.source, tracks.author, tracks.author_link_url, tracks.track_type, tracks.link_url, tracks.sport, tracks.sub_sport, tracks.total_distance_m, tracks.total_ascent_m, tracks.start_lat, tracks.start_lon, tracks.end_lat, tracks.end_lon, tracks.bounds_min_lat, tracks.bounds_min_lon, tracks.bounds_max_lat, tracks.bounds_max_lon, tracks.min_elevation_m, tracks.max_elevation_m, tracks.original_created_at, users.name AS user_name, users.avatar_seed AS user_avatar_seed`
+// trackAllCols lists all 31 track columns followed by the owner's name, avatar_seed, and
+// geoname label, with table prefixes for use in queries that JOIN against other tables.
+const trackAllCols = `tracks.uuid, tracks.created_at, tracks.updated_at, tracks.initial_editing_completed, tracks.user_id, tracks.public, tracks.blob_id, tracks.file_format, tracks.original_filename, tracks.name, tracks.description, tracks.source, tracks.author, tracks.author_link_url, tracks.track_type, tracks.link_url, tracks.sport, tracks.sub_sport, tracks.total_distance_m, tracks.total_ascent_m, tracks.start_lat, tracks.start_lon, tracks.end_lat, tracks.end_lon, tracks.bounds_min_lat, tracks.bounds_min_lon, tracks.bounds_max_lat, tracks.bounds_max_lon, tracks.min_elevation_m, tracks.max_elevation_m, tracks.original_created_at, users.name AS user_name, users.avatar_seed AS user_avatar_seed, tg.label AS geoname_label`
 
-// scanTrackWithStar scans a row containing all 31 track columns plus owner_name
-// and owner_avatar_seed (in trackAllCols order) followed by a single integer starred column.
+// scanTrackWithStar scans a row containing all 31 track columns plus owner_name,
+// owner_avatar_seed, and geoname_label (in trackAllCols order) followed by a single
+// integer starred column.
 func scanTrackWithStar(rows *sql.Rows) (TrackWithStarred, error) {
 	var i Track
 	var starred int64
 	var userName, userAvatarSeed string
+	var geonameLabel sql.NullString
 	err := rows.Scan(
 		&i.Uuid,
 		&i.CreatedAt,
@@ -157,9 +160,16 @@ func scanTrackWithStar(rows *sql.Rows) (TrackWithStarred, error) {
 		&i.OriginalCreatedAt,
 		&userName,
 		&userAvatarSeed,
+		&geonameLabel,
 		&starred,
 	)
-	return TrackWithStarred{Track: i, Starred: starred != 0, UserName: userName, UserAvatarSeed: userAvatarSeed}, err
+	return TrackWithStarred{
+		Track:          i,
+		Starred:        starred != 0,
+		UserName:       userName,
+		UserAvatarSeed: userAvatarSeed,
+		GeonameLabel:   geonameLabel.String,
+	}, err
 }
 
 type queryBuilder struct {
@@ -361,9 +371,10 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	}
 
 	where := b.whereClause()
-	// The JOIN on users fetches owner info; the LEFT JOIN computes starred for the viewer.
+	// The JOINs fetch owner info, starred status for the viewer, and geoname label.
 	const joins = " JOIN users ON users.uuid = tracks.user_id" +
-		" LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?"
+		" LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?" +
+		" LEFT JOIN track_geonames tg ON tg.track_id = tracks.uuid"
 
 	// The ViewerUserID arg comes first, before the WHERE args, matching the JOIN position.
 	baseArgs := append([]any{p.ViewerUserID}, b.args...)

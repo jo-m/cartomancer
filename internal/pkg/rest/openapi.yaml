@@ -2195,6 +2195,8 @@ components:
           type: array
           items:
             type: string
+        geonameLabel:
+          type: string
 
     EditTrackRequest:
       type: object

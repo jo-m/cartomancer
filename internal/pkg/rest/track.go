@@ -17,6 +17,8 @@ import (
 	"github.com/google/uuid"
 	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/detour/internal/pkg/geocode"
+	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/load"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 	"jo-m.ch/go/detour/internal/pkg/session"
@@ -57,6 +59,7 @@ type trackResponse struct {
 	UserName                string   `json:"userName"`
 	UserUUID                string   `json:"userUuid"`
 	Tags                    []string `json:"tags"`
+	GeonameLabel            string   `json:"geonameLabel,omitempty"`
 }
 
 func toNullString(s string) sql.NullString {
@@ -132,6 +135,7 @@ func trackResponseFromDB(tw db.TrackWithStarred, tags []string, isOwner bool) tr
 		UserName:                tw.UserName,
 		UserUUID:                t.UserID,
 		Tags:                    tags,
+		GeonameLabel:            tw.GeonameLabel,
 	}
 	if t.OriginalCreatedAt.Valid {
 		resp.OriginalCreatedAt = t.OriginalCreatedAt.Time.Format(time.RFC3339)
@@ -1300,6 +1304,13 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		logg.Error(ctx, "failed to store track", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
+	}
+
+	// Schedule geoname labeling in the background.
+	if submitErr := jobs.Submit(ctx, sv.jobSubmitter, geocode.LabelerArgs{
+		TrackID: created.Uuid,
+	}, jobs.Params{MaxRetries: 2}); submitErr != nil {
+		logg.Error(ctx, "Failed to submit labeler job", "err", submitErr)
 	}
 
 	writeJSON(w, http.StatusCreated, trackResponseFromDB(db.TrackWithStarred{

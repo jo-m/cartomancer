@@ -61,3 +61,25 @@ SELECT COUNT(*) FROM geoname_admin2;
 
 -- name: GetGeonameAdmin2 :one
 SELECT * FROM geoname_admin2 WHERE code = ?;
+
+-- name: NearestPlace :one
+-- Finds the single nearest populated place to a given lat/lon within a bounding box.
+SELECT geonameid, name, country_code, admin1_code,
+       CAST((latitude - sqlc.arg(lat)) * (latitude - sqlc.arg(lat)) +
+       (longitude - sqlc.arg(lon)) * (longitude - sqlc.arg(lon)) AS REAL) AS dist_sq
+FROM geonames
+WHERE feature_class = 'P'
+  AND latitude >= sqlc.arg(min_lat)
+  AND latitude <= sqlc.arg(max_lat)
+  AND longitude >= sqlc.arg(min_lon)
+  AND longitude <= sqlc.arg(max_lon)
+ORDER BY dist_sq
+LIMIT 1;
+
+-- name: UpsertTrackGeoname :exec
+INSERT INTO track_geonames (track_id, label, created_at)
+VALUES (?, ?, ?)
+ON CONFLICT(track_id) DO UPDATE SET label = excluded.label, created_at = excluded.created_at;
+
+-- name: GetTrackGeoname :one
+SELECT * FROM track_geonames WHERE track_id = ?;

@@ -317,6 +317,24 @@ export default function Track() {
         )}
       </div>
 
+      {data.geonameLabel && (
+        <p className="mt-1 text-sm text-gray-500">
+          {data.geonameLabel}
+          <span className="ml-1.5 text-xs text-gray-400">
+            (
+            <a
+              href="https://www.geonames.org/"
+              className="hover:text-gray-600"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GeoNames CC-BY 4.0
+            </a>
+            )
+          </span>
+        </p>
+      )}
+
       {data.description && (
         <p className="mt-2 text-sm text-gray-600">{data.description}</p>
       )}
