@@ -207,7 +207,7 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	resp := forecastResponse{
 		ForecastStatus: status,
 		Units: forecastUnits{
-			TemperatureC:             "C",
+			TemperatureC:             "\u00b0C",
 			PrecipitationRate:        "mm/h",
 			WindSpeedMs:              "m/s",
 			WindDirectionDeg:         "deg",
