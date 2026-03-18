@@ -507,7 +507,28 @@ export default function ForecastChart({
         </div>
       )}
 
-      {hasRelativeWind && <WindRose points={points} />}
+      {hasRelativeWind && (
+        <div className="flex flex-wrap gap-6">
+          <WindRose
+            points={points}
+            config={{
+              directionKey: "relativeWindDirectionDeg",
+              labels: RELATIVE_ROSE_LABELS,
+              sectorColor: relativeSectorColor,
+              title: "Relative wind",
+            }}
+          />
+          <WindRose
+            points={points}
+            config={{
+              directionKey: "windDirectionDeg",
+              labels: COMPASS_ROSE_LABELS,
+              sectorColor: compassSectorColor,
+              title: "Compass wind",
+            }}
+          />
+        </div>
+      )}
 
       {attribution && (
         <p className="mt-1 text-right text-[10px] text-gray-400">
@@ -530,7 +551,17 @@ export default function ForecastChart({
   )
 }
 
-const ROSE_LABELS = ["Head", "", "Right", "", "Tail", "", "Left", ""] as const
+const RELATIVE_ROSE_LABELS = [
+  "Head",
+  "",
+  "Right",
+  "",
+  "Tail",
+  "",
+  "Left",
+  "",
+] as const
+const COMPASS_ROSE_LABELS = ["N", "", "E", "", "S", "", "W", ""] as const
 
 const ROSE_SECTORS = 8
 const ROSE_PAD = 30
@@ -539,35 +570,57 @@ const ROSE_SIZE = (ROSE_MAX_R + ROSE_PAD) * 2
 const ROSE_CX = ROSE_SIZE / 2
 const ROSE_CY = ROSE_SIZE / 2
 
-/** Renders a wind rose showing distribution of wind relative to travel direction. */
-function WindRose({ points }: { points: ForecastPoint[] }) {
+/** Returns a fill color for a relative wind sector (headwind=red, tailwind=green, cross=gray). */
+function relativeSectorColor(i: number): string {
+  if (i === 0 || i === 1 || i === 7) return "#ef4444"
+  if (i === 3 || i === 4 || i === 5) return "#10b981"
+  return "#9ca3af"
+}
+
+/** Returns a uniform fill color for compass wind sectors. */
+function compassSectorColor(): string {
+  return "#6366f1"
+}
+
+interface WindRoseConfig {
+  /** Direction field to bin by. */
+  directionKey: "relativeWindDirectionDeg" | "windDirectionDeg"
+  /** Labels for the 8 sectors (cardinal positions only). */
+  labels: readonly string[]
+  /** Returns the fill color for a given sector index. */
+  sectorColor: (i: number) => string
+  /** Vertical label displayed beside the rose. */
+  title: string
+}
+
+/** Renders a wind rose SVG from forecast points using the given configuration. */
+function WindRose({
+  points,
+  config,
+}: {
+  points: ForecastPoint[]
+  config: WindRoseConfig
+}) {
   const roseData = useMemo(() => {
     const bins = new Array(ROSE_SECTORS).fill(0)
     let totalWeight = 0
     for (const p of points) {
-      if (
-        p.relativeWindDirectionDeg == null ||
-        p.windSpeedMs == null ||
-        p.windSpeedMs === 0
-      )
-        continue
-      const sector =
-        Math.round(p.relativeWindDirectionDeg / (360 / ROSE_SECTORS)) %
-        ROSE_SECTORS
+      const dir = p[config.directionKey]
+      if (dir == null || p.windSpeedMs == null || p.windSpeedMs === 0) continue
+      const sector = Math.round(dir / (360 / ROSE_SECTORS)) % ROSE_SECTORS
       bins[sector] += p.windSpeedMs
       totalWeight += p.windSpeedMs
     }
     if (totalWeight === 0) return null
     const maxBin = Math.max(...bins)
     return bins.map((v) => (maxBin > 0 ? v / maxBin : 0))
-  }, [points])
+  }, [points, config.directionKey])
 
   if (!roseData) return null
 
   // Build petal paths as filled triangular wedges.
   const petals = roseData.map((fraction, i) => {
     if (fraction === 0) return null
-    // Angle: 0 = top (headwind), clockwise.
     const angleDeg = (i * 360) / ROSE_SECTORS - 90
     const halfWedge = 360 / ROSE_SECTORS / 2 - 2
     const r = ROSE_MAX_R * fraction
@@ -578,10 +631,7 @@ function WindRose({ points }: { points: ForecastPoint[] }) {
     const x2 = ROSE_CX + r * Math.cos(a2)
     const y2 = ROSE_CY + r * Math.sin(a2)
 
-    // Headwind sectors (0, 1, 7) are red; tailwind (3, 4, 5) are green; crosswind (2, 6) are gray.
-    let fill = "#9ca3af"
-    if (i === 0 || i === 1 || i === 7) fill = "#ef4444"
-    else if (i === 3 || i === 4 || i === 5) fill = "#10b981"
+    const fill = config.sectorColor(i)
 
     return (
       <path
@@ -596,7 +646,7 @@ function WindRose({ points }: { points: ForecastPoint[] }) {
   })
 
   // Label positions at the cardinal slots.
-  const labels = ROSE_LABELS.map((label, i) => {
+  const labels = config.labels.map((label, i) => {
     if (!label) return null
     const angleDeg = (i * 360) / ROSE_SECTORS - 90
     const r = ROSE_MAX_R + 14
@@ -620,7 +670,7 @@ function WindRose({ points }: { points: ForecastPoint[] }) {
   return (
     <div className="flex items-center gap-3">
       <p className="text-xs font-medium text-gray-500 [writing-mode:vertical-lr] rotate-180">
-        Wind rose
+        {config.title}
       </p>
       <svg
         width={ROSE_SIZE}
