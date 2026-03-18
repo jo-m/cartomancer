@@ -11,6 +11,7 @@ import (
 
 	"github.com/franiglesias/golden"
 	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/detour/internal/pkg/utl"
 )
 
 // TestOnlineSubsampleAllCountries downloads allCountries.zip, extracts
@@ -57,4 +58,42 @@ func TestOnlineSubsampleAllCountries(t *testing.T) {
 
 	result := strings.Join(sampled, "\n") + "\n"
 	golden.Verify(t, result, golden.Extension(".tsv")) // golden.WaitApproval()
+}
+
+// TestOnlineSubsampleAdmin1Codes downloads admin1CodesASCII.txt and writes
+// every 10th row to a golden file for offline tests.
+func TestOnlineSubsampleAdmin1Codes(t *testing.T) {
+	data, err := utl.DownloadFile(Admin1CodesURL)
+	require.NoError(t, err)
+	require.NotEmpty(t, data)
+
+	sampled := subsampleLines(string(data), 10)
+	require.NotEmpty(t, sampled)
+
+	golden.Verify(t, strings.Join(sampled, "\n")+"\n", golden.Extension(".tsv")) // golden.WaitApproval()
+}
+
+// TestOnlineSubsampleAdmin2Codes downloads admin2Codes.txt and writes
+// every 10th row to a golden file for offline tests.
+func TestOnlineSubsampleAdmin2Codes(t *testing.T) {
+	data, err := utl.DownloadFile(Admin2CodesURL)
+	require.NoError(t, err)
+	require.NotEmpty(t, data)
+
+	sampled := subsampleLines(string(data), 10)
+	require.NotEmpty(t, sampled)
+
+	golden.Verify(t, strings.Join(sampled, "\n")+"\n", golden.Extension(".tsv")) // golden.WaitApproval()
+}
+
+// subsampleLines returns every nth non-empty line from s.
+func subsampleLines(s string, n int) []string {
+	lines := strings.Split(strings.TrimSpace(s), "\n")
+	var sampled []string
+	for i, line := range lines {
+		if i%n == 0 && line != "" {
+			sampled = append(sampled, line)
+		}
+	}
+	return sampled
 }

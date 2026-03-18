@@ -52,3 +52,29 @@ LIMIT sqlc.arg(max_results);
 
 -- name: CountGeonames :one
 SELECT COUNT(*) FROM geonames;
+
+-- name: InsertGeonameAdmin1 :exec
+INSERT OR REPLACE INTO geoname_admin1 (code, name, geonameid)
+VALUES (?, ?, ?);
+
+-- name: DeleteAllGeonameAdmin1 :execrows
+DELETE FROM geoname_admin1;
+
+-- name: CountGeonameAdmin1 :one
+SELECT COUNT(*) FROM geoname_admin1;
+
+-- name: GetGeonameAdmin1 :one
+SELECT * FROM geoname_admin1 WHERE code = ?;
+
+-- name: InsertGeonameAdmin2 :exec
+INSERT OR REPLACE INTO geoname_admin2 (code, name, geonameid)
+VALUES (?, ?, ?);
+
+-- name: DeleteAllGeonameAdmin2 :execrows
+DELETE FROM geoname_admin2;
+
+-- name: CountGeonameAdmin2 :one
+SELECT COUNT(*) FROM geoname_admin2;
+
+-- name: GetGeonameAdmin2 :one
+SELECT * FROM geoname_admin2 WHERE code = ?;

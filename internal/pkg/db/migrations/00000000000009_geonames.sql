@@ -21,6 +21,20 @@ CREATE INDEX idx_geonames_reverse
 CREATE INDEX idx_geonames_country
     ON geonames (country_code, feature_class);
 
+-- First-level administrative divisions (states, provinces, etc.).
+CREATE TABLE geoname_admin1 (
+    code TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    geonameid INTEGER NOT NULL
+);
+
+-- Second-level administrative divisions (counties, districts, etc.).
+CREATE TABLE geoname_admin2 (
+    code TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    geonameid INTEGER NOT NULL
+);
+
 -- Tracks when geonames data was last imported.
 CREATE TABLE geoname_imports (
     id INTEGER PRIMARY KEY,
@@ -32,5 +46,7 @@ CREATE TABLE geoname_imports (
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE IF EXISTS geoname_imports;
+DROP TABLE IF EXISTS geoname_admin2;
+DROP TABLE IF EXISTS geoname_admin1;
 DROP TABLE IF EXISTS geonames;
 -- +goose StatementEnd

@@ -1,6 +1,7 @@
 package geocode
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
@@ -75,6 +76,19 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	rowCount, err := ImportAllCountries(ctx, d.d, zipPath)
 	if err != nil {
 		return fmt.Errorf("import: %w", err)
+	}
+
+	logg.Info(ctx, "Downloading GeoNames admin codes")
+	admin1Data, admin2Data, err := DownloadAdminCodes()
+	if err != nil {
+		return fmt.Errorf("download admin codes: %w", err)
+	}
+
+	if _, err := ImportAdmin1Codes(ctx, d.d, bytes.NewReader(admin1Data)); err != nil {
+		return fmt.Errorf("import admin1 codes: %w", err)
+	}
+	if _, err := ImportAdmin2Codes(ctx, d.d, bytes.NewReader(admin2Data)); err != nil {
+		return fmt.Errorf("import admin2 codes: %w", err)
 	}
 
 	// Record the import.
