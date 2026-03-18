@@ -433,7 +433,7 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eTag := fmt.Sprintf(`"%d-points-v2"`, t.UpdatedAt.UnixMilli())
+	eTag := fmt.Sprintf(`"%d-points-v3"`, t.UpdatedAt.UnixMilli())
 	if r.Header.Get("If-None-Match") == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -454,7 +454,9 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tr := track.New(src, 0)
-	pts := tr.Points().Subsample(TrackSubsampleM)
+	pts := tr.Points().SubsampleLTTB(TrackPointsTarget, func(p track.Point) float64 {
+		return p.Elevation
+	})
 
 	points := make([]trackPoint, len(pts))
 	cumDist := 0.0
@@ -1145,9 +1147,9 @@ func boolToInt(b bool) int {
 	return 0
 }
 
-// TrackSubsampleM is the minimum distance in meters between consecutive points
-// when subsampling a track for the points and forecast endpoints.
-const TrackSubsampleM = 10.0
+// TrackPointsTarget is the maximum number of points returned by the points
+// endpoint. Tracks with more points are down-sampled using LTTB.
+const TrackPointsTarget = 1000
 
 const (
 	maxUploadSize         = 5 << 20 // 5 MiB

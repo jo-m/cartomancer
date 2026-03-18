@@ -16,7 +16,8 @@
   - [x] Make forecasts access public
   - [x] Frontend meteo data attribution
   - [x] Attribution for map (Swisstopo)
-  - [ ] Window averaging and subsampling of points on plots, if there are too many
+  - [x] Window averaging and subsampling of points on plots, if there are too many
+  - [ ] On long tracks track on map is now imprecise when zooming in
 - [x] Store vertical+horizontal grid data for forecasts
 - [x] Show track owner/user in frontend
 - [x] Aggressive caching with etag headers for all expensive endpoints
@@ -124,7 +125,7 @@
 - [x] Reverse geocoding via https://download.geonames.org/export/dump/
 - [ ] Calculate/fit model of bike ride speed dep. on terrain, from personal data
 - [ ] How could architecture of the db package be improved. Maybe split up "system" and "app" tables.
-- [ ] Improve error JSON struct, e.g. https://platform.claude.com/docs/en/api/errors#error-shapes
+- [ ] Improve error JSON struct, e.g. https://platform.claude.com/docs/en/api/errors#error-shapes, at least include request id
 - [ ] Allow to show meteo forecast in map overlay
 - [ ] Improve the tracks geoname labelling algorithm
 

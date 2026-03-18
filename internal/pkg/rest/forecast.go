@@ -111,7 +111,9 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	}
 
 	tr := track.New(src, 0)
-	pts := tr.Points().Subsample(TrackSubsampleM)
+	pts := tr.Points().SubsampleLTTB(TrackPointsTarget, func(p track.Point) float64 {
+		return p.Elevation
+	})
 	if len(pts) < 2 {
 		writeError(w, http.StatusUnprocessableEntity, "track has too few points")
 		return

@@ -366,6 +366,85 @@ func (pts Points) InterpolateByDistance(intervalM float64) []InterpolatedPoint {
 	return result
 }
 
+// SubsampleLTTB down-samples the points to at most targetN using the
+// Largest-Triangle-Three-Buckets algorithm. valueFn extracts the Y-axis
+// value for each point (e.g. elevation); cumulative distance is used as
+// the X-axis. The first and last points are always preserved.
+// If len(pts) <= targetN the original slice is returned unchanged.
+func (pts Points) SubsampleLTTB(targetN int, valueFn func(Point) float64) Points {
+	n := len(pts)
+	if targetN <= 2 || n <= targetN {
+		return pts
+	}
+
+	// Pre-compute cumulative distances (X-axis).
+	dist := make([]float64, n)
+	for i := 1; i < n; i++ {
+		dist[i] = dist[i-1] + pts[i-1].MetersTo(&pts[i])
+	}
+
+	result := make(Points, 0, targetN)
+	result = append(result, pts[0])
+
+	// Number of buckets for the interior points.
+	buckets := targetN - 2
+	bucketSize := float64(n-2) / float64(buckets)
+
+	prevSelected := 0
+
+	for b := 0; b < buckets; b++ {
+		// Current bucket range (interior points start at index 1).
+		bucketStart := int(math.Floor(float64(b)*bucketSize)) + 1
+		bucketEnd := int(math.Floor(float64(b+1)*bucketSize)) + 1
+		if bucketEnd > n-1 {
+			bucketEnd = n - 1
+		}
+
+		// Next bucket average (for the triangle area calculation).
+		nextStart := bucketEnd
+		nextEnd := int(math.Floor(float64(b+2)*bucketSize)) + 1
+		if b+2 >= buckets {
+			// Last bucket: the "next" bucket is just the final point.
+			nextStart = n - 1
+			nextEnd = n
+		}
+		if nextEnd > n {
+			nextEnd = n
+		}
+
+		var avgX, avgY float64
+		nextCount := nextEnd - nextStart
+		for i := nextStart; i < nextEnd; i++ {
+			avgX += dist[i]
+			avgY += valueFn(pts[i])
+		}
+		avgX /= float64(nextCount)
+		avgY /= float64(nextCount)
+
+		// Pick the point in the current bucket that forms the largest triangle
+		// with the previously selected point and the next-bucket average.
+		ax := dist[prevSelected]
+		ay := valueFn(pts[prevSelected])
+
+		bestIdx := bucketStart
+		bestArea := -1.0
+		for i := bucketStart; i < bucketEnd; i++ {
+			// Triangle area (times 2, but we only compare).
+			area := math.Abs((ax-avgX)*(valueFn(pts[i])-ay) - (ax-dist[i])*(avgY-ay))
+			if area > bestArea {
+				bestArea = area
+				bestIdx = i
+			}
+		}
+
+		result = append(result, pts[bestIdx])
+		prevSelected = bestIdx
+	}
+
+	result = append(result, pts[n-1])
+	return result
+}
+
 // Subsample returns a subset of points such that consecutive points are at
 // least minDistM meters apart. The first and last points are always included.
 func (pts Points) Subsample(minDistM float64) Points {

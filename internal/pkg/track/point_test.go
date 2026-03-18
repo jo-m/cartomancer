@@ -138,6 +138,90 @@ func TestSubsample(t *testing.T) {
 	})
 }
 
+func TestSubsampleLTTB(t *testing.T) {
+	elev := func(p Point) float64 { return p.Elevation }
+
+	// Helper: create a point at a given latitude with a given elevation.
+	pt := func(lat, ele float64) Point {
+		return Point{Lat: lat, Lon: 0, Elevation: ele}
+	}
+
+	t.Run("fewer than target returns original", func(t *testing.T) {
+		pts := Points{pt(0, 100), pt(1, 200), pt(2, 300)}
+		got := pts.SubsampleLTTB(5, elev)
+		require.Equal(t, pts, got)
+	})
+
+	t.Run("equal to target returns original", func(t *testing.T) {
+		pts := Points{pt(0, 100), pt(1, 200), pt(2, 300)}
+		got := pts.SubsampleLTTB(3, elev)
+		require.Equal(t, pts, got)
+	})
+
+	t.Run("nil input", func(t *testing.T) {
+		got := Points(nil).SubsampleLTTB(10, elev)
+		require.Nil(t, got)
+	})
+
+	t.Run("target of two or less returns original", func(t *testing.T) {
+		pts := Points{pt(0, 100), pt(1, 200), pt(2, 300), pt(3, 400)}
+		got := pts.SubsampleLTTB(2, elev)
+		require.Equal(t, pts, got)
+	})
+
+	t.Run("preserves first and last", func(t *testing.T) {
+		pts := Points{pt(0, 100), pt(0.01, 200), pt(0.02, 300), pt(0.03, 150), pt(0.04, 400)}
+		got := pts.SubsampleLTTB(3, elev)
+		require.Len(t, got, 3)
+		require.Equal(t, pts[0], got[0])
+		require.Equal(t, pts[len(pts)-1], got[len(got)-1])
+	})
+
+	t.Run("reduces count to target", func(t *testing.T) {
+		// Build a long track with 100 points.
+		pts := make(Points, 100)
+		for i := range pts {
+			pts[i] = pt(float64(i)*0.01, 500+100*math.Sin(float64(i)*0.1))
+		}
+		got := pts.SubsampleLTTB(20, elev)
+		require.Len(t, got, 20)
+		require.Equal(t, pts[0], got[0])
+		require.Equal(t, pts[99], got[19])
+	})
+
+	t.Run("preserves peaks over flat regions", func(t *testing.T) {
+		// Flat region with a single prominent peak in the middle.
+		pts := make(Points, 50)
+		for i := range pts {
+			pts[i] = pt(float64(i)*0.01, 100)
+		}
+		pts[25].Elevation = 1000 // Sharp peak.
+
+		got := pts.SubsampleLTTB(10, elev)
+		require.Len(t, got, 10)
+
+		// The peak should be preserved because LTTB maximises triangle area.
+		peakFound := false
+		for _, p := range got {
+			if p.Elevation == 1000 {
+				peakFound = true
+				break
+			}
+		}
+		require.True(t, peakFound, "LTTB should preserve prominent peaks")
+	})
+
+	t.Run("snapshot with real GPX data", func(t *testing.T) {
+		pts := loadGPXPoints(t, "../load/testdata/COURSE_436298480.gpx")
+		got := pts.SubsampleLTTB(200, elev)
+		require.Len(t, got, 200)
+
+		opts := DefaultPreviewOptions()
+		opts.Size = 512
+		golden.Verify(t, got.ProfileSVG(opts), golden.Extension(".svg"))
+	})
+}
+
 func TestPoints(t *testing.T) {
 	tr := &Track{pts: []Point{berlin, paris}}
 	pts := tr.Points()

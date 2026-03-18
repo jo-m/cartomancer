@@ -359,12 +359,12 @@ export default function ForecastChart({
                     <stop
                       offset={headwindGradientOffset}
                       stopColor="#ef4444"
-                      stopOpacity={0.1}
+                      stopOpacity={0.2}
                     />
                     <stop
                       offset={headwindGradientOffset}
                       stopColor="#10b981"
-                      stopOpacity={0.1}
+                      stopOpacity={0.2}
                     />
                     <stop offset={1} stopColor="#10b981" stopOpacity={0.4} />
                   </linearGradient>
@@ -416,7 +416,7 @@ export default function ForecastChart({
                   type="monotone"
                   dataKey="headwindMs"
                   stroke="#6b7280"
-                  strokeWidth={1.5}
+                  strokeWidth={1}
                   dot={false}
                   activeDot={false}
                 />
