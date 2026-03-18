@@ -154,10 +154,21 @@ export default function ForecastChart({
     const temps = data
       .map((d) => d.temperatureC)
       .filter((v): v is number => v != null && isFinite(v))
-    const lo = temps.length ? Math.floor(Math.min(...temps)) - 1 : 0
-    const hi = temps.length ? Math.ceil(Math.max(...temps)) + 1 : 20
-    return [lo, hi]
+    if (temps.length === 0) return [0, 20]
+    const lo = Math.min(...temps)
+    const hi = Math.max(...temps)
+    const mid = (lo + hi) / 2
+    // 20-degree range centered on the data midpoint, snapped to 5-degree boundaries.
+    const bottom = Math.floor((mid - 10) / 5) * 5
+    const top = bottom + 20
+    return [bottom, top]
   }, [data])
+
+  const tempTicks = useMemo(() => {
+    const ticks: number[] = []
+    for (let v = minTemp; v <= maxTemp; v += 5) ticks.push(v)
+    return ticks
+  }, [minTemp, maxTemp])
 
   const headwindDomain = useMemo(() => {
     const vals = data
@@ -228,6 +239,8 @@ export default function ForecastChart({
               />
               <YAxis
                 domain={[minTemp, maxTemp]}
+                ticks={tempTicks}
+                allowDataOverflow
                 tick={{ fontSize: 11, fill: "#6b7280" }}
                 stroke="#d1d5db"
                 width={36}
@@ -295,6 +308,9 @@ export default function ForecastChart({
                 }}
               />
               <YAxis
+                domain={[0, 8]}
+                ticks={[0, 2, 4, 6, 8]}
+                allowDataOverflow
                 tick={{ fontSize: 11, fill: "#6b7280" }}
                 stroke="#d1d5db"
                 width={36}
