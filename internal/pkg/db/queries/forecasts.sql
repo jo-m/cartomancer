@@ -17,17 +17,24 @@ DELETE FROM forecast_files
 WHERE valid_time < ?;
 
 -- name: ListForecastFilesForWindow :many
--- Returns forecast_files rows for the latest reference_time whose valid_time
--- falls within [start, end] and whose bounding box overlaps the query box.
+-- Returns forecast_files rows for the requested time window and bbox.
+-- For each (variable, valid_time) pair, returns the file from the newest
+-- forecast run that has it, falling back to older runs to fill gaps.
 SELECT mf.* FROM forecast_files mf
-JOIN forecasts f ON mf.forecast_id = f.id
-WHERE f.reference_time = (SELECT MAX(reference_time) FROM forecasts)
-  AND mf.valid_until_time > sqlc.arg(start)
+WHERE mf.valid_until_time > sqlc.arg(start)
   AND mf.valid_time <= sqlc.arg(end)
-  AND (f.bounds_min_lat IS NULL OR f.bounds_min_lat <= sqlc.arg(max_lat))
-  AND (f.bounds_max_lat IS NULL OR f.bounds_max_lat >= sqlc.arg(min_lat))
-  AND (f.bounds_min_lon IS NULL OR f.bounds_min_lon <= sqlc.arg(max_lon))
-  AND (f.bounds_max_lon IS NULL OR f.bounds_max_lon >= sqlc.arg(min_lon))
+  AND mf.forecast_id = (
+    SELECT mf2.forecast_id FROM forecast_files mf2
+    JOIN forecasts f2 ON mf2.forecast_id = f2.id
+    WHERE mf2.variable = mf.variable
+      AND mf2.valid_time = mf.valid_time
+      AND (f2.bounds_min_lat IS NULL OR f2.bounds_min_lat <= sqlc.arg(max_lat))
+      AND (f2.bounds_max_lat IS NULL OR f2.bounds_max_lat >= sqlc.arg(min_lat))
+      AND (f2.bounds_min_lon IS NULL OR f2.bounds_min_lon <= sqlc.arg(max_lon))
+      AND (f2.bounds_max_lon IS NULL OR f2.bounds_max_lon >= sqlc.arg(min_lon))
+    ORDER BY f2.reference_time DESC
+    LIMIT 1
+  )
 ORDER BY mf.variable, mf.valid_time;
 
 -- name: CreateForecast :one
@@ -56,6 +63,20 @@ LIMIT 1;
 SELECT EXISTS(
     SELECT 1 FROM forecasts WHERE reference_time = ?
 ) AS ok;
+
+-- name: GetForecastByReferenceTime :one
+-- Returns the forecast row for the given reference time.
+SELECT * FROM forecasts WHERE reference_time = ?;
+
+-- name: CountDistinctForecastVariables :one
+-- Returns the number of distinct variables stored for the forecast with the given reference time.
+SELECT COUNT(DISTINCT variable) as count FROM forecast_files
+WHERE forecast_id = (SELECT id FROM forecasts WHERE reference_time = ?);
+
+-- name: ListForecastFileKeys :many
+-- Returns the (variable, valid_time) pairs for files in the given forecast.
+SELECT variable, valid_time FROM forecast_files WHERE forecast_id = ?
+ORDER BY variable, valid_time;
 
 -- name: ListForecastsWithFiles :many
 -- Returns all forecasts LEFT JOINed with their files (excluding blobs).

@@ -3,6 +3,7 @@ package meteo
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -48,7 +49,8 @@ var _ jobs.Job[DownloaderArgs] = (*Downloader)(nil)
 
 // Run implements [jobs.Job].
 // It checks whether the newest forecast run available online is already stored
-// in the database. If the reference time already exists, it returns early.
+// in the database. If the reference time already exists but is incomplete
+// (missing variables), it fetches the manifest and augments with missing files.
 // Otherwise it downloads all files for that run and commits them atomically.
 func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, downloaderTimeout)
@@ -64,36 +66,56 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		return nil
 	}
 
-	// Stage 2: check if a forecast row already exists for this reference time.
+	// Stage 2: check if a forecast row already exists for this reference time
+	// and whether it has all expected variables.
 	exists, err := d.d.QueryRO().ForecastExistsForReferenceTime(ctx, latestRefTime)
 	if err != nil {
 		return fmt.Errorf("check existing forecast: %w", err)
 	}
 	if exists != 0 {
-		logg.Info(ctx, "Forecast already stored", "referenceTime", latestRefTime)
-		return nil
+		complete, checkErr := d.isForecastComplete(ctx, latestRefTime)
+		if checkErr != nil {
+			return fmt.Errorf("check forecast completeness: %w", checkErr)
+		}
+		if complete {
+			logg.Info(ctx, "Forecast already stored and complete", "referenceTime", latestRefTime)
+			return nil
+		}
+		logg.Info(ctx, "Forecast incomplete, will attempt to augment", "referenceTime", latestRefTime)
 	}
 
-	// Stage 3: fetch full manifest and download all files.
+	// Stage 3: fetch full manifest and download all/missing files.
 	manifest, err := GetNewestForecast(ctx, DownloadVariables, NoHorizonLimit, false)
 	if err != nil {
 		return fmt.Errorf("fetch forecast manifest: %w", err)
 	}
 
-	// Re-check: the actual reference time may differ from the collection extent
-	// estimate (e.g. the newest model run is still uploading), so verify the
-	// resolved reference time is not already stored.
-	if !manifest.ReferenceTime.Equal(latestRefTime) {
-		exists, dbErr := d.d.QueryRO().ForecastExistsForReferenceTime(ctx, manifest.ReferenceTime)
-		if dbErr != nil {
-			return fmt.Errorf("re-check existing forecast: %w", dbErr)
-		}
-		if exists != 0 {
-			logg.Info(ctx, "Forecast already stored (after probing)", "referenceTime", manifest.ReferenceTime)
-			return nil
-		}
+	// Check if the manifest's resolved reference time already exists in the DB.
+	forecastRow, err := d.d.QueryRO().GetForecastByReferenceTime(ctx, manifest.ReferenceTime)
+	if errors.Is(err, sql.ErrNoRows) {
+		return d.storeNewForecast(ctx, manifest)
+	}
+	if err != nil {
+		return fmt.Errorf("check existing forecast for resolved ref time: %w", err)
 	}
 
+	// Forecast row exists -- augment with any missing files.
+	return d.augmentForecast(ctx, manifest, forecastRow.ID)
+}
+
+// isForecastComplete returns true if the forecast for the given reference time
+// has files for all expected variables in [DownloadVariables].
+func (d *Downloader) isForecastComplete(ctx context.Context, refTime time.Time) (bool, error) {
+	count, err := d.d.QueryRO().CountDistinctForecastVariables(ctx, refTime)
+	if err != nil {
+		return false, err
+	}
+	return count >= int64(len(DownloadVariables)), nil
+}
+
+// storeNewForecast downloads all files from the manifest and creates a new
+// forecast row with all files atomically.
+func (d *Downloader) storeNewForecast(ctx context.Context, manifest *ForecastManifest) error {
 	logg.Info(ctx, "Downloading new forecast",
 		"referenceTime", manifest.ReferenceTime,
 		"fileCount", len(manifest.Files))
@@ -108,20 +130,10 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		}
 	}()
 
-	// Consistency check: every downloaded file must report the same reference
-	// time as the manifest.
-	for _, f := range result.Files {
-		if !f.Meta.ReferenceTime.Equal(manifest.ReferenceTime) {
-			return fmt.Errorf(
-				"reference time mismatch for %s: manifest=%s, file=%s",
-				f.Meta.Variable,
-				manifest.ReferenceTime.Format(time.RFC3339),
-				f.Meta.ReferenceTime.Format(time.RFC3339),
-			)
-		}
+	if err := verifyReferenceTime(result.Files, manifest.ReferenceTime); err != nil {
+		return err
 	}
 
-	// Stage 4: atomically write forecast row and all forecast_files.
 	err = d.d.WithTx(ctx, func(tx *db.Queries) error {
 		gridPath := filepath.Join(result.Dir, result.GridConstantsPath)
 		gridContent, readErr := os.ReadFile(gridPath)
@@ -135,8 +147,6 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 			return fmt.Errorf("read vertical grid constants: %w", readErr)
 		}
 
-		// Use the bounding box from the first file (all files in a run
-		// share the same spatial domain).
 		var boundsMinLat, boundsMinLon, boundsMaxLat, boundsMaxLon float64
 		boundsMinLat = math.NaN()
 		boundsMinLon = math.NaN()
@@ -164,34 +174,122 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		if dbErr != nil {
 			return fmt.Errorf("create forecast record: %w", dbErr)
 		}
-		logg.Info(ctx, "Stored forecast", "referenceTime", result.ReferenceTime)
 
-		for _, f := range result.Files {
-			absPath := filepath.Join(result.Dir, f.Path)
-			content, readErr := os.ReadFile(absPath)
-			if readErr != nil {
-				return fmt.Errorf("read %s: %w", absPath, readErr)
-			}
-
-			if _, dbErr := tx.CreateForecastFile(ctx, db.CreateForecastFileParams{
-				ValidTime:      f.Meta.ValidTime,
-				ValidUntilTime: f.Meta.ValidTime.Add(stac.FileValidityDuration),
-				Variable:       f.Meta.Variable,
-				File:           content,
-				ForecastID:     forecastRow.ID,
-			}); dbErr != nil {
-				return fmt.Errorf("create forecast_file record for %s validTime=%s: %w",
-					f.Meta.Variable, f.Meta.ValidTime.Format(time.RFC3339), dbErr)
-			}
-		}
-
-		return nil
+		return insertFiles(ctx, tx, result.Dir, result.Files, forecastRow.ID)
 	})
 	if err != nil {
 		return fmt.Errorf("write forecast to database: %w", err)
 	}
 
 	logg.Info(ctx, "Stored new forecast data", "referenceTime", result.ReferenceTime, "fileCount", len(result.Files))
+	return nil
+}
+
+// augmentForecast downloads files that are present in the manifest but missing
+// from the existing forecast row and inserts them.
+func (d *Downloader) augmentForecast(ctx context.Context, manifest *ForecastManifest, forecastID int64) error {
+	existingKeys, err := d.d.QueryRO().ListForecastFileKeys(ctx, forecastID)
+	if err != nil {
+		return fmt.Errorf("list existing forecast file keys: %w", err)
+	}
+
+	existing := make(map[string]struct{}, len(existingKeys))
+	for _, k := range existingKeys {
+		existing[fileKey(k.Variable, k.ValidTime)] = struct{}{}
+	}
+
+	var missing []ForecastFile
+	for _, f := range manifest.Files {
+		if _, ok := existing[fileKey(f.Meta.Variable, f.Meta.ValidTime)]; !ok {
+			missing = append(missing, f)
+		}
+	}
+
+	if len(missing) == 0 {
+		logg.Info(ctx, "Forecast is complete, nothing to augment", "referenceTime", manifest.ReferenceTime)
+		return nil
+	}
+
+	logg.Info(ctx, "Augmenting incomplete forecast",
+		"referenceTime", manifest.ReferenceTime,
+		"existingFiles", len(existingKeys),
+		"missingFiles", len(missing))
+
+	dir, err := os.MkdirTemp("", "forecast-augment-*")
+	if err != nil {
+		return fmt.Errorf("creating temp dir: %w", err)
+	}
+	defer func() {
+		if removeErr := os.RemoveAll(dir); removeErr != nil {
+			logg.Error(ctx, "Failed to remove forecast augment temp dir", "path", dir, "err", removeErr)
+		}
+	}()
+
+	var downloaded []DownloadedFile
+	for i, mf := range missing {
+		relPath := fmt.Sprintf("%04d.grib2", i)
+		if downloadErr := downloadFile(ctx, mf.URL, filepath.Join(dir, relPath)); downloadErr != nil {
+			return fmt.Errorf("downloading %s/%s: %w", mf.Meta.Variable, mf.Meta.Horizon, downloadErr)
+		}
+		downloaded = append(downloaded, DownloadedFile{Meta: mf.Meta, Path: relPath})
+	}
+
+	if err := verifyReferenceTime(downloaded, manifest.ReferenceTime); err != nil {
+		return err
+	}
+
+	err = d.d.WithTx(ctx, func(tx *db.Queries) error {
+		return insertFiles(ctx, tx, dir, downloaded, forecastID)
+	})
+	if err != nil {
+		return fmt.Errorf("write augmented files to database: %w", err)
+	}
+
+	logg.Info(ctx, "Augmented forecast", "referenceTime", manifest.ReferenceTime, "addedFiles", len(downloaded))
+	return nil
+}
+
+// fileKey returns a map key for a (variable, validTime) pair.
+func fileKey(variable string, validTime time.Time) string {
+	return variable + "|" + validTime.Format(time.RFC3339)
+}
+
+// verifyReferenceTime checks that all downloaded files report the expected reference time.
+func verifyReferenceTime(files []DownloadedFile, expected time.Time) error {
+	for _, f := range files {
+		if !f.Meta.ReferenceTime.Equal(expected) {
+			return fmt.Errorf(
+				"reference time mismatch for %s: expected=%s, file=%s",
+				f.Meta.Variable,
+				expected.Format(time.RFC3339),
+				f.Meta.ReferenceTime.Format(time.RFC3339),
+			)
+		}
+	}
+	return nil
+}
+
+// insertFiles writes downloaded GRIB2 files as forecast_file rows within an
+// existing transaction.
+func insertFiles(ctx context.Context, tx *db.Queries, dir string, files []DownloadedFile, forecastID int64) error {
+	for _, f := range files {
+		absPath := filepath.Join(dir, f.Path)
+		content, readErr := os.ReadFile(absPath)
+		if readErr != nil {
+			return fmt.Errorf("read %s: %w", absPath, readErr)
+		}
+
+		if _, dbErr := tx.CreateForecastFile(ctx, db.CreateForecastFileParams{
+			ValidTime:      f.Meta.ValidTime,
+			ValidUntilTime: f.Meta.ValidTime.Add(stac.FileValidityDuration),
+			Variable:       f.Meta.Variable,
+			File:           content,
+			ForecastID:     forecastID,
+		}); dbErr != nil {
+			return fmt.Errorf("create forecast_file record for %s validTime=%s: %w",
+				f.Meta.Variable, f.Meta.ValidTime.Format(time.RFC3339), dbErr)
+		}
+	}
 	return nil
 }
 
