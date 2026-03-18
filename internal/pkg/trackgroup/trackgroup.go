@@ -23,13 +23,17 @@ const (
 	// maxTrackDistanceM is the maximum total distance of a track to be considered for grouping.
 	maxTrackDistanceM = 200_000
 
+	// https://h3geo.org/docs/core-library/restable/
+
 	// coarseResolution is the H3 resolution for the initial cheap grouping pass.
-	coarseResolution = 4
+	// Edge len ca. 1.4km.
+	coarseResolution = 7
 	// fineResolution is the H3 resolution for the refinement pass within coarse clusters.
-	fineResolution = 7
+	// Edge len ca. 28m.
+	fineResolution = 11
 
 	// coarseMatchRatio is the minimum shared-edge ratio for the coarse pass.
-	coarseMatchRatio = 0.5
+	coarseMatchRatio = 0.6
 	// fineMatchRatio is the minimum shared-edge ratio for the fine pass.
 	fineMatchRatio = 0.75
 )
