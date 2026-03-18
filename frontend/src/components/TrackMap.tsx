@@ -209,7 +209,7 @@ export default memo(function TrackMap({
     >
       <div ref={mapRef} className="h-full w-full" />
       <div className="pointer-events-none absolute bottom-0 right-0 z-10 px-1.5 py-0.5 text-xs text-gray-600 bg-white/80">
-        Map data:
+        Map data:&nbsp;
         <a
           href="https://www.swisstopo.admin.ch/"
           target="_blank"

@@ -351,7 +351,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <h1 className="mb-4 text-xl font-semibold text-gray-900">
-        {mode === "public" ? "Tracks" : "My Tracks"}
+        {mode === "public" ? "Public Tracks" : "My Tracks"}
       </h1>
 
       <div className="mb-6 rounded-lg border border-gray-200 bg-white px-4 pb-4 pt-3">
