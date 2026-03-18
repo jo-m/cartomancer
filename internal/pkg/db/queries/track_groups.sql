@@ -37,3 +37,11 @@ DELETE FROM track_group_state WHERE user_id = ?;
 SELECT uuid FROM tracks
 WHERE user_id = ? AND initial_editing_completed = 1
 ORDER BY uuid DESC LIMIT 1;
+
+-- name: GetSimilarTracks :many
+SELECT t.uuid, t.name, t.total_distance_m
+FROM track_group_members tgm1
+JOIN track_group_members tgm2 ON tgm2.group_id = tgm1.group_id AND tgm2.track_id != tgm1.track_id
+JOIN tracks t ON t.uuid = tgm2.track_id
+WHERE tgm1.track_id = ?
+ORDER BY t.name;

@@ -26,40 +26,47 @@ import (
 )
 
 type trackResponse struct {
-	UUID                    string   `json:"uuid"`
-	Name                    string   `json:"name"`
-	Description             string   `json:"description,omitempty"`
-	Source                  string   `json:"source,omitempty"`
-	Author                  string   `json:"author,omitempty"`
-	AuthorLinkURL           string   `json:"authorLinkUrl,omitempty"`
-	FileFormat              int      `json:"fileFormat"`
-	TrackType               int      `json:"trackType"`
-	LinkURL                 string   `json:"linkUrl,omitempty"`
-	Sport                   int      `json:"sport"`
-	SubSport                int      `json:"subSport"`
-	TotalDistanceM          float64  `json:"totalDistanceM"`
-	TotalAscentM            float64  `json:"totalAscentM"`
-	MinElevationM           *float64 `json:"minElevationM,omitempty"`
-	MaxElevationM           *float64 `json:"maxElevationM,omitempty"`
-	StartLat                *float64 `json:"startLat,omitempty"`
-	StartLon                *float64 `json:"startLon,omitempty"`
-	EndLat                  *float64 `json:"endLat,omitempty"`
-	EndLon                  *float64 `json:"endLon,omitempty"`
-	BoundsMinLat            *float64 `json:"boundsMinLat,omitempty"`
-	BoundsMinLon            *float64 `json:"boundsMinLon,omitempty"`
-	BoundsMaxLat            *float64 `json:"boundsMaxLat,omitempty"`
-	BoundsMaxLon            *float64 `json:"boundsMaxLon,omitempty"`
-	OriginalCreatedAt       string   `json:"originalCreatedAt,omitempty"`
-	CreatedAt               string   `json:"createdAt"`
-	UpdatedAt               string   `json:"updatedAt"`
-	Public                  bool     `json:"public"`
-	InitialEditingCompleted bool     `json:"initialEditingCompleted"`
-	Starred                 bool     `json:"starred"`
-	IsOwner                 bool     `json:"isOwner"`
-	UserName                string   `json:"userName"`
-	UserUUID                string   `json:"userUuid"`
-	Tags                    []string `json:"tags"`
-	GeonameLabel            string   `json:"geonameLabel,omitempty"`
+	UUID                    string              `json:"uuid"`
+	Name                    string              `json:"name"`
+	Description             string              `json:"description,omitempty"`
+	Source                  string              `json:"source,omitempty"`
+	Author                  string              `json:"author,omitempty"`
+	AuthorLinkURL           string              `json:"authorLinkUrl,omitempty"`
+	FileFormat              int                 `json:"fileFormat"`
+	TrackType               int                 `json:"trackType"`
+	LinkURL                 string              `json:"linkUrl,omitempty"`
+	Sport                   int                 `json:"sport"`
+	SubSport                int                 `json:"subSport"`
+	TotalDistanceM          float64             `json:"totalDistanceM"`
+	TotalAscentM            float64             `json:"totalAscentM"`
+	MinElevationM           *float64            `json:"minElevationM,omitempty"`
+	MaxElevationM           *float64            `json:"maxElevationM,omitempty"`
+	StartLat                *float64            `json:"startLat,omitempty"`
+	StartLon                *float64            `json:"startLon,omitempty"`
+	EndLat                  *float64            `json:"endLat,omitempty"`
+	EndLon                  *float64            `json:"endLon,omitempty"`
+	BoundsMinLat            *float64            `json:"boundsMinLat,omitempty"`
+	BoundsMinLon            *float64            `json:"boundsMinLon,omitempty"`
+	BoundsMaxLat            *float64            `json:"boundsMaxLat,omitempty"`
+	BoundsMaxLon            *float64            `json:"boundsMaxLon,omitempty"`
+	OriginalCreatedAt       string              `json:"originalCreatedAt,omitempty"`
+	CreatedAt               string              `json:"createdAt"`
+	UpdatedAt               string              `json:"updatedAt"`
+	Public                  bool                `json:"public"`
+	InitialEditingCompleted bool                `json:"initialEditingCompleted"`
+	Starred                 bool                `json:"starred"`
+	IsOwner                 bool                `json:"isOwner"`
+	UserName                string              `json:"userName"`
+	UserUUID                string              `json:"userUuid"`
+	Tags                    []string            `json:"tags"`
+	GeonameLabel            string              `json:"geonameLabel,omitempty"`
+	SimilarTracks           []similarTrackEntry `json:"similarTracks"`
+}
+
+type similarTrackEntry struct {
+	UUID           string  `json:"uuid"`
+	Name           string  `json:"name"`
+	TotalDistanceM float64 `json:"totalDistanceM"`
 }
 
 func toNullString(s string) sql.NullString {
@@ -97,9 +104,17 @@ func nullStringVal(ns sql.NullString) string {
 	return ""
 }
 
-func trackResponseFromDB(tw db.TrackWithStarred, tags []string, isOwner bool) trackResponse {
+func trackResponseFromDB(tw db.TrackWithStarred, tags []string, similar []db.GetSimilarTracksRow, isOwner bool) trackResponse {
 	if tags == nil {
 		tags = []string{}
+	}
+	simEntries := make([]similarTrackEntry, len(similar))
+	for i, s := range similar {
+		simEntries[i] = similarTrackEntry{
+			UUID:           s.Uuid,
+			Name:           s.Name,
+			TotalDistanceM: s.TotalDistanceM,
+		}
 	}
 	t := tw.Track
 	resp := trackResponse{
@@ -136,6 +151,7 @@ func trackResponseFromDB(tw db.TrackWithStarred, tags []string, isOwner bool) tr
 		UserUUID:                t.UserID,
 		Tags:                    tags,
 		GeonameLabel:            tw.GeonameLabel,
+		SimilarTracks:           simEntries,
 	}
 	if t.OriginalCreatedAt.Valid {
 		resp.OriginalCreatedAt = t.OriginalCreatedAt.Time.Format(time.RFC3339)
@@ -188,7 +204,14 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, trackResponseFromDB(t, tags, user != nil && user.Uuid == t.UserID))
+	similar, err := sv.d.QueryRO().GetSimilarTracks(ctx, trackUUID)
+	if err != nil {
+		logg.Error(ctx, "failed to get similar tracks", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, trackResponseFromDB(t, tags, similar, user != nil && user.Uuid == t.UserID))
 }
 
 func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request) {
@@ -565,7 +588,7 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 		Starred:        starCount > 0,
 		UserName:       user.Name,
 		UserAvatarSeed: user.AvatarSeed,
-	}, req.Tags, true))
+	}, req.Tags, nil, true))
 }
 
 // handleDeleteTrack handles DELETE /tracks/{uuid}.
@@ -923,7 +946,7 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t, tags, user != nil && user.Uuid == t.UserID)
+		responses[i] = trackResponseFromDB(t, tags, nil, user != nil && user.Uuid == t.UserID)
 	}
 
 	if params.Page == 0 {
@@ -1029,7 +1052,7 @@ func (sv *server) handleListTracksForEditing(w http.ResponseWriter, r *http.Requ
 		if tags == nil {
 			tags = []string{}
 		}
-		responses[i] = trackResponseFromDB(t, tags, true)
+		responses[i] = trackResponseFromDB(t, tags, nil, true)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"tracks": responses})
@@ -1317,5 +1340,5 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		Track:          created,
 		UserName:       user.Name,
 		UserAvatarSeed: user.AvatarSeed,
-	}, nil, true))
+	}, nil, nil, true))
 }

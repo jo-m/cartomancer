@@ -2116,6 +2116,7 @@ components:
         - tags
         - userName
         - userUuid
+        - similarTracks
       properties:
         uuid:
           type: string
@@ -2204,6 +2205,25 @@ components:
             type: string
         geonameLabel:
           type: string
+        similarTracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/SimilarTrackEntry"
+
+    SimilarTrackEntry:
+      type: object
+      required:
+        - uuid
+        - name
+        - totalDistanceM
+      properties:
+        uuid:
+          type: string
+        name:
+          type: string
+        totalDistanceM:
+          type: number
+          format: double
 
     EditTrackRequest:
       type: object
