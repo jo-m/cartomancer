@@ -28,7 +28,7 @@
 - [x] XSRF protection
 - [ ] ~~Update go tool air config~~
 - [x] Disallow reset admin password functionality for admin's own accounts (too dangerous)
-- [ ] Only show email confirm if there actually is a pending one
+- [x] Only show email confirmation button in the frontend if there actually is a pending one
 - [ ] Admins should be allowed to also confirm admin emails and their own email
 - [x] At / serve a robots.txt which disallows ANY robot on ANY page, except the front page. Make the front page have no dynamic content when not logged in.
 - [x] On the tracks page allow sorting by distance, ascent, created_at ("uploaded at"), original_created_at ("file creation date")

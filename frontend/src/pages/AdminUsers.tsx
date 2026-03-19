@@ -383,12 +383,14 @@ export default function AdminUsers() {
                               Reset pw
                             </button>
                           )}
-                          <button
-                            onClick={() => handleConfirmEmail(u.uuid)}
-                            className="cursor-pointer text-sm text-gray-600 hover:text-gray-900"
-                          >
-                            Confirm email
-                          </button>
+                          {u.hasPendingEmailVerification && (
+                            <button
+                              onClick={() => handleConfirmEmail(u.uuid)}
+                              className="cursor-pointer text-sm text-gray-600 hover:text-gray-900"
+                            >
+                              Confirm email
+                            </button>
+                          )}
                           <button
                             onClick={() => setDeleteConfirm(u.uuid)}
                             className="cursor-pointer text-sm text-red-600 hover:text-red-800"

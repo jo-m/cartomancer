@@ -18,14 +18,15 @@ import (
 const generatedPasswordLen = 20
 
 type adminUserResponse struct {
-	UUID         string  `json:"uuid"`
-	Email        string  `json:"email"`
-	Name         string  `json:"name"`
-	Admin        bool    `json:"admin"`
-	CreatedAt    string  `json:"createdAt"`
-	UpdatedAt    string  `json:"updatedAt"`
-	LastLoginAt  *string `json:"lastLoginAt,omitempty"`
-	LastActiveAt *string `json:"lastActiveAt,omitempty"`
+	UUID                        string  `json:"uuid"`
+	Email                       string  `json:"email"`
+	Name                        string  `json:"name"`
+	Admin                       bool    `json:"admin"`
+	CreatedAt                   string  `json:"createdAt"`
+	UpdatedAt                   string  `json:"updatedAt"`
+	LastLoginAt                 *string `json:"lastLoginAt,omitempty"`
+	LastActiveAt                *string `json:"lastActiveAt,omitempty"`
+	HasPendingEmailVerification bool    `json:"hasPendingEmailVerification"`
 }
 
 func adminUserResponseFromDB(u db.User) adminUserResponse {
@@ -66,26 +67,40 @@ func (sv *server) requireAdmin(next http.Handler) http.Handler {
 
 func (sv *server) handleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	ro := sv.d.QueryRO()
 
-	users, err := sv.d.QueryRO().GetUsers(ctx)
+	users, err := ro.GetUsers(ctx)
 	if err != nil {
 		logg.Error(ctx, "failed to list users", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
+	pendingIDs, err := ro.GetUserIDsWithPendingEmailVerification(ctx)
+	if err != nil {
+		logg.Error(ctx, "failed to get pending email verifications", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+	pendingSet := make(map[string]struct{}, len(pendingIDs))
+	for _, id := range pendingIDs {
+		pendingSet[id] = struct{}{}
+	}
+
 	resp := make([]adminUserResponse, len(users))
 	for i, u := range users {
 		resp[i] = adminUserResponseFromDB(u)
+		_, resp[i].HasPendingEmailVerification = pendingSet[u.Uuid]
 	}
 	writeJSON(w, http.StatusOK, resp)
 }
 
 func (sv *server) handleAdminGetUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	ro := sv.d.QueryRO()
 
 	userUUID := chi.URLParam(r, "uuid")
-	u, err := sv.d.QueryRO().GetUser(ctx, userUUID)
+	u, err := ro.GetUser(ctx, userUUID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, "user not found")
@@ -96,7 +111,16 @@ func (sv *server) handleAdminGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, adminUserResponseFromDB(u))
+	resp := adminUserResponseFromDB(u)
+	_, err = ro.GetEmailVerificationByUserID(ctx, userUUID)
+	if err == nil {
+		resp.HasPendingEmailVerification = true
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		logg.Error(ctx, "failed to check email verification", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 type adminCreateUserRequest struct {

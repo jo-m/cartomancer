@@ -2053,6 +2053,7 @@ components:
         - admin
         - createdAt
         - updatedAt
+        - hasPendingEmailVerification
       properties:
         uuid:
           type: string
@@ -2075,6 +2076,8 @@ components:
         lastActiveAt:
           type: string
           format: date-time
+        hasPendingEmailVerification:
+          type: boolean
 
     UpdateMeRequest:
       type: object

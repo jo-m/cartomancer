@@ -22,6 +22,9 @@ WHERE uuid = ?;
 DELETE FROM email_verifications
 WHERE user_id = ?;
 
+-- name: GetUserIDsWithPendingEmailVerification :many
+SELECT DISTINCT user_id FROM email_verifications;
+
 -- name: DeleteExpiredEmailVerifications :execrows
 DELETE FROM email_verifications
 WHERE expires_at < ?;
