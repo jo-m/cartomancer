@@ -73,23 +73,6 @@ func (c *config) validate() error {
 	return nil
 }
 
-// validateProduction checks that all settings required for a production deployment are set.
-// Returns nil when DevelopmentMode is enabled.
-func (c *config) validateProduction() error {
-	if c.DevelopmentMode {
-		return nil
-	}
-	for _, err := range []error{
-		c.AppConfig.ValidateProduction(),
-		c.SessionConfig.ValidateProduction(),
-	} {
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter) http.Handler {
 	logger := logg.GetLogger(ctx).With("mod", "svc")
 
@@ -247,12 +230,15 @@ func main() {
 	}
 
 	// Everything below is for the serve subcommand (default).
-	if err := c.validateProduction(); err != nil {
-		panic(fmt.Sprintf("invalid production configuration: %s", err))
-	}
 
 	if !c.MailerConfig.Enabled() {
 		logg.Error(ctx, "Email sending is disabled (MAIL_SMTP_HOST, MAIL_SMTP_PORT, or MAIL_FROM not set)")
+	}
+	if c.SessionConfig.JWTSecret == "" {
+		logg.Error(ctx, "SESSION_JWT_SECRET not set, using a random ephemeral secret (sessions will not survive restarts)")
+	}
+	if c.AppConfig.EmailJWTSecret == "" {
+		logg.Error(ctx, "APP_EMAIL_JWT_SECRET not set, using a random ephemeral secret (pending email verifications will not survive restarts)")
 	}
 
 	// Insert test user in development mode.

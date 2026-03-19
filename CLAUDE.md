@@ -178,7 +178,7 @@ Existing ones can be found by grepping for `Config struct {`.
 - Example: `internal/pkg/app/config.go`
 - Must have a consistent prefix for args and env vars
 - Mention github.com/alexflint/go-arg in the docstring, See AppConfig
-- Must have a Validate() fn and if applies ValidateProduction(), errors must mention the arg and env var name
+- Must have a Validate() fn, errors must mention the arg and env var name
 
 # Frontend
 

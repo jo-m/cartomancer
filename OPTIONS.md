@@ -18,7 +18,7 @@ Global options:
   --app-instance-name NAME
                          Name of the application instance, used as issuer in tokens [default: Detour, env: APP_INSTANCE_NAME]
   --app-external-base-url URL
-                         Base URL of the application, needed for links and emails [env: APP_EXTERNAL_BASE_URL]
+                         Base URL of the application, needed for links and emails [default: http://localhost:8080, env: APP_EXTERNAL_BASE_URL]
   --app-dev-mode         Enable development mode [default: false, env: APP_DEV_MODE]
   --app-email-jwt-secret SECRET
                          Secret to sign email verification JWTs, generated on startup if not set [env: APP_EMAIL_JWT_SECRET]
@@ -34,10 +34,10 @@ Global options:
                          Session idle timeout [default: 24h, env: SESSION_IDLE_TIMEOUT]
   --session-abs-timeout DUR
                          Session absolute timeout [default: 72h, env: SESSION_ABS_TIMEOUT]
-  --session-cookie-name NAME
-                         Session cookie name [default: sid, env: SESSION_COOKIE_NAME]
   --session-jwt-secret SECRET
                          Secret to sign JWT, generated on startup if not set [env: SESSION_JWT_SECRET]
+  --session-cookie-name NAME
+                         Session cookie name [default: sid, env: SESSION_COOKIE_NAME]
   --session-cookie-domain HOST
                          Session cookie domain [env: SESSION_COOKIE_DOMAIN]
   --session-cookie-path PATH

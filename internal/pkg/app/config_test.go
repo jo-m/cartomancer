@@ -41,22 +41,3 @@ func TestValidate(t *testing.T) {
 		require.ErrorContains(t, c.Validate(), "APP_TRACK_COLOR")
 	})
 }
-
-func TestValidateProduction(t *testing.T) {
-	t.Run("valid", func(t *testing.T) {
-		c := validConfig()
-		require.NoError(t, c.ValidateProduction())
-	})
-
-	t.Run("missing external base URL", func(t *testing.T) {
-		c := validConfig()
-		c.ExternalBaseURL = ""
-		require.ErrorContains(t, c.ValidateProduction(), "APP_EXTERNAL_BASE_URL")
-	})
-
-	t.Run("missing email JWT secret", func(t *testing.T) {
-		c := validConfig()
-		c.EmailJWTSecret = ""
-		require.ErrorContains(t, c.ValidateProduction(), "APP_EMAIL_JWT_SECRET")
-	})
-}

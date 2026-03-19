@@ -16,7 +16,7 @@ type AppConfig struct {
 	InstanceName string `arg:"--app-instance-name,env:APP_INSTANCE_NAME" default:"Detour" help:"Name of the application instance, used as issuer in tokens" placeholder:"NAME"`
 	// ExternalBaseURL is the URL at which the application is reachable from the outside.
 	// REQUIRED for production deployments.
-	ExternalBaseURL string `arg:"--app-external-base-url,env:APP_EXTERNAL_BASE_URL" default:"" help:"Base URL of the application, needed for links and emails" placeholder:"URL"`
+	ExternalBaseURL string `arg:"--app-external-base-url,env:APP_EXTERNAL_BASE_URL" default:"http://localhost:8080" help:"Base URL of the application, needed for links and emails" placeholder:"URL"`
 	// DevelopmentMode enables some development features.
 	// On startup an admin user "test@example.org" with password "asdf" is created.
 	// DANGEROUS.
@@ -49,17 +49,6 @@ func (c *AppConfig) Validate() error {
 	}
 	if c.TrackColor == "" {
 		return errors.New("--app-track-color / APP_TRACK_COLOR must not be empty")
-	}
-	return nil
-}
-
-// ValidateProduction checks that all settings required for a production deployment are set.
-func (c *AppConfig) ValidateProduction() error {
-	if c.ExternalBaseURL == "" {
-		return errors.New("--app-external-base-url / APP_EXTERNAL_BASE_URL is required for production")
-	}
-	if c.EmailJWTSecret == "" {
-		return errors.New("--app-email-jwt-secret / APP_EMAIL_JWT_SECRET is required for production")
 	}
 	return nil
 }
