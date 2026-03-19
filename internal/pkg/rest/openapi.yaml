@@ -61,6 +61,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/AppConfig"
 
+  /version:
+    get:
+      summary: Get build version information
+      operationId: getVersion
+      tags: [App]
+      security: []
+      responses:
+        "200":
+          description: Build version information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /users/{uuid}/avatar:
     get:
       summary: Get user avatar SVG
@@ -2560,3 +2580,33 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TrackResponse"
+
+    BuildInfoModule:
+      type: object
+      required:
+        - path
+        - version
+      properties:
+        path:
+          type: string
+        version:
+          type: string
+
+    VersionResponse:
+      type: object
+      required:
+        - goVersion
+        - path
+        - version
+        - deps
+      properties:
+        goVersion:
+          type: string
+        path:
+          type: string
+        version:
+          type: string
+        deps:
+          type: array
+          items:
+            $ref: "#/components/schemas/BuildInfoModule"

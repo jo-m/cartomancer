@@ -34,6 +34,9 @@ export default function Layout() {
             <Link to="/tracks" className="text-gray-700 hover:text-gray-900">
               Public Tracks
             </Link>
+            <Link to="/about" className="text-gray-700 hover:text-gray-900">
+              About
+            </Link>
             {!loading &&
               (user ? (
                 <>

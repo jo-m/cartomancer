@@ -54,6 +54,7 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 	mux.Use(csrfProtect)
 
 	mux.Get("/app_config", sv.handleGetAppConfig)
+	mux.Get("/version", sv.handleGetVersion)
 	mux.Get("/users/{uuid}/avatar", sv.handleGetUserAvatar)
 	mux.Get("/users/{uuid}/stars", sv.handleGetUserStars)
 
