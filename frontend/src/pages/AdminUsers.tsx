@@ -26,6 +26,7 @@ export default function AdminUsers() {
   const [initialPassword, setInitialPassword] = useState<string | null>(null)
   const [editingUuid, setEditingUuid] = useState<string | null>(null)
   const [resetPassword, setResetPassword] = useState<string | null>(null)
+  const [resetConfirm, setResetConfirm] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -333,7 +334,25 @@ export default function AdminUsers() {
                         : "--"}
                     </td>
                     <td className="px-4 py-3">
-                      {deleteConfirm === u.uuid ? (
+                      {resetConfirm === u.uuid ? (
+                        <span className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              handleResetPassword(u.uuid)
+                              setResetConfirm(null)
+                            }}
+                            className="cursor-pointer text-sm font-medium text-red-600 hover:text-red-800"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={() => setResetConfirm(null)}
+                            className="cursor-pointer text-sm text-gray-500 hover:text-gray-700"
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      ) : deleteConfirm === u.uuid ? (
                         <span className="flex items-center gap-2">
                           <button
                             onClick={() => handleDelete(u.uuid)}
@@ -358,7 +377,7 @@ export default function AdminUsers() {
                           </button>
                           {u.uuid !== currentUser?.uuid && (
                             <button
-                              onClick={() => handleResetPassword(u.uuid)}
+                              onClick={() => setResetConfirm(u.uuid)}
                               className="cursor-pointer text-sm text-gray-600 hover:text-gray-900"
                             >
                               Reset pw
