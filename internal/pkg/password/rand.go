@@ -2,6 +2,8 @@ package password
 
 import "crypto/rand"
 
+const GeneratedPasswordLen = 24
+
 // GenRandBytes returns n cryptographically safe random bytes.
 func GenRandBytes(n uint32) []byte {
 	b := make([]byte, n)
@@ -10,22 +12,6 @@ func GenRandBytes(n uint32) []byte {
 		panic("rand.Read() cannot return err (see https://github.com/golang/go/issues/66821)")
 	}
 	return b
-}
-
-// Generated via ('!"' missing, '\' manually removed):
-//
-//	python3 -c 'print("".join([chr(i) for i in range(35, 127)]))'
-const printable = "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-
-// GenRandPrintableString returns a random string which may contain all printable ASCII chars except
-//
-//	\!"
-func GenRandPrintableString(n uint32) string {
-	bytes := GenRandBytes(n)
-	for i, b := range bytes {
-		bytes[i] = printable[b%byte(len(printable))]
-	}
-	return string(bytes)
 }
 
 const alnum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"

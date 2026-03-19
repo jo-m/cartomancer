@@ -121,7 +121,7 @@ func ensureInitialAdmin(ctx context.Context, d *db.DB, email, plainPass string) 
 	}
 
 	if plainPass == "" {
-		plainPass = password.GenRandPrintableString(24)
+		plainPass = password.GenRandAlnumString(password.GeneratedPasswordLen)
 	}
 
 	err = d.WithTx(ctx, func(tx *db.Queries) error {
@@ -163,7 +163,7 @@ func runSetpass(ctx context.Context, d *db.DB, cmd *setpassCmd) {
 
 	plainPass := cmd.Password
 	if plainPass == "" {
-		plainPass = password.GenRandPrintableString(24)
+		plainPass = password.GenRandAlnumString(password.GeneratedPasswordLen)
 	}
 
 	hash, err := password.Hash(plainPass)

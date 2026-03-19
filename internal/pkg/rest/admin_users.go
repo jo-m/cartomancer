@@ -15,8 +15,6 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/session"
 )
 
-const generatedPasswordLen = 20
-
 type adminUserResponse struct {
 	UUID                        string  `json:"uuid"`
 	Email                       string  `json:"email"`
@@ -164,7 +162,7 @@ func (sv *server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	initialPassword := password.GenRandPrintableString(generatedPasswordLen)
+	initialPassword := password.GenRandAlnumString(password.GeneratedPasswordLen)
 
 	now := time.Now().UTC()
 	var admin int64
@@ -388,7 +386,7 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	newPassword := password.GenRandPrintableString(generatedPasswordLen)
+	newPassword := password.GenRandAlnumString(password.GeneratedPasswordLen)
 
 	hash, err := password.Hash(newPassword)
 	if err != nil {
