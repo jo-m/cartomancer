@@ -6,48 +6,47 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func validMailerConfig() MailerConfig {
-	return MailerConfig{
-		SMTPHost: "smtp.example.com",
-		SMTPPort: 587,
-		From:     "noreply@example.com",
+func TestMailerConfig_Enabled(t *testing.T) {
+	tests := []struct {
+		name string
+		c    MailerConfig
+		want bool
+	}{
+		{
+			name: "all set",
+			c:    MailerConfig{SMTPHost: "smtp.example.com", SMTPPort: 587, From: "noreply@example.com"},
+			want: true,
+		},
+		{
+			name: "missing host",
+			c:    MailerConfig{SMTPHost: "", SMTPPort: 587, From: "noreply@example.com"},
+			want: false,
+		},
+		{
+			name: "missing port",
+			c:    MailerConfig{SMTPHost: "smtp.example.com", SMTPPort: 0, From: "noreply@example.com"},
+			want: false,
+		},
+		{
+			name: "missing from",
+			c:    MailerConfig{SMTPHost: "smtp.example.com", SMTPPort: 587, From: ""},
+			want: false,
+		},
+		{
+			name: "all empty",
+			c:    MailerConfig{},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, tt.c.Enabled())
+		})
 	}
 }
 
-func TestMailerConfigValidate(t *testing.T) {
-	t.Run("valid", func(t *testing.T) {
-		c := validMailerConfig()
-		require.NoError(t, c.Validate())
-	})
-
-	t.Run("empty SMTP host", func(t *testing.T) {
-		c := validMailerConfig()
-		c.SMTPHost = ""
-		require.ErrorContains(t, c.Validate(), "MAIL_SMTP_HOST")
-	})
-
-	t.Run("zero SMTP port", func(t *testing.T) {
-		c := validMailerConfig()
-		c.SMTPPort = 0
-		require.ErrorContains(t, c.Validate(), "MAIL_SMTP_PORT")
-	})
-}
-
-func TestMailerConfigValidateProduction(t *testing.T) {
-	t.Run("valid", func(t *testing.T) {
-		c := validMailerConfig()
-		require.NoError(t, c.ValidateProduction())
-	})
-
-	t.Run("missing from address", func(t *testing.T) {
-		c := validMailerConfig()
-		c.From = ""
-		require.ErrorContains(t, c.ValidateProduction(), "MAIL_FROM")
-	})
-
-	t.Run("TLS disabled", func(t *testing.T) {
-		c := validMailerConfig()
-		c.SMTPNoTLS = true
-		require.ErrorContains(t, c.ValidateProduction(), "MAIL_SMTP_NO_TLS")
-	})
+func TestMailerConfig_Validate(t *testing.T) {
+	c := MailerConfig{}
+	require.NoError(t, c.Validate(), "Validate should always succeed")
 }

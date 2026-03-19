@@ -3,7 +3,6 @@ package mail
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -31,24 +30,13 @@ type MailerConfig struct {
 
 // Validate checks for basic configuration errors.
 func (c *MailerConfig) Validate() error {
-	if c.SMTPHost == "" {
-		return errors.New("--mail-smtp-host / MAIL_SMTP_HOST must not be empty")
-	}
-	if c.SMTPPort == 0 {
-		return errors.New("--mail-smtp-port / MAIL_SMTP_PORT must not be zero")
-	}
 	return nil
 }
 
-// ValidateProduction checks that all settings required for a production deployment are set.
-func (c *MailerConfig) ValidateProduction() error {
-	if c.From == "" {
-		return errors.New("--mail-from / MAIL_FROM is required for production")
-	}
-	if c.SMTPNoTLS {
-		return errors.New("--mail-smtp-no-tls / MAIL_SMTP_NO_TLS must not be set for production")
-	}
-	return nil
+// Enabled reports whether email sending is configured.
+// It returns true when SMTPHost, SMTPPort, and From are all set.
+func (c *MailerConfig) Enabled() bool {
+	return c.SMTPHost != "" && c.SMTPPort != 0 && c.From != ""
 }
 
 type Args struct {
@@ -118,7 +106,13 @@ func (m *Mailer) configureClient(logger *slog.Logger) (*mail.Client, error) {
 }
 
 // Run implements [jobs.Job].
+// If mail is not configured, it logs a warning and drops the email.
 func (m *Mailer) Run(ctx context.Context, args Args) error {
+	if !m.c.Enabled() {
+		logg.Warn(ctx, "Email sending is disabled, dropping email", "to", args.To, "subject", args.Subject)
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 

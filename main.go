@@ -65,7 +65,6 @@ func (c *config) validate() error {
 		c.AppConfig.Validate(),
 		c.SessionConfig.Validate(),
 		c.JobsConfig.Validate(),
-		c.MailerConfig.Validate(),
 	} {
 		if err != nil {
 			return err
@@ -83,7 +82,6 @@ func (c *config) validateProduction() error {
 	for _, err := range []error{
 		c.AppConfig.ValidateProduction(),
 		c.SessionConfig.ValidateProduction(),
-		c.MailerConfig.ValidateProduction(),
 	} {
 		if err != nil {
 			return err
@@ -251,6 +249,10 @@ func main() {
 	// Everything below is for the serve subcommand (default).
 	if err := c.validateProduction(); err != nil {
 		panic(fmt.Sprintf("invalid production configuration: %s", err))
+	}
+
+	if !c.MailerConfig.Enabled() {
+		logg.Error(ctx, "Email sending is disabled (MAIL_SMTP_HOST, MAIL_SMTP_PORT, or MAIL_FROM not set)")
 	}
 
 	// Insert test user in development mode.
