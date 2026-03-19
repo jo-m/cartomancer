@@ -74,21 +74,20 @@
 ## Before initial push/deploy
 
 - [ ] Periodic db `VACUUM` and `.backup` (atomic via mv)
-- [ ] Allow to create an initial admin account (allow setting password only in dev mode)
+- [x] Allow to create an initial admin account (allow setting password only in dev mode)
 - [ ] Demo mode, locks user table via trigger, insert some initial data, delete data periodically
 - [ ] Disable public signup by default
 - [ ] Uncomment all the checks/linters in make check
 - [ ] Log message cleanup and unification (case, punctuation)
 - [ ] Add CI setup/Docker build
   - [ ] In CI also run the online tests, but allow them to fail
-- [ ] App config
-  - [ ] Split up/move around config to relevant config/module structs (e.g. separate struct for users, registrations)
-  - [ ] Sensible defaults for everything
-  - [ ] Log warning for the settings which MUST be set for prod (e.g. JWT secrets)
-  - [ ] Consistent env var prefixes
-  - [ ] Make external base url actually work
-  - [ ] Validate all config options on load/startup
-  - [ ] Document which config options MUST be set for a prod deployment
+- [x] App config
+  - [x] Split up/move around config to relevant config/module structs (e.g. separate struct for users, registrations)
+  - [x] Sensible defaults for everything
+  - [x] Log warning for the settings which MUST be set for prod (e.g. JWT secrets)
+  - [x] Consistent env var prefixes
+  - [x] Validate all config options on load/startup
+  - [x] Document which config options MUST be set for a prod deployment
 - [x] Improve data sources attribution CC-BY 4.0 for meteo, geonames, map (https://wiki.creativecommons.org/wiki/Recommended_practices_for_attribution#Attributing_materials_from_multiple_sources).
   - [x] Systematically add online unit tests which ensure the license has not changed.
 - [ ] Update README.md

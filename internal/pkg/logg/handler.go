@@ -21,6 +21,13 @@ type LoggConfig struct {
 	LogLevel slog.Level `arg:"--log-level,env:LOG_LEVEL" default:"INFO" help:"Log level" placeholder:"LEVEL"`
 }
 
+// Validate checks for basic configuration errors.
+// LoggConfig has sensible defaults so this currently always returns nil.
+func (c *LoggConfig) Validate() error {
+	return nil
+}
+
+// NewHandler creates a new slog handler from the given config and writer.
 func NewHandler(c LoggConfig, w io.Writer) slog.Handler {
 	if c.LogPretty {
 		return tint.NewHandler(w, &tint.Options{

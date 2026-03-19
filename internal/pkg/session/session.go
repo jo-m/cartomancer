@@ -22,31 +22,43 @@ import (
 //
 //revive:disable:exported Naming necessary for struct embedding.
 type SessionConfig struct {
-	IdleTimeout     time.Duration `arg:"--session-idle-timeout,env:SESSION_IDLE_TIMEOUT" default:"2h" help:"Session idle timeout" placeholder:"DUR"`
-	AbsoluteTimeout time.Duration `arg:"--session-abs-timeout,env:SESSION_ABS_TIMEOUT" default:"24h" help:"Session absolute timeout" placeholder:"DUR"`
+	IdleTimeout     time.Duration `arg:"--session-idle-timeout,env:SESSION_IDLE_TIMEOUT" default:"24h" help:"Session idle timeout" placeholder:"DUR"`
+	AbsoluteTimeout time.Duration `arg:"--session-abs-timeout,env:SESSION_ABS_TIMEOUT" default:"72h" help:"Session absolute timeout" placeholder:"DUR"`
 	CookieName      string        `arg:"--session-cookie-name,env:SESSION_COOKIE_NAME" default:"sid" help:"Session cookie name" placeholder:"NAME"`
-	JWTSecret       string        `arg:"--session-jwt-secret,env:SESSION_JWT_SECRET" help:"Secret to sign JWT, generated on startup if not set" placeholder:"SECRET"`
-	CookieDomain    string        `arg:"--session-cookie-domain,env:SESSION_COOKIE_DOMAIN" default:"" help:"Session cookie domain" placeholder:"HOST"`
-	CookiePath      string        `arg:"--session-cookie-path,env:SESSION_COOKIE_PATH" default:"/" help:"Session cookie path" placeholder:"PATH"`
+	// REQUIRED for production deployments.
+	JWTSecret    string `arg:"--session-jwt-secret,env:SESSION_JWT_SECRET" help:"Secret to sign JWT, generated on startup if not set" placeholder:"SECRET"`
+	CookieDomain string `arg:"--session-cookie-domain,env:SESSION_COOKIE_DOMAIN" default:"" help:"Session cookie domain" placeholder:"HOST"`
+	CookiePath   string `arg:"--session-cookie-path,env:SESSION_COOKIE_PATH" default:"/" help:"Session cookie path" placeholder:"PATH"`
 	// Default is safe.
 	insecureUseOnlyForTests bool
 }
 
-// Validate the session config.
+// Validate checks for basic configuration errors.
 func (c *SessionConfig) Validate() error {
 	if c.IdleTimeout <= 0 {
-		return errors.New("idle timeout must be positive")
+		return errors.New("--session-idle-timeout / SESSION_IDLE_TIMEOUT must be positive")
 	}
 	if c.AbsoluteTimeout <= 0 {
-		return errors.New("absolute timeout must be positive")
+		return errors.New("--session-abs-timeout / SESSION_ABS_TIMEOUT must be positive")
 	}
 	if c.IdleTimeout > c.AbsoluteTimeout {
-		return errors.New("absolute timeout must be greater or equal absolute timeout")
+		return errors.New("--session-idle-timeout / SESSION_IDLE_TIMEOUT must not exceed --session-abs-timeout / SESSION_ABS_TIMEOUT")
 	}
 	if c.CookieName == "" {
-		return errors.New("cookie name must not be empty")
+		return errors.New("--session-cookie-name / SESSION_COOKIE_NAME must not be empty")
 	}
 
+	return nil
+}
+
+// ValidateProduction checks that all settings required for a production deployment are set.
+func (c *SessionConfig) ValidateProduction() error {
+	if c.JWTSecret == "" {
+		return errors.New("--session-jwt-secret / SESSION_JWT_SECRET is required for production")
+	}
+	if c.CookieDomain == "" {
+		return errors.New("--session-cookie-domain / SESSION_COOKIE_DOMAIN is required for production")
+	}
 	return nil
 }
 

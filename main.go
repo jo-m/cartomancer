@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -37,6 +38,46 @@ type config struct {
 
 	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8080"`
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
+}
+
+// validate checks all embedded configs for basic errors.
+func (c *config) validate() error {
+	if c.HTTPListenAddr == "" {
+		return fmt.Errorf("listen address must not be empty")
+	}
+	if c.DBPath == "" {
+		return fmt.Errorf("database path must not be empty")
+	}
+	for _, err := range []error{
+		c.LoggConfig.Validate(),
+		c.AppConfig.Validate(),
+		c.SessionConfig.Validate(),
+		c.JobsConfig.Validate(),
+		c.MailerConfig.Validate(),
+	} {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validateProduction checks that all settings required for a production deployment are set.
+// Returns nil when DevelopmentMode is enabled.
+func (c *config) validateProduction() error {
+	if c.DevelopmentMode {
+		return nil
+	}
+	for _, err := range []error{
+		c.AppConfig.ValidateProduction(),
+		c.SessionConfig.ValidateProduction(),
+		c.MailerConfig.ValidateProduction(),
+	} {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter) http.Handler {
@@ -75,26 +116,47 @@ func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig,
 	return mux
 }
 
-func createUser(ctx context.Context, q *db.Queries, email, name, pass string) error {
-	uid, err := uuid.NewV7()
-	if err != nil {
-		return fmt.Errorf("failed to create uuid: %w", err)
+// ensureInitialAdmin creates an admin account with the given email if none exists yet.
+// If plainPass is empty, a random password is generated.
+// Returns whether the account was created and the plaintext password.
+func ensureInitialAdmin(ctx context.Context, d *db.DB, email, plainPass string) (bool, string, error) {
+	_, err := d.QueryRO().GetUserByEmail(ctx, email)
+	if err == nil {
+		return false, "", nil
 	}
-	hash, err := password.Hash(pass)
-	if err != nil {
-		return fmt.Errorf("failed to hash password: %w", err)
+	if err != sql.ErrNoRows {
+		return false, "", fmt.Errorf("failed to look up user: %w", err)
 	}
-	_, err = q.CreateUser(ctx, db.CreateUserParams{
-		Uuid:           uid.String(),
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
-		Email:          email,
-		Name:           name,
-		PasswordHash:   hash,
-		Admin:          1,
-		EmailConfirmed: 1,
+
+	if plainPass == "" {
+		plainPass = password.GenRandPrintableString(24)
+	}
+
+	err = d.WithTx(ctx, func(tx *db.Queries) error {
+		uid, txErr := uuid.NewV7()
+		if txErr != nil {
+			return fmt.Errorf("failed to create uuid: %w", txErr)
+		}
+		hash, txErr := password.Hash(plainPass)
+		if txErr != nil {
+			return fmt.Errorf("failed to hash password: %w", txErr)
+		}
+		_, txErr = tx.CreateUser(ctx, db.CreateUserParams{
+			Uuid:           uid.String(),
+			CreatedAt:      time.Now(),
+			UpdatedAt:      time.Now(),
+			Email:          email,
+			Name:           "Admin",
+			PasswordHash:   hash,
+			Admin:          1,
+			EmailConfirmed: 1,
+		})
+		return txErr
 	})
-	return err
+	if err != nil {
+		return false, "", fmt.Errorf("failed to create initial admin: %w", err)
+	}
+	return true, plainPass, nil
 }
 
 func main() {
@@ -107,6 +169,13 @@ func main() {
 		panic(err)
 	} else {
 		p.MustParse(os.Args[1:])
+	}
+
+	if err := c.validate(); err != nil {
+		panic(fmt.Sprintf("invalid configuration: %s", err))
+	}
+	if err := c.validateProduction(); err != nil {
+		panic(fmt.Sprintf("invalid production configuration: %s", err))
 	}
 
 	// Initialize logging.
@@ -125,17 +194,24 @@ func main() {
 	}
 	defer d.Close()
 
-	// Insert users.
-	{
-		err := d.WithTx(ctx, func(tx *db.Queries) error {
-			_ = createUser(ctx, tx, "test@example.org", "test", "asdf") // TODO: Make this configurable.
-			if err != nil {
-				logg.Error(ctx, "CreateUser failed", "err", err)
-			}
-			return nil
-		})
+	// Insert test user in development mode.
+	if c.DevelopmentMode {
+		created, _, err := ensureInitialAdmin(ctx, d, "test@example.org", "asdf")
 		if err != nil {
-			logg.Panic(ctx, "Failed to commit", "err", err)
+			logg.Warn(ctx, "Failed to create test user", "err", err)
+		} else if created {
+			logg.Info(ctx, "Created dev admin account", "email", "test@example.org", "password", "asdf")
+		}
+	}
+
+	// Create initial admin account for production if configured.
+	if c.InitAdminEmail != "" && !c.DevelopmentMode {
+		created, pass, err := ensureInitialAdmin(ctx, d, c.InitAdminEmail, "")
+		if err != nil {
+			logg.Panic(ctx, "Failed to create initial admin", "err", err)
+		} else if created {
+			logg.Warn(ctx, "Created initial admin account -- save the password now, it will not be shown again",
+				"email", c.InitAdminEmail, "password", pass)
 		}
 	}
 

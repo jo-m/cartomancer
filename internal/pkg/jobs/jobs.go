@@ -53,6 +53,20 @@ type JobsConfig struct {
 	AutoCleanupMinAge time.Duration `arg:"--jobs-auto-cleanup-min-age,env:JOBS_AUTO_CLEANUP_MIN_AGE" default:"5m" help:"Time to wait after a job has finished to clear it from the database" placeholder:"DUR"`
 }
 
+// Validate checks for basic configuration errors.
+func (c *JobsConfig) Validate() error {
+	if c.AutoCleanupPeriod < 0 {
+		return errors.New("--jobs-auto-cleanup-period / JOBS_AUTO_CLEANUP_PERIOD must not be negative")
+	}
+	if c.AutoCleanupMinAge < 0 {
+		return errors.New("--jobs-auto-cleanup-min-age / JOBS_AUTO_CLEANUP_MIN_AGE must not be negative")
+	}
+	if c.AutoCleanupPeriod > 0 && c.AutoCleanupMinAge <= 0 {
+		return errors.New("--jobs-auto-cleanup-min-age / JOBS_AUTO_CLEANUP_MIN_AGE must be positive when auto cleanup is enabled")
+	}
+	return nil
+}
+
 type decodeAndWorkFunc func(ctx context.Context, args json.RawMessage) error
 
 // Workers runs jobs.

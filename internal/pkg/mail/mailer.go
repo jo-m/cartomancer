@@ -3,6 +3,7 @@ package mail
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -26,6 +27,28 @@ type MailerConfig struct {
 	AuthPassword string `arg:"--mail-auth-password,env:MAIL_AUTH_PASSWORD" default:"" help:"SMTP auth password" placeholder:"PASS"`
 
 	From string `arg:"--mail-from,env:MAIL_FROM" default:"" help:"Sender email address" placeholder:"EMAIL"`
+}
+
+// Validate checks for basic configuration errors.
+func (c *MailerConfig) Validate() error {
+	if c.SMTPHost == "" {
+		return errors.New("--mail-smtp-host / MAIL_SMTP_HOST must not be empty")
+	}
+	if c.SMTPPort == 0 {
+		return errors.New("--mail-smtp-port / MAIL_SMTP_PORT must not be zero")
+	}
+	return nil
+}
+
+// ValidateProduction checks that all settings required for a production deployment are set.
+func (c *MailerConfig) ValidateProduction() error {
+	if c.From == "" {
+		return errors.New("--mail-from / MAIL_FROM is required for production")
+	}
+	if c.SMTPNoTLS {
+		return errors.New("--mail-smtp-no-tls / MAIL_SMTP_NO_TLS must not be set for production")
+	}
+	return nil
 }
 
 type Args struct {

@@ -170,7 +170,15 @@ Use `https://github.com/franiglesias/golden` for snapshot tests. Approval mode: 
 - All public fns must have docstrings.
 - All code comments must be grammatical complete sentences and end with punctuation (interjections are grammatically also complete sentences).
 - MUST write tests for all new code
-  
+
+## Config structs
+
+Can be found by grepping for `Config struct {`.
+
+- Must have a consistent prefix for args and env vars
+- Mention github.com/alexflint/go-arg in the docstring, See AppConfig
+- Must have a Validate() fn and if applies ValidateProduction(), errors must mention the arg and env var name
+
 # Frontend
 
 ## Directory structure
