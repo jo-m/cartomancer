@@ -18,7 +18,7 @@ import {
   TransitionChild,
 } from "@headlessui/react"
 import { ArrowsPointingOutIcon, XMarkIcon } from "@heroicons/react/24/outline"
-import { $api, fetchClient } from "../api/client"
+import { $api, fetchClient, useAppConfig } from "../api/client"
 import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
 import ElevationProfile from "../components/ElevationProfile"
@@ -87,7 +87,7 @@ export default function Track() {
   const [mapFullscreen, setMapFullscreen] = useState(false)
   const hoverStore = useHoverStore()
 
-  const { data: appConfig } = $api.useQuery("get", "/app_config")
+  const { data: appConfig } = useAppConfig()
   const trackColor =
     appConfig?.trackColor && appConfig.trackColor !== "currentColor"
       ? appConfig.trackColor

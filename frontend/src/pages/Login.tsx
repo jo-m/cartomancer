@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useSession } from "../context/SessionContext"
-import { $api } from "../api/client"
+import { useAppConfig } from "../api/client"
 
 const schema = z.object({
   email: z.string().min(1, "Required").email("Invalid email"),
@@ -14,7 +14,7 @@ type FormData = z.infer<typeof schema>
 
 export default function Login() {
   const { login } = useSession()
-  const { data: appConfig } = $api.useQuery("get", "/app_config")
+  const { data: appConfig } = useAppConfig()
   const navigate = useNavigate()
   const {
     register,

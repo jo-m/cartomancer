@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom"
-import { $api } from "../api/client"
+import { useAppConfig } from "../api/client"
 
 /** Welcome landing page shown to all visitors at the root route. */
 export default function Welcome() {
-  const { data: appConfig } = $api.useQuery("get", "/app_config")
+  const { data: appConfig } = useAppConfig()
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-16">

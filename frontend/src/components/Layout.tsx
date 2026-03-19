@@ -1,11 +1,11 @@
 import { useRef, useState } from "react"
 import { Link, Outlet, useNavigate } from "react-router-dom"
 import { useSession } from "../context/SessionContext"
-import { $api } from "../api/client"
+import { useAppConfig } from "../api/client"
 
 export default function Layout() {
   const { user, loading, logout } = useSession()
-  const { data: appConfig } = $api.useQuery("get", "/app_config")
+  const { data: appConfig } = useAppConfig()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)

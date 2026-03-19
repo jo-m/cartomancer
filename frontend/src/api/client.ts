@@ -57,5 +57,10 @@ fetchClient.use({
 
 export const $api = createClient(fetchClient)
 
+/** Shared hook for fetching the app configuration. */
+export function useAppConfig() {
+  return $api.useQuery("get", "/app_config")
+}
+
 export type User =
   paths["/account"]["patch"]["responses"]["200"]["content"]["application/json"]
