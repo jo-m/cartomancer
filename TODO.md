@@ -78,7 +78,7 @@
 - [ ] Demo mode, locks user table via trigger, insert some initial data, delete data periodically
 - [x] Disable public signup by default
 - [ ] Uncomment all the checks/linters in make check
-- [ ] Log message cleanup and unification (case, punctuation)
+- [x] Log message cleanup and unification (case, punctuation)
 - [ ] Add CI setup/Docker build
   - [ ] In CI also run the online tests, but allow them to fail
 - [x] App config

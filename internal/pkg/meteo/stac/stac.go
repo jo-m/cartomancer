@@ -347,11 +347,11 @@ func FetchItemsForVariables(ctx context.Context, collectionURL string, variables
 
 		if len(probeItems) > 0 {
 			refTime = candidate
-			logg.Debug(ctx, "Found available reference time", "refTime", candidateStr, "attempt", attempt)
+			logg.Debug(ctx, "found available reference time", "refTime", candidateStr, "attempt", attempt)
 			break
 		}
 
-		logg.Debug(ctx, "No items for reference time, stepping back", "refTime", candidateStr)
+		logg.Debug(ctx, "no items for reference time, stepping back", "refTime", candidateStr)
 		if attempt == maxRefTimeRetries-1 {
 			return nil, &coll, nil
 		}
@@ -371,7 +371,7 @@ func FetchItemsForVariables(ctx context.Context, collectionURL string, variables
 		if searchErr != nil {
 			return nil, nil, fmt.Errorf("searching items for variable %s: %w", v, searchErr)
 		}
-		logg.Debug(ctx, "Search returned items", "variable", v, "count", len(items))
+		logg.Debug(ctx, "search returned items", "variable", v, "count", len(items))
 		allItems = append(allItems, items...)
 	}
 

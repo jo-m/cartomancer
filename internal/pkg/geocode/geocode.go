@@ -242,7 +242,7 @@ func insertIntoStaging(ctx context.Context, rw *sql.DB, r io.Reader) (int, error
 			continue
 		}
 		if err != nil {
-			logg.Debug(ctx, "Skipping malformed geonames line", "err", err)
+			logg.Debug(ctx, "skipping malformed geonames line", "err", err)
 			continue
 		}
 
@@ -255,7 +255,7 @@ func insertIntoStaging(ctx context.Context, rw *sql.DB, r io.Reader) (int, error
 			batch = batch[:0]
 
 			if total%500000 == 0 {
-				logg.Info(ctx, "Geonames import progress", "rows", total)
+				logg.Info(ctx, "geonames import progress", "rows", total)
 			}
 		}
 	}

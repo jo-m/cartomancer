@@ -109,7 +109,7 @@ func (m *Mailer) configureClient(logger *slog.Logger) (*mail.Client, error) {
 // If mail is not configured, it logs a warning and drops the email.
 func (m *Mailer) Run(ctx context.Context, args Args) error {
 	if !m.c.Enabled() {
-		logg.Warn(ctx, "Email sending is disabled, dropping email", "to", args.To, "subject", args.Subject)
+		logg.Warn(ctx, "email sending is disabled, dropping email", "to", args.To, "subject", args.Subject)
 		return nil
 	}
 

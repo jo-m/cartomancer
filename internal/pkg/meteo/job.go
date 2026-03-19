@@ -62,7 +62,7 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		return fmt.Errorf("fetch latest reference time: %w", err)
 	}
 	if latestRefTime.IsZero() {
-		logg.Info(ctx, "No forecast runs available online")
+		logg.Info(ctx, "no forecast runs available online")
 		return nil
 	}
 
@@ -78,10 +78,10 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 			return fmt.Errorf("check forecast completeness: %w", checkErr)
 		}
 		if complete {
-			logg.Info(ctx, "Forecast already stored and complete", "referenceTime", latestRefTime)
+			logg.Info(ctx, "forecast already stored and complete", "referenceTime", latestRefTime)
 			return nil
 		}
-		logg.Info(ctx, "Forecast incomplete, will attempt to augment", "referenceTime", latestRefTime)
+		logg.Info(ctx, "forecast incomplete, will attempt to augment", "referenceTime", latestRefTime)
 	}
 
 	// Stage 3: fetch full manifest and download all/missing files.
@@ -116,7 +116,7 @@ func (d *Downloader) isForecastComplete(ctx context.Context, refTime time.Time) 
 // storeNewForecast downloads all files from the manifest and creates a new
 // forecast row with all files atomically.
 func (d *Downloader) storeNewForecast(ctx context.Context, manifest *ForecastManifest) error {
-	logg.Info(ctx, "Downloading new forecast",
+	logg.Info(ctx, "downloading new forecast",
 		"referenceTime", manifest.ReferenceTime,
 		"fileCount", len(manifest.Files))
 
@@ -126,7 +126,7 @@ func (d *Downloader) storeNewForecast(ctx context.Context, manifest *ForecastMan
 	}
 	defer func() {
 		if removeErr := os.RemoveAll(result.Dir); removeErr != nil {
-			logg.Error(ctx, "Failed to remove forecast temp dir", "path", result.Dir, "err", removeErr)
+			logg.Error(ctx, "failed to remove forecast temp dir", "path", result.Dir, "err", removeErr)
 		}
 	}()
 
@@ -181,7 +181,7 @@ func (d *Downloader) storeNewForecast(ctx context.Context, manifest *ForecastMan
 		return fmt.Errorf("write forecast to database: %w", err)
 	}
 
-	logg.Info(ctx, "Stored new forecast data", "referenceTime", result.ReferenceTime, "fileCount", len(result.Files))
+	logg.Info(ctx, "stored new forecast data", "referenceTime", result.ReferenceTime, "fileCount", len(result.Files))
 	return nil
 }
 
@@ -206,11 +206,11 @@ func (d *Downloader) augmentForecast(ctx context.Context, manifest *ForecastMani
 	}
 
 	if len(missing) == 0 {
-		logg.Info(ctx, "Forecast is complete, nothing to augment", "referenceTime", manifest.ReferenceTime)
+		logg.Info(ctx, "forecast is complete, nothing to augment", "referenceTime", manifest.ReferenceTime)
 		return nil
 	}
 
-	logg.Info(ctx, "Augmenting incomplete forecast",
+	logg.Info(ctx, "augmenting incomplete forecast",
 		"referenceTime", manifest.ReferenceTime,
 		"existingFiles", len(existingKeys),
 		"missingFiles", len(missing))
@@ -221,7 +221,7 @@ func (d *Downloader) augmentForecast(ctx context.Context, manifest *ForecastMani
 	}
 	defer func() {
 		if removeErr := os.RemoveAll(dir); removeErr != nil {
-			logg.Error(ctx, "Failed to remove forecast augment temp dir", "path", dir, "err", removeErr)
+			logg.Error(ctx, "failed to remove forecast augment temp dir", "path", dir, "err", removeErr)
 		}
 	}()
 
@@ -245,7 +245,7 @@ func (d *Downloader) augmentForecast(ctx context.Context, manifest *ForecastMani
 		return fmt.Errorf("write augmented files to database: %w", err)
 	}
 
-	logg.Info(ctx, "Augmented forecast", "referenceTime", manifest.ReferenceTime, "addedFiles", len(downloaded))
+	logg.Info(ctx, "augmented forecast", "referenceTime", manifest.ReferenceTime, "addedFiles", len(downloaded))
 	return nil
 }
 

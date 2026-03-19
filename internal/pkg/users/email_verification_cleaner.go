@@ -43,7 +43,7 @@ func (c *EmailVerificationCleaner) Run(ctx context.Context, _ emailVerificationC
 
 	n, err := c.d.QueryRW().DeleteExpiredEmailVerifications(ctx, time.Now())
 	if n > 0 {
-		logg.Info(ctx, "Cleaned up expired email verifications", "count", n)
+		logg.Info(ctx, "cleaned up expired email verifications", "count", n)
 	}
 	return err
 }

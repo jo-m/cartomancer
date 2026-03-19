@@ -58,7 +58,7 @@ func GroupUser(ctx context.Context, d *db.DB, userID string) error {
 	if err != nil {
 		return fmt.Errorf("loading tracks: %w", err)
 	}
-	logg.Info(ctx, "Grouping tracks for user.", "userID", userID, "tracks", len(entries))
+	logg.Info(ctx, "grouping tracks for user", "userID", userID, "tracks", len(entries))
 
 	var groups [][]string
 	if len(entries) >= 2 {
@@ -68,7 +68,7 @@ func GroupUser(ctx context.Context, d *db.DB, userID string) error {
 		}
 	}
 
-	logg.Info(ctx, "Grouped tracks for user.", "userID", userID, "groups", len(groups))
+	logg.Info(ctx, "grouped tracks for user", "userID", userID, "groups", len(groups))
 	return replaceGroups(ctx, d, userID, groups)
 }
 
@@ -86,19 +86,19 @@ func loadTracks(ctx context.Context, d *db.DB, userID string) ([]trackEntry, err
 	for _, row := range rows {
 		b, err := blob.Get(ctx, d.QueryRO(), row.BlobID)
 		if err != nil {
-			logg.Error(ctx, "Failed to get blob for track, skipping.", "trackUUID", row.Uuid, "err", err)
+			logg.Error(ctx, "failed to get blob for track, skipping", "trackUUID", row.Uuid, "err", err)
 			continue
 		}
 
 		src, err := load.Blob(row.OriginalFilename, bytes.NewReader(b.Content))
 		if err != nil {
-			logg.Error(ctx, "Failed to parse track blob, skipping.", "trackUUID", row.Uuid, "err", err)
+			logg.Error(ctx, "failed to parse track blob, skipping", "trackUUID", row.Uuid, "err", err)
 			continue
 		}
 
 		coarse, err := track.NewCells(src, coarseResolution)
 		if err != nil {
-			logg.Error(ctx, "Failed to build coarse cells, skipping.", "trackUUID", row.Uuid, "err", err)
+			logg.Error(ctx, "failed to build coarse cells, skipping", "trackUUID", row.Uuid, "err", err)
 			continue
 		}
 

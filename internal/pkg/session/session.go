@@ -273,7 +273,7 @@ func (s *Store) Middleware(next http.Handler) http.Handler {
 
 		tx, err := s.d.BeginTX(ctx)
 		if err != nil {
-			logg.Error(ctx, "Failed to begin transaction", "err", err)
+			logg.Error(ctx, "failed to begin transaction", "err", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -281,29 +281,29 @@ func (s *Store) Middleware(next http.Handler) http.Handler {
 
 		sess, err := s.get(r, tx)
 		if err != nil {
-			logg.Debug(ctx, "No session found", "err", err)
+			logg.Debug(ctx, "no session found", "err", err)
 		}
 
 		if sess != nil {
-			logg.Debug(ctx, "Attaching session", "id", sess.Uuid)
+			logg.Debug(ctx, "attaching session", "id", sess.Uuid)
 			ctx = withSession(ctx, *sess)
 
 			// Fetch and attach user.
 			if sess.UserID.Valid {
 				user, err := tx.GetUser(ctx, sess.UserID.String)
 				if err != nil {
-					logg.Error(ctx, "Failed to retrieve user", "err", err)
+					logg.Error(ctx, "failed to retrieve user", "err", err)
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
-				logg.Debug(ctx, "Attaching user", "id", user.Uuid)
+				logg.Debug(ctx, "attaching user", "id", user.Uuid)
 				ctx = withUser(ctx, user)
 			}
 		}
 
 		err = tx.Commit()
 		if err != nil {
-			logg.Error(ctx, "Failed to commit", "err", err)
+			logg.Error(ctx, "failed to commit", "err", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

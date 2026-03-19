@@ -164,7 +164,8 @@ Use `https://github.com/franiglesias/golden` for snapshot tests. Approval mode: 
 ## Conventions
 
 - All files with ending `.gen.go` are generated and MUST NOT EVER be edited manually. You should also not read them manually, instead use grep or LSP plugin.
-- The logger instance is mostly passed around in ctx.Context
+- The logger instance is mostly passed around in ctx.Context.
+- Log messages are generally lower case and without punctuation.
 - Avoid TOCTOU race conditions by using txs correctly. Be careful to hold txs only for a short time.
 - All public fns must have docstrings.
 - All code comments must be grammatical complete sentences and end with punctuation (interjections are grammatically also complete sentences).

@@ -98,7 +98,7 @@ func NewWorkers(ctx context.Context, d *db.DB, c JobsConfig) (*Workers, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to mark aborted jobs: %w", err)
 	} else if n > 0 {
-		logg.Warn(ctx, "Aborted jobs from previous proc", "count", n)
+		logg.Warn(ctx, "aborted jobs from previous proc", "count", n)
 	}
 
 	w := &Workers{
@@ -290,25 +290,25 @@ func (w *Workers) RunInBackground(ctx context.Context) {
 		nParallel = uint(runtime.NumCPU())
 	}
 
-	logg.Info(ctx, "Spinning up workers", "n", nParallel)
+	logg.Info(ctx, "spinning up workers", "n", nParallel)
 
 	for i := uint(0); i < nParallel; i++ {
 		go func(ctx context.Context) {
 			logger := logg.GetLogger(ctx).With("workerId", i)
 			ctx = logg.WithLogger(ctx, logger)
-			logg.Info(ctx, "Started")
+			logg.Info(ctx, "started")
 
 			for {
 				select {
 				case <-ctx.Done():
-					logg.Info(ctx, "Shutting down", "err", ctx.Err())
+					logg.Info(ctx, "shutting down", "err", ctx.Err())
 					return
 				default:
 				}
 
 				ranJob, err := w.getAndRunAndUpdateNextJob(ctx)
 				if err != nil {
-					logg.Error(ctx, "Job runner failure", "err", err)
+					logg.Error(ctx, "job runner failure", "err", err)
 				}
 
 				if !ranJob {
@@ -403,7 +403,7 @@ func SubmitTx[T Args](ctx context.Context, s *Submitter, tx *db.Queries, jobArgs
 			return fmt.Errorf("failed to check for recent active job: %w", err)
 		}
 		if active == 1 {
-			logg.Debug(ctx, "Debounced job submission, duplicate dropped", "kind", kind)
+			logg.Debug(ctx, "debounced job submission, duplicate dropped", "kind", kind)
 			return nil
 		}
 	}

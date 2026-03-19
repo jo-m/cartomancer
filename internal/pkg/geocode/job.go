@@ -57,28 +57,28 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		return fmt.Errorf("check latest import: %w", err)
 	}
 	if err == nil && time.Since(latest.CreatedAt) < minImportAge {
-		logg.Info(ctx, "Geonames data is recent, skipping download", "lastImport", latest.CreatedAt)
+		logg.Info(ctx, "geonames data is recent, skipping download", "lastImport", latest.CreatedAt)
 		return nil
 	}
 
-	logg.Info(ctx, "Downloading GeoNames allCountries.zip")
+	logg.Info(ctx, "downloading GeoNames allCountries.zip")
 	zipPath, err := DownloadAllCountries(ctx)
 	if err != nil {
 		return fmt.Errorf("download: %w", err)
 	}
 	defer func() {
 		if removeErr := os.Remove(zipPath); removeErr != nil {
-			logg.Error(ctx, "Failed to remove geonames temp file", "path", zipPath, "err", removeErr)
+			logg.Error(ctx, "failed to remove geonames temp file", "path", zipPath, "err", removeErr)
 		}
 	}()
 
-	logg.Info(ctx, "Importing GeoNames data")
+	logg.Info(ctx, "importing GeoNames data")
 	rowCount, err := ImportAllCountries(ctx, d.d, zipPath)
 	if err != nil {
 		return fmt.Errorf("import: %w", err)
 	}
 
-	logg.Info(ctx, "Downloading GeoNames admin codes")
+	logg.Info(ctx, "downloading GeoNames admin codes")
 	admin1Data, admin2Data, err := DownloadAdminCodes()
 	if err != nil {
 		return fmt.Errorf("download admin codes: %w", err)
@@ -103,6 +103,6 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	// Clean up old import records.
 	_, _ = d.d.QueryRW().DeleteOldGeonameImports(ctx)
 
-	logg.Info(ctx, "GeoNames import complete", "rows", rowCount)
+	logg.Info(ctx, "geonames import complete", "rows", rowCount)
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"iter"
-	"log/slog"
 	"math"
 	"path/filepath"
 	"regexp"
@@ -126,15 +125,13 @@ func (f *Activity) Metadata() track.Metadata {
 		TrackType: track.TrackTypeRecorded,
 	}
 
-	if f.act.FileId.TimeCreated.IsZero() {
-		slog.Error("no time_created in FIT file", "filename", f.filename)
-	} else {
+	if !f.act.FileId.TimeCreated.IsZero() {
 		t := f.act.FileId.TimeCreated
 		ret.OriginalCreatedAt = &t
 	}
 
 	if len(f.act.Sessions) != 1 {
-		slog.Error("no session in activity", "filename", f.filename)
+		// No session in activity.
 		return ret
 	}
 

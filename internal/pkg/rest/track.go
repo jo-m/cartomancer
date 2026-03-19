@@ -1099,7 +1099,7 @@ func (sv *server) handleEditingComplete(w http.ResponseWriter, r *http.Request) 
 	if submitErr := jobs.Submit(ctx, sv.jobSubmitter, trackgroup.GrouperArgs{
 		UserID: user.Uuid,
 	}, jobs.Params{DelayS: 5 * time.Minute, Debounce: true}); submitErr != nil {
-		logg.Error(ctx, "Failed to submit grouper job", "err", submitErr)
+		logg.Error(ctx, "failed to submit grouper job", "err", submitErr)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -1343,7 +1343,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	if submitErr := jobs.Submit(ctx, sv.jobSubmitter, geocode.LabelerArgs{
 		TrackID: created.Uuid,
 	}, jobs.Params{MaxRetries: 2}); submitErr != nil {
-		logg.Error(ctx, "Failed to submit labeler job", "err", submitErr)
+		logg.Error(ctx, "failed to submit labeler job", "err", submitErr)
 	}
 
 	writeJSON(w, http.StatusCreated, trackResponseFromDB(db.TrackWithStarred{

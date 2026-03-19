@@ -43,7 +43,7 @@ func (c *Cleaner) Run(ctx context.Context, args cleanerArgs) error {
 		ActiveBefore:  now.Add(-args.IdleTimeout),
 	})
 	if n > 0 {
-		logg.Info(ctx, "Cleaned up sessions", "count", n)
+		logg.Info(ctx, "cleaned up sessions", "count", n)
 	}
 	return err
 }

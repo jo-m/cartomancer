@@ -39,13 +39,13 @@ func (g *Grouper) Run(ctx context.Context, args GrouperArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
-	logg.Info(ctx, "Track grouping job started.", "userID", args.UserID)
+	logg.Info(ctx, "track grouping job started", "userID", args.UserID)
 
 	err := GroupUser(ctx, g.d, args.UserID)
 	if err != nil {
 		return err
 	}
 
-	logg.Info(ctx, "Track grouping job finished.", "userID", args.UserID)
+	logg.Info(ctx, "track grouping job finished", "userID", args.UserID)
 	return nil
 }

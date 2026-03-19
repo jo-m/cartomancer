@@ -163,7 +163,7 @@ func Open(ctx context.Context, path string) (db *DB, err error) {
 	ro.SetMaxOpenConns(max(4, runtime.NumCPU()))
 
 	cwd, _ := os.Getwd()
-	logg.Info(ctx, "Opened database.", "path", path, "cwd", cwd)
+	logg.Info(ctx, "opened database", "path", path, "cwd", cwd)
 
 	// Prepare and run migrations.
 	files, err := fs.Sub(embedMigrations, migrations)
@@ -180,7 +180,7 @@ func Open(ctx context.Context, path string) (db *DB, err error) {
 		return nil, fmt.Errorf("failed to initialize migrations: %w", err)
 	}
 
-	logg.Info(ctx, "Running migrations.")
+	logg.Info(ctx, "running migrations")
 	_, err = provider.Up(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)

@@ -48,7 +48,7 @@ func (c *Cleaner) Run(ctx context.Context, _ cleanerArgs) error {
 		return err
 	}
 	if n > 0 {
-		logg.Info(ctx, "Cleaned up outdated forecast files", "count", n)
+		logg.Info(ctx, "cleaned up outdated forecast files", "count", n)
 	}
 	return nil
 }

@@ -57,7 +57,7 @@ func (l *Labeler) Run(ctx context.Context, args LabelerArgs) error {
 	t, err := l.d.QueryRO().GetTrackByUUID(ctx, args.TrackID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			logg.Info(ctx, "Track not found, skipping labeling", "trackId", args.TrackID)
+			logg.Info(ctx, "track not found, skipping labeling", "trackId", args.TrackID)
 			return nil
 		}
 		return fmt.Errorf("get track: %w", err)
@@ -81,7 +81,7 @@ func (l *Labeler) Run(ctx context.Context, args LabelerArgs) error {
 
 	label := l.buildLabel(ctx, pts)
 	if label == "" {
-		logg.Debug(ctx, "No geoname results for track", "trackId", args.TrackID)
+		logg.Debug(ctx, "no geoname results for track", "trackId", args.TrackID)
 		return nil
 	}
 
@@ -94,7 +94,7 @@ func (l *Labeler) Run(ctx context.Context, args LabelerArgs) error {
 		return fmt.Errorf("upsert track geoname: %w", err)
 	}
 
-	logg.Info(ctx, "Track labeled", "trackId", args.TrackID, "label", label)
+	logg.Info(ctx, "track labeled", "trackId", args.TrackID, "label", label)
 	return nil
 }
 

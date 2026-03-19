@@ -28,7 +28,7 @@ func (GoodArgs1) Kind() string {
 type GoodJob1 struct{}
 
 func (m *GoodJob1) Run(ctx context.Context, args GoodArgs1) error {
-	logg.Info(ctx, "Doing good work", "args", args)
+	logg.Info(ctx, "doing good work", "args", args)
 	time.Sleep(time.Millisecond * 100)
 	return nil
 }
@@ -45,7 +45,7 @@ func (GoodArgs2) Kind() string {
 type GoodJob2 struct{}
 
 func (m *GoodJob2) Run(ctx context.Context, args GoodArgs2) error {
-	logg.Info(ctx, "Doing good work", "args", args)
+	logg.Info(ctx, "doing good work", "args", args)
 	time.Sleep(time.Millisecond * 100)
 	return nil
 }

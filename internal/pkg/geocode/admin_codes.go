@@ -75,7 +75,7 @@ func ImportAdmin1Codes(ctx context.Context, d *db.DB, r io.Reader) (int, error) 
 		return 0, fmt.Errorf("import admin1 codes: %w", err)
 	}
 
-	logg.Info(ctx, "Admin1 codes imported", "rows", len(rows))
+	logg.Info(ctx, "admin1 codes imported", "rows", len(rows))
 	return len(rows), nil
 }
 
@@ -106,7 +106,7 @@ func ImportAdmin2Codes(ctx context.Context, d *db.DB, r io.Reader) (int, error) 
 		return 0, fmt.Errorf("import admin2 codes: %w", err)
 	}
 
-	logg.Info(ctx, "Admin2 codes imported", "rows", len(rows))
+	logg.Info(ctx, "admin2 codes imported", "rows", len(rows))
 	return len(rows), nil
 }
 

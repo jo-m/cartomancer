@@ -125,7 +125,7 @@ func GetNewestForecast(ctx context.Context, variables []vars.Variable, maxHorizo
 	for i, v := range variables {
 		paramNames[i] = v.Name
 	}
-	logg.Debug(ctx, "Fetching STAC items", "variables", paramNames, "maxHorizon", maxHorizon, "perturbed", perturbed)
+	logg.Debug(ctx, "fetching STAC items", "variables", paramNames, "maxHorizon", maxHorizon, "perturbed", perturbed)
 	items, coll, err := stac.FetchItemsForVariables(ctx, stac.GetCollectionURL(), paramNames, perturbed)
 	if err != nil {
 		return nil, fmt.Errorf("fetching STAC items: %w", err)
@@ -165,7 +165,7 @@ func GetNewestForecast(ctx context.Context, variables []vars.Variable, maxHorizo
 			break
 		}
 		if assetURL == "" {
-			logg.Debug(ctx, "Skipping item: no asset URL", "id", item.ID)
+			logg.Debug(ctx, "skipping item: no asset URL", "id", item.ID)
 			continue
 		}
 
@@ -183,7 +183,7 @@ func GetNewestForecast(ctx context.Context, variables []vars.Variable, maxHorizo
 		files = append(files, f)
 	}
 
-	logg.Info(ctx, "Fetched forecast manifest", "referenceTime", refTime, "count", len(files))
+	logg.Info(ctx, "fetched forecast manifest", "referenceTime", refTime, "count", len(files))
 	return &ForecastManifest{
 		ReferenceTime:    refTime,
 		Files:            files,
@@ -205,24 +205,24 @@ func DownloadForecast(ctx context.Context, manifest *ForecastManifest) (*Downloa
 		return nil, fmt.Errorf("creating temp dir: %w", err)
 	}
 
-	logg.Debug(ctx, "Downloading horizontal grid constants", "dest", horizConstFilename)
+	logg.Debug(ctx, "downloading horizontal grid constants", "dest", horizConstFilename)
 	if err := downloadFile(ctx, manifest.GridConstantsURL, filepath.Join(dir, horizConstFilename)); err != nil {
 		_ = os.RemoveAll(dir)
 		return nil, fmt.Errorf("downloading horizontal grid constants: %w", err)
 	}
 
-	logg.Debug(ctx, "Downloading vertical grid constants", "dest", vertConstFilename)
+	logg.Debug(ctx, "downloading vertical grid constants", "dest", vertConstFilename)
 	if err := downloadFile(ctx, manifest.VertConstantsURL, filepath.Join(dir, vertConstFilename)); err != nil {
 		_ = os.RemoveAll(dir)
 		return nil, fmt.Errorf("downloading vertical grid constants: %w", err)
 	}
 
-	logg.Info(ctx, "Downloading forecast files", "referenceTime", manifest.ReferenceTime, "count", len(manifest.Files))
+	logg.Info(ctx, "downloading forecast files", "referenceTime", manifest.ReferenceTime, "count", len(manifest.Files))
 
 	var downloaded []DownloadedFile
 	for i, mf := range manifest.Files {
 		relPath := fmt.Sprintf("%04d.grib2", i)
-		logg.Debug(ctx, "Downloading forecast file",
+		logg.Debug(ctx, "downloading forecast file",
 			"variable", mf.Meta.Variable,
 			"horizon", mf.Meta.Horizon,
 			"perturbed", mf.Meta.Perturbed,
@@ -238,7 +238,7 @@ func DownloadForecast(ctx context.Context, manifest *ForecastManifest) (*Downloa
 		})
 	}
 
-	logg.Info(ctx, "Downloaded forecast files", "referenceTime", manifest.ReferenceTime, "count", len(downloaded))
+	logg.Info(ctx, "downloaded forecast files", "referenceTime", manifest.ReferenceTime, "count", len(downloaded))
 	return &DownloadResult{
 		Dir:               dir,
 		ReferenceTime:     manifest.ReferenceTime,
