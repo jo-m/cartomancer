@@ -17,7 +17,6 @@
   - [x] Frontend meteo data attribution
   - [x] Attribution for map (Swisstopo)
   - [x] Window averaging and subsampling of points on plots, if there are too many
-  - [ ] On long tracks track on map is now imprecise when zooming in
 - [x] Store vertical+horizontal grid data for forecasts
 - [x] Show track owner/user in frontend
 - [x] Aggressive caching with etag headers for all expensive endpoints
@@ -29,15 +28,12 @@
 - [ ] ~~Update go tool air config~~
 - [x] Disallow reset admin password functionality for admin's own accounts (too dangerous)
 - [x] Only show email confirmation button in the frontend if there actually is a pending one
-- [ ] Admins should be allowed to also confirm admin emails and their own email
 - [x] At / serve a robots.txt which disallows ANY robot on ANY page, except the front page. Make the front page have no dynamic content when not logged in.
 - [x] On the tracks page allow sorting by distance, ascent, created_at ("uploaded at"), original_created_at ("file creation date")
 - [x] Tracks filter view is currently inconsistent
 - [x] Deduplicate track blobs between users
 - [x] Ensure long running periodic jobs cannot pile up
 - [x] Debouncing for job submitting
-- [ ] Periodically delete user accounts which have never had their email confirmed
-- [ ] Explore by tags page
 - [x] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step
 - [x] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
 - [x] Make logg pkg capable of using t.Log() if it is inside a test
@@ -47,7 +43,6 @@
   - [x] REST API
   - [x] Show in frontend
 - [x] Remove anonymous sessions
-- [ ] Periodically compute wind rose and average temp for tracks
 - [x] Geonames
   - [x] Attribution
   - [x] Offline test with a subsample of downloaded data
@@ -71,30 +66,21 @@
   - [ ] In `App.tsx` let `QueryClient` use `staleTime`.
   - [ ] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
 
-## Test
+## Test (manually)
 
 - [ ] Forecasts - incomplete and missing data
 - [ ] Forecasts - reasonable data for precip
 
 ## Before initial push/deploy
 
-(also: Periodic, see below)
-
-- [ ] Update README.md
-- [ ] Fixup/autosquash
-- [ ] Improve data sources attribution CC-BY 4.0 for meteo, geonames, map (https://wiki.creativecommons.org/wiki/Recommended_practices_for_attribution#Attributing_materials_from_multiple_sources).
-  - [ ] Systematically add online unit tests which ensure the license has not changed.
 - [ ] Periodic db `VACUUM` and `.backup` (atomic via mv)
-- [ ] Demo mode, locks user table via trigger, insert some initial data, delete data periodoically
-- [ ] Grep for TODO in code
+- [ ] Allow to create an initial admin account (allow setting password only in dev mode)
+- [ ] Demo mode, locks user table via trigger, insert some initial data, delete data periodically
 - [ ] Disable public signup by default
-- [ ] SQLite without rowid? https://sqlite.org/withoutrowid.html
 - [ ] Uncomment all the checks/linters in make check
 - [ ] Log message cleanup and unification (case, punctuation)
 - [ ] Add CI setup/Docker build
   - [ ] In CI also run the online tests, but allow them to fail
-- [ ] Add privacy policy, imprint, admin contact
-- [ ] Extract all the hardcoded consts/limits into app settings
 - [ ] App config
   - [ ] Split up/move around config to relevant config/module structs (e.g. separate struct for users, registrations)
   - [ ] Sensible defaults for everything
@@ -103,11 +89,19 @@
   - [ ] Make external base url actually work
   - [ ] Validate all config options on load/startup
   - [ ] Document which config options MUST be set for a prod deployment
-  - [ ] Allow to create an initial admin account
+- [ ] Improve data sources attribution CC-BY 4.0 for meteo, geonames, map (https://wiki.creativecommons.org/wiki/Recommended_practices_for_attribution#Attributing_materials_from_multiple_sources).
+  - [ ] Systematically add online unit tests which ensure the license has not changed.
+- [ ] Update README.md
+- [ ] Fixup/autosquash
+- [ ] Grep for TODO in code
+- [ ] SQLite without rowid? https://sqlite.org/withoutrowid.html
+- [ ] Go through the periodic TODOs
 
 ## Before enabling public signup
 
-- [ ] Improve email messages, include instance name and base URL
+- [ ] Add privacy policy, imprint, admin contact
+- [ ] Periodically delete user accounts which have never had their email confirmed
+- [ ] Improve email messages sent to users, include instance name and base URL
 - [ ] Self serve password reset flow for users
 - [ ] Rate limiting for sensitive endpoints (login etc), or hint for deployment
 - [ ] Self-serve full data export for users
@@ -131,6 +125,12 @@
 - [ ] Improve error JSON struct, e.g. https://platform.claude.com/docs/en/api/errors#error-shapes, at least include request id
 - [ ] Allow to show meteo forecast in map overlay
 - [ ] Improve the tracks geoname labelling algorithm
+- [ ] Extract all (some) of the hardcoded consts/limits into app settings
+- [ ] Explore by tags page
+- [ ] Periodically compute wind rose and average temp for all tracks
+- [ ] Let users configure their location and then show their loc on maps, and allow to filter tracks by relative location
+- [ ] On long tracks track on map is now imprecise when zooming in
+- [ ] Track sharing link with limited time (JWT)
 
 ## To enable additional weather providers
 
