@@ -10,6 +10,7 @@ reset_data:
 gen: clean
 	# Generate.
 	go generate ./...
+	go test -run TestConfigDoc -update-config-doc
 
 .PHONY: format
 format:

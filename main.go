@@ -42,14 +42,14 @@ type config struct {
 	Serve   *serveCmd   `arg:"subcommand:serve" help:"start the web server and background jobs (default)"`
 	Setpass *setpassCmd `arg:"subcommand:setpass" help:"set password for a user"`
 
-	logg.LoggConfig
-	jobs.JobsConfig
-	session.SessionConfig
-	mail.MailerConfig
-	app.AppConfig
-
 	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8080"`
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
+
+	logg.LoggConfig
+	app.AppConfig
+	session.SessionConfig
+	mail.MailerConfig
+	jobs.JobsConfig
 }
 
 // validate checks all embedded configs for basic errors.

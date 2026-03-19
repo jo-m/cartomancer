@@ -165,7 +165,6 @@ Use `https://github.com/franiglesias/golden` for snapshot tests. Approval mode: 
 
 - All files with ending `.gen.go` are generated and MUST NOT EVER be edited manually. You should also not read them manually, instead use grep or LSP plugin.
 - The logger instance is mostly passed around in ctx.Context
-- Make modules/packages have their own config structs if applicable, compatible with github.com/alexflint/go-arg, example `internal/pkg/logg/handler.go`.
 - Avoid TOCTOU race conditions by using txs correctly. Be careful to hold txs only for a short time.
 - All public fns must have docstrings.
 - All code comments must be grammatical complete sentences and end with punctuation (interjections are grammatically also complete sentences).
@@ -173,8 +172,10 @@ Use `https://github.com/franiglesias/golden` for snapshot tests. Approval mode: 
 
 ## Config structs
 
-Can be found by grepping for `Config struct {`.
+Make modules/packages have their own config structs if applicable, compatible with github.com/alexflint/go-arg.
+Existing ones can be found by grepping for `Config struct {`.
 
+- Example: `internal/pkg/app/config.go`
 - Must have a consistent prefix for args and env vars
 - Mention github.com/alexflint/go-arg in the docstring, See AppConfig
 - Must have a Validate() fn and if applies ValidateProduction(), errors must mention the arg and env var name

@@ -13,10 +13,10 @@ import (
 type AppConfig struct {
 	// InstanceName is the name of this hosted application instance.
 	// Used e.g. as issuer name for tokens.
-	InstanceName string `arg:"--app-instance-name,env:APP_INSTANCE_NAME" default:"Detour" help:"Name of the application instance, used as issuer in tokens"`
+	InstanceName string `arg:"--app-instance-name,env:APP_INSTANCE_NAME" default:"Detour" help:"Name of the application instance, used as issuer in tokens" placeholder:"NAME"`
 	// ExternalBaseURL is the URL at which the application is reachable from the outside.
 	// REQUIRED for production deployments.
-	ExternalBaseURL string `arg:"--app-external-base-url,env:APP_EXTERNAL_BASE_URL" default:"" help:"Base URL of the application, needed for links and emails"`
+	ExternalBaseURL string `arg:"--app-external-base-url,env:APP_EXTERNAL_BASE_URL" default:"" help:"Base URL of the application, needed for links and emails" placeholder:"URL"`
 	// DevelopmentMode enables some development features.
 	// On startup an admin user "test@example.org" with password "asdf" is created.
 	// DANGEROUS.
@@ -26,7 +26,7 @@ type AppConfig struct {
 	// REQUIRED for production deployments.
 	EmailJWTSecret string `arg:"--app-email-jwt-secret,env:APP_EMAIL_JWT_SECRET" help:"Secret to sign email verification JWTs, generated on startup if not set" placeholder:"SECRET"`
 	// EmailVerificationExpiry is how long an email verification link remains valid.
-	EmailVerificationExpiry time.Duration `arg:"--app-email-verification-expiry,env:APP_EMAIL_VERIFICATION_EXPIRY" default:"2h" help:"How long email verification links are valid"`
+	EmailVerificationExpiry time.Duration `arg:"--app-email-verification-expiry,env:APP_EMAIL_VERIFICATION_EXPIRY" default:"2h" help:"How long email verification links are valid" placeholder:"DUR"`
 	// RegistrationEnabled controls whether new users can self-register via the /register endpoint.
 	// Off by default.
 	RegistrationEnabled bool `arg:"--app-registration-enabled,env:APP_REGISTRATION_ENABLED" default:"false" help:"Allow new users to self-register"`
@@ -36,7 +36,7 @@ type AppConfig struct {
 	InitAdminEmail string `arg:"--app-init-admin-email,env:APP_INIT_ADMIN_EMAIL" default:"" help:"Email for the initial admin account created on first startup" placeholder:"EMAIL"`
 	// TrackColor is the stroke color used for all track preview SVGs.
 	// Accepts a CSS hex value (e.g. "#f00", "#rrggbb") or "currentColor".
-	TrackColor string `arg:"--app-track-color,env:APP_TRACK_COLOR" default:"currentColor" help:"Stroke color for track preview SVGs, CSS hex or currentColor"`
+	TrackColor string `arg:"--app-track-color,env:APP_TRACK_COLOR" default:"currentColor" help:"Stroke color for track preview SVGs, CSS hex or currentColor" placeholder:"COLOR"`
 }
 
 // Validate checks for basic configuration errors.
