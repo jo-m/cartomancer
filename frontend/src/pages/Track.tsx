@@ -47,7 +47,7 @@ const FILE_FORMAT_LABELS: Record<number, string> = {
 }
 
 const HOVER_DEBOUNCE_MS = 100
-const START_HOUR_OPTIONS = [1, 2, 5, 12]
+const START_HOUR_OPTIONS = [1, 2, 5, 10, 20]
 const SPEED_OPTIONS = [20, 25, 28, 30]
 
 function formatDistance(m: number): string {
