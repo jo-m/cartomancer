@@ -6,8 +6,6 @@ package trackgroup
 import (
 	"bytes"
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
@@ -55,31 +53,10 @@ type fileInfo struct {
 
 // GroupUser loads all groupable tracks for the given user, clusters them, and
 // replaces any existing track_groups rows for that user with the new results.
-// It skips the expensive work if the set of groupable tracks has not changed
-// since the last run (tracked via the newest track UUID as a watermark).
-// Returns true if grouping was actually performed, false if skipped.
-func GroupUser(ctx context.Context, d *db.DB, userID string) (bool, error) {
-	latestUUID, err := d.QueryRO().GetLatestTrackUUIDByUser(ctx, userID)
-	if errors.Is(err, sql.ErrNoRows) {
-		// No groupable tracks at all; clear any stale state.
-		return true, clearGroups(ctx, d, userID)
-	}
-	if err != nil {
-		return false, fmt.Errorf("getting latest track UUID: %w", err)
-	}
-
-	state, err := d.QueryRO().GetTrackGroupState(ctx, userID)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return false, fmt.Errorf("getting group state: %w", err)
-	}
-	if err == nil && state.LatestTrackUuid == latestUUID {
-		logg.Info(ctx, "No grouping to do for user, up to date.", "userID", userID)
-		return false, nil
-	}
-
+func GroupUser(ctx context.Context, d *db.DB, userID string) error {
 	entries, err := loadTracks(ctx, d, userID)
 	if err != nil {
-		return false, fmt.Errorf("loading tracks: %w", err)
+		return fmt.Errorf("loading tracks: %w", err)
 	}
 	logg.Info(ctx, "Grouping tracks for user.", "userID", userID, "tracks", len(entries))
 
@@ -87,25 +64,12 @@ func GroupUser(ctx context.Context, d *db.DB, userID string) (bool, error) {
 	if len(entries) >= 2 {
 		groups, err = groupHierarchically(ctx, d, entries)
 		if err != nil {
-			return false, fmt.Errorf("grouping: %w", err)
+			return fmt.Errorf("grouping: %w", err)
 		}
 	}
 
 	logg.Info(ctx, "Grouped tracks for user.", "userID", userID, "groups", len(groups))
-	return true, replaceGroups(ctx, d, userID, groups, latestUUID)
-}
-
-// clearGroups removes all groups and state for a user who has no groupable tracks.
-func clearGroups(ctx context.Context, d *db.DB, userID string) error {
-	return d.WithTx(ctx, func(q *db.Queries) error {
-		if err := q.DeleteTrackGroupsByUser(ctx, userID); err != nil {
-			return fmt.Errorf("deleting old groups: %w", err)
-		}
-		if err := q.DeleteTrackGroupState(ctx, userID); err != nil {
-			return fmt.Errorf("deleting group state: %w", err)
-		}
-		return nil
-	})
+	return replaceGroups(ctx, d, userID, groups)
 }
 
 // loadTracks fetches all groupable tracks and converts them to coarse cells.
@@ -214,9 +178,8 @@ func refineGroup(ctx context.Context, d *db.DB, entries []trackEntry, members ma
 	return groups, nil
 }
 
-// replaceGroups deletes all existing groups for the user, inserts new ones,
-// and records the watermark so the next call can skip unchanged data.
-func replaceGroups(ctx context.Context, d *db.DB, userID string, groups [][]string, latestTrackUUID string) error {
+// replaceGroups deletes all existing groups for the user and inserts new ones.
+func replaceGroups(ctx context.Context, d *db.DB, userID string, groups [][]string) error {
 	return d.WithTx(ctx, func(q *db.Queries) error {
 		if err := q.DeleteTrackGroupsByUser(ctx, userID); err != nil {
 			return fmt.Errorf("deleting old groups: %w", err)
@@ -245,14 +208,6 @@ func replaceGroups(ctx context.Context, d *db.DB, userID string, groups [][]stri
 					return fmt.Errorf("adding member: %w", err)
 				}
 			}
-		}
-
-		if err := q.UpsertTrackGroupState(ctx, db.UpsertTrackGroupStateParams{
-			UserID:          userID,
-			LatestTrackUuid: latestTrackUUID,
-			CreatedAt:       now,
-		}); err != nil {
-			return fmt.Errorf("saving group state: %w", err)
 		}
 
 		return nil

@@ -22,22 +22,6 @@ WHERE user_id = ?
   AND total_distance_m <= ?
 ORDER BY uuid;
 
--- name: GetTrackGroupState :one
-SELECT latest_track_uuid, created_at FROM track_group_state WHERE user_id = ?;
-
--- name: UpsertTrackGroupState :exec
-INSERT INTO track_group_state (user_id, latest_track_uuid, created_at)
-VALUES (?, ?, ?)
-ON CONFLICT(user_id) DO UPDATE SET latest_track_uuid = excluded.latest_track_uuid, created_at = excluded.created_at;
-
--- name: DeleteTrackGroupState :exec
-DELETE FROM track_group_state WHERE user_id = ?;
-
--- name: GetLatestTrackUUIDByUser :one
-SELECT uuid FROM tracks
-WHERE user_id = ?
-ORDER BY uuid DESC LIMIT 1;
-
 -- name: GetSimilarTracks :many
 SELECT t.uuid, t.name, t.total_distance_m
 FROM track_group_members tgm1

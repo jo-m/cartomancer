@@ -9,21 +9,19 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/logg"
 )
 
-type grouperArgs struct{}
-
-// Kind implements [jobs.Args].
-func (a grouperArgs) Kind() string { return "trackgroup.grouper" }
-
-var _ jobs.Args = (*grouperArgs)(nil)
-
-// GrouperArgs returns the args for [Grouper].
-//
-//revive:disable:unexported-return
-func GrouperArgs() grouperArgs {
-	return grouperArgs{}
+// GrouperArgs are the arguments for the [Grouper] job.
+type GrouperArgs struct {
+	UserID string
 }
 
-// Grouper is a periodic job that groups tracks for every user.
+// Kind implements [jobs.Args].
+func (a GrouperArgs) Kind() string { return "trackgroup.grouper" }
+
+var _ jobs.Args = (*GrouperArgs)(nil)
+
+// Grouper is a job that groups tracks for a single user.
+// Submit it with [jobs.Params.Debounce] enabled so that rapid uploads
+// are coalesced into a single grouping run.
 // Use [NewGrouper] to create a new instance.
 type Grouper struct {
 	d *db.DB
@@ -34,43 +32,20 @@ func NewGrouper(d *db.DB) *Grouper {
 	return &Grouper{d: d}
 }
 
-var _ jobs.Job[grouperArgs] = (*Grouper)(nil)
+var _ jobs.Job[GrouperArgs] = (*Grouper)(nil)
 
-const userBatchSize = 100
-
-// Run implements [jobs.Job]. It iterates over all users using cursor-based
-// pagination and groups their tracks. Individual user failures are logged and
-// skipped so that one broken user does not block the rest.
-func (g *Grouper) Run(ctx context.Context, _ grouperArgs) error {
+// Run implements [jobs.Job]. It groups tracks for the user specified in args.
+func (g *Grouper) Run(ctx context.Context, args GrouperArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
-	logg.Info(ctx, "Track grouping job started.")
+	logg.Info(ctx, "Track grouping job started.", "userID", args.UserID)
 
-	cursor := ""
-	for {
-		batch, err := g.d.QueryRO().ListUserUUIDsAfter(ctx, db.ListUserUUIDsAfterParams{
-			Uuid:  cursor,
-			Limit: userBatchSize,
-		})
-		if err != nil {
-			return err
-		}
-		if len(batch) == 0 {
-			break
-		}
-
-		for _, userID := range batch {
-			grouped, err := GroupUser(ctx, g.d, userID)
-			if err != nil {
-				logg.Error(ctx, "Failed to group tracks for user, skipping.", "userID", userID, "err", err, "grouped", grouped)
-				continue
-			}
-		}
-
-		cursor = batch[len(batch)-1]
+	err := GroupUser(ctx, g.d, args.UserID)
+	if err != nil {
+		return err
 	}
 
-	logg.Info(ctx, "Track grouping job finished.")
+	logg.Info(ctx, "Track grouping job finished.", "userID", args.UserID)
 	return nil
 }

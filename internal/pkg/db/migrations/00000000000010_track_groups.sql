@@ -12,14 +12,6 @@ CREATE TABLE track_group_members (
     PRIMARY KEY (group_id, track_id)
 );
 
-CREATE TABLE track_group_state (
-    user_id TEXT PRIMARY KEY,
-    latest_track_uuid TEXT NOT NULL,
-    created_at DATETIME NOT NULL,
-    FOREIGN KEY(user_id) REFERENCES users(uuid) ON DELETE CASCADE
-);
-
 -- +goose Down
-DROP TABLE track_group_state;
 DROP TABLE track_group_members;
 DROP TABLE track_groups;

@@ -23,6 +23,7 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/logg"
 	"jo-m.ch/go/detour/internal/pkg/session"
 	"jo-m.ch/go/detour/internal/pkg/track"
+	"jo-m.ch/go/detour/internal/pkg/trackgroup"
 )
 
 type trackResponse struct {
@@ -1092,6 +1093,13 @@ func (sv *server) handleEditingComplete(w http.ResponseWriter, r *http.Request) 
 		logg.Error(ctx, "failed to complete editing", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
+	}
+
+	// Schedule track grouping with debounce so rapid uploads are coalesced.
+	if submitErr := jobs.Submit(ctx, sv.jobSubmitter, trackgroup.GrouperArgs{
+		UserID: user.Uuid,
+	}, jobs.Params{DelayS: 5 * time.Minute, Debounce: true}); submitErr != nil {
+		logg.Error(ctx, "Failed to submit grouper job", "err", submitErr)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
