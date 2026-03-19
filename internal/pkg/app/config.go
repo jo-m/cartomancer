@@ -27,6 +27,9 @@ type AppConfig struct {
 	EmailJWTSecret string `arg:"--app-email-jwt-secret,env:APP_EMAIL_JWT_SECRET" help:"Secret to sign email verification JWTs, generated on startup if not set" placeholder:"SECRET"`
 	// EmailVerificationExpiry is how long an email verification link remains valid.
 	EmailVerificationExpiry time.Duration `arg:"--app-email-verification-expiry,env:APP_EMAIL_VERIFICATION_EXPIRY" default:"2h" help:"How long email verification links are valid"`
+	// RegistrationEnabled controls whether new users can self-register via the /register endpoint.
+	// Off by default.
+	RegistrationEnabled bool `arg:"--app-registration-enabled,env:APP_REGISTRATION_ENABLED" default:"false" help:"Allow new users to self-register"`
 	// InitAdminEmail, when set, creates an initial admin account with this email
 	// on startup if no user with this email exists yet.
 	// A random password is generated and logged once.

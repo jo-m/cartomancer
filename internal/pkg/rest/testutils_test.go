@@ -36,6 +36,15 @@ type testEnv struct {
 
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
+	return newTestEnvWithAppConfig(t, app.AppConfig{
+		InstanceName:        "test",
+		EmailJWTSecret:      rest.TestEmailJWTSecret,
+		RegistrationEnabled: true,
+	})
+}
+
+func newTestEnvWithAppConfig(t *testing.T, appConf app.AppConfig) *testEnv {
+	t.Helper()
 
 	d := db.GetTestDB(t)
 	t.Cleanup(func() { _ = d.Close() })
@@ -51,14 +60,13 @@ func newTestEnv(t *testing.T) *testEnv {
 		CookieName:      testCookieName,
 		CookiePath:      "/",
 	}
-	sess, err := session.NewStore(d, sessConf, app.AppConfig{InstanceName: "test"})
+	sess, err := session.NewStore(d, sessConf, app.AppConfig{InstanceName: appConf.InstanceName})
 	require.NoError(t, err)
 
 	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
 	mux.Use(logg.AttachLogger(logger))
 	mux.Use(sess.Middleware)
-	appConf := app.AppConfig{InstanceName: "test", EmailJWTSecret: rest.TestEmailJWTSecret}
 	apiHandler, err := rest.New(d, sess, workers.Submitter(), appConf)
 	require.NoError(t, err)
 	mux.Mount("/", apiHandler)
@@ -66,7 +74,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	ts := httptest.NewTLSServer(mux)
 	t.Cleanup(ts.Close)
 
-	return &testEnv{t: t, d: d, ts: ts, emailJWTSecret: []byte(rest.TestEmailJWTSecret)}
+	return &testEnv{t: t, d: d, ts: ts, emailJWTSecret: []byte(appConf.EmailJWTSecret)}
 }
 
 // newClient creates a new TLS-aware HTTP client with an empty cookie jar.

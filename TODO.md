@@ -76,7 +76,7 @@
 - [ ] Periodic db `VACUUM` and `.backup` (atomic via mv)
 - [x] Allow to create an initial admin account (allow setting password only in dev mode)
 - [ ] Demo mode, locks user table via trigger, insert some initial data, delete data periodically
-- [ ] Disable public signup by default
+- [x] Disable public signup by default
 - [ ] Uncomment all the checks/linters in make check
 - [ ] Log message cleanup and unification (case, punctuation)
 - [ ] Add CI setup/Docker build

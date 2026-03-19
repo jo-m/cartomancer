@@ -242,6 +242,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "403":
+          description: Registration is disabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "409":
           description: Email already taken
           content:
@@ -1966,6 +1972,7 @@ components:
         - externalBaseUrl
         - instanceName
         - trackColor
+        - registrationEnabled
       properties:
         externalBaseUrl:
           type: string
@@ -1973,6 +1980,8 @@ components:
           type: string
         trackColor:
           type: string
+        registrationEnabled:
+          type: boolean
 
     RegisterRequest:
       type: object

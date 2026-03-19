@@ -1,9 +1,11 @@
 import { useRef, useState } from "react"
 import { Link, Outlet, useNavigate } from "react-router-dom"
 import { useSession } from "../context/SessionContext"
+import { $api } from "../api/client"
 
 export default function Layout() {
   const { user, loading, logout } = useSession()
+  const { data: appConfig } = $api.useQuery("get", "/app_config")
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -101,12 +103,14 @@ export default function Layout() {
                 </>
               ) : (
                 <>
-                  <Link
-                    to="/register"
-                    className="text-gray-700 hover:text-gray-900"
-                  >
-                    Register
-                  </Link>
+                  {appConfig?.registrationEnabled && (
+                    <Link
+                      to="/register"
+                      className="text-gray-700 hover:text-gray-900"
+                    >
+                      Register
+                    </Link>
+                  )}
                   <Link
                     to="/login"
                     className="text-gray-700 hover:text-gray-900"

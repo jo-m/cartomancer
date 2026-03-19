@@ -29,7 +29,19 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/users"
 )
 
+// serveCmd starts the web server and job runner.
+type serveCmd struct{}
+
+// setpassCmd sets the password for any user by email.
+type setpassCmd struct {
+	Email    string `arg:"positional,required" help:"email address of the user"`
+	Password string `arg:"positional" help:"new password (generated if omitted)"`
+}
+
 type config struct {
+	Serve   *serveCmd   `arg:"subcommand:serve" help:"start the web server and background jobs (default)"`
+	Setpass *setpassCmd `arg:"subcommand:setpass" help:"set password for a user"`
+
 	logg.LoggConfig
 	jobs.JobsConfig
 	session.SessionConfig
@@ -159,6 +171,45 @@ func ensureInitialAdmin(ctx context.Context, d *db.DB, email, plainPass string) 
 	return true, plainPass, nil
 }
 
+// runSetpass sets or resets a user's password by email.
+func runSetpass(ctx context.Context, d *db.DB, cmd *setpassCmd) {
+	user, err := d.QueryRO().GetUserByEmail(ctx, cmd.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			logg.Panic(ctx, "User not found", "email", cmd.Email)
+		}
+		logg.Panic(ctx, "Failed to look up user", "err", err)
+	}
+
+	plainPass := cmd.Password
+	if plainPass == "" {
+		plainPass = password.GenRandPrintableString(24)
+	}
+
+	hash, err := password.Hash(plainPass)
+	if err != nil {
+		logg.Panic(ctx, "Failed to hash password", "err", err)
+	}
+
+	err = d.WithTx(ctx, func(q *db.Queries) error {
+		_, txErr := q.UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
+			UpdatedAt:    time.Now().UTC(),
+			PasswordHash: hash,
+			Uuid:         user.Uuid,
+		})
+		if txErr != nil {
+			return txErr
+		}
+		_, txErr = q.DeleteAllUserSessions(ctx, sql.NullString{Valid: true, String: user.Uuid})
+		return txErr
+	})
+	if err != nil {
+		logg.Panic(ctx, "Failed to set password", "err", err)
+	}
+
+	logg.Warn(ctx, "Password set successfully", "email", cmd.Email, "password", plainPass)
+}
+
 func main() {
 	ctx := context.Background()
 
@@ -173,9 +224,6 @@ func main() {
 
 	if err := c.validate(); err != nil {
 		panic(fmt.Sprintf("invalid configuration: %s", err))
-	}
-	if err := c.validateProduction(); err != nil {
-		panic(fmt.Sprintf("invalid production configuration: %s", err))
 	}
 
 	// Initialize logging.
@@ -193,6 +241,17 @@ func main() {
 		logg.Panic(ctx, "Failed to open db", "err", err)
 	}
 	defer d.Close()
+
+	// Handle setpass subcommand early, before server-specific setup.
+	if c.Setpass != nil {
+		runSetpass(ctx, d, c.Setpass)
+		return
+	}
+
+	// Everything below is for the serve subcommand (default).
+	if err := c.validateProduction(); err != nil {
+		panic(fmt.Sprintf("invalid production configuration: %s", err))
+	}
 
 	// Insert test user in development mode.
 	if c.DevelopmentMode {

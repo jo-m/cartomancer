@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useSession } from "../context/SessionContext"
+import { $api } from "../api/client"
 
 const schema = z.object({
   email: z.string().min(1, "Required").email("Invalid email"),
@@ -13,6 +14,7 @@ type FormData = z.infer<typeof schema>
 
 export default function Login() {
   const { login } = useSession()
+  const { data: appConfig } = $api.useQuery("get", "/app_config")
   const navigate = useNavigate()
   const {
     register,
@@ -80,12 +82,14 @@ export default function Login() {
             {isSubmitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Don&apos;t have an account?{" "}
-          <Link to="/register" className="text-gray-900 hover:underline">
-            Create one
-          </Link>
-        </p>
+        {appConfig?.registrationEnabled && (
+          <p className="mt-4 text-center text-sm text-gray-600">
+            Don&apos;t have an account?{" "}
+            <Link to="/register" className="text-gray-900 hover:underline">
+              Create one
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, Navigate, useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -24,6 +24,10 @@ export default function Register() {
   const { user, loading } = useSession()
   const navigate = useNavigate()
   const [success, setSuccess] = useState(false)
+  const { data: appConfig, isLoading: configLoading } = $api.useQuery(
+    "get",
+    "/app_config"
+  )
 
   const mutation = $api.useMutation("post", "/register")
 
@@ -46,6 +50,10 @@ export default function Register() {
     } catch {
       // error displayed via mutation.error
     }
+  }
+
+  if (!configLoading && !appConfig?.registrationEnabled) {
+    return <Navigate to="/login" replace />
   }
 
   if (success) {

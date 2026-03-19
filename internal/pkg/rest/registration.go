@@ -34,6 +34,11 @@ type msgResponse struct {
 var errEmailTaken = errors.New("email already taken")
 
 func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
+	if !sv.appConfig.RegistrationEnabled {
+		writeError(w, http.StatusForbidden, "registration is disabled")
+		return
+	}
+
 	ctx := r.Context()
 
 	var req registerRequest

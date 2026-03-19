@@ -8,9 +8,26 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/detour/internal/pkg/app"
 	"jo-m.ch/go/detour/internal/pkg/password"
 	"jo-m.ch/go/detour/internal/pkg/rest"
 )
+
+func TestRegister_Disabled(t *testing.T) {
+	e := newTestEnvWithAppConfig(t, app.AppConfig{
+		InstanceName:        "test",
+		EmailJWTSecret:      rest.TestEmailJWTSecret,
+		RegistrationEnabled: false,
+	})
+	client := e.newClient()
+
+	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
+		"email":    "newuser@example.com",
+		"name":     "New-User",
+		"password": "secret123",
+	}, nil)
+	assert.Equal(t, http.StatusForbidden, status)
+}
 
 func TestRegister_Success(t *testing.T) {
 	e := newTestEnv(t)
