@@ -14,10 +14,22 @@ import (
 	"strconv"
 	"strings"
 
+	"jo-m.ch/go/detour/internal/pkg/attribute"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/geocode/cols"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 )
+
+// DataAttribution is the TASL attribution for GeoNames geographical data.
+// Verified by TestOnlineGeoNamesLicense.
+var DataAttribution = attribute.Attribution{
+	What:       "Reverse Geocoding",
+	Title:      "GeoNames Geographical Database",
+	Author:     "GeoNames",
+	Source:     "https://www.geonames.org/",
+	License:    "CC BY 4.0",
+	LicenseURL: "https://creativecommons.org/licenses/by/4.0/",
+}
 
 const (
 	// AllCountriesURL is the download URL for the GeoNames allCountries dataset.

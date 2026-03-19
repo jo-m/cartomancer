@@ -2592,6 +2592,29 @@ components:
         version:
           type: string
 
+    Attribution:
+      type: object
+      required:
+        - what
+        - title
+        - author
+        - source
+        - license
+        - licenseUrl
+      properties:
+        what:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        source:
+          type: string
+        license:
+          type: string
+        licenseUrl:
+          type: string
+
     VersionResponse:
       type: object
       required:
@@ -2599,6 +2622,7 @@ components:
         - path
         - version
         - deps
+        - attributions
       properties:
         goVersion:
           type: string
@@ -2610,3 +2634,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/BuildInfoModule"
+        attributions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Attribution"

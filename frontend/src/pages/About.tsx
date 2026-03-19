@@ -51,6 +51,52 @@ export default function About() {
 
           <div>
             <h2 className="mb-2 text-lg font-medium text-gray-800">
+              Data Sources
+            </h2>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase text-gray-500">
+                  <th className="pb-2 pr-4">Used for</th>
+                  <th className="pb-2 pr-4">Title</th>
+                  <th className="pb-2 pr-4">Author</th>
+                  <th className="pb-2 pr-4">Source</th>
+                  <th className="pb-2">License</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {data.attributions.map((attr) => (
+                  <tr key={attr.title}>
+                    <td className="py-1 pr-4 text-gray-700">{attr.what}</td>
+                    <td className="py-1 pr-4 text-gray-700">{attr.title}</td>
+                    <td className="py-1 pr-4 text-gray-700">{attr.author}</td>
+                    <td className="py-1 pr-4 text-gray-700">
+                      <a
+                        href={attr.source}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline hover:text-gray-500"
+                      >
+                        {attr.source}
+                      </a>
+                    </td>
+                    <td className="py-1 text-gray-700">
+                      <a
+                        href={attr.licenseUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline hover:text-gray-500"
+                      >
+                        {attr.license}
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div>
+            <h2 className="mb-2 text-lg font-medium text-gray-800">
               Dependencies
             </h2>
             <table className="w-full text-sm">

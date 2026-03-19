@@ -3,6 +3,10 @@ package rest
 import (
 	"net/http"
 	"runtime/debug"
+
+	"jo-m.ch/go/detour/internal/pkg/attribute"
+	"jo-m.ch/go/detour/internal/pkg/geocode"
+	"jo-m.ch/go/detour/internal/pkg/meteo/stac"
 )
 
 type buildInfoModule struct {
@@ -11,13 +15,14 @@ type buildInfoModule struct {
 }
 
 type versionResponse struct {
-	GoVersion string            `json:"goVersion"`
-	Path      string            `json:"path"`
-	Version   string            `json:"version"`
-	Deps      []buildInfoModule `json:"deps"`
+	GoVersion    string                  `json:"goVersion"`
+	Path         string                  `json:"path"`
+	Version      string                  `json:"version"`
+	Deps         []buildInfoModule       `json:"deps"`
+	Attributions []attribute.Attribution `json:"attributions"`
 }
 
-// handleGetVersion returns build information from the Go runtime.
+// handleGetVersion returns build information from the Go runtime and data source attributions.
 func (sv *server) handleGetVersion(w http.ResponseWriter, r *http.Request) {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
@@ -30,6 +35,10 @@ func (sv *server) handleGetVersion(w http.ResponseWriter, r *http.Request) {
 		Path:      info.Main.Path,
 		Version:   info.Main.Version,
 		Deps:      make([]buildInfoModule, 0, len(info.Deps)),
+		Attributions: []attribute.Attribution{
+			stac.DataAttribution,
+			geocode.DataAttribution,
+		},
 	}
 	for _, dep := range info.Deps {
 		resp.Deps = append(resp.Deps, buildInfoModule{

@@ -89,8 +89,8 @@
   - [ ] Make external base url actually work
   - [ ] Validate all config options on load/startup
   - [ ] Document which config options MUST be set for a prod deployment
-- [ ] Improve data sources attribution CC-BY 4.0 for meteo, geonames, map (https://wiki.creativecommons.org/wiki/Recommended_practices_for_attribution#Attributing_materials_from_multiple_sources).
-  - [ ] Systematically add online unit tests which ensure the license has not changed.
+- [x] Improve data sources attribution CC-BY 4.0 for meteo, geonames, map (https://wiki.creativecommons.org/wiki/Recommended_practices_for_attribution#Attributing_materials_from_multiple_sources).
+  - [x] Systematically add online unit tests which ensure the license has not changed.
 - [ ] Update README.md
 - [ ] Fixup/autosquash
 - [ ] Grep for TODO in code

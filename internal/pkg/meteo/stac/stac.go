@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"jo-m.ch/go/detour/internal/pkg/attribute"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 )
 
@@ -35,12 +36,24 @@ const (
 
 	// We use that to compute the latest reference time from collection temporal extent.
 	CollectionHorizon = 33 * time.Hour
+
 	// FileValidityDuration is the duration for which a single forecast file is
 	// considered valid, forming the half-open interval [valid_time, valid_time + FileValidityDuration).
 	FileValidityDuration = 1 * time.Hour
 	// modelRunInterval is the time between consecutive ICON-CH1-EPS model runs.
 	modelRunInterval = 6 * time.Hour
 )
+
+// DataAttribution is the TASL attribution for MeteoSwiss ICON-CH1-EPS forecast data.
+// Verified by TestOnlineStacLicense.
+var DataAttribution = attribute.Attribution{
+	What:       "Weather Forecast Data (Switzerland)",
+	Title:      "ICON-CH1-EPS Forecast Data",
+	Author:     "MeteoSwiss",
+	Source:     AttributionHref,
+	License:    "CC-BY",
+	LicenseURL: "https://creativecommons.org/licenses/by/4.0/",
+}
 
 // GetCollectionURL returns the URL for the ICON-CH1-EPS STAC collection.
 func GetCollectionURL() string {

@@ -12,8 +12,21 @@ import (
 
 	"github.com/franiglesias/golden"
 	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/detour/internal/pkg/geocode/cols"
 	"jo-m.ch/go/detour/internal/pkg/utl"
 )
+
+// TestOnlineGeoNamesLicense downloads the GeoNames readme and verifies that
+// the license is still Creative Commons Attribution 4.0, matching DataAttribution.
+func TestOnlineGeoNamesLicense(t *testing.T) {
+	readmeURL := cols.BaseURL + "/readme.txt"
+	data, err := utl.DownloadFile(readmeURL)
+	require.NoError(t, err)
+
+	readme := string(data)
+	require.Contains(t, readme, "Creative Commons Attribution 4.0")
+	require.Contains(t, readme, DataAttribution.LicenseURL)
+}
 
 // TestOnlineSubsampleAllCountries downloads allCountries.zip, extracts
 // allCountries.txt, and selects rows whose SHA-256 hash has 11 leading
