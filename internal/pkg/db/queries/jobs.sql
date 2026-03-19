@@ -71,5 +71,12 @@ INSERT INTO job_runner_pid (
 DELETE FROM job_runner_pid
 WHERE pid != @ourPID;
 
+-- name: HasActiveJob :one
+SELECT EXISTS(
+  SELECT 1 FROM jobs
+  WHERE kind = ? AND args_json = ? AND status IN ('C', 'R', 'A', 'E')
+  AND attempts < max_attempts
+) AS active;
+
 -- name: GetJobRunnerPIDs :many
 SELECT * FROM job_runner_pid;

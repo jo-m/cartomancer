@@ -386,6 +386,7 @@ func Submit[T Args](ctx context.Context, s *Submitter, jobArgs T, params Params)
 // Periodic schedules a job for periodic submission to the queue.
 // Retries and delay cannot be set for periodic jobs and default to 0.
 // If runOnStartup is true, the job is also submitted immediately before the first tick.
+// Submission is skipped if a job with the same kind and args is already active (created, running, or pending retry).
 func Periodic[T Args](ctx context.Context, s *Submitter, jobArgs T, period time.Duration, runOnStartup bool) {
 	go func() {
 		tick := time.NewTicker(period)
@@ -393,8 +394,27 @@ func Periodic[T Args](ctx context.Context, s *Submitter, jobArgs T, period time.
 
 		logger := logg.GetLogger(ctx).With("kind", jobArgs.Kind(), "period", period, "args", jobArgs)
 
+		argsJSON, err := json.Marshal(jobArgs)
+		if err != nil {
+			logger.Error("Failed to marshal periodic job args", "err", err)
+			return
+		}
+
 		submit := func() {
-			err := Submit(ctx, s, jobArgs, Params{})
+			active, err := s.w.d.QueryRW().HasActiveJob(ctx, db.HasActiveJobParams{
+				Kind:     jobArgs.Kind(),
+				ArgsJson: string(argsJSON),
+			})
+			if err != nil {
+				logger.Error("Failed to check for active job", "err", err)
+				return
+			}
+			if active == 1 {
+				logger.Debug("Skipping periodic submission, job still active")
+				return
+			}
+
+			err = Submit(ctx, s, jobArgs, Params{})
 			if err == nil {
 				logger.Debug("Submitted periodic job")
 			} else {

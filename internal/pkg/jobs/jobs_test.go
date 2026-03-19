@@ -366,17 +366,18 @@ func TestRunJobsPeriodic(t *testing.T) {
 	j := newTestIntJob()
 	require.NoError(t, RegisterJob(w, j))
 
-	// Run.
-	s := w.Submitter()
-	Periodic(ctx, s, TestIntArgs{Val: 0}, time.Millisecond*10, false)
-	time.Sleep(time.Millisecond * 100)
+	// Start workers first so jobs get consumed, allowing new periodic submissions.
+	// The period must be longer than waitWhenIdle so workers have time to process.
 	w.RunInBackground(ctx)
-	time.Sleep(time.Millisecond * 100)
+	s := w.Submitter()
+	Periodic(ctx, s, TestIntArgs{Val: 0}, waitWhenIdle+500*time.Millisecond, true)
+	time.Sleep(waitWhenIdle*4 + time.Second)
 	cancel()
 
-	// Check
-	results := slurp(j.cOK, time.Millisecond*150)
-	assert.Len(t, results, 10)
+	// Multiple jobs should have been submitted and completed.
+	// With skip-if-active logic, each job must finish before the next is submitted.
+	results := slurp(j.cOK, time.Millisecond*500)
+	assert.Greater(t, len(results), 1)
 }
 
 type TestTimeArgs struct {
