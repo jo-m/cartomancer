@@ -245,6 +245,18 @@ func TestAdminResetPassword_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, status)
 }
 
+func TestAdminResetPassword_Self(t *testing.T) {
+	e := newTestEnv(t)
+	adminUUID := e.createUser("admin@example.com", "Admin", "adminpass", true)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users/"+adminUUID+"/reset-password", map[string]any{
+		"sendEmail": false,
+	}, nil)
+	assert.Equal(t, http.StatusForbidden, status)
+}
+
 func TestAdminCreateUser_DuplicateEmail(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)

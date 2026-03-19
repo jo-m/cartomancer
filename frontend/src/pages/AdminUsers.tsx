@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { $api, fetchClient } from "../api/client"
+import { useSession } from "../context/SessionContext"
 import Toast from "../components/Toast"
 
 const userSchema = z.object({
@@ -19,6 +20,7 @@ const userSchema = z.object({
 type UserFormData = z.infer<typeof userSchema>
 
 export default function AdminUsers() {
+  const { user: currentUser } = useSession()
   const [search, setSearch] = useState("")
   const [showCreate, setShowCreate] = useState(false)
   const [initialPassword, setInitialPassword] = useState<string | null>(null)
@@ -354,12 +356,14 @@ export default function AdminUsers() {
                           >
                             Edit
                           </button>
-                          <button
-                            onClick={() => handleResetPassword(u.uuid)}
-                            className="cursor-pointer text-sm text-gray-600 hover:text-gray-900"
-                          >
-                            Reset pw
-                          </button>
+                          {u.uuid !== currentUser?.uuid && (
+                            <button
+                              onClick={() => handleResetPassword(u.uuid)}
+                              className="cursor-pointer text-sm text-gray-600 hover:text-gray-900"
+                            >
+                              Reset pw
+                            </button>
+                          )}
                           <button
                             onClick={() => handleConfirmEmail(u.uuid)}
                             className="cursor-pointer text-sm text-gray-600 hover:text-gray-900"

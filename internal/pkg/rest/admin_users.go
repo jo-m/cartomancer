@@ -352,6 +352,12 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 
 	userUUID := chi.URLParam(r, "uuid")
 
+	currentUser := session.GetUser(ctx)
+	if currentUser != nil && currentUser.Uuid == userUUID {
+		writeError(w, http.StatusForbidden, "cannot reset your own password")
+		return
+	}
+
 	var req adminResetPasswordRequest
 	if err := decodeJSON(r, &req); err != nil {
 		writeDecodeError(w, err)

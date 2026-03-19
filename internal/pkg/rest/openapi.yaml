@@ -1621,7 +1621,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "403":
-          description: Admin access required or target is an admin
+          description: Admin access required, or attempting to reset own password
           content:
             application/json:
               schema:

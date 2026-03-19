@@ -27,7 +27,7 @@
 - [x] Run periodic jobs immediately the first time
 - [x] XSRF protection
 - [ ] ~~Update go tool air config~~
-- [ ] Disallow reset admin password functionality for admin's own accounts (too dangerous)
+- [x] Disallow reset admin password functionality for admin's own accounts (too dangerous)
 - [ ] Only show email confirm if there actually is a pending one
 - [ ] Admins should be allowed to also confirm admin emails and their own email
 - [x] At / serve a robots.txt which disallows ANY robot on ANY page, except the front page. Make the front page have no dynamic content when not logged in.
@@ -36,6 +36,7 @@
 - [x] Deduplicate track blobs between users
 - [x] Ensure long running periodic jobs cannot pile up
 - [x] Debouncing for job submitting
+- [ ] Periodically delete user accounts which have never had their email confirmed
 - [ ] Explore by tags page
 - [x] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step
 - [x] Compute/show wind speed: https://github.com/MeteoSwiss/meteodata-lab/blob/main/src/meteodatalab/operators/wind.py
@@ -102,11 +103,12 @@
   - [ ] Make external base url actually work
   - [ ] Validate all config options on load/startup
   - [ ] Document which config options MUST be set for a prod deployment
+  - [ ] Allow to create an initial admin account
 
 ## Before enabling public signup
 
 - [ ] Improve email messages, include instance name and base URL
-- [ ] Password reset
+- [ ] Self serve password reset flow for users
 - [ ] Rate limiting for sensitive endpoints (login etc), or hint for deployment
 - [ ] Self-serve full data export for users
 - [ ] TOTP login for users
