@@ -13,7 +13,10 @@ const userSchema = z.object({
     .string()
     .min(3, "Min 3 characters")
     .max(32, "Max 32 characters")
-    .regex(/^[a-zA-Z_-]{3,32}$/, "Only letters, hyphens, and underscores"),
+    .regex(
+      /^[a-zA-Z0-9_-]{3,32}$/,
+      "Only letters, digits, hyphens, and underscores"
+    ),
   admin: z.boolean().optional(),
 })
 
