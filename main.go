@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/alexflint/go-arg"
-	"github.com/brianvoe/gofakeit/v7"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
@@ -295,7 +294,6 @@ func main() {
 			WriteTimeout:      20 * time.Second,
 			MaxHeaderBytes:    1 << 20,
 		}
-		logg.Warn(ctx, gofakeit.HackerPhrase())
 		logg.Info(ctx, "Listening on", "url", fmt.Sprintf("http://%s", s.Addr))
 		logg.Error(ctx, "ListenAndServe failed", "err", s.ListenAndServe())
 	}
