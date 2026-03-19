@@ -34,3 +34,10 @@ go tool air
 # http://127.0.0.1:8025/
 go tool MailHog
 ```
+
+# Docker
+
+```bash
+docker build -t detour .
+docker run -it --rm -p 8080:8080 --mount type=volume,src=detour-data,dst=/home/nonroot/data detour
+```

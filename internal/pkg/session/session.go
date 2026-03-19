@@ -56,9 +56,6 @@ func (c *SessionConfig) ValidateProduction() error {
 	if c.JWTSecret == "" {
 		return errors.New("--session-jwt-secret / SESSION_JWT_SECRET is required for production")
 	}
-	if c.CookieDomain == "" {
-		return errors.New("--session-cookie-domain / SESSION_COOKIE_DOMAIN is required for production")
-	}
 	return nil
 }
 

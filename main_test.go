@@ -80,12 +80,6 @@ func TestProductionConfigRejectsMissingFields(t *testing.T) {
 		require.ErrorContains(t, c.validateProduction(), "SESSION_JWT_SECRET")
 	})
 
-	t.Run("missing cookie domain", func(t *testing.T) {
-		c := minimalProductionConfig()
-		c.CookieDomain = ""
-		require.ErrorContains(t, c.validateProduction(), "SESSION_COOKIE_DOMAIN")
-	})
-
 	t.Run("missing mail from", func(t *testing.T) {
 		c := minimalProductionConfig()
 		c.From = ""

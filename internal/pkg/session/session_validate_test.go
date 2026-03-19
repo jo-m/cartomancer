@@ -60,10 +60,4 @@ func TestSessionConfigValidateProduction(t *testing.T) {
 		c.JWTSecret = ""
 		require.ErrorContains(t, c.ValidateProduction(), "SESSION_JWT_SECRET")
 	})
-
-	t.Run("missing cookie domain", func(t *testing.T) {
-		c := validSessionConfig()
-		c.CookieDomain = ""
-		require.ErrorContains(t, c.ValidateProduction(), "SESSION_COOKIE_DOMAIN")
-	})
 }

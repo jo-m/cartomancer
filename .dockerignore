@@ -1,0 +1,15 @@
+# Ignore everything by default.
+*
+
+# Go sources and config.
+!go.mod
+!go.sum
+!*.go
+!internal/
+
+# Frontend.
+!frontend/
+frontend/node_modules/
+
+# OpenAPI spec (needed by frontend build).
+!internal/pkg/rest/openapi.yaml
