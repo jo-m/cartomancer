@@ -1,4 +1,3 @@
-
 Readme for GeoNames Gazetteer extract files
 
 ============================================================================================================
@@ -138,4 +137,3 @@ https://forum.geonames.org/gforum/forums/show/6.page
 The forum : https://forum.geonames.org
 
 or the google group : https://groups.google.com/group/geonames
-
