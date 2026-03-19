@@ -380,6 +380,110 @@ func TestRunJobsPeriodic(t *testing.T) {
 	assert.Greater(t, len(results), 1)
 }
 
+func TestSubmitDebounce(t *testing.T) {
+	d := db.GetTestDB(t)
+	defer d.Close()
+	ctx, cancel := context.WithCancel(t.Context())
+	ctx = logg.WithTestLogger(ctx, t)
+	c := JobsConfig{
+		MaxParallel:       15,
+		AutoCleanupPeriod: 0,
+	}
+	defer cancel()
+
+	w, err := NewWorkers(ctx, d, c)
+	require.NoError(t, err)
+	j := newTestIntJob()
+	require.NoError(t, RegisterJob(w, j))
+
+	s := w.Submitter()
+	debounce := Params{DelayS: 2 * time.Second, Debounce: true}
+
+	// Submit the same job 5 times rapidly -- only the first should be created.
+	for range 5 {
+		require.NoError(t, Submit(ctx, s, TestIntArgs{Val: 42}, debounce))
+	}
+
+	// Only one job should exist in the DB.
+	jobs, err := d.QueryRO().GetJobs(ctx)
+	require.NoError(t, err)
+	assert.Len(t, jobs, 1)
+	assert.Equal(t, int64(2), jobs[0].DelayS)
+
+	// A job with different args should still be accepted.
+	require.NoError(t, Submit(ctx, s, TestIntArgs{Val: 99}, debounce))
+	jobs, err = d.QueryRO().GetJobs(ctx)
+	require.NoError(t, err)
+	assert.Len(t, jobs, 2)
+
+	// Start workers and wait for the delay + processing time.
+	w.RunInBackground(ctx)
+	results := slurp(j.cOK, 4*time.Second)
+	assert.Len(t, results, 2)
+	assert.Contains(t, results, 42)
+	assert.Contains(t, results, 99)
+}
+
+func TestSubmitDebounceExpiry(t *testing.T) {
+	d := db.GetTestDB(t)
+	defer d.Close()
+	ctx, cancel := context.WithCancel(t.Context())
+	ctx = logg.WithTestLogger(ctx, t)
+	c := JobsConfig{
+		MaxParallel:       15,
+		AutoCleanupPeriod: 0,
+	}
+	defer cancel()
+
+	w, err := NewWorkers(ctx, d, c)
+	require.NoError(t, err)
+	j := newTestIntJob()
+	require.NoError(t, RegisterJob(w, j))
+
+	s := w.Submitter()
+	debounce := Params{DelayS: 1 * time.Second, Debounce: true}
+
+	// Submit once.
+	require.NoError(t, Submit(ctx, s, TestIntArgs{Val: 1}, debounce))
+
+	// Start workers so the first job completes.
+	w.RunInBackground(ctx)
+	results := slurp(j.cOK, 3*time.Second)
+	assert.Len(t, results, 1)
+
+	// Wait for debounce window to expire.
+	time.Sleep(1 * time.Second)
+
+	// Submit again -- should be accepted since the window has passed.
+	require.NoError(t, Submit(ctx, s, TestIntArgs{Val: 1}, debounce))
+	results = slurp(j.cOK, 3*time.Second)
+	assert.Len(t, results, 1)
+}
+
+func TestSubmitDebounceValidation(t *testing.T) {
+	d := db.GetTestDB(t)
+	defer d.Close()
+	ctx, cancel := context.WithCancel(t.Context())
+	ctx = logg.WithTestLogger(ctx, t)
+	c := JobsConfig{
+		MaxParallel:       1,
+		AutoCleanupPeriod: 0,
+	}
+	defer cancel()
+
+	w, err := NewWorkers(ctx, d, c)
+	require.NoError(t, err)
+	require.NoError(t, RegisterJob(w, &TestIntJob{cOK: make(chan int, 10), cErr: make(chan int, 10)}))
+
+	s := w.Submitter()
+
+	err = Submit(ctx, s, TestIntArgs{}, Params{Debounce: true})
+	assert.ErrorContains(t, err, "debounce requires a positive DelayS")
+
+	err = Submit(ctx, s, TestIntArgs{}, Params{Debounce: true, DelayS: 0})
+	assert.ErrorContains(t, err, "debounce requires a positive DelayS")
+}
+
 type TestTimeArgs struct {
 	T0   time.Time
 	Fail string

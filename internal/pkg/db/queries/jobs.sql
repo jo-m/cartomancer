@@ -78,5 +78,13 @@ SELECT EXISTS(
   AND attempts < max_attempts
 ) AS active;
 
+-- name: HasRecentActiveJob :one
+SELECT EXISTS(
+  SELECT 1 FROM jobs
+  WHERE kind = ? AND args_json = ? AND status IN ('C', 'R', 'A', 'E')
+  AND attempts < max_attempts
+  AND Datetime(jobs.created_at) >= Datetime(@since)
+) AS active;
+
 -- name: GetJobRunnerPIDs :many
 SELECT * FROM job_runner_pid;

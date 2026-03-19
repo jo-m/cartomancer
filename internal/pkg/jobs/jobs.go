@@ -327,6 +327,11 @@ type Params struct {
 	// It must be in whole seconds (X * [time.Second]).
 	// Exponential backoff can be disabled by setting this value to 0.
 	BackofFactorS time.Duration
+	// Debounce enables deduplication within the [DelayS] window.
+	// When true, submitting a job with the same kind and args is silently dropped
+	// if a matching job was already submitted within the last [DelayS] period.
+	// Requires [DelayS] to be set to a positive value.
+	Debounce bool
 }
 
 func (c *Params) validate() error {
@@ -346,11 +351,17 @@ func (c *Params) validate() error {
 		return errors.New("backoff factor must be in whole seconds")
 	}
 
+	if c.Debounce && c.DelayS <= 0 {
+		return errors.New("debounce requires a positive DelayS")
+	}
+
 	return nil
 }
 
 // SubmitTx posts a job to the job queue with given args in the given database transaction,
 // to be scheduled with the given params.
+// When [Params.DebounceS] is set, the submission is silently skipped if a job with the same
+// kind and args was already submitted within the debounce window.
 func SubmitTx[T Args](ctx context.Context, s *Submitter, tx *db.Queries, jobArgs T, params Params) error {
 	if err := params.validate(); err != nil {
 		return err
@@ -365,6 +376,22 @@ func SubmitTx[T Args](ctx context.Context, s *Submitter, tx *db.Queries, jobArgs
 	argsJSON, err := json.Marshal(jobArgs)
 	if err != nil {
 		return fmt.Errorf("failed to marshal job args: %w", err)
+	}
+
+	if params.Debounce {
+		since := time.Now().Add(-params.DelayS)
+		active, err := tx.HasRecentActiveJob(ctx, db.HasRecentActiveJobParams{
+			Kind:     kind,
+			ArgsJson: string(argsJSON),
+			Since:    since,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to check for recent active job: %w", err)
+		}
+		if active == 1 {
+			logg.Debug(ctx, "Debounced job submission, duplicate dropped", "kind", kind)
+			return nil
+		}
 	}
 
 	_, err = tx.CreateJob(ctx, db.CreateJobParams{
