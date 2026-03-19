@@ -243,11 +243,11 @@ func main() {
 
 	// Insert test user in development mode.
 	if c.DevelopmentMode {
-		created, _, err := ensureInitialAdmin(ctx, d, "test@example.org", "asdf")
+		created, _, err := ensureInitialAdmin(ctx, d, app.DevInitialAdminEmail, app.DevInitialAdminPassword)
 		if err != nil {
 			logg.Warn(ctx, "Failed to create test user", "err", err)
 		} else if created {
-			logg.Info(ctx, "Created dev admin account", "email", "test@example.org", "password", "asdf")
+			logg.Info(ctx, "Created dev admin account", "email", app.DevInitialAdminEmail, "password", app.DevInitialAdminPassword)
 		}
 	}
 

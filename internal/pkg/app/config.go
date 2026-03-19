@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+const (
+	DevInitialAdminEmail    = "admin@example.com"
+	DevInitialAdminPassword = "admin"
+)
+
 // AppConfig contains application-wide configuration.
 // It has struct tags compatible with [github.com/alexflint/go-arg].
 //
@@ -49,6 +54,17 @@ func (c *AppConfig) Validate() error {
 	}
 	if c.TrackColor == "" {
 		return errors.New("--app-track-color / APP_TRACK_COLOR must not be empty")
+	}
+	return nil
+}
+
+// ValidateProduction checks that all settings required for a production deployment are set.
+func (c *AppConfig) ValidateProduction() error {
+	if c.ExternalBaseURL == "" {
+		return errors.New("--app-external-base-url / APP_EXTERNAL_BASE_URL is required for production")
+	}
+	if c.EmailJWTSecret == "" {
+		return errors.New("--app-email-jwt-secret / APP_EMAIL_JWT_SECRET is required for production")
 	}
 	return nil
 }

@@ -162,6 +162,9 @@ func Open(ctx context.Context, path string) (db *DB, err error) {
 	}
 	ro.SetMaxOpenConns(max(4, runtime.NumCPU()))
 
+	cwd, _ := os.Getwd()
+	logg.Info(ctx, "Opened database.", "path", path, "cwd", cwd)
+
 	// Prepare and run migrations.
 	files, err := fs.Sub(embedMigrations, migrations)
 	if err != nil {
