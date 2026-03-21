@@ -275,6 +275,7 @@ Keep it very simple and barebones.
 - All links, including nav etc. must be proper `<a>` links such that right click, open in new tab etc. work as expected.
 - URL paths used in the router should generally roughly mirror those from the API. E.g. the tracks upload page (POST /api/tracks) should be at /tracks/uploads.
 - Error handling: Unless API errors have some separate handling mechanism like e.g. the failed uploads list on the upload page, use the toast element (frontend/src/components/Toast.tsx) to forward API errors to the user.
+- NEVER must any assets in the frontend be loaded from a third party domain. All assets must be included in the build.
 
 ## Linting
 
@@ -289,6 +290,6 @@ After every change, `npm run check` MUST run successfully.
   - MUST document function parameters, return values, and exceptions raised
   - Keep comments up-to-date with code changes
 - MUST use meaningful, descriptive variable and function names
-- NEVER use emoji, or unicode that emulates emoji (e.g. ✓, ✗). The only exception is when writing tests and testing the impact of multibyte characters.  
-- MUST avoid including redundant comments which are tautological or self-demonstating (e.g. cases where it is easily parsable what the code does at a glance so the comment does)
+- NEVER use emoji, or unicode that emulates emoji in the source code (e.g. ✓, ✗). The only exception is when writing tests and testing the impact of multibyte characters.  
+- MUST avoid including redundant comments which are tautological or self-demonstrating (e.g. cases where it is easily parsable what the code does at a glance so the comment does)
 - MUST avoid including comments which leak what this file contains, or leak the original user prompt, ESPECIALLY if it's irrelevant to the output code.

@@ -1,5 +1,8 @@
+Your personal GPX tracks library.
+
 # Features
 
+- Easy to selfhost, selfcontained in a single binary
 - Weather forecasts (currently only [MeteoSwiss](https://opendatadocs.meteoswiss.ch/de/))
 - Map view (currently only [SwissTopo](https://map.geo.admin.ch/))
 - Reverse geocoding

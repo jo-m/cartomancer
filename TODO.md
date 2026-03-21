@@ -65,6 +65,7 @@
   - [ ] Nicer UI for track editing
   - [ ] In `App.tsx` let `QueryClient` use `staleTime`.
   - [ ] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
+  - [ ] Frontend aria/accessibility
 
 ## Test (manually)
 
@@ -131,22 +132,14 @@
 - [ ] On long tracks track on map is now imprecise when zooming in
 - [ ] Track sharing link with limited time (JWT)
 
-## To enable additional weather providers
-
-- [ ] Add provider name to database
-- [ ] Make data attribution go through database
-
 ## Periodic
 
 - [ ] Review
   - [ ] Docstrings, go doc links `[]` https://tip.golang.org/doc/comment, `go run golang.org/x/pkgsite/cmd/pkgsite@latest -open`
   - [ ] OWASP Top 10
-  - [ ] Authn/authz
-  - [ ] Login and sessions handling
-  - [ ] API endpoints permissions handling
+  - [ ] Authn/authz, Login and sessions handling, API endpoints permissions handling
   - [ ] Generic Golang style/architecture issues
   - [ ] State handling in frontend
-  - [ ] Frontend aria/accessibility
   - [ ] Update CLAUDE.md and README.md
   - [ ] Review all the panic()s (main.go, tests, and some special cases are ok)
   - [ ] Review any SQL queries which are not in sqlc
