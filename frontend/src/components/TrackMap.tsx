@@ -198,15 +198,19 @@ export default memo(function TrackMap({
     }
   }, [points, color])
 
-  // Find nearest track point to a map coordinate.
+  // Find nearest track point within a pixel threshold of the pointer.
   const findNearest = useCallback((pixel: number[]) => {
     const map = mapInstance.current
     if (!map) return null
     const coord = map.getCoordinateFromPixel(pixel)
     if (!coord) return null
 
+    const resolution = map.getView().getResolution() ?? 1
+    const maxDist = 20 * resolution // 20px tolerance in map units.
+    const maxDistSq = maxDist * maxDist
+
     const coords = coordsRef.current
-    let bestIdx = 0
+    let bestIdx = -1
     let bestDist = Infinity
     for (let i = 0; i < coords.length; i++) {
       const dx = coords[i][0] - coord[0]
@@ -217,7 +221,7 @@ export default memo(function TrackMap({
         bestIdx = i
       }
     }
-    return bestIdx
+    return bestDist <= maxDistSq ? bestIdx : null
   }, [])
 
   // Pointer move handler.
