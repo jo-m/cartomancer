@@ -1095,13 +1095,6 @@ func (sv *server) handleEditingComplete(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Schedule track grouping with debounce so rapid uploads are coalesced.
-	if submitErr := jobs.Submit(ctx, sv.jobSubmitter, trackgroup.GrouperArgs{
-		UserID: user.Uuid,
-	}, jobs.Params{DelayS: 1 * time.Minute, Debounce: true}); submitErr != nil {
-		logg.Error(ctx, "failed to submit grouper job", "err", submitErr)
-	}
-
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -1344,6 +1337,13 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		TrackID: created.Uuid,
 	}, jobs.Params{MaxRetries: 2}); submitErr != nil {
 		logg.Error(ctx, "failed to submit labeler job", "err", submitErr)
+	}
+
+	// Schedule track grouping with debounce so rapid uploads are coalesced.
+	if submitErr := jobs.Submit(ctx, sv.jobSubmitter, trackgroup.GrouperArgs{
+		UserID: user.Uuid,
+	}, jobs.Params{DelayS: 1 * time.Minute, Debounce: true}); submitErr != nil {
+		logg.Error(ctx, "failed to submit grouper job", "err", submitErr)
 	}
 
 	writeJSON(w, http.StatusCreated, trackResponseFromDB(db.TrackWithStarred{
