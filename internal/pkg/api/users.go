@@ -149,6 +149,10 @@ func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The password check deliberately runs on the RO pool outside the write
+	// transaction. This is a minor TOCTOU gap (the hash could change between
+	// the check and the update), but argon2id is intentionally kept out of the
+	// write tx to avoid blocking the single-writer SQLite connection.
 	u, err := sv.d.QueryRO().GetUser(ctx, user.Uuid)
 	if err != nil {
 		logg.Error(ctx, "failed to get user", "err", err)
@@ -222,6 +226,10 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The password check deliberately runs on the RO pool outside the write
+	// transaction. This is a minor TOCTOU gap (the hash could change between
+	// the check and the update), but argon2id is intentionally kept out of the
+	// write tx to avoid blocking the single-writer SQLite connection.
 	u, err := sv.d.QueryRO().GetUser(ctx, user.Uuid)
 	if err != nil {
 		logg.Error(ctx, "failed to get user", "err", err)
