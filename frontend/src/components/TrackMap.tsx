@@ -10,7 +10,7 @@ import { LineString, Point } from "ol/geom"
 import { register } from "ol/proj/proj4"
 import { get as getProjection } from "ol/proj"
 import proj4 from "proj4"
-import { Circle, Fill, Stroke, Style } from "ol/style"
+import { Circle, Fill, Icon, Stroke, Style } from "ol/style"
 import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
 
 import type { HoverStore } from "../hooks/useHoverSync"
@@ -26,6 +26,61 @@ register(proj4)
 const lv95 = getProjection("EPSG:2056")!
 
 const markerHiddenStyle = new Style({})
+
+const startStyle = new Style({
+  image: new Circle({
+    radius: 7,
+    fill: new Fill({ color: "#22c55e" }),
+    stroke: new Stroke({ color: "#ffffff", width: 2 }),
+  }),
+})
+
+/** Builds a checkerboard circle icon rendered on a canvas. */
+function buildEndStyleCanvas(): HTMLCanvasElement {
+  const size = 18
+  const canvas = document.createElement("canvas")
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext("2d")!
+  const cx = size / 2
+  const r = size / 2 - 1
+
+  // White base circle.
+  ctx.beginPath()
+  ctx.arc(cx, cx, r, 0, Math.PI * 2)
+  ctx.fillStyle = "#ffffff"
+  ctx.fill()
+
+  // Clip to inner circle, draw 4x4 checkerboard.
+  ctx.save()
+  ctx.beginPath()
+  ctx.arc(cx, cx, r - 1, 0, Math.PI * 2)
+  ctx.clip()
+  const cell = (size - 4) / 4
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      ctx.fillStyle = (row + col) % 2 === 0 ? "#1f2937" : "#ffffff"
+      ctx.fillRect(2 + col * cell, 2 + row * cell, cell, cell)
+    }
+  }
+  ctx.restore()
+
+  // White border ring.
+  ctx.beginPath()
+  ctx.arc(cx, cx, r, 0, Math.PI * 2)
+  ctx.strokeStyle = "#ffffff"
+  ctx.lineWidth = 2
+  ctx.stroke()
+
+  return canvas
+}
+
+const endStyle = new Style({
+  image: new Icon({
+    img: buildEndStyleCanvas(),
+    anchor: [0.5, 0.5],
+  }),
+})
 
 interface TrackPoint {
   lat: number
@@ -87,7 +142,16 @@ export default memo(function TrackMap({
       new Style({ stroke: new Stroke({ color, width: 4 }) }),
     ])
 
-    const vectorSource = new VectorSource({ features: [trackFeature] })
+    const startFeature = new Feature({ geometry: new Point(coords[0]) })
+    startFeature.setStyle(startStyle)
+    const endFeature = new Feature({
+      geometry: new Point(coords[coords.length - 1]),
+    })
+    endFeature.setStyle(endStyle)
+
+    const vectorSource = new VectorSource({
+      features: [trackFeature, startFeature, endFeature],
+    })
 
     const marker = new Feature({ geometry: new Point(coords[0]) })
     marker.setStyle(markerHiddenStyle)
