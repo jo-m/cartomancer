@@ -76,7 +76,7 @@
 
 - [x] Periodic db `.backup` (atomic via mv)
 - [x] Allow to create an initial admin account (allow setting password only in dev mode)
-- [ ] Demo mode, locks user table via trigger, insert some initial data, delete data periodically
+- [x] Demo mode, locks user table via trigger, insert some initial data, delete data periodically
 - [x] Disable public signup by default
 - [ ] Uncomment all the checks/linters in make check
 - [x] Log message cleanup and unification (case, punctuation)

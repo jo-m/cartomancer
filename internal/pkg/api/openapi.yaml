@@ -1985,6 +1985,7 @@ components:
         - instanceName
         - trackColor
         - registrationEnabled
+        - demoMode
       properties:
         externalBaseUrl:
           type: string
@@ -1994,6 +1995,15 @@ components:
           type: string
         registrationEnabled:
           type: boolean
+        demoMode:
+          type: boolean
+          description: Whether the instance is running in demo mode.
+        demoEmail:
+          type: string
+          description: Demo login email (only present when demoMode is true).
+        demoPassword:
+          type: string
+          description: Demo login password (only present when demoMode is true).
 
     RegisterRequest:
       type: object

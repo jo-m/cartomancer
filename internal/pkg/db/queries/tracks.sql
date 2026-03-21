@@ -1,6 +1,9 @@
 -- name: DeleteTrack :exec
 DELETE FROM tracks WHERE uuid = ?;
 
+-- name: DeleteAllTracks :execrows
+DELETE FROM tracks;
+
 -- name: CreateTrack :one
 INSERT INTO tracks (
   uuid, created_at, updated_at, user_id, blob_id, file_format, original_filename,

@@ -38,6 +38,20 @@ export default function Login() {
     <div className="flex min-h-[calc(100vh-57px)] items-center justify-center">
       <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
         <h1 className="mb-6 text-xl font-semibold text-gray-900">Sign in</h1>
+        {appConfig?.demoMode && appConfig.demoEmail && (
+          <div className="mb-4 rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+            <p className="font-medium">Demo instance</p>
+            <p>Data is periodically deleted. Users cannot be modified.</p>
+            <br />
+            <p>
+              Email: <code className="font-mono">{appConfig.demoEmail}</code>
+            </p>
+            <p>
+              Password:{" "}
+              <code className="font-mono">{appConfig.demoPassword}</code>
+            </p>
+          </div>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">

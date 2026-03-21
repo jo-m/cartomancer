@@ -39,6 +39,13 @@ type AppConfig struct {
 	// on startup if no user with this email exists yet.
 	// A random password is generated and logged once.
 	InitAdminEmail string `arg:"--app-init-admin-email,env:APP_INIT_ADMIN_EMAIL" default:"" help:"Email for the initial admin account created on first startup" placeholder:"EMAIL"`
+	// DemoMode enables a read-only demo instance.
+	// Users and email verifications are locked via database triggers (only last_login_at,
+	// last_active_at, and sessions are allowed to change), and all tracks are deleted
+	// every 30 minutes by a periodic job.
+	// A .demo suffix is appended to the database path to prevent accidental overwrites.
+	// Cannot be active together with DevelopmentMode.
+	DemoMode bool `arg:"--app-demo-mode,env:APP_DEMO_MODE" default:"false" help:"Enable demo mode (locks users, periodically deletes tracks, uses .demo DB suffix)"`
 	// TrackColor is the stroke color used for all track preview SVGs.
 	// Accepts a CSS hex value (e.g. "#f00", "#rrggbb") or "currentColor".
 	TrackColor string `arg:"--app-track-color,env:APP_TRACK_COLOR" default:"currentColor" help:"Stroke color for track preview SVGs, CSS hex or currentColor" placeholder:"COLOR"`
@@ -54,6 +61,9 @@ func (c *AppConfig) Validate() error {
 	}
 	if c.TrackColor == "" {
 		return errors.New("--app-track-color / APP_TRACK_COLOR must not be empty")
+	}
+	if c.DemoMode && c.DevelopmentMode {
+		return errors.New("--app-demo-mode / APP_DEMO_MODE and --app-dev-mode / APP_DEV_MODE cannot both be enabled")
 	}
 	return nil
 }

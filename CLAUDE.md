@@ -82,6 +82,7 @@ Simple internal enums, where the logic/state is managed from within SQL queries 
 "App" enums which are managed from Go code are integers, declared with iota.
 Most tables have created_at, updated_at, created_by.
 IMPORTANT: When adding or changing columns in existing tables, you MUST ask the operator first if an existing migration should be edited, or a new one created.
+IMPORTANT: When adding new columns to the `users` or `email_verifications` tables, check whether those columns need to be included in the demo mode trigger lockdown in `internal/pkg/app/demo.go` (`demo_users_no_update` trigger's WHEN clause).
 
 ### Connection model
 

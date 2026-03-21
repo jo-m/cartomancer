@@ -215,6 +215,12 @@ func main() {
 	}
 	ctx = logg.WithLogger(ctx, logg.New(c.LoggConfig))
 
+	// In demo mode, use a separate database file to avoid overwriting production data.
+	if c.DemoMode {
+		c.DBPath += ".demo"
+		logg.Warn(ctx, "demo mode: using separate database", "path", c.DBPath)
+	}
+
 	// Migrations.
 	d, err := db.Open(ctx, c.DBPath)
 	if err != nil {
@@ -240,13 +246,20 @@ func main() {
 		logg.Error(ctx, "APP_EMAIL_JWT_SECRET not set, using a random ephemeral secret (pending email verifications will not survive restarts)")
 	}
 
-	// Insert test user in development mode.
-	if c.DevelopmentMode {
+	// Insert test user in development or demo mode (must happen before demo triggers).
+	if c.DevelopmentMode || c.DemoMode {
 		created, _, err := ensureInitialAdmin(ctx, d, app.DevInitialAdminEmail, app.DevInitialAdminPassword)
 		if err != nil {
-			logg.Warn(ctx, "Failed to create test user", "err", err)
+			logg.Warn(ctx, "Failed to create dev user", "err", err)
 		} else if created {
-			logg.Info(ctx, "Created dev admin account", "email", app.DevInitialAdminEmail, "password", app.DevInitialAdminPassword)
+			logg.Info(ctx, "Created dev user", "email", app.DevInitialAdminEmail, "password", app.DevInitialAdminPassword)
+		}
+	}
+
+	// Install demo mode triggers to lock down user tables.
+	if c.DemoMode {
+		if err := app.InstallDemoTriggers(ctx, d.RW()); err != nil {
+			logg.Panic(ctx, "Failed to install demo triggers", "err", err)
 		}
 	}
 
@@ -268,6 +281,7 @@ func main() {
 		logg.Panic(ctx, "Failed to initialize workers", "err", err)
 	}
 
+	// TODO: Reorder.
 	jobs.MustRegisterJob(w, session.NewCleaner(d))
 	jobs.MustRegisterJob(w, mail.NewMailer(c.MailerConfig))
 	jobs.MustRegisterJob(w, users.NewEmailVerificationCleaner(d))
@@ -276,13 +290,23 @@ func main() {
 	jobs.MustRegisterJob(w, geocode.NewDownloader(d))
 	jobs.MustRegisterJob(w, geocode.NewLabeler(d))
 	jobs.MustRegisterJob(w, trackgroup.NewGrouper(d))
-	jobs.MustRegisterJob(w, db.NewBackup(d, c.DBPath))
+	if !c.DemoMode {
+		jobs.MustRegisterJob(w, db.NewBackup(d, c.DBPath))
+	}
 	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, time.Hour, true)
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.CleanerArgs(), time.Hour, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), geocode.DownloaderArgs{}, 7*24*time.Hour, true)
-	jobs.Periodic(ctxJobs, w.Submitter(), db.BackupArgs{}, 24*time.Hour, false)
+	if !c.DemoMode {
+		jobs.Periodic(ctxJobs, w.Submitter(), db.BackupArgs{}, 24*time.Hour, false)
+	}
+
+	if c.DemoMode {
+		jobs.MustRegisterJob(w, app.NewDemoTrackPurger(d))
+		jobs.Periodic(ctxJobs, w.Submitter(), app.DemoTrackPurgeArgs{}, app.DemoTrackPurgePeriod, false)
+		logg.Warn(ctx, "demo mode is active: users are locked, tracks will be purged periodically")
+	}
 
 	// TODO: clean shutdown via context.
 	w.RunInBackground(ctxJobs)
