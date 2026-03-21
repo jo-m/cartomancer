@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/alexflint/go-arg"
@@ -281,24 +283,26 @@ func main() {
 		logg.Panic(ctx, "Failed to initialize workers", "err", err)
 	}
 
-	// TODO: Reorder.
 	jobs.MustRegisterJob(w, session.NewCleaner(d))
+	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute, false)
+
 	jobs.MustRegisterJob(w, mail.NewMailer(c.MailerConfig))
 	jobs.MustRegisterJob(w, users.NewEmailVerificationCleaner(d))
+	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour, false)
+
 	jobs.MustRegisterJob(w, meteo.NewDownloader(d))
+	jobs.Periodic(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, time.Hour, true)
 	jobs.MustRegisterJob(w, meteo.NewCleaner(d))
+	jobs.Periodic(ctxJobs, w.Submitter(), meteo.CleanerArgs(), time.Hour, false)
+
 	jobs.MustRegisterJob(w, geocode.NewDownloader(d))
+	jobs.Periodic(ctxJobs, w.Submitter(), geocode.DownloaderArgs{}, 7*24*time.Hour, true)
 	jobs.MustRegisterJob(w, geocode.NewLabeler(d))
+
 	jobs.MustRegisterJob(w, trackgroup.NewGrouper(d))
+
 	if !c.DemoMode {
 		jobs.MustRegisterJob(w, db.NewBackup(d, c.DBPath))
-	}
-	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute, false)
-	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour, false)
-	jobs.Periodic(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, time.Hour, true)
-	jobs.Periodic(ctxJobs, w.Submitter(), meteo.CleanerArgs(), time.Hour, false)
-	jobs.Periodic(ctxJobs, w.Submitter(), geocode.DownloaderArgs{}, 7*24*time.Hour, true)
-	if !c.DemoMode {
 		jobs.Periodic(ctxJobs, w.Submitter(), db.BackupArgs{}, 24*time.Hour, false)
 	}
 
@@ -308,19 +312,35 @@ func main() {
 		logg.Warn(ctx, "demo mode is active: users are locked, tracks will be purged periodically")
 	}
 
-	// TODO: clean shutdown via context.
-	w.RunInBackground(ctxJobs)
+	// Start job runner and HTTP server.
 
-	{
-		s := &http.Server{
-			Addr:              c.HTTPListenAddr,
-			Handler:           newHandler(ctx, d, c.SessionConfig, c.AppConfig, w.Submitter()),
-			ReadHeaderTimeout: 10 * time.Second,
-			ReadTimeout:       20 * time.Second,
-			WriteTimeout:      20 * time.Second,
-			MaxHeaderBytes:    1 << 20,
-		}
-		logg.Info(ctx, "Listening on", "url", fmt.Sprintf("http://%s", s.Addr))
-		logg.Error(ctx, "ListenAndServe failed", "err", s.ListenAndServe())
+	ctxShutdown, stop := signal.NotifyContext(ctxJobs, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	w.RunInBackground(ctxShutdown)
+
+	s := &http.Server{
+		Addr:              c.HTTPListenAddr,
+		Handler:           newHandler(ctx, d, c.SessionConfig, c.AppConfig, w.Submitter()),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       20 * time.Second,
+		WriteTimeout:      20 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
+
+	go func() {
+		<-ctxShutdown.Done()
+		logg.Info(ctx, "Shutting down HTTP server")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := s.Shutdown(shutdownCtx); err != nil {
+			logg.Error(ctx, "HTTP server shutdown error", "err", err)
+		}
+	}()
+
+	logg.Info(ctx, "Listening on", "url", fmt.Sprintf("http://%s", s.Addr))
+	if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logg.Error(ctx, "ListenAndServe failed", "err", err)
+	}
+	logg.Info(ctx, "Server stopped")
 }

@@ -1182,7 +1182,6 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// TODO: Not necessary to buffer to memory here.
 	content, err := io.ReadAll(file)
 	if err != nil {
 		logg.Error(ctx, "failed to read uploaded file", "err", err)

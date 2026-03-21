@@ -128,7 +128,6 @@ func (t *Track) computeElevationBounds() (minM, maxM *float64) {
 	return &lo, &hi
 }
 
-// TODO: Make those configurable per user.
 const (
 	defaultBikeSubSport = SubSportCyclingRoad
 	defaultRunSubSport  = SubSportRunningOutdoor

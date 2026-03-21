@@ -1,6 +1,5 @@
 import TrackGrid from "../components/TrackGrid"
 
-// TODO: Rename to "Tracks" (?).
-export default function Home() {
+export default function Tracks() {
   return <TrackGrid mode="public" />
 }

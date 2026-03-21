@@ -30,7 +30,11 @@ var embedMigrations embed.FS
 
 func buildDSN(path string, readOnly bool, busyTimeout time.Duration) string {
 	query := url.Values{}
-	query.Add("_txlock", "deferred") // TODO: Immediate?
+	if readOnly {
+		query.Add("_txlock", "deferred")
+	} else {
+		query.Add("_txlock", "immediate")
+	}
 	query.Add("_time_format", "sqlite")
 	query.Add("_busy_timeout", fmt.Sprint(busyTimeout.Milliseconds()))
 	if readOnly {

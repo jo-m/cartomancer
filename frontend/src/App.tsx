@@ -9,7 +9,7 @@ import {
 } from "./components/ProtectedRoute"
 import Layout from "./components/Layout"
 import Welcome from "./pages/Welcome"
-import Home from "./pages/Home"
+import Tracks from "./pages/Tracks"
 import Login from "./pages/Login"
 import Register from "./pages/Register"
 import ConfirmEmail from "./pages/ConfirmEmail"
@@ -49,7 +49,7 @@ export default function App() {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Welcome />} />
-              <Route path="/tracks" element={<Home />} />
+              <Route path="/tracks" element={<Tracks />} />
               <Route
                 path="/login"
                 element={

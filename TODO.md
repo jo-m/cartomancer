@@ -93,7 +93,7 @@
   - [x] Systematically add online unit tests which ensure the license has not changed.
 - [ ] Update README.md
 - [ ] Fixup/autosquash
-- [ ] Grep for TODO in code
+- [x] Grep for TODO in code
 - [x] SQLite without rowid? https://sqlite.org/withoutrowid.html
 - [ ] Go through the periodic TODOs
 
