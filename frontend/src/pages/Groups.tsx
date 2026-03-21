@@ -9,7 +9,8 @@ export default function Groups() {
     <div className="mx-auto max-w-5xl px-4 py-6">
       <h1 className="text-lg font-semibold text-gray-900">Groups</h1>
       <p className="mt-1 text-sm text-gray-500">
-        Tracks grouped by similarity.
+        Tracks grouped by similarity. New uploads may take a few minutes to
+        appear in groups.
       </p>
 
       {isLoading && <p className="mt-6 text-sm text-gray-500">Loading...</p>}

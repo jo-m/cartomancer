@@ -1098,7 +1098,7 @@ func (sv *server) handleEditingComplete(w http.ResponseWriter, r *http.Request) 
 	// Schedule track grouping with debounce so rapid uploads are coalesced.
 	if submitErr := jobs.Submit(ctx, sv.jobSubmitter, trackgroup.GrouperArgs{
 		UserID: user.Uuid,
-	}, jobs.Params{DelayS: 5 * time.Minute, Debounce: true}); submitErr != nil {
+	}, jobs.Params{DelayS: 1 * time.Minute, Debounce: true}); submitErr != nil {
 		logg.Error(ctx, "failed to submit grouper job", "err", submitErr)
 	}
 
