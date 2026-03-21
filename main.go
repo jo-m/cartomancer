@@ -276,11 +276,13 @@ func main() {
 	jobs.MustRegisterJob(w, geocode.NewDownloader(d))
 	jobs.MustRegisterJob(w, geocode.NewLabeler(d))
 	jobs.MustRegisterJob(w, trackgroup.NewGrouper(d))
+	jobs.MustRegisterJob(w, db.NewBackup(d, c.DBPath))
 	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, time.Hour, true)
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.CleanerArgs(), time.Hour, false)
 	jobs.Periodic(ctxJobs, w.Submitter(), geocode.DownloaderArgs{}, 7*24*time.Hour, true)
+	jobs.Periodic(ctxJobs, w.Submitter(), db.BackupArgs{}, 24*time.Hour, false)
 
 	// TODO: clean shutdown via context.
 	w.RunInBackground(ctxJobs)
