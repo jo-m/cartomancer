@@ -48,12 +48,13 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 	e.createUser("alice@example.com", "Alice", "secret", false)
 	client := e.newClient()
 
+	// Returns 201 even for duplicate email to prevent email enumeration.
 	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "alice@example.com",
 		"name":     "Another-Alice",
 		"password": "secret123",
 	}, nil)
-	assert.Equal(t, http.StatusConflict, status)
+	assert.Equal(t, http.StatusCreated, status)
 }
 
 func TestRegister_Confirm_Login(t *testing.T) {
@@ -290,13 +291,14 @@ func TestRegister_ReregisterBeforeConfirm(t *testing.T) {
 	}, nil)
 	require.Equal(t, http.StatusCreated, status)
 
-	// Second attempt with same email fails even though the account is not yet confirmed.
+	// Second attempt with same email returns 201 to prevent email enumeration.
+	// The existing user receives a notification email instead.
 	status, _ = e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "user@example.com",
 		"name":     "Other-Alice",
 		"password": "secret123",
 	}, nil)
-	assert.Equal(t, http.StatusConflict, status)
+	assert.Equal(t, http.StatusCreated, status)
 }
 
 func TestConfirmEmail_ExpiredToken(t *testing.T) {

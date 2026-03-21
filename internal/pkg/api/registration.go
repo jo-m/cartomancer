@@ -91,17 +91,32 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now().UTC()
 
+	// Check if name is already taken before the main transaction, so we can
+	// return a distinct error without leaking email existence.
+	_, err = sv.d.QueryRO().GetUserByName(ctx, req.Name)
+	if err == nil {
+		writeError(w, http.StatusConflict, "name already taken")
+		return
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		logg.Error(ctx, "failed to check name availability", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	var emailAlreadyTaken bool
 	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
 		// Check if email is already taken.
 		_, txErr := q.GetUserByEmail(ctx, req.Email)
 		if txErr == nil {
-			return errEmailTaken
+			emailAlreadyTaken = true
+			return nil
 		}
 		if !errors.Is(txErr, sql.ErrNoRows) {
 			return txErr
 		}
 
-		// Check if name is already taken (case-insensitive).
+		// Re-check name within the transaction to avoid TOCTOU.
 		_, txErr = q.GetUserByName(ctx, req.Name)
 		if txErr == nil {
 			return errNameTaken
@@ -133,10 +148,6 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		})
 		return txErr
 	})
-	if errors.Is(err, errEmailTaken) {
-		writeError(w, http.StatusConflict, "email already taken")
-		return
-	}
 	if errors.Is(err, errNameTaken) {
 		writeError(w, http.StatusConflict, "name already taken")
 		return
@@ -144,6 +155,21 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logg.Error(ctx, "failed to register user", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	if emailAlreadyTaken {
+		// Send a notification to the existing user instead of a confirmation link.
+		// Return the same response to prevent email enumeration.
+		err = jobs.Submit(ctx, sv.jobSubmitter, mail.Args{
+			To:      []string{req.Email},
+			Subject: "Registration attempt",
+			Body:    "Someone tried to create an account with your email address. If this was you, you can log in with your existing credentials. If not, you can safely ignore this message.\n",
+		}, jobs.Params{MaxRetries: 3})
+		if err != nil {
+			logg.Error(ctx, "failed to submit registration-attempt email job", "err", err)
+		}
+		writeJSON(w, http.StatusCreated, msgResponse{Msg: "check your email"})
 		return
 	}
 
