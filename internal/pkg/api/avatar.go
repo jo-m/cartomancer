@@ -36,16 +36,16 @@ func (sv *server) handleGetUserAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	eTag := fmt.Sprintf(`"%s-v0"`, u.AvatarSeed)
-	if r.Header.Get("If-None-Match") == eTag {
+	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
 	svg := []byte(avatars.MakeAvatar(u.AvatarSeed))
-	w.Header().Set("Content-Type", "image/svg+xml")
-	w.Header().Set("Cache-Control", "public, max-age=86400")
-	w.Header().Set("ETag", eTag)
-	w.Header().Set("Content-Length", strconv.Itoa(len(svg)))
+	w.Header().Set(headerContentType, "image/svg+xml")
+	w.Header().Set(headerCacheControl, "public, max-age=86400")
+	w.Header().Set(headerETag, eTag)
+	w.Header().Set(headerContentLength, strconv.Itoa(len(svg)))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(svg)
 }

@@ -15,8 +15,8 @@ import "net/http"
 func rejectCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions &&
-			r.Header.Get("Origin") != "" &&
-			r.Header.Get("Access-Control-Request-Method") != "" {
+			r.Header.Get(headerOrigin) != "" &&
+			r.Header.Get(headerACRMethod) != "" {
 			writeError(w, http.StatusForbidden, "cross-origin requests are not allowed")
 			return
 		}

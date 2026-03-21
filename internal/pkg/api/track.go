@@ -286,7 +286,7 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 
 	// Compute ETag before the expensive blob load so 304s are cheap.
 	eTag := fmt.Sprintf(`"%d-%d-%s-v0"`, t.UpdatedAt.UnixMilli(), opts.Size, opts.Color)
-	if r.Header.Get("If-None-Match") == eTag {
+	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -318,10 +318,10 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 	}
 
 	svg := []byte(tr.PreviewSVG(opts, bounds))
-	w.Header().Set("Content-Type", "image/svg+xml")
-	w.Header().Set("Cache-Control", "private, max-age=3600")
-	w.Header().Set("ETag", eTag)
-	w.Header().Set("Content-Length", strconv.Itoa(len(svg)))
+	w.Header().Set(headerContentType, "image/svg+xml")
+	w.Header().Set(headerCacheControl, "private, max-age=3600")
+	w.Header().Set(headerETag, eTag)
+	w.Header().Set(headerContentLength, strconv.Itoa(len(svg)))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(svg)
 }
@@ -356,7 +356,7 @@ func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.R
 
 	// Compute ETag before the expensive blob load so 304s are cheap.
 	eTag := fmt.Sprintf(`"%d-%d-%s-v0"`, t.UpdatedAt.UnixMilli(), opts.Size, opts.Color)
-	if r.Header.Get("If-None-Match") == eTag {
+	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -378,10 +378,10 @@ func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.R
 	tr := track.New(src, 0)
 
 	svg := []byte(tr.ProfileSVG(opts))
-	w.Header().Set("Content-Type", "image/svg+xml")
-	w.Header().Set("Cache-Control", "private, max-age=3600")
-	w.Header().Set("ETag", eTag)
-	w.Header().Set("Content-Length", strconv.Itoa(len(svg)))
+	w.Header().Set(headerContentType, "image/svg+xml")
+	w.Header().Set(headerCacheControl, "private, max-age=3600")
+	w.Header().Set(headerETag, eTag)
+	w.Header().Set(headerContentLength, strconv.Itoa(len(svg)))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(svg)
 }
@@ -435,7 +435,7 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 	}
 
 	eTag := fmt.Sprintf(`"%d-points-v3"`, t.UpdatedAt.UnixMilli())
-	if r.Header.Get("If-None-Match") == eTag {
+	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -468,8 +468,8 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 		points[i] = trackPoint{Lat: p.Lat, Lon: p.Lon, Ele: p.Elevation, D: cumDist}
 	}
 
-	w.Header().Set("Cache-Control", "private, max-age=3600")
-	w.Header().Set("ETag", eTag)
+	w.Header().Set(headerCacheControl, "private, max-age=3600")
+	w.Header().Set(headerETag, eTag)
 	writeJSON(w, http.StatusOK, map[string]any{"points": points})
 }
 

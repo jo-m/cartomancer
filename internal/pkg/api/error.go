@@ -10,10 +10,6 @@ import (
 
 var errUnsupportedMediaType = errors.New("Content-Type must be application/json")
 
-var (
-	headerContentType = http.CanonicalHeaderKey("Content-Type")
-)
-
 // ErrorJSON is the standard error response body.
 type ErrorJSON struct {
 	Msg string `json:"msg"`
