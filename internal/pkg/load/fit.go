@@ -37,7 +37,7 @@ func parseFitActivity(filename string, r io.ReadSeeker) (*filedef.Activity, erro
 	i := 0
 	for dec.Next() {
 		if i > 0 {
-			panic("not handled")
+			return nil, fmt.Errorf("FIT file '%s' contains multiple activities, which is not supported", filename)
 		}
 
 		_, err := dec.Decode()
@@ -147,7 +147,7 @@ func (f *Activity) Metadata() track.Metadata {
 	case typedef.SportCycling:
 		ret.Sport = track.SportCycling
 	default:
-		panic(fmt.Sprintf("unknown sport %d", sess.Sport))
+		ret.Sport = track.SportUnknown
 	}
 
 	if id := activityID.FindAllString(f.filename, -1); len(id) == 1 {
@@ -180,7 +180,7 @@ func (f *Activity) Metadata() track.Metadata {
 	case typedef.SubSportInvalid:
 		ret.SubSport = track.SubSportUnknown
 	default:
-		panic(fmt.Sprintf("unknown sub sport %d", sess.SubSport))
+		ret.SubSport = track.SubSportUnknown
 	}
 
 	if sess.TotalAscent != math.MaxUint16 {
