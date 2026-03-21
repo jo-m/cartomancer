@@ -32,7 +32,7 @@ func MustGetUser(ctx context.Context) db.User {
 	}
 
 	logg.Panic(ctx, "No user attached to context")
-	panic("")
+	return db.User{} // unreachable
 }
 
 type ctxKeySession struct{}
@@ -58,7 +58,7 @@ func MustGet(ctx context.Context) db.Session {
 	}
 
 	logg.Panic(ctx, "No session attached to context")
-	panic("")
+	return db.Session{} // unreachable
 }
 
 type ctxKeyRequest struct{}
@@ -84,5 +84,5 @@ func mustGetRequest(ctx context.Context) requestCtx {
 	}
 
 	logg.Panic(ctx, "No request attached to context")
-	panic("")
+	return requestCtx{} // unreachable
 }

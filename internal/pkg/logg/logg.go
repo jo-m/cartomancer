@@ -98,6 +98,8 @@ func Err(ctx context.Context, msg string, err error, attrs ...any) {
 }
 
 // Panic logs via the logger in the context and panics.
+// The panic in log() fires when the logger level is enabled; the panic here
+// acts as a safety net for the case where the logger suppresses LevelPanic.
 func Panic(ctx context.Context, msg string, attrs ...any) {
 	log(ctx, GetLogger(ctx), LevelPanic, msg, attrs...)
 	panic(msg)
