@@ -10,7 +10,7 @@ CREATE TABLE track_tags (
     track_id TEXT NOT NULL REFERENCES tracks(uuid) ON DELETE CASCADE,
     tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
     PRIMARY KEY (track_id, tag_id)
-);
+) WITHOUT ROWID;
 
 -- +goose Down
 DROP TABLE track_tags;

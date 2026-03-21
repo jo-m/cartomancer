@@ -26,7 +26,7 @@ CREATE TABLE email_verifications (
     expires_at DATETIME NOT NULL,
     user_id TEXT NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
     email TEXT NOT NULL
-);
+) WITHOUT ROWID;
 -- +goose StatementEnd
 
 -- +goose Down

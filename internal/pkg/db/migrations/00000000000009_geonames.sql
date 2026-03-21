@@ -26,21 +26,21 @@ CREATE TABLE geoname_admin1 (
     code TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     geonameid INTEGER NOT NULL
-);
+) WITHOUT ROWID;
 
 -- Second-level administrative divisions (counties, districts, etc.).
 CREATE TABLE geoname_admin2 (
     code TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     geonameid INTEGER NOT NULL
-);
+) WITHOUT ROWID;
 
 -- Generated geoname labels for tracks.
 CREATE TABLE track_geonames (
     track_id TEXT PRIMARY KEY REFERENCES tracks(uuid) ON DELETE CASCADE,
     label TEXT NOT NULL,
     created_at DATETIME NOT NULL
-);
+) WITHOUT ROWID;
 
 -- Tracks when geonames data was last imported.
 CREATE TABLE geoname_imports (

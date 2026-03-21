@@ -94,7 +94,7 @@
 - [ ] Update README.md
 - [ ] Fixup/autosquash
 - [ ] Grep for TODO in code
-- [ ] SQLite without rowid? https://sqlite.org/withoutrowid.html
+- [x] SQLite without rowid? https://sqlite.org/withoutrowid.html
 - [ ] Go through the periodic TODOs
 
 ## Before enabling public signup
