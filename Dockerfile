@@ -4,7 +4,7 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
-COPY internal/pkg/rest/openapi.yaml /app/internal/pkg/rest/openapi.yaml
+COPY internal/pkg/api/openapi.yaml /app/internal/pkg/api/openapi.yaml
 RUN npm run build
 
 # Stage 2: Build backend

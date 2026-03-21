@@ -12,4 +12,4 @@
 frontend/node_modules/
 
 # OpenAPI spec (needed by frontend build).
-!internal/pkg/rest/openapi.yaml
+!internal/pkg/api/openapi.yaml

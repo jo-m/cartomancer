@@ -1,0 +1,271 @@
+package api_test
+
+import (
+	"crypto/tls"
+	"net/http"
+	"net/http/cookiejar"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/detour/internal/pkg/password"
+)
+
+func TestUpdateAccount_Success(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	var resp map[string]any
+	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": "Alice-Updated"}, &resp)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, "Alice-Updated", resp["name"])
+}
+
+func TestUpdateAccount_MissingName(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": ""}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
+}
+
+func TestUpdateAccount_Unauthenticated(t *testing.T) {
+	e := newTestEnv(t)
+	client := e.newClient()
+
+	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": "X"}, nil)
+	assert.Equal(t, http.StatusUnauthorized, status)
+}
+
+func TestChangePassword_Success(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "oldpass", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "oldpass")
+
+	status, _ := e.do(client, http.MethodPost, "/account/change-password", map[string]string{
+		"oldPassword": "oldpass",
+		"newPassword": "newpass",
+	}, nil)
+	assert.Equal(t, http.StatusNoContent, status)
+
+	// Old password no longer works.
+	client2 := e.newClient()
+	status2, _ := e.do(client2, http.MethodPost, "/sessions/login", map[string]string{
+		"email":    "alice@example.com",
+		"password": "oldpass",
+	}, nil)
+	assert.Equal(t, http.StatusUnauthorized, status2)
+
+	// New password works.
+	client3 := e.newClient()
+	status3, _ := e.do(client3, http.MethodPost, "/sessions/login", map[string]string{
+		"email":    "alice@example.com",
+		"password": "newpass",
+	}, nil)
+	assert.Equal(t, http.StatusOK, status3)
+}
+
+func TestChangePassword_WrongOld(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "oldpass", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "oldpass")
+
+	status, _ := e.do(client, http.MethodPost, "/account/change-password", map[string]string{
+		"oldPassword": "wrong",
+		"newPassword": "newpass",
+	}, nil)
+	assert.Equal(t, http.StatusForbidden, status)
+}
+
+func TestChangePassword_Unauthenticated(t *testing.T) {
+	e := newTestEnv(t)
+	client := e.newClient()
+
+	status, _ := e.do(client, http.MethodPost, "/account/change-password", map[string]string{
+		"oldPassword": "x",
+		"newPassword": "y",
+	}, nil)
+	assert.Equal(t, http.StatusUnauthorized, status)
+}
+
+func TestChangePassword_InvalidatesOtherSessions(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "oldpass", false)
+
+	// Use isolated transports to avoid HTTP/2 cookie leaking between clients.
+	newIsolatedClient := func() *http.Client {
+		jar, err := cookiejar.New(nil)
+		require.NoError(t, err)
+		return &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // test only
+			},
+			Jar: jar,
+		}
+	}
+
+	// Log in from two separate clients (two sessions).
+	client1 := newIsolatedClient()
+	e.login(client1, "alice@example.com", "oldpass")
+
+	client2 := newIsolatedClient()
+	e.login(client2, "alice@example.com", "oldpass")
+
+	// Both sessions work.
+	status, _ := e.do(client1, http.MethodGet, "/tracks/editing", nil, nil)
+	require.Equal(t, http.StatusOK, status)
+	status, _ = e.do(client2, http.MethodGet, "/tracks/editing", nil, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	// Change password from client1.
+	status, _ = e.do(client1, http.MethodPost, "/account/change-password", map[string]string{
+		"oldPassword": "oldpass",
+		"newPassword": "newpass",
+	}, nil)
+	require.Equal(t, http.StatusNoContent, status)
+
+	// client1 session still works (current session preserved).
+	status, _ = e.do(client1, http.MethodGet, "/tracks/editing", nil, nil)
+	assert.Equal(t, http.StatusOK, status)
+
+	// client2 session is invalidated (returns 401 because session is gone,
+	// middleware creates anonymous session).
+	status, _ = e.do(client2, http.MethodGet, "/tracks/editing", nil, nil)
+	assert.Equal(t, http.StatusUnauthorized, status)
+}
+
+func TestUpdateAccount_NameTaken(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("bob@example.com", "Bob", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": "Bob"}, nil)
+	assert.Equal(t, http.StatusConflict, status)
+}
+
+func TestUpdateAccount_InvalidName(t *testing.T) {
+	tests := []struct {
+		desc string
+		name string
+	}{
+		{"too short", "ab"},
+		{"too long", strings.Repeat("a", 33)},
+		{"consecutive hyphens", "al--ice"},
+		{"consecutive underscores", "al__ice"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			e := newTestEnv(t)
+			e.createUser("alice@example.com", "Alice", "secret", false)
+			client := e.newClient()
+			e.login(client, "alice@example.com", "secret")
+
+			status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": tc.name}, nil)
+			assert.Equal(t, http.StatusBadRequest, status)
+		})
+	}
+}
+
+func TestUpdateAccount_SameName(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	var resp map[string]any
+	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": "Alice"}, &resp)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, "Alice", resp["name"])
+}
+
+func TestChangePassword_NewPasswordTooLong(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "oldpass", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "oldpass")
+
+	status, _ := e.do(client, http.MethodPost, "/account/change-password", map[string]string{
+		"oldPassword": "oldpass",
+		"newPassword": strings.Repeat("x", password.MaxPasswordLen+1),
+	}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
+}
+
+func TestChangePassword_EmptyFields(t *testing.T) {
+	tests := []struct {
+		desc string
+		body map[string]string
+	}{
+		{"empty oldPassword", map[string]string{"oldPassword": "", "newPassword": "newpass"}},
+		{"empty newPassword", map[string]string{"oldPassword": "oldpass", "newPassword": ""}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			e := newTestEnv(t)
+			e.createUser("alice@example.com", "Alice", "oldpass", false)
+			client := e.newClient()
+			e.login(client, "alice@example.com", "oldpass")
+
+			status, _ := e.do(client, http.MethodPost, "/account/change-password", tc.body, nil)
+			assert.Equal(t, http.StatusBadRequest, status)
+		})
+	}
+}
+
+func TestDeleteAccount_RegularUser(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret")
+
+	status, _ := e.do(client, http.MethodDelete, "/account", nil, nil)
+	assert.Equal(t, http.StatusNoContent, status)
+}
+
+func TestDeleteAccount_LastAdmin_Conflict(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodDelete, "/account", nil, nil)
+	assert.Equal(t, http.StatusConflict, status)
+}
+
+func TestDeleteAccount_Unauthenticated(t *testing.T) {
+	e := newTestEnv(t)
+	client := e.newClient()
+
+	status, _ := e.do(client, http.MethodDelete, "/account", nil, nil)
+	assert.Equal(t, http.StatusUnauthorized, status)
+}
+
+func TestDeleteAccount_AdminWithSecondAdmin(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin1@example.com", "Admin1", "pass1", true)
+	e.createUser("admin2@example.com", "Admin2", "pass2", true)
+	client := e.newClient()
+	e.login(client, "admin1@example.com", "pass1")
+
+	// Should succeed because there is still another admin.
+	status, _ := e.do(client, http.MethodDelete, "/account", nil, nil)
+	assert.Equal(t, http.StatusNoContent, status)
+
+	// admin2 can still log in.
+	client2 := e.newClient()
+	var resp map[string]any
+	status2, _ := e.do(client2, http.MethodPost, "/sessions/login", map[string]string{
+		"email":    "admin2@example.com",
+		"password": "pass2",
+	}, &resp)
+	require.Equal(t, http.StatusOK, status2)
+}

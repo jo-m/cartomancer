@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
+	"jo-m.ch/go/detour/internal/pkg/api"
 	"jo-m.ch/go/detour/internal/pkg/app"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/geocode"
@@ -22,7 +23,6 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/mail"
 	"jo-m.ch/go/detour/internal/pkg/meteo"
 	"jo-m.ch/go/detour/internal/pkg/password"
-	"jo-m.ch/go/detour/internal/pkg/rest"
 	"jo-m.ch/go/detour/internal/pkg/session"
 	"jo-m.ch/go/detour/internal/pkg/trackgroup"
 	"jo-m.ch/go/detour/internal/pkg/users"
@@ -94,7 +94,7 @@ func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig,
 	mux.Use(sess.Middleware)
 	mux.Use(middleware.Recoverer)
 
-	apiHandler, err := rest.New(d, sess, jobSubmitter, appConfig)
+	apiHandler, err := api.New(d, sess, jobSubmitter, appConfig)
 	if err != nil {
 		logg.Panic(ctx, "Failed to create API handler", "err", err)
 	}

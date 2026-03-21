@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "generate": "openapi-typescript ../internal/pkg/rest/openapi.yaml -o src/api/schema.gen.ts",
+    "generate": "openapi-typescript ../internal/pkg/api/openapi.yaml -o src/api/schema.gen.ts",
     "dev": "npm run generate && vite",
     "build": "npm run generate && tsc -b && vite build",
     "lint": "eslint src/",

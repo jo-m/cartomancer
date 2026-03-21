@@ -32,13 +32,13 @@ internal/pkg/
 
 ### REST API
 
-Handlers are mounted in `internal/pkg/rest/rest.go`.
-Group handler fns into files, approx. 1 per resource, in `internal/pkg/rest/*.go`.
+Handlers are mounted in `internal/pkg/api/rest.go`.
+Group handler fns into files, approx. 1 per resource, in `internal/pkg/api/*.go`.
 They all must be methods on the `Server` struct.
-`internal/pkg/rest/openapi.yaml` MUST be updated when ever endpoints change.
+`internal/pkg/api/openapi.yaml` MUST be updated when ever endpoints change.
 Follow RESTful API design guidelines, and use appropriate HTTP methods and status codes.
 Use camelCase for any JSON fields (e.g. "SessionID string `json:"sessionId"`").
-Use the helpers in `internal/pkg/rest/error.go`.
+Use the helpers in `internal/pkg/api/error.go`.
 In most cases where an error is returned from a handler, the details should be logged.
 Caching: Endpoints which seldomly change and are expensive to compute should include aggressive caching/etag headers. Example: `handleDownloadTrackSVG()`.
 
@@ -214,7 +214,7 @@ npm run build
 
 ## API client
 
-Types are generated from `internal/pkg/rest/openapi.yaml` via `openapi-typescript`.
+Types are generated from `internal/pkg/api/openapi.yaml` via `openapi-typescript`.
 Run `npm run generate` (already included in `dev`/`build`) to regenerate `src/api/schema.gen.ts`.
 `src/api/schema.gen.ts` is NOT committed.
 All API interactions MUST use the generated client.
