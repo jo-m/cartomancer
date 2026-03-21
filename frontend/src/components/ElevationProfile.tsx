@@ -1,4 +1,4 @@
-import { useCallback, useMemo, memo } from "react"
+import { useEffect, useRef, useCallback, useMemo, memo } from "react"
 import {
   ResponsiveContainer,
   AreaChart,
@@ -6,10 +6,8 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  ReferenceLine,
 } from "recharts"
-import { useHoverValue, type HoverStore } from "../hooks/useHoverSync"
+import type { HoverStore } from "../hooks/useHoverSync"
 
 interface TrackPoint {
   lat: number
@@ -32,6 +30,9 @@ interface ElevDatum {
   ts: number | null
 }
 
+const Y_AXIS_WIDTH = 44
+const CHART_MARGIN = { top: 5, right: 5, bottom: 5, left: 5 }
+
 /** Renders an interactive elevation profile chart using recharts. */
 export default memo(function ElevationProfile({
   points,
@@ -39,7 +40,8 @@ export default memo(function ElevationProfile({
   color,
   forecastTimes,
 }: Props) {
-  const hoverIndex = useHoverValue(hoverStore)
+  const lineRef = useRef<HTMLDivElement>(null)
+  const labelRef = useRef<HTMLDivElement>(null)
 
   const data: ElevDatum[] = useMemo(
     () =>
@@ -62,22 +64,88 @@ export default memo(function ElevationProfile({
     return [lo, hi]
   }, [data])
 
-  const handleMouseMove = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (state: any) => {
-      if (state?.activeTooltipIndex != null) {
-        hoverStore.set(state.activeTooltipIndex as number)
-      }
+  /** Computes the x pixel position for a given dKm value within the container. */
+  const dKmToX = useCallback(
+    (containerWidth: number, dKm: number): number | null => {
+      if (data.length < 2) return null
+      const minDKm = data[0].dKm
+      const maxDKm = data[data.length - 1].dKm
+      const range = maxDKm - minDKm
+      if (range <= 0) return null
+      const plotLeft = CHART_MARGIN.left + Y_AXIS_WIDTH
+      const plotRight = containerWidth - CHART_MARGIN.right
+      return plotLeft + ((dKm - minDKm) / range) * (plotRight - plotLeft)
     },
-    [hoverStore]
+    [data]
+  )
+
+  /** Finds the nearest data index for a mouse x position. */
+  const findNearest = useCallback(
+    (mouseX: number, containerWidth: number): number | null => {
+      if (data.length < 2) return null
+      const plotLeft = CHART_MARGIN.left + Y_AXIS_WIDTH
+      const plotRight = containerWidth - CHART_MARGIN.right
+      if (mouseX < plotLeft || mouseX > plotRight) return null
+      const fraction = (mouseX - plotLeft) / (plotRight - plotLeft)
+      const minDKm = data[0].dKm
+      const maxDKm = data[data.length - 1].dKm
+      const dKm = minDKm + fraction * (maxDKm - minDKm)
+      let best = 0
+      let bestDist = Math.abs(data[0].dKm - dKm)
+      for (let i = 1; i < data.length; i++) {
+        const dist = Math.abs(data[i].dKm - dKm)
+        if (dist < bestDist) {
+          bestDist = dist
+          best = i
+        }
+      }
+      return best
+    },
+    [data]
+  )
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      const el = e.currentTarget as HTMLElement
+      const rect = el.getBoundingClientRect()
+      hoverStore.set(findNearest(e.clientX - rect.left, el.clientWidth))
+    },
+    [hoverStore, findNearest]
   )
 
   const handleMouseLeave = useCallback(() => {
     hoverStore.set(null)
   }, [hoverStore])
 
-  const hoveredDatum = hoverIndex != null ? data[hoverIndex] : null
-  const hoveredDKm = hoveredDatum?.dKm ?? null
+  // Imperatively update hover line and label from store changes.
+  useEffect(() => {
+    return hoverStore.subscribe(() => {
+      const idx = hoverStore.get()
+      const line = lineRef.current
+      const label = labelRef.current
+      const container = line?.parentElement
+      if (!line || !label || !container) return
+
+      if (idx == null || idx < 0 || idx >= data.length) {
+        line.style.display = "none"
+        label.style.display = "none"
+        return
+      }
+
+      const datum = data[idx]
+      const x = dKmToX(container.clientWidth, datum.dKm)
+      if (x == null) {
+        line.style.display = "none"
+        label.style.display = "none"
+        return
+      }
+
+      line.style.display = ""
+      line.style.left = `${x}px`
+      label.style.display = ""
+      label.textContent = `${datum.dKm} km \u00b7 ${datum.ele} m`
+    })
+  }, [hoverStore, data, dKmToX])
 
   return (
     <div className="mt-4">
@@ -86,11 +154,7 @@ export default memo(function ElevationProfile({
       </p>
       <div className="relative">
         <ResponsiveContainer width="100%" height={180}>
-          <AreaChart
-            data={data}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-          >
+          <AreaChart data={data} margin={CHART_MARGIN}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
               dataKey="dKm"
@@ -110,12 +174,8 @@ export default memo(function ElevationProfile({
               domain={[minEle, maxEle]}
               tick={{ fontSize: 11, fill: "#6b7280" }}
               stroke="#d1d5db"
-              width={44}
+              width={Y_AXIS_WIDTH}
             />
-            <Tooltip content={() => null} />
-            {hoveredDKm != null && (
-              <ReferenceLine x={hoveredDKm} stroke="#9ca3af" strokeWidth={1} />
-            )}
             <Area
               type="monotone"
               dataKey="ele"
@@ -125,14 +185,25 @@ export default memo(function ElevationProfile({
               fillOpacity={0.1}
               dot={false}
               activeDot={false}
+              isAnimationActive={false}
             />
           </AreaChart>
         </ResponsiveContainer>
-        {hoveredDatum && (
-          <div className="pointer-events-none absolute bottom-2 left-12 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">
-            {hoveredDatum.dKm} km &middot; {hoveredDatum.ele} m
-          </div>
-        )}
+        <div
+          className="absolute inset-0 cursor-crosshair"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        />
+        <div
+          ref={lineRef}
+          className="pointer-events-none absolute top-0 bottom-0 w-px bg-gray-400"
+          style={{ display: "none" }}
+        />
+        <div
+          ref={labelRef}
+          className="pointer-events-none absolute bottom-2 left-12 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm"
+          style={{ display: "none" }}
+        />
       </div>
     </div>
   )

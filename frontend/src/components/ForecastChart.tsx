@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -8,10 +8,8 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  ReferenceLine,
 } from "recharts"
-import { useHoverValue, type HoverStore } from "../hooks/useHoverSync"
+import type { HoverStore } from "../hooks/useHoverSync"
 
 export interface ForecastPoint {
   index: number
@@ -54,6 +52,9 @@ interface Props {
   attributionHref?: string
 }
 
+const Y_AXIS_WIDTH = 36
+const CHART_MARGIN = { top: 5, right: 5, bottom: 5, left: 5 }
+
 const WIND_DIRS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const
 
 /** Returns a cardinal direction label for a meteorological wind direction in degrees. */
@@ -95,7 +96,12 @@ export default function ForecastChart({
   attribution,
   attributionHref,
 }: Props) {
-  const hoverIndex = useHoverValue(hoverStore)
+  const tempLineRef = useRef<HTMLDivElement>(null)
+  const tempLabelRef = useRef<HTMLDivElement>(null)
+  const precipLineRef = useRef<HTMLDivElement>(null)
+  const precipLabelRef = useRef<HTMLDivElement>(null)
+  const windLineRef = useRef<HTMLDivElement>(null)
+  const windLabelRef = useRef<HTMLDivElement>(null)
 
   const data: ChartDatum[] = useMemo(
     () =>
@@ -133,15 +139,66 @@ export default function ForecastChart({
     [points]
   )
 
-  const handleMouseMove = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (state: any) => {
-      if (state?.activeTooltipIndex != null) {
-        const idx = state.activeTooltipIndex as number
-        if (data[idx]) {
-          hoverStore.set(data[idx].index)
+  /** Computes the x pixel position for a given dKm within a container. */
+  const dKmToX = useCallback(
+    (containerWidth: number, dKm: number): number | null => {
+      if (data.length < 2) return null
+      const minDKm = data[0].dKm
+      const maxDKm = data[data.length - 1].dKm
+      const range = maxDKm - minDKm
+      if (range <= 0) return null
+      const plotLeft = CHART_MARGIN.left + Y_AXIS_WIDTH
+      const plotRight = containerWidth - CHART_MARGIN.right
+      return plotLeft + ((dKm - minDKm) / range) * (plotRight - plotLeft)
+    },
+    [data]
+  )
+
+  /** Finds the nearest forecast datum for a track point index. */
+  const findNearestDatum = useCallback(
+    (trackIdx: number): ChartDatum | null => {
+      if (data.length === 0) return null
+      let best = 0
+      let bestDist = Math.abs(data[0].index - trackIdx)
+      for (let i = 1; i < data.length; i++) {
+        const dist = Math.abs(data[i].index - trackIdx)
+        if (dist < bestDist) {
+          bestDist = dist
+          best = i
         }
       }
+      return data[best]
+    },
+    [data]
+  )
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      const el = e.currentTarget as HTMLElement
+      const rect = el.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const cw = el.clientWidth
+      if (data.length < 2) return
+      const plotLeft = CHART_MARGIN.left + Y_AXIS_WIDTH
+      const plotRight = cw - CHART_MARGIN.right
+      if (mouseX < plotLeft || mouseX > plotRight) {
+        hoverStore.set(null)
+        return
+      }
+      const fraction = (mouseX - plotLeft) / (plotRight - plotLeft)
+      const minDKm = data[0].dKm
+      const maxDKm = data[data.length - 1].dKm
+      const dKm = minDKm + fraction * (maxDKm - minDKm)
+      let best = 0
+      let bestDist = Math.abs(data[0].dKm - dKm)
+      for (let i = 1; i < data.length; i++) {
+        const dist = Math.abs(data[i].dKm - dKm)
+        if (dist < bestDist) {
+          bestDist = dist
+          best = i
+        }
+      }
+      hoverStore.set(data[best].index)
     },
     [hoverStore, data]
   )
@@ -190,23 +247,88 @@ export default function ForecastChart({
 
   const xTickFormatter = (v: number) => `${v}`
 
-  const nearestForecast = useMemo(() => {
-    if (hoverIndex == null || data.length === 0) return null
-    let best = 0
-    let bestDist = Math.abs(data[0].index - hoverIndex)
-    for (let i = 1; i < data.length; i++) {
-      const dist = Math.abs(data[i].index - hoverIndex)
-      if (dist < bestDist) {
-        bestDist = dist
-        best = i
+  const hasRelativeWind = data.some((d) => d.headwindMs != null)
+
+  // Imperatively update all hover lines and labels from store changes.
+  useEffect(() => {
+    const setLine = (
+      ref: React.RefObject<HTMLDivElement | null>,
+      x: number | null
+    ) => {
+      if (!ref.current) return
+      if (x != null) {
+        ref.current.style.display = ""
+        ref.current.style.left = `${x}px`
+      } else {
+        ref.current.style.display = "none"
       }
     }
-    return data[best]
-  }, [hoverIndex, data])
+    const setLabel = (
+      ref: React.RefObject<HTMLDivElement | null>,
+      text: string | null
+    ) => {
+      if (!ref.current) return
+      if (text) {
+        ref.current.style.display = ""
+        ref.current.textContent = text
+      } else {
+        ref.current.style.display = "none"
+      }
+    }
 
-  const referenceDKm = nearestForecast?.dKm ?? null
+    return hoverStore.subscribe(() => {
+      const idx = hoverStore.get()
+      const nearest = idx != null ? findNearestDatum(idx) : null
+      const container = tempLineRef.current?.parentElement
+      const cw = container?.clientWidth ?? 0
+      const x = nearest ? dKmToX(cw, nearest.dKm) : null
 
-  const hasRelativeWind = data.some((d) => d.headwindMs != null)
+      setLine(tempLineRef, x)
+      setLine(precipLineRef, x)
+      setLine(windLineRef, x)
+
+      // Temperature label.
+      setLabel(
+        tempLabelRef,
+        nearest?.temperatureC != null
+          ? `${nearest.dKm} km \u00b7 ${nearest.temperatureC} ${units.temperatureC}`
+          : null
+      )
+
+      // Precipitation label.
+      setLabel(
+        precipLabelRef,
+        nearest?.precipitationRate != null
+          ? `${nearest.dKm} km \u00b7 ${nearest.precipitationRate} ${units.precipitationRate}`
+          : null
+      )
+
+      // Wind label.
+      if (
+        hasRelativeWind &&
+        nearest?.headwindMs != null &&
+        nearest.relativeWindDirectionDeg != null
+      ) {
+        const sign = nearest.headwindMs > 0 ? "+" : ""
+        let text = `${nearest.dKm} km \u00b7 ${sign}${nearest.headwindMs} ${units.windSpeedMs} ${relWindLabel(nearest.relativeWindDirectionDeg)}`
+        if (nearest.windSpeedMs != null && nearest.windDirectionDeg != null) {
+          text += ` (${nearest.windSpeedMs} ${units.windSpeedMs} ${windDirLabel(nearest.windDirectionDeg)})`
+        }
+        setLabel(windLabelRef, text)
+      } else if (
+        !hasRelativeWind &&
+        nearest?.windSpeedMs != null &&
+        nearest.windDirectionDeg != null
+      ) {
+        setLabel(
+          windLabelRef,
+          `${nearest.dKm} km \u00b7 ${nearest.windSpeedMs} ${units.windSpeedMs} ${windDirLabel(nearest.windDirectionDeg)}`
+        )
+      } else {
+        setLabel(windLabelRef, null)
+      }
+    })
+  }, [hoverStore, data, units, hasRelativeWind, findNearestDatum, dKmToX])
 
   return (
     <div className="mt-4 space-y-2">
@@ -216,12 +338,7 @@ export default function ForecastChart({
         </p>
         <div className="relative">
           <ResponsiveContainer width="100%" height={180}>
-            <ComposedChart
-              data={data}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-              syncId="forecast"
-            >
+            <ComposedChart data={data} margin={CHART_MARGIN}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis
                 dataKey="dKm"
@@ -243,24 +360,8 @@ export default function ForecastChart({
                 allowDataOverflow
                 tick={{ fontSize: 11, fill: "#6b7280" }}
                 stroke="#d1d5db"
-                width={36}
+                width={Y_AXIS_WIDTH}
               />
-              <Tooltip content={() => null} />
-              {minTemp < 0 && maxTemp > 0 && (
-                <ReferenceLine
-                  y={0}
-                  stroke="#9ca3af"
-                  strokeDasharray="4 2"
-                  strokeWidth={0.5}
-                />
-              )}
-              {referenceDKm != null && (
-                <ReferenceLine
-                  x={referenceDKm}
-                  stroke="#9ca3af"
-                  strokeWidth={1}
-                />
-              )}
               <Line
                 type="monotone"
                 dataKey="temperatureC"
@@ -268,15 +369,25 @@ export default function ForecastChart({
                 strokeWidth={1.5}
                 dot={false}
                 activeDot={false}
+                isAnimationActive={false}
               />
             </ComposedChart>
           </ResponsiveContainer>
-          {nearestForecast && nearestForecast.temperatureC != null && (
-            <div className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">
-              {nearestForecast.dKm} km &middot; {nearestForecast.temperatureC}{" "}
-              {units.temperatureC}
-            </div>
-          )}
+          <div
+            className="absolute inset-0 cursor-crosshair"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+          />
+          <div
+            ref={tempLineRef}
+            className="pointer-events-none absolute top-0 bottom-0 w-px bg-gray-400"
+            style={{ display: "none" }}
+          />
+          <div
+            ref={tempLabelRef}
+            className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm"
+            style={{ display: "none" }}
+          />
         </div>
       </div>
 
@@ -286,12 +397,7 @@ export default function ForecastChart({
         </p>
         <div className="relative">
           <ResponsiveContainer width="100%" height={120}>
-            <ComposedChart
-              data={data}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-              syncId="forecast"
-            >
+            <ComposedChart data={data} margin={CHART_MARGIN}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis
                 dataKey="dKm"
@@ -313,30 +419,32 @@ export default function ForecastChart({
                 allowDataOverflow
                 tick={{ fontSize: 11, fill: "#6b7280" }}
                 stroke="#d1d5db"
-                width={36}
+                width={Y_AXIS_WIDTH}
               />
-              <Tooltip content={() => null} />
-              {referenceDKm != null && (
-                <ReferenceLine
-                  x={referenceDKm}
-                  stroke="#9ca3af"
-                  strokeWidth={1}
-                />
-              )}
               <Bar
                 dataKey="precipitationRate"
                 fill="#3b82f6"
                 opacity={0.7}
                 maxBarSize={8}
+                isAnimationActive={false}
               />
             </ComposedChart>
           </ResponsiveContainer>
-          {nearestForecast && nearestForecast.precipitationRate != null && (
-            <div className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">
-              {nearestForecast.dKm} km &middot;{" "}
-              {nearestForecast.precipitationRate} {units.precipitationRate}
-            </div>
-          )}
+          <div
+            className="absolute inset-0 cursor-crosshair"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+          />
+          <div
+            ref={precipLineRef}
+            className="pointer-events-none absolute top-0 bottom-0 w-px bg-gray-400"
+            style={{ display: "none" }}
+          />
+          <div
+            ref={precipLabelRef}
+            className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm"
+            style={{ display: "none" }}
+          />
         </div>
       </div>
 
@@ -347,12 +455,7 @@ export default function ForecastChart({
           </p>
           <div className="relative">
             <ResponsiveContainer width="100%" height={140}>
-              <ComposedChart
-                data={data}
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-                syncId="forecast"
-              >
+              <ComposedChart data={data} margin={CHART_MARGIN}>
                 <defs>
                   <linearGradient id="headwindGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset={0} stopColor="#ef4444" stopOpacity={0.4} />
@@ -388,22 +491,8 @@ export default function ForecastChart({
                   domain={headwindDomain}
                   tick={{ fontSize: 11, fill: "#6b7280" }}
                   stroke="#d1d5db"
-                  width={36}
+                  width={Y_AXIS_WIDTH}
                 />
-                <Tooltip content={() => null} />
-                <ReferenceLine
-                  y={0}
-                  stroke="#9ca3af"
-                  strokeDasharray="4 2"
-                  strokeWidth={0.5}
-                />
-                {referenceDKm != null && (
-                  <ReferenceLine
-                    x={referenceDKm}
-                    stroke="#9ca3af"
-                    strokeWidth={1}
-                  />
-                )}
                 <Area
                   type="monotone"
                   dataKey="headwindMs"
@@ -419,28 +508,25 @@ export default function ForecastChart({
                   strokeWidth={1}
                   dot={false}
                   activeDot={false}
+                  isAnimationActive={false}
                 />
               </ComposedChart>
             </ResponsiveContainer>
-            {nearestForecast &&
-              nearestForecast.headwindMs != null &&
-              nearestForecast.relativeWindDirectionDeg != null && (
-                <div className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">
-                  {nearestForecast.dKm} km &middot;{" "}
-                  {nearestForecast.headwindMs > 0 ? "+" : ""}
-                  {nearestForecast.headwindMs} {units.windSpeedMs}{" "}
-                  {relWindLabel(nearestForecast.relativeWindDirectionDeg)}
-                  {nearestForecast.windSpeedMs != null && (
-                    <span className="text-gray-400">
-                      {" "}
-                      ({nearestForecast.windSpeedMs} {units.windSpeedMs}{" "}
-                      {nearestForecast.windDirectionDeg != null &&
-                        windDirLabel(nearestForecast.windDirectionDeg)}
-                      )
-                    </span>
-                  )}
-                </div>
-              )}
+            <div
+              className="absolute inset-0 cursor-crosshair"
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+            />
+            <div
+              ref={windLineRef}
+              className="pointer-events-none absolute top-0 bottom-0 w-px bg-gray-400"
+              style={{ display: "none" }}
+            />
+            <div
+              ref={windLabelRef}
+              className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm"
+              style={{ display: "none" }}
+            />
           </div>
         </div>
       ) : (
@@ -450,12 +536,7 @@ export default function ForecastChart({
           </p>
           <div className="relative">
             <ResponsiveContainer width="100%" height={120}>
-              <ComposedChart
-                data={data}
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-                syncId="forecast"
-              >
+              <ComposedChart data={data} margin={CHART_MARGIN}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis
                   dataKey="dKm"
@@ -474,16 +555,8 @@ export default function ForecastChart({
                 <YAxis
                   tick={{ fontSize: 11, fill: "#6b7280" }}
                   stroke="#d1d5db"
-                  width={36}
+                  width={Y_AXIS_WIDTH}
                 />
-                <Tooltip content={() => null} />
-                {referenceDKm != null && (
-                  <ReferenceLine
-                    x={referenceDKm}
-                    stroke="#9ca3af"
-                    strokeWidth={1}
-                  />
-                )}
                 <Line
                   type="monotone"
                   dataKey="windSpeedMs"
@@ -491,18 +564,25 @@ export default function ForecastChart({
                   strokeWidth={1.5}
                   dot={false}
                   activeDot={false}
+                  isAnimationActive={false}
                 />
               </ComposedChart>
             </ResponsiveContainer>
-            {nearestForecast &&
-              nearestForecast.windSpeedMs != null &&
-              nearestForecast.windDirectionDeg != null && (
-                <div className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">
-                  {nearestForecast.dKm} km &middot;{" "}
-                  {nearestForecast.windSpeedMs} {units.windSpeedMs}{" "}
-                  {windDirLabel(nearestForecast.windDirectionDeg)}
-                </div>
-              )}
+            <div
+              className="absolute inset-0 cursor-crosshair"
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+            />
+            <div
+              ref={windLineRef}
+              className="pointer-events-none absolute top-0 bottom-0 w-px bg-gray-400"
+              style={{ display: "none" }}
+            />
+            <div
+              ref={windLabelRef}
+              className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm"
+              style={{ display: "none" }}
+            />
           </div>
         </div>
       )}
