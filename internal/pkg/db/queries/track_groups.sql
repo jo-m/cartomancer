@@ -18,7 +18,6 @@ ORDER BY tg.uuid, tgm.track_id;
 SELECT uuid, blob_id, file_format, original_filename, total_distance_m, track_type
 FROM tracks
 WHERE user_id = ?
-  AND initial_editing_completed = 1
   AND total_distance_m <= ?
 ORDER BY uuid;
 
