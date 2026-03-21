@@ -374,7 +374,7 @@ func (c *Params) validate() error {
 
 // SubmitTx posts a job to the job queue with given args in the given database transaction,
 // to be scheduled with the given params.
-// When [Params.DebounceS] is set, the submission is silently skipped if a job with the same
+// When [Params.Debounce] is set, the submission is silently skipped if a job with the same
 // kind and args was already submitted within the debounce window.
 func SubmitTx[T Args](ctx context.Context, s *Submitter, tx *db.Queries, jobArgs T, params Params) error {
 	if err := params.validate(); err != nil {
