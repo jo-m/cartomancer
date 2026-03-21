@@ -270,6 +270,16 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 		if txErr != nil {
 			return txErr
 		}
+		// Prevent demoting the last admin.
+		if existing.Admin != 0 && admin == 0 {
+			adminCount, txErr := q.CountAdmins(ctx)
+			if txErr != nil {
+				return txErr
+			}
+			if adminCount <= 1 {
+				return errLastAdmin
+			}
+		}
 		// Check name uniqueness (case-insensitive, excluding this user).
 		if !strings.EqualFold(existing.Name, req.Name) {
 			_, txErr = q.GetUserByName(ctx, req.Name)
@@ -313,6 +323,10 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusNotFound, "user not found")
 		return
 	}
+	if errors.Is(err, errLastAdmin) {
+		writeError(w, http.StatusConflict, "cannot demote the last admin account")
+		return
+	}
 	if errors.Is(err, errNameTaken) {
 		writeError(w, http.StatusConflict, "name already taken")
 		return
@@ -342,16 +356,35 @@ func (sv *server) handleAdminDeleteUser(w http.ResponseWriter, r *http.Request) 
 
 	userUUID := chi.URLParam(r, "uuid")
 
+	currentUser := session.GetUser(ctx)
+	if currentUser != nil && currentUser.Uuid == userUUID {
+		writeError(w, http.StatusForbidden, "cannot delete your own account via admin endpoint")
+		return
+	}
+
 	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
-		_, txErr := q.GetUser(ctx, userUUID)
+		target, txErr := q.GetUser(ctx, userUUID)
 		if txErr != nil {
 			return txErr
+		}
+		if target.Admin != 0 {
+			adminCount, txErr := q.CountAdmins(ctx)
+			if txErr != nil {
+				return txErr
+			}
+			if adminCount <= 1 {
+				return errLastAdmin
+			}
 		}
 		_, txErr = q.DeleteUser(ctx, userUUID)
 		return txErr
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "user not found")
+		return
+	}
+	if errors.Is(err, errLastAdmin) {
+		writeError(w, http.StatusConflict, "cannot delete the last admin account")
 		return
 	}
 	if err != nil {

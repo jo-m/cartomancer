@@ -376,6 +376,63 @@ func TestAdminUpdateUser_ToggleAdmin(t *testing.T) {
 	assert.Equal(t, false, resp["admin"])
 }
 
+func TestAdminDeleteUser_SelfDeletion(t *testing.T) {
+	e := newTestEnv(t)
+	adminUUID := e.createUser("admin@example.com", "Admin", "adminpass", true)
+	e.createUser("admin2@example.com", "Admin2", "adminpass2", true)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	// Cannot delete yourself via the admin endpoint.
+	status, _ := e.do(client, http.MethodDelete, "/admin/users/"+adminUUID, nil, nil)
+	assert.Equal(t, http.StatusForbidden, status)
+}
+
+func TestAdminDeleteUser_AdminWithMultipleAdmins(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	admin2UUID := e.createUser("admin2@example.com", "Admin2", "adminpass2", true)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	// Can delete another admin when multiple admins exist.
+	status, _ := e.do(client, http.MethodDelete, "/admin/users/"+admin2UUID, nil, nil)
+	assert.Equal(t, http.StatusNoContent, status)
+}
+
+func TestAdminUpdateUser_DemoteLastAdmin(t *testing.T) {
+	e := newTestEnv(t)
+	adminUUID := e.createUser("admin@example.com", "Admin", "adminpass", true)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	// Cannot demote the only admin.
+	status, _ := e.do(client, http.MethodPatch, "/admin/users/"+adminUUID, map[string]any{
+		"email": "admin@example.com",
+		"name":  "Admin",
+		"admin": false,
+	}, nil)
+	assert.Equal(t, http.StatusConflict, status)
+}
+
+func TestAdminUpdateUser_DemoteWithMultipleAdmins(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	admin2UUID := e.createUser("admin2@example.com", "Admin2", "adminpass2", true)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	// Can demote another admin when multiple admins exist.
+	var resp map[string]any
+	status, _ := e.do(client, http.MethodPatch, "/admin/users/"+admin2UUID, map[string]any{
+		"email": "admin2@example.com",
+		"name":  "Admin2",
+		"admin": false,
+	}, &resp)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, false, resp["admin"])
+}
+
 func TestAdminUpdateUser_EmailChange_OldEmailInvalidated(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)

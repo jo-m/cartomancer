@@ -1569,6 +1569,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "409":
+          description: Cannot demote the last admin account, or name/email conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           description: Internal server error
           content:
@@ -1596,13 +1602,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "403":
-          description: Admin access required or target is an admin
+          description: Cannot delete own account via admin endpoint
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
         "404":
           description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Cannot delete the last admin account
           content:
             application/json:
               schema:
