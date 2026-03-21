@@ -26,10 +26,10 @@ type argon2idparams struct {
 	saltLenBytes uint32
 }
 
-// See https://pkg.go.dev/golang.org/x/crypto/argon2#IDKey.
+// See https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html.
 var defaultparams = argon2idparams{
-	Time:    1,
-	Memory:  64 * 1024,
+	Time:    2,
+	Memory:  19456,
 	Threads: 1,
 
 	keyLenBytes:  32,
