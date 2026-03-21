@@ -14,7 +14,6 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/logg"
 	"jo-m.ch/go/detour/internal/pkg/mail"
 	"jo-m.ch/go/detour/internal/pkg/password"
-	"jo-m.ch/go/detour/internal/pkg/session"
 )
 
 type registerRequest struct {
@@ -219,8 +218,6 @@ func (sv *server) handleConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oldSess := session.Get(ctx)
-
 	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
 		ver, txErr := q.GetEmailVerification(ctx, verUUID)
 		if txErr != nil {
@@ -255,15 +252,8 @@ func (sv *server) handleConfirmEmail(w http.ResponseWriter, r *http.Request) {
 			if txErr != nil {
 				return txErr
 			}
-			// Invalidate all other sessions so they must re-authenticate with the new email.
-			if oldSess != nil && oldSess.UserID.Valid {
-				_, txErr = q.DeleteOtherUserSessions(ctx, db.DeleteOtherUserSessionsParams{
-					UserID: oldSess.UserID,
-					Uuid:   oldSess.Uuid,
-				})
-			} else {
-				_, txErr = q.DeleteAllUserSessions(ctx, sql.NullString{String: ver.UserID, Valid: true})
-			}
+			// Invalidate all sessions so the user must re-authenticate with the new email.
+			_, txErr = q.DeleteAllUserSessions(ctx, sql.NullString{String: ver.UserID, Valid: true})
 		}
 		if txErr != nil {
 			return txErr
@@ -284,13 +274,6 @@ func (sv *server) handleConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		logg.Error(ctx, "failed to confirm email", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
-	}
-
-	// If the current session is authenticated, destroy it so the user must log in fresh.
-	if oldSess != nil && oldSess.UserID.Valid {
-		if delErr := session.Delete(ctx, oldSess); delErr != nil {
-			logg.Error(ctx, "failed to delete session after confirmation", "err", delErr)
-		}
 	}
 
 	logg.Info(ctx, "email confirmed", "verification", verUUID)
