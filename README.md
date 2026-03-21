@@ -1,44 +1,59 @@
-Your personal GPX tracks library.
+A personal GPX tracks library.
 
 # Features
 
-- Easy to selfhost, selfcontained in a single binary
-- Weather forecasts (currently only [MeteoSwiss](https://opendatadocs.meteoswiss.ch/de/))
+- Easy to self host, single binary, SQLite only
+- Weather forecasts for tracks (currently only [MeteoSwiss](https://opendatadocs.meteoswiss.ch/de/))
 - Map view (currently only [SwissTopo](https://map.geo.admin.ch/))
 - Reverse geocoding
-- Except for map, does not need live APIs. Instead, will download data and query that locally (meteo and geo names).
+- Except for map, does not need any live APIs. Instead, will download data and query that locally (meteo and geo names).
 
-# Commands
+# Development
+
+`.envrc` contains the default dev config.
+Use (direnv)[https://direnv.net/] to load it.
 
 ```bash
-go get -tool github.com/pressly/goose/v3/cmd/goose
-go get -tool github.com/sqlc-dev/sqlc/cmd/sqlc
-go get -tool github.com/mailhog/MailHog
-go get -tool github.com/a-h/templ/cmd/templ
+# Starts the backend, with auto reload
+direnv allow
+go tool air
 
-make check
+# In a separate shell, start the backend
+cd frontend/
+npm run dev
+# See internal/pkg/app/config.go for login.
+open http://localhost:5173
+```
+
+## Commands
+
+```bash
+# See Makefile for more.
+make gen
 make test
 make test_online
+make check
 
+# Migrations
 go tool goose status
 go tool goose create REPLACEME sql
 go tool goose up
 go tool goose validate
 
+# SQL queries
 go tool sqlc generate
-go tool sqlc vet
-
-go tool air
+go tool sqlc vet --file internal/pkg/db/sqlc.yaml
 ```
 
-# Email
+## Email
 
 ```bash
-# http://127.0.0.1:8025/
+# Run the mock emails server (in a separate shell)
 go tool MailHog
+open http://127.0.0.1:8025/
 ```
 
-# Docker
+## Docker
 
 ```bash
 docker build -t detour .

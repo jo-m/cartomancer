@@ -110,7 +110,7 @@
 - [ ] Hints in the frontend:
   - [ ] Email will always stay private, name is shown
   - [ ] Advanced email normalization (e.g. Gmail dots, +tags)
-  - [ ] Warning that for public tracks original file will be public
+  - [ ] Warning that for public tracks original file will be public, incl. start points and potential other data in it
 
 ## Later (maybe)
 
@@ -128,9 +128,13 @@
 - [ ] Extract all (some) of the hardcoded consts/limits into app settings
 - [ ] Explore by tags page
 - [ ] Periodically compute wind rose and average temp for all tracks
-- [ ] Let users configure their location and then show their loc on maps, and allow to filter tracks by relative location
 - [ ] On long tracks track on map is now imprecise when zooming in
 - [ ] Track sharing link with limited time (JWT)
+- [ ] Filter tracks by start/end point
+- [ ] Let users configure their location and then show their loc on maps, and allow to filter tracks by relative location
+- [ ] Show road closures, construction (entered manually, or sourced somewhere)
+- [ ] Download country shapes, and issue a warning if a track includes a border crossing
+- [ ] "Remix" feature, mixing different segments into a track
 
 ## Periodic
 
