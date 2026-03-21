@@ -36,6 +36,8 @@ func main() {
 
 	must(utl.CopyFile(filepath.Join(result.Dir, result.GridConstantsPath), filepath.Join(outDir, "horiz_const.grib2")))
 	fmt.Println("  OK horiz_const.grib2")
+	must(utl.CopyFile(filepath.Join(result.Dir, result.GridConstantsPath), filepath.Join(outDir, "vert_const.grib2")))
+	fmt.Println("  OK vert_const.grib2")
 
 	if len(result.Files) == 0 {
 		panic("no files")
