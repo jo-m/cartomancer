@@ -2,8 +2,9 @@ package geoadmin
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
+
+	"github.com/paulmach/orb/geojson"
 )
 
 // Link represents the STAC link object.
@@ -70,78 +71,6 @@ type CollectionsResponse struct {
 	Links       []Link       `json:"links"`
 }
 
-// Position is a GeoJSON position: [longitude, latitude] or [longitude, latitude, elevation].
-type Position = []float64
-
-// Geometry represents a GeoJSON geometry object (RFC 7946 section 3.1).
-// Use the typed accessor methods (Point, MultiPoint, etc.) to extract coordinates.
-type Geometry struct {
-	Type        string          `json:"type"`
-	Coordinates json.RawMessage `json:"coordinates,omitempty"`
-	// Geometries holds the members for a GeometryCollection.
-	Geometries []Geometry `json:"geometries,omitempty"`
-}
-
-// Point returns the coordinates as a single position.
-// Valid when Type is "Point".
-func (g Geometry) Point() (Position, error) {
-	var pos Position
-	if err := json.Unmarshal(g.Coordinates, &pos); err != nil {
-		return nil, fmt.Errorf("decoding Point coordinates: %w", err)
-	}
-	return pos, nil
-}
-
-// MultiPoint returns the coordinates as a slice of positions.
-// Valid when Type is "MultiPoint".
-func (g Geometry) MultiPoint() ([]Position, error) {
-	var coords []Position
-	if err := json.Unmarshal(g.Coordinates, &coords); err != nil {
-		return nil, fmt.Errorf("decoding MultiPoint coordinates: %w", err)
-	}
-	return coords, nil
-}
-
-// LineString returns the coordinates as a slice of positions.
-// Valid when Type is "LineString".
-func (g Geometry) LineString() ([]Position, error) {
-	var coords []Position
-	if err := json.Unmarshal(g.Coordinates, &coords); err != nil {
-		return nil, fmt.Errorf("decoding LineString coordinates: %w", err)
-	}
-	return coords, nil
-}
-
-// MultiLineString returns the coordinates as a slice of line strings.
-// Valid when Type is "MultiLineString".
-func (g Geometry) MultiLineString() ([][]Position, error) {
-	var coords [][]Position
-	if err := json.Unmarshal(g.Coordinates, &coords); err != nil {
-		return nil, fmt.Errorf("decoding MultiLineString coordinates: %w", err)
-	}
-	return coords, nil
-}
-
-// Polygon returns the coordinates as a slice of linear rings.
-// Valid when Type is "Polygon".
-func (g Geometry) Polygon() ([][]Position, error) {
-	var coords [][]Position
-	if err := json.Unmarshal(g.Coordinates, &coords); err != nil {
-		return nil, fmt.Errorf("decoding Polygon coordinates: %w", err)
-	}
-	return coords, nil
-}
-
-// MultiPolygon returns the coordinates as a slice of polygons.
-// Valid when Type is "MultiPolygon".
-func (g Geometry) MultiPolygon() ([][][]Position, error) {
-	var coords [][][]Position
-	if err := json.Unmarshal(g.Coordinates, &coords); err != nil {
-		return nil, fmt.Errorf("decoding MultiPolygon coordinates: %w", err)
-	}
-	return coords, nil
-}
-
 // FeatureProperties holds the core metadata fields of a STAC Feature.
 // One of Datetime or the pair StartDatetime/EndDatetime is always set.
 type FeatureProperties struct {
@@ -168,7 +97,7 @@ type Feature struct {
 	ID             string   `json:"id"`
 	Collection     string   `json:"collection,omitempty"`
 	// GeoJSON Point (object) or GeoJSON LineString (object) or GeoJSON Polygon (object) or GeoJSON MultiPoint (object) or GeoJSON MultiLineString (object) or GeoJSON MultiPolygon (object) (itemGeometry)
-	Geometry   *Geometry               `json:"geometry"`
+	Geometry   *geojson.Geometry       `json:"geometry"`
 	BBox       []float64               `json:"bbox,omitempty"`
 	Properties FeatureProperties       `json:"properties"`
 	Assets     map[string]FeatureAsset `json:"assets,omitempty"`

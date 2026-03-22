@@ -23,6 +23,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lmittmann/tint v1.1.3
 	github.com/muktihari/fit v0.27.2
+	github.com/paulmach/orb v0.12.0
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.27.0
 	github.com/stretchr/testify v1.11.1
@@ -127,7 +128,6 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/ogier/pflag v0.0.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
-	github.com/paulmach/orb v0.12.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pganalyze/pg_query_go/v5 v5.1.0 // indirect
@@ -170,6 +170,7 @@ require (
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20260128080146-c4ed16b24b37 // indirect
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.127.0 // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
+	go.mongodb.org/mongo-driver v1.11.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.59.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.65.0 // indirect

@@ -20,6 +20,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/paulmach/orb/geojson"
 )
 
 const BaseURL = "http://data.geo.admin.ch/api/stac/v1/"
@@ -237,7 +239,7 @@ type SearchParams struct {
 	// BBox filters by bounding box [west, south, east, north] in WGS84.
 	BBox [4]float64
 	// Intersects filters by a GeoJSON geometry. Mutually exclusive with BBox.
-	Intersects *Geometry
+	Intersects *geojson.Geometry
 	// Datetime filters by date-time or interval (RFC 3339).
 	Datetime string
 	// IDs filters by item IDs. When set, other filters are ignored by the server.
@@ -319,7 +321,7 @@ type SearchPostBody struct {
 	// BBox filters by bounding box [west, south, east, north] in WGS84.
 	BBox *[4]float64 `json:"bbox,omitempty"`
 	// Intersects filters by a GeoJSON geometry. Mutually exclusive with BBox.
-	Intersects *Geometry `json:"intersects,omitempty"`
+	Intersects *geojson.Geometry `json:"intersects,omitempty"`
 	// Datetime filters by date-time or interval (RFC 3339).
 	Datetime string `json:"datetime,omitempty"`
 	// Limit controls how many features per page (1-100, default 100).
