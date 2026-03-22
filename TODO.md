@@ -66,6 +66,7 @@
   - [ ] In `App.tsx` let `QueryClient` use `staleTime`.
   - [ ] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
   - [ ] Frontend aria/accessibility
+  - [ ] Avoid any layout shifts with interactive elements
 
 ## Test (manually)
 
@@ -135,6 +136,8 @@
 - [ ] Show road closures, construction (entered manually, or sourced somewhere)
 - [ ] Download country shapes, and issue a warning if a track includes a border crossing
 - [ ] "Remix" feature, mixing different segments into a track
+- [ ] Map view, showing all tracks and their starting points
+- [ ] Allow to attach images to tracks
 
 ## Periodic
 

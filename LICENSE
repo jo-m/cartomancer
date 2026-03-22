@@ -1,8 +1,12 @@
 Third-party data included in this repository
 ============================================
 
-Some files in internal/pkg/meteo/ and internal/pkg/grib2/ are licensed
-under different licenses. See notices in respective LICENSE files.
+Some files in this repository are licensed under different licenses.
+See the notices in respective LICENSE files.
+
+- internal/pkg/grib2/params/testdata/LICENSE
+- internal/pkg/grib2/testdata/LICENSE
+- internal/pkg/meteo/vars/testdata/LICENSE
 
 Everything else
 ===============

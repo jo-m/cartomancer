@@ -1,4 +1,6 @@
 A personal GPX tracks library.
+There are a bazillion route planning and activity tracking apps, but none of them is good at managing a library of existing tracks[^1].
+This one tries to be.
 
 # Features
 
@@ -43,6 +45,10 @@ go tool goose validate
 # SQL queries
 go tool sqlc generate
 go tool sqlc vet --file internal/pkg/db/sqlc.yaml
+
+# View Go docs
+go run golang.org/x/pkgsite/cmd/pkgsite@latest -open -http localhost:8081
+open http://localhost:8081/jo-m.ch/go/detour
 ```
 
 ## Email
@@ -59,3 +65,5 @@ open http://127.0.0.1:8025/
 docker build -t detour .
 docker run -it --rm -p 8080:8080 --mount type=volume,src=detour-data,dst=/home/nonroot/data detour
 ```
+
+[^1]: There is https://wanderer.to/, which is quite nice. Then again has many features I don't need, and is missing some I want.
