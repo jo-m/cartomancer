@@ -40,16 +40,10 @@ type trackResponse struct {
 	SubSport                int                    `json:"subSport"`
 	TotalDistanceM          float64                `json:"totalDistanceM"`
 	TotalAscentM            float64                `json:"totalAscentM"`
-	MinElevationM           *float64               `json:"minElevationM,omitempty"`
-	MaxElevationM           *float64               `json:"maxElevationM,omitempty"`
-	StartLat                *float64               `json:"startLat,omitempty"`
-	StartLon                *float64               `json:"startLon,omitempty"`
-	EndLat                  *float64               `json:"endLat,omitempty"`
-	EndLon                  *float64               `json:"endLon,omitempty"`
-	BoundsMinLat            *float64               `json:"boundsMinLat,omitempty"`
-	BoundsMinLon            *float64               `json:"boundsMinLon,omitempty"`
-	BoundsMaxLat            *float64               `json:"boundsMaxLat,omitempty"`
-	BoundsMaxLon            *float64               `json:"boundsMaxLon,omitempty"`
+	Elevation               *minMaxResponse        `json:"elevation,omitempty"`
+	Start                   *lonLatResponse        `json:"start,omitempty"`
+	End                     *lonLatResponse        `json:"end,omitempty"`
+	Bounds                  *bboxResponse          `json:"bounds,omitempty"`
 	OriginalCreatedAt       string                 `json:"originalCreatedAt,omitempty"`
 	CreatedAt               string                 `json:"createdAt"`
 	UpdatedAt               string                 `json:"updatedAt"`
@@ -57,8 +51,7 @@ type trackResponse struct {
 	InitialEditingCompleted bool                   `json:"initialEditingCompleted"`
 	Starred                 bool                   `json:"starred"`
 	IsOwner                 bool                   `json:"isOwner"`
-	UserName                string                 `json:"userName"`
-	UserUUID                string                 `json:"userUuid"`
+	User                    userRefResponse        `json:"user"`
 	Tags                    []string               `json:"tags"`
 	GeonameLabel            string                 `json:"geonameLabel,omitempty"`
 	SimilarTracks           []similarTrackEntry    `json:"similarTracks"`
@@ -144,24 +137,17 @@ func trackResponseFromDB(tw db.TrackWithStarred, tags []string, similar []db.Get
 		SubSport:                int(t.SubSport),
 		TotalDistanceM:          t.TotalDistanceM,
 		TotalAscentM:            t.TotalAscentM,
-		MinElevationM:           nullFloat64Ptr(t.MinElevationM),
-		MaxElevationM:           nullFloat64Ptr(t.MaxElevationM),
-		StartLat:                nullFloat64Ptr(t.StartLat),
-		StartLon:                nullFloat64Ptr(t.StartLon),
-		EndLat:                  nullFloat64Ptr(t.EndLat),
-		EndLon:                  nullFloat64Ptr(t.EndLon),
-		BoundsMinLat:            nullFloat64Ptr(t.BoundsMinLat),
-		BoundsMinLon:            nullFloat64Ptr(t.BoundsMinLon),
-		BoundsMaxLat:            nullFloat64Ptr(t.BoundsMaxLat),
-		BoundsMaxLon:            nullFloat64Ptr(t.BoundsMaxLon),
+		Elevation:               nullMinMax(t.MinElevationM, t.MaxElevationM),
+		Start:                   nullLonLat(t.StartLon, t.StartLat),
+		End:                     nullLonLat(t.EndLon, t.EndLat),
+		Bounds:                  nullBBox(t.BoundsMinLat, t.BoundsMinLon, t.BoundsMaxLat, t.BoundsMaxLon),
 		CreatedAt:               t.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:               t.UpdatedAt.Format(time.RFC3339),
 		Public:                  t.Public != 0,
 		InitialEditingCompleted: t.InitialEditingCompleted != 0,
 		Starred:                 tw.Starred,
 		IsOwner:                 isOwner,
-		UserName:                tw.UserName,
-		UserUUID:                t.UserID,
+		User:                    userRefResponse{UUID: t.UserID, Name: tw.UserName},
 		Tags:                    tags,
 		GeonameLabel:            tw.GeonameLabel,
 		SimilarTracks:           simEntries,
@@ -1123,10 +1109,8 @@ func (sv *server) handleEditingComplete(w http.ResponseWriter, r *http.Request) 
 }
 
 type trackStatisticsResponse struct {
-	TotalDistanceMMin *float64 `json:"totalDistanceMMin"`
-	TotalDistanceMMax *float64 `json:"totalDistanceMMax"`
-	TotalAscentMMin   *float64 `json:"totalAscentMMin"`
-	TotalAscentMMax   *float64 `json:"totalAscentMMax"`
+	TotalDistanceM minMaxResponse `json:"totalDistanceM"`
+	TotalAscentM   minMaxResponse `json:"totalAscentM"`
 }
 
 func (sv *server) handleTrackStatistics(w http.ResponseWriter, r *http.Request) {
@@ -1158,10 +1142,14 @@ func (sv *server) handleTrackStatistics(w http.ResponseWriter, r *http.Request) 
 	}
 
 	writeJSON(w, http.StatusOK, trackStatisticsResponse{
-		TotalDistanceMMin: nullFloat64Ptr(result.TotalDistanceMMin),
-		TotalDistanceMMax: nullFloat64Ptr(result.TotalDistanceMMax),
-		TotalAscentMMin:   nullFloat64Ptr(result.TotalAscentMMin),
-		TotalAscentMMax:   nullFloat64Ptr(result.TotalAscentMMax),
+		TotalDistanceM: minMaxResponse{
+			Min: nullFloat64Ptr(result.TotalDistanceMMin),
+			Max: nullFloat64Ptr(result.TotalDistanceMMax),
+		},
+		TotalAscentM: minMaxResponse{
+			Min: nullFloat64Ptr(result.TotalAscentMMin),
+			Max: nullFloat64Ptr(result.TotalAscentMMax),
+		},
 	})
 }
 

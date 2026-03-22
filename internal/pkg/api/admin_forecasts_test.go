@@ -56,8 +56,9 @@ func TestAdminListForecasts_WithData(t *testing.T) {
 	require.Len(t, forecasts, 1)
 
 	forecast := forecasts[0].(map[string]any)
-	assert.Equal(t, "test-source", forecast["attribution"])
-	assert.Equal(t, "https://example.com", forecast["attributionHref"])
+	attribution := forecast["attribution"].(map[string]any)
+	assert.Equal(t, "test-source", attribution["text"])
+	assert.Equal(t, "https://example.com", attribution["href"])
 
 	files := forecast["files"].([]any)
 	require.Len(t, files, 1)

@@ -103,8 +103,9 @@ export default function Track() {
   )
   const [forecastLoading, setForecastLoading] = useState(false)
   const [forecastStatus, setForecastStatus] = useState<string | null>(null)
-  const [forecastAttribution, setForecastAttribution] = useState("")
-  const [forecastAttributionHref, setForecastAttributionHref] = useState("")
+  const [forecastAttribution, setForecastAttribution] = useState<
+    { text: string; href: string } | undefined
+  >(undefined)
   const [forecastUnits, setForecastUnits] = useState<ForecastUnits>({
     temperatureC: "C",
     precipitationRate: "mm/h",
@@ -155,8 +156,9 @@ export default function Track() {
           return
         }
         setForecastStatus(result.forecastStatus ?? null)
-        setForecastAttribution(result.attribution ?? "")
-        setForecastAttributionHref(result.attributionHref ?? "")
+        if (result.attribution) {
+          setForecastAttribution(result.attribution)
+        }
         if (result.units) {
           setForecastUnits(result.units as ForecastUnits)
         }
@@ -288,11 +290,11 @@ export default function Track() {
 
       <div className="mt-4 flex items-center gap-2">
         <img
-          src={`/api/users/${data.userUuid}/avatar`}
+          src={`/api/users/${data.user.uuid}/avatar`}
           alt=""
           className="h-6 w-6 shrink-0 rounded-full"
         />
-        <span className="text-sm text-gray-500">{data.userName}</span>
+        <span className="text-sm text-gray-500">{data.user.name}</span>
       </div>
 
       <div className="mt-2 flex items-start justify-between gap-4">
@@ -493,7 +495,6 @@ export default function Track() {
           units={forecastUnits}
           hoverStore={hoverStore}
           attribution={forecastAttribution}
-          attributionHref={forecastAttributionHref}
         />
       )}
 

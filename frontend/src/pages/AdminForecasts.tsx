@@ -18,7 +18,7 @@ export default function AdminForecasts() {
 
   const filtered = forecasts.filter(
     (f) =>
-      f.attribution.toLowerCase().includes(search.toLowerCase()) ||
+      f.attribution.text.toLowerCase().includes(search.toLowerCase()) ||
       f.referenceTime.includes(search)
   )
 
@@ -84,18 +84,18 @@ export default function AdminForecasts() {
                       </span>
                       <span className="w-1/5 px-4 py-3 text-gray-600">
                         <a
-                          href={f.attributionHref}
+                          href={f.attribution.href}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {f.attribution}
+                          {f.attribution.text}
                         </a>
                       </span>
                       <span className="w-1/5 px-4 py-3 text-xs text-gray-500">
-                        {f.boundsMinLat != null
-                          ? `${f.boundsMinLat.toFixed(1)}, ${f.boundsMinLon?.toFixed(1)} - ${f.boundsMaxLat?.toFixed(1)}, ${f.boundsMaxLon?.toFixed(1)}`
+                        {f.bounds
+                          ? `${f.bounds.min.lat.toFixed(1)}, ${f.bounds.min.lon.toFixed(1)} - ${f.bounds.max.lat.toFixed(1)}, ${f.bounds.max.lon.toFixed(1)}`
                           : "--"}
                       </span>
                       <span className="w-1/5 px-4 py-3 text-gray-600">

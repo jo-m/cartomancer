@@ -22,8 +22,6 @@ import (
 type forecastPointResponse struct {
 	Index                    int      `json:"index"`
 	DistanceM                float64  `json:"distanceM"`
-	Lat                      float64  `json:"lat"`
-	Lon                      float64  `json:"lon"`
 	Time                     string   `json:"time"`
 	TemperatureC             *float64 `json:"temperatureC"`
 	PrecipitationRate        *float64 `json:"precipitationRate"`
@@ -42,11 +40,10 @@ type forecastUnits struct {
 }
 
 type forecastResponse struct {
-	ForecastStatus  string                  `json:"forecastStatus"`
-	Attribution     string                  `json:"attribution"`
-	AttributionHref string                  `json:"attributionHref"`
-	Units           forecastUnits           `json:"units"`
-	Points          []forecastPointResponse `json:"points"`
+	ForecastStatus string                  `json:"forecastStatus"`
+	Attribution    attributionResponse     `json:"attribution"`
+	Units          forecastUnits           `json:"units"`
+	Points         []forecastPointResponse `json:"points"`
 }
 
 // handleGetTrackForecast returns a weather forecast time series along a track.
@@ -167,8 +164,6 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		rp := forecastPointResponse{
 			Index:     i,
 			DistanceM: distances[i],
-			Lat:       p.Lat,
-			Lon:       p.Lon,
 			Time:      pointTime.Format(time.RFC3339),
 		}
 
@@ -218,8 +213,7 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		Points: result,
 	}
 	if h != nil {
-		resp.Attribution = h.Attribution
-		resp.AttributionHref = h.AttributionHref
+		resp.Attribution = attributionResponse{Text: h.Attribution, Href: h.AttributionHref}
 	}
 	writeJSON(w, http.StatusOK, resp)
 }

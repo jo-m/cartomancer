@@ -1147,14 +1147,10 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [forecastStatus, attribution, attributionHref, units, points]
+                required: [forecastStatus, attribution, units, points]
                 properties:
                   attribution:
-                    type: string
-                    description: Human-readable data source credit.
-                  attributionHref:
-                    type: string
-                    description: URL for the data source.
+                    $ref: "#/components/schemas/SourceAttribution"
                   forecastStatus:
                     type: string
                     enum: [full, partial, none]
@@ -1186,7 +1182,7 @@ paths:
                     type: array
                     items:
                       type: object
-                      required: [index, distanceM, lat, lon, time]
+                      required: [index, distanceM, time]
                       properties:
                         index:
                           type: integer
@@ -1194,10 +1190,6 @@ paths:
                         distanceM:
                           type: number
                           description: Cumulative distance in meters from the start.
-                        lat:
-                          type: number
-                        lon:
-                          type: number
                         time:
                           type: string
                           format: date-time
@@ -1978,6 +1970,67 @@ components:
         to an authenticated one. The cookie is HTTP-only, SameSite=Strict.
 
   schemas:
+    LonLat:
+      type: object
+      required:
+        - lat
+        - lon
+      properties:
+        lat:
+          type: number
+          format: double
+        lon:
+          type: number
+          format: double
+
+    BBox:
+      type: object
+      required:
+        - min
+        - max
+      properties:
+        min:
+          $ref: "#/components/schemas/LonLat"
+        max:
+          $ref: "#/components/schemas/LonLat"
+
+    MinMax:
+      type: object
+      required:
+        - min
+        - max
+      properties:
+        min:
+          type: number
+          format: double
+          nullable: true
+        max:
+          type: number
+          format: double
+          nullable: true
+
+    UserRef:
+      type: object
+      required:
+        - uuid
+        - name
+      properties:
+        uuid:
+          type: string
+        name:
+          type: string
+
+    SourceAttribution:
+      type: object
+      required:
+        - text
+        - href
+      properties:
+        text:
+          type: string
+        href:
+          type: string
+
     AppConfig:
       type: object
       required:
@@ -2224,8 +2277,7 @@ components:
         - updatedAt
         - public
         - tags
-        - userName
-        - userUuid
+        - user
         - similarTracks
       properties:
         uuid:
@@ -2256,38 +2308,14 @@ components:
         totalAscentM:
           type: number
           format: double
-        minElevationM:
-          type: number
-          format: double
-          nullable: true
-        maxElevationM:
-          type: number
-          format: double
-          nullable: true
-        startLat:
-          type: number
-          format: double
-        startLon:
-          type: number
-          format: double
-        endLat:
-          type: number
-          format: double
-        endLon:
-          type: number
-          format: double
-        boundsMinLat:
-          type: number
-          format: double
-        boundsMinLon:
-          type: number
-          format: double
-        boundsMaxLat:
-          type: number
-          format: double
-        boundsMaxLon:
-          type: number
-          format: double
+        elevation:
+          $ref: "#/components/schemas/MinMax"
+        start:
+          $ref: "#/components/schemas/LonLat"
+        end:
+          $ref: "#/components/schemas/LonLat"
+        bounds:
+          $ref: "#/components/schemas/BBox"
         originalCreatedAt:
           type: string
           format: date-time
@@ -2305,10 +2333,8 @@ components:
           type: boolean
         isOwner:
           type: boolean
-        userName:
-          type: string
-        userUuid:
-          type: string
+        user:
+          $ref: "#/components/schemas/UserRef"
         tags:
           type: array
           items:
@@ -2476,31 +2502,15 @@ components:
     TrackStatisticsResponse:
       type: object
       required:
-        - totalDistanceMMin
-        - totalDistanceMMax
-        - totalAscentMMin
-        - totalAscentMMax
+        - totalDistanceM
+        - totalAscentM
       properties:
-        totalDistanceMMin:
-          type: number
-          format: double
-          nullable: true
-          description: Null when there are no visible tracks.
-        totalDistanceMMax:
-          type: number
-          format: double
-          nullable: true
-          description: Null when there are no visible tracks.
-        totalAscentMMin:
-          type: number
-          format: double
-          nullable: true
-          description: Null when there are no visible tracks.
-        totalAscentMMax:
-          type: number
-          format: double
-          nullable: true
-          description: Null when there are no visible tracks.
+        totalDistanceM:
+          $ref: "#/components/schemas/MinMax"
+          description: Null min/max when there are no visible tracks.
+        totalAscentM:
+          $ref: "#/components/schemas/MinMax"
+          description: Null min/max when there are no visible tracks.
 
     ListTracksResponse:
       type: object
@@ -2570,7 +2580,6 @@ components:
         - createdAt
         - referenceTime
         - attribution
-        - attributionHref
         - files
       properties:
         id:
@@ -2582,26 +2591,10 @@ components:
         referenceTime:
           type: string
           format: date-time
-        boundsMinLat:
-          type: number
-          format: double
-          nullable: true
-        boundsMinLon:
-          type: number
-          format: double
-          nullable: true
-        boundsMaxLat:
-          type: number
-          format: double
-          nullable: true
-        boundsMaxLon:
-          type: number
-          format: double
-          nullable: true
+        bounds:
+          $ref: "#/components/schemas/BBox"
         attribution:
-          type: string
-        attributionHref:
-          type: string
+          $ref: "#/components/schemas/SourceAttribution"
         files:
           type: array
           items:

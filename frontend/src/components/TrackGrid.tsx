@@ -266,12 +266,12 @@ export default function TrackGrid({ mode }: TrackGridProps) {
   })
 
   const absMaxDistKm =
-    stats?.totalDistanceMMax != null
-      ? Math.ceil(stats.totalDistanceMMax / 1000)
+    stats?.totalDistanceM.max != null
+      ? Math.ceil(stats.totalDistanceM.max / 1000)
       : 0
   const absMaxAscentM =
-    stats?.totalAscentMMax != null
-      ? Math.ceil(stats.totalAscentMMax / 10) * 10
+    stats?.totalAscentM.max != null
+      ? Math.ceil(stats.totalAscentM.max / 10) * 10
       : 0
 
   const [live, setLive] = useState<LiveFilters>(initialFilters)
@@ -643,7 +643,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                   <div className="p-2.5">
                     <div className="flex items-center gap-1.5">
                       <img
-                        src={`/api/users/${track.userUuid}/avatar`}
+                        src={`/api/users/${track.user.uuid}/avatar`}
                         alt=""
                         className="h-4 w-4 shrink-0 rounded-full"
                       />
@@ -652,7 +652,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                       </p>
                     </div>
                     <p className="mt-0.5 text-xs text-gray-500">
-                      {track.userName} &middot;{" "}
+                      {track.user.name} &middot;{" "}
                       {formatDistance(track.totalDistanceM)} &middot;{" "}
                       {formatAscent(track.totalAscentM)}
                     </p>

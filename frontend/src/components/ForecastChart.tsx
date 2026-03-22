@@ -14,8 +14,6 @@ import type { HoverStore } from "../hooks/useHoverSync"
 export interface ForecastPoint {
   index: number
   distanceM: number
-  lat: number
-  lon: number
   time: string
   temperatureC: number | null
   precipitationRate: number | null
@@ -48,8 +46,7 @@ interface Props {
   points: ForecastPoint[]
   units: ForecastUnits
   hoverStore: HoverStore
-  attribution?: string
-  attributionHref?: string
+  attribution?: { text: string; href: string }
 }
 
 const Y_AXIS_WIDTH = 36
@@ -94,7 +91,6 @@ export default function ForecastChart({
   units,
   hoverStore,
   attribution,
-  attributionHref,
 }: Props) {
   const tempLineRef = useRef<HTMLDivElement>(null)
   const tempLabelRef = useRef<HTMLDivElement>(null)
@@ -613,17 +609,17 @@ export default function ForecastChart({
       {attribution && (
         <p className="mt-1 text-right text-[10px] text-gray-400">
           Source:{" "}
-          {attributionHref ? (
+          {attribution.href ? (
             <a
-              href={attributionHref}
+              href={attribution.href}
               target="_blank"
               rel="noopener noreferrer"
               className="underline hover:text-gray-600"
             >
-              {attribution}
+              {attribution.text}
             </a>
           ) : (
-            attribution
+            attribution.text
           )}
         </p>
       )}

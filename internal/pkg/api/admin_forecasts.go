@@ -16,16 +16,12 @@ type adminForecastFileResponse struct {
 }
 
 type adminForecastResponse struct {
-	ID              int64                       `json:"id"`
-	CreatedAt       string                      `json:"createdAt"`
-	ReferenceTime   string                      `json:"referenceTime"`
-	BoundsMinLat    *float64                    `json:"boundsMinLat"`
-	BoundsMinLon    *float64                    `json:"boundsMinLon"`
-	BoundsMaxLat    *float64                    `json:"boundsMaxLat"`
-	BoundsMaxLon    *float64                    `json:"boundsMaxLon"`
-	Attribution     string                      `json:"attribution"`
-	AttributionHref string                      `json:"attributionHref"`
-	Files           []adminForecastFileResponse `json:"files"`
+	ID            int64                       `json:"id"`
+	CreatedAt     string                      `json:"createdAt"`
+	ReferenceTime string                      `json:"referenceTime"`
+	Bounds        *bboxResponse               `json:"bounds,omitempty"`
+	Attribution   attributionResponse         `json:"attribution"`
+	Files         []adminForecastFileResponse `json:"files"`
 }
 
 type adminForecastsResponse struct {
@@ -52,24 +48,12 @@ func (sv *server) handleAdminListForecasts(w http.ResponseWriter, r *http.Reques
 				forecasts = append(forecasts, *current)
 			}
 			fc := adminForecastResponse{
-				ID:              row.ForecastID,
-				CreatedAt:       row.CreatedAt.Format(time.RFC3339),
-				ReferenceTime:   row.ReferenceTime.Format(time.RFC3339),
-				Attribution:     row.Attribution,
-				AttributionHref: row.AttributionHref,
-				Files:           []adminForecastFileResponse{},
-			}
-			if row.BoundsMinLat.Valid {
-				fc.BoundsMinLat = &row.BoundsMinLat.Float64
-			}
-			if row.BoundsMinLon.Valid {
-				fc.BoundsMinLon = &row.BoundsMinLon.Float64
-			}
-			if row.BoundsMaxLat.Valid {
-				fc.BoundsMaxLat = &row.BoundsMaxLat.Float64
-			}
-			if row.BoundsMaxLon.Valid {
-				fc.BoundsMaxLon = &row.BoundsMaxLon.Float64
+				ID:            row.ForecastID,
+				CreatedAt:     row.CreatedAt.Format(time.RFC3339),
+				ReferenceTime: row.ReferenceTime.Format(time.RFC3339),
+				Bounds:        nullBBox(row.BoundsMinLat, row.BoundsMinLon, row.BoundsMaxLat, row.BoundsMaxLon),
+				Attribution:   attributionResponse{Text: row.Attribution, Href: row.AttributionHref},
+				Files:         []adminForecastFileResponse{},
 			}
 			current = &fc
 		}
