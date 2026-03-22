@@ -79,7 +79,7 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	}
 
 	logg.Info(ctx, "downloading GeoNames admin codes")
-	admin1Data, admin2Data, err := DownloadAdminCodes()
+	admin1Data, admin2Data, err := DownloadAdminCodes(ctx)
 	if err != nil {
 		return fmt.Errorf("download admin codes: %w", err)
 	}

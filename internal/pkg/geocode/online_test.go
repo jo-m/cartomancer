@@ -20,7 +20,7 @@ import (
 // the license is still Creative Commons Attribution 4.0, matching DataAttribution.
 func TestOnlineGeoNamesLicense(t *testing.T) {
 	readmeURL := cols.BaseURL + "/readme.txt"
-	data, err := utl.DownloadFile(readmeURL)
+	data, err := utl.DownloadFile(t.Context(), readmeURL)
 	require.NoError(t, err)
 
 	readme := string(data)
@@ -77,7 +77,7 @@ func TestOnlineSubsampleAllCountries(t *testing.T) {
 // TestOnlineSubsampleAdmin1Codes downloads admin1CodesASCII.txt and writes
 // every ~16th row (4 leading zero bits) to a golden file for offline tests.
 func TestOnlineSubsampleAdmin1Codes(t *testing.T) {
-	data, err := utl.DownloadFile(Admin1CodesURL)
+	data, err := utl.DownloadFile(t.Context(), Admin1CodesURL)
 	require.NoError(t, err)
 	require.NotEmpty(t, data)
 
@@ -90,7 +90,7 @@ func TestOnlineSubsampleAdmin1Codes(t *testing.T) {
 // TestOnlineSubsampleAdmin2Codes downloads admin2Codes.txt and writes
 // every ~16th row (4 leading zero bits) to a golden file for offline tests.
 func TestOnlineSubsampleAdmin2Codes(t *testing.T) {
-	data, err := utl.DownloadFile(Admin2CodesURL)
+	data, err := utl.DownloadFile(t.Context(), Admin2CodesURL)
 	require.NoError(t, err)
 	require.NotEmpty(t, data)
 

@@ -34,13 +34,13 @@ type adminCodeRow struct {
 
 // DownloadAdminCodes downloads the admin1 and admin2 code files and returns
 // their contents. Returns (admin1Data, admin2Data, error).
-func DownloadAdminCodes() ([]byte, []byte, error) {
-	admin1, err := utl.DownloadFile(Admin1CodesURL)
+func DownloadAdminCodes(ctx context.Context) ([]byte, []byte, error) {
+	admin1, err := utl.DownloadFile(ctx, Admin1CodesURL)
 	if err != nil {
 		return nil, nil, fmt.Errorf("download admin1 codes: %w", err)
 	}
 
-	admin2, err := utl.DownloadFile(Admin2CodesURL)
+	admin2, err := utl.DownloadFile(ctx, Admin2CodesURL)
 	if err != nil {
 		return nil, nil, fmt.Errorf("download admin2 codes: %w", err)
 	}

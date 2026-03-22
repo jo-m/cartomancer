@@ -14,7 +14,7 @@ const wmoCSVURL = "https://codes.wmo.int/grib2/codeflag/4.2?_format=csv&status=v
 
 // TestOnlineFetchParamsCSV verifies that the params CSV file is up to date.
 func TestOnlineFetchParamsCSV(t *testing.T) {
-	csv, err := utl.DownloadFile(wmoCSVURL)
+	csv, err := utl.DownloadFile(t.Context(), wmoCSVURL)
 	require.NoError(t, err)
 
 	golden.Verify(t, string(csv), golden.Extension(".csv")) // golden.WaitApproval()

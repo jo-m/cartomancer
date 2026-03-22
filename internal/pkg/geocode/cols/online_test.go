@@ -18,7 +18,7 @@ const (
 // TestOnlineDownloadReadme downloads the GeoNames readme.txt and verifies it
 // against a golden snapshot so that column format changes are detected.
 func TestOnlineDownloadReadme(t *testing.T) {
-	data, err := utl.DownloadFile(readmeURL)
+	data, err := utl.DownloadFile(t.Context(), readmeURL)
 	require.NoError(t, err)
 	require.NotEmpty(t, data)
 
@@ -28,7 +28,7 @@ func TestOnlineDownloadReadme(t *testing.T) {
 // TestOnlineDownloadFeatureCodes downloads the GeoNames featureCodes_en.txt
 // and verifies it against a golden snapshot so that format changes are detected.
 func TestOnlineDownloadFeatureCodes(t *testing.T) {
-	data, err := utl.DownloadFile(featureCodesURL)
+	data, err := utl.DownloadFile(t.Context(), featureCodesURL)
 	require.NoError(t, err)
 	require.NotEmpty(t, data)
 

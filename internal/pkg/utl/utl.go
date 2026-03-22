@@ -2,6 +2,7 @@
 package utl
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -26,10 +27,15 @@ func Must[T any](val T, err error) T {
 	return val
 }
 
-// DownloadFile fetches the resource at httpUrl via HTTP GET and returns the response body.
+// DownloadFile fetches the resource at httpURL via HTTP GET and returns the response body.
 // Returns an error if the request fails or the server returns a non-2xx status code.
-func DownloadFile(httpURL string) ([]byte, error) {
-	resp, err := http.Get(httpURL) //nolint:gosec // URL is caller-supplied intentionally.
+func DownloadFile(ctx context.Context, httpURL string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, httpURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(req) //nolint:gosec // URL is caller-supplied intentionally.
 	if err != nil {
 		return nil, err
 	}
