@@ -8,20 +8,23 @@ import (
 
 	"github.com/franiglesias/golden"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/meteo/stac"
+	"jo-m.ch/go/detour/internal/pkg/geoadmin"
+	"jo-m.ch/go/detour/internal/pkg/meteo/collection"
 	"jo-m.ch/go/detour/internal/pkg/utl"
 )
 
 // TestOnlineFetchVariablesCSV verifies that the variables CSV file is up to date.
 func TestOnlineFetchVariablesCSV(t *testing.T) {
 	ctx := context.Background()
-	coll, err := stac.FetchJSON[stac.Collection](ctx, stac.GetCollectionURL())
+	client := geoadmin.NewClient(geoadmin.BaseURL)
+	coll, err := client.GetCollection(ctx, collection.ID)
 	require.NoError(t, err)
 
-	csvAsset, ok := coll.Assets[CsvAssetKey]
+	csvAsset, ok := coll.Assets[csvAssetKey]
 	require.True(t, ok, "asset not found in collection")
+	require.NotNil(t, csvAsset.Href, "asset has no href")
 
-	csv, err := utl.DownloadFile(csvAsset.Href)
+	csv, err := utl.DownloadFile(*csvAsset.Href)
 	require.NoError(t, err)
 
 	golden.Verify(t, string(csv), golden.Extension(".csv")) // golden.WaitApproval()

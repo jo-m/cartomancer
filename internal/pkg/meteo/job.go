@@ -13,7 +13,6 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/logg"
-	"jo-m.ch/go/detour/internal/pkg/meteo/stac"
 	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 )
 
@@ -85,7 +84,7 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	}
 
 	// Stage 3: fetch full manifest and download all/missing files.
-	manifest, err := GetNewestForecast(ctx, DownloadVariables, NoHorizonLimit, false)
+	manifest, err := GetNewestForecast(ctx, DownloadVariables, noHorizonLimit, false)
 	if err != nil {
 		return fmt.Errorf("fetch forecast manifest: %w", err)
 	}
@@ -168,8 +167,8 @@ func (d *Downloader) storeNewForecast(ctx context.Context, manifest *ForecastMan
 			BoundsMaxLon:       nullFloat(boundsMaxLon),
 			HorizontalGridFile: gridContent,
 			VerticalGridFile:   vertGridContent,
-			Attribution:        stac.Attribution,
-			AttributionHref:    stac.AttributionHref,
+			Attribution:        attribution,
+			AttributionHref:    attributionHref,
 		})
 		if dbErr != nil {
 			return fmt.Errorf("create forecast record: %w", dbErr)
@@ -281,7 +280,7 @@ func insertFiles(ctx context.Context, tx *db.Queries, dir string, files []Downlo
 
 		if _, dbErr := tx.CreateForecastFile(ctx, db.CreateForecastFileParams{
 			ValidTime:      f.Meta.ValidTime,
-			ValidUntilTime: f.Meta.ValidTime.Add(stac.FileValidityDuration),
+			ValidUntilTime: f.Meta.ValidTime.Add(fileValidityDuration),
 			Variable:       f.Meta.Variable,
 			File:           content,
 			ForecastID:     forecastID,

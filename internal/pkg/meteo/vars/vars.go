@@ -7,11 +7,12 @@ import (
 	"io"
 	"net/http"
 
-	"jo-m.ch/go/detour/internal/pkg/meteo/stac"
+	"jo-m.ch/go/detour/internal/pkg/geoadmin"
+	"jo-m.ch/go/detour/internal/pkg/meteo/collection"
 )
 
 const (
-	CsvAssetKey = "params_icon-ch1-eps.csv"
+	csvAssetKey = "params_icon-ch1-eps.csv"
 )
 
 // Variable describes a meteorological forecast variable available in the
@@ -41,17 +42,21 @@ type Variable struct {
 // The CSV is fetched at runtime from the collection's asset href, so the caller
 // must have network access to the Swiss government STAC API.
 func FetchVariables(ctx context.Context) ([]Variable, error) {
-	coll, err := stac.FetchJSON[stac.Collection](ctx, stac.GetCollectionURL())
+	client := geoadmin.NewClient(geoadmin.BaseURL)
+	coll, err := client.GetCollection(ctx, collection.ID)
 	if err != nil {
 		return nil, fmt.Errorf("fetching STAC collection: %w", err)
 	}
 
-	csvAsset, ok := coll.Assets[CsvAssetKey]
+	csvAsset, ok := coll.Assets[csvAssetKey]
 	if !ok {
-		return nil, fmt.Errorf("asset %q not found in collection", CsvAssetKey)
+		return nil, fmt.Errorf("asset %q not found in collection", csvAssetKey)
+	}
+	if csvAsset.Href == nil {
+		return nil, fmt.Errorf("asset %q has no href", csvAssetKey)
 	}
 
-	return downloadAndParseCSV(ctx, csvAsset.Href)
+	return downloadAndParseCSV(ctx, *csvAsset.Href)
 }
 
 // downloadAndParseCSV fetches the CSV at href and parses it into Variable records.

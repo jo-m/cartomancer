@@ -50,19 +50,20 @@ type TemporalExtent struct {
 
 // Collection represents a STAC Collection object.
 type Collection struct {
-	Type        string         `json:"type"` // Always "Collection"
-	StacVersion string         `json:"stac_version"`
-	ID          string         `json:"id"`
-	Title       *string        `json:"title,omitempty"`
-	Description string         `json:"description"`
-	License     string         `json:"license,omitempty"`
-	ItemType    *string        `json:"itemType,omitempty"` // Default "Feature"
-	Extent      Extent         `json:"extent"`
-	Providers   []Provider     `json:"providers,omitempty"`
-	Summaries   map[string]any `json:"summaries,omitempty"`
-	Created     time.Time      `json:"created"`
-	Updated     time.Time      `json:"updated"`
-	Links       []Link         `json:"links"`
+	Type        string                  `json:"type"` // Always "Collection".
+	StacVersion string                  `json:"stac_version"`
+	ID          string                  `json:"id"`
+	Title       *string                 `json:"title,omitempty"`
+	Description string                  `json:"description"`
+	License     string                  `json:"license,omitempty"`
+	ItemType    *string                 `json:"itemType,omitempty"` // Default "Feature".
+	Extent      Extent                  `json:"extent"`
+	Providers   []Provider              `json:"providers,omitempty"`
+	Summaries   map[string]any          `json:"summaries,omitempty"`
+	Assets      map[string]FeatureAsset `json:"assets,omitempty"`
+	Created     time.Time               `json:"created"`
+	Updated     time.Time               `json:"updated"`
+	Links       []Link                  `json:"links"`
 }
 
 // CollectionsResponse represents the paginated response from GET /collections.
@@ -76,17 +77,57 @@ type CollectionsResponse struct {
 type FeatureProperties struct {
 	Created       time.Time  `json:"created"`
 	Updated       time.Time  `json:"updated"`
-	Datetime      *time.Time `json:"datetime"`
+	Datetime      *time.Time `json:"datetime"` // Timestamp of when this file is valid, RFC 3339.
 	StartDatetime *time.Time `json:"start_datetime,omitempty"`
 	EndDatetime   *time.Time `json:"end_datetime,omitempty"`
 	Expires       *time.Time `json:"expires,omitempty"`
 	Title         *string    `json:"title,omitempty"`
-	// Forecast extension fields.
+	// Forecast extension fields. See [ForecastFeatureProperties].
 	ForecastReferenceDatetime *time.Time `json:"forecast:reference_datetime,omitempty"`
-	ForecastHorizon           *string    `json:"forecast:horizon,omitempty"`   // ISO 8601 compliant duration
-	ForecastDuration          *string    `json:"forecast:duration,omitempty"`  // ISO 8601 compliant duration
-	ForecastVariable          *string    `json:"forecast:variable,omitempty"`  // Name of the model variable that corresponds to the data. The variables should correspond to the CF Standard Names, e.g. air_temperature for the air temperature.
-	ForecastPerturbed         *bool      `json:"forecast:perturbed,omitempty"` // Denotes whether the data corresponds to the control run (false) or perturbed runs (true). The property needs to be specified in both cases as no default value is specified and as such the meaning is "unknown" in case it's missing.
+	ForecastHorizon           *string    `json:"forecast:horizon,omitempty"`
+	ForecastDuration          *string    `json:"forecast:duration,omitempty"`
+	ForecastVariable          *string    `json:"forecast:variable,omitempty"`
+	ForecastPerturbed         *bool      `json:"forecast:perturbed,omitempty"`
+}
+
+// ForecastFeatureProperties holds the forecast extension fields from
+// [FeatureProperties] as non-nullable values. Use [FeatureProperties.Forecast]
+// to convert.
+type ForecastFeatureProperties struct {
+	// Datetime is the timestamp at which the forecast values are valid (RFC 3339).
+	Datetime time.Time
+	// ReferenceDatetime is the model run initialisation time (RFC 3339).
+	ReferenceDatetime time.Time
+	// Horizon is the duration between ReferenceDatetime and Datetime as an
+	// ISO 8601 duration string (e.g. "PT1H").
+	Horizon string
+	// Variable is the forecast variable name (e.g. "T_2M").
+	Variable string
+	// Perturbed is true for perturbed ensemble members, false for control runs.
+	Perturbed bool
+}
+
+// Forecast extracts the forecast extension fields from p into a
+// [ForecastFeatureProperties] with non-nullable values. Nil pointer fields
+// are replaced with their zero values.
+func (p *FeatureProperties) Forecast() ForecastFeatureProperties {
+	fp := ForecastFeatureProperties{}
+	if p.Datetime != nil {
+		fp.Datetime = *p.Datetime
+	}
+	if p.ForecastReferenceDatetime != nil {
+		fp.ReferenceDatetime = *p.ForecastReferenceDatetime
+	}
+	if p.ForecastHorizon != nil {
+		fp.Horizon = *p.ForecastHorizon
+	}
+	if p.ForecastVariable != nil {
+		fp.Variable = *p.ForecastVariable
+	}
+	if p.ForecastPerturbed != nil {
+		fp.Perturbed = *p.ForecastPerturbed
+	}
+	return fp
 }
 
 // Feature represents a STAC Feature (GeoJSON Feature).

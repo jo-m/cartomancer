@@ -6,7 +6,7 @@ import (
 
 	"jo-m.ch/go/detour/internal/pkg/attribute"
 	"jo-m.ch/go/detour/internal/pkg/geocode"
-	"jo-m.ch/go/detour/internal/pkg/meteo/stac"
+	"jo-m.ch/go/detour/internal/pkg/meteo"
 )
 
 type buildInfoModule struct {
@@ -36,7 +36,7 @@ func (sv *server) handleGetVersion(w http.ResponseWriter, r *http.Request) {
 		Version:   info.Main.Version,
 		Deps:      make([]buildInfoModule, 0, len(info.Deps)),
 		Attributions: []attribute.Attribution{
-			stac.DataAttribution,
+			meteo.DataAttribution,
 			geocode.DataAttribution,
 		},
 	}

@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/detour/internal/pkg/geoadmin"
 	"jo-m.ch/go/detour/internal/pkg/logg"
-	"jo-m.ch/go/detour/internal/pkg/meteo/stac"
 	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 )
 
@@ -31,7 +31,7 @@ func TestParseISO8601Duration(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {
-			got, err := stac.ParseISO8601Duration(tc.input)
+			got, err := geoadmin.ParseISO8601Duration(tc.input)
 			if tc.wantErr {
 				require.Error(t, err)
 				return

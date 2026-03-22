@@ -20,8 +20,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"jo-m.ch/go/detour/internal/pkg/geoadmin"
 	"jo-m.ch/go/detour/internal/pkg/logg"
-	"jo-m.ch/go/detour/internal/pkg/meteo/stac"
+	"jo-m.ch/go/detour/internal/pkg/meteo/collection"
 	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
 )
 
@@ -34,9 +35,9 @@ const (
 	// vertConstFilename is the local filename for the downloaded vertical grid constants.
 	vertConstFilename = "vert_const.grib2"
 
-	// NoHorizonLimit can be passed as maxHorizon to [GetNewestForecast] to include all
+	// noHorizonLimit can be passed as maxHorizon to [GetNewestForecast] to include all
 	// available forecast horizons without restriction.
-	NoHorizonLimit = time.Duration(math.MaxInt64)
+	noHorizonLimit = time.Duration(math.MaxInt64)
 )
 
 // FileMeta holds the meteorological metadata shared between [ForecastFile] and
@@ -126,60 +127,70 @@ func GetNewestForecast(ctx context.Context, variables []vars.Variable, maxHorizo
 		paramNames[i] = v.Name
 	}
 	logg.Debug(ctx, "fetching STAC items", "variables", paramNames, "maxHorizon", maxHorizon, "perturbed", perturbed)
-	items, coll, err := stac.FetchItemsForVariables(ctx, stac.GetCollectionURL(), paramNames, perturbed)
+	features, coll, err := fetchItemsForVariables(ctx, paramNames, perturbed)
 	if err != nil {
 		return nil, fmt.Errorf("fetching STAC items: %w", err)
 	}
-	if len(items) == 0 {
+	if len(features) == 0 {
 		return nil, fmt.Errorf("no forecast items found for variables %v", variables)
 	}
 
-	refTime := items[0].Props.ReferenceDatetime
+	refTime := features[0].Properties.Forecast().ReferenceDatetime
 	horizAsset, ok := coll.Assets[horizConstAssetKey]
 	if !ok {
 		return nil, fmt.Errorf("asset %q not found in collection", horizConstAssetKey)
+	}
+	if horizAsset.Href == nil {
+		return nil, fmt.Errorf("asset %q has no href", horizConstAssetKey)
 	}
 	vertAsset, ok := coll.Assets[vertConstAssetKey]
 	if !ok {
 		return nil, fmt.Errorf("asset %q not found in collection", vertConstAssetKey)
 	}
+	if vertAsset.Href == nil {
+		return nil, fmt.Errorf("asset %q has no href", vertConstAssetKey)
+	}
 
 	var files []ForecastFile
-	for _, item := range items {
-		horizon, parseErr := stac.ParseISO8601Duration(item.Props.Horizon)
+	for _, feat := range features {
+		fp := feat.Properties.Forecast()
+
+		horizon, parseErr := geoadmin.ParseISO8601Duration(fp.Horizon)
 		if parseErr != nil {
-			return nil, fmt.Errorf("parsing horizon for item %s: %w", item.ID, parseErr)
+			return nil, fmt.Errorf("parsing horizon for item %s: %w", feat.ID, parseErr)
 		}
 
 		if horizon > maxHorizon {
 			logg.Trace(ctx, "Skipping item: horizon exceeds limit",
-				"variable", item.Props.Variable,
+				"variable", fp.Variable,
 				"horizon", horizon,
 				"maxHorizon", maxHorizon)
 			continue
 		}
 
 		var assetURL string
-		for _, asset := range item.Assets {
-			assetURL = asset.Href
-			break
+		for _, asset := range feat.Assets {
+			if asset.Href != nil {
+				assetURL = *asset.Href
+				break
+			}
 		}
 		if assetURL == "" {
-			logg.Debug(ctx, "skipping item: no asset URL", "id", item.ID)
+			logg.Debug(ctx, "skipping item: no asset URL", "id", feat.ID)
 			continue
 		}
 
 		f := ForecastFile{
 			URL: assetURL,
 			Meta: FileMeta{
-				Variable:      item.Props.Variable,
+				Variable:      fp.Variable,
 				Horizon:       horizon,
-				ReferenceTime: item.Props.ReferenceDatetime,
-				ValidTime:     item.Props.ValidDatetime,
-				Perturbed:     item.Props.Perturbed,
+				ReferenceTime: fp.ReferenceDatetime,
+				ValidTime:     fp.Datetime,
+				Perturbed:     fp.Perturbed,
 			},
 		}
-		parseBBox(item, &f.Meta)
+		parseBBox(feat.BBox, &f.Meta)
 		files = append(files, f)
 	}
 
@@ -187,8 +198,8 @@ func GetNewestForecast(ctx context.Context, variables []vars.Variable, maxHorizo
 	return &ForecastManifest{
 		ReferenceTime:    refTime,
 		Files:            files,
-		GridConstantsURL: horizAsset.Href,
-		VertConstantsURL: vertAsset.Href,
+		GridConstantsURL: *horizAsset.Href,
+		VertConstantsURL: *vertAsset.Href,
 	}, nil
 }
 
@@ -269,26 +280,27 @@ func Download(ctx context.Context, variables []vars.Variable, maxHorizon time.Du
 // initialisation time of the newest available forecast run from the temporal
 // extent. It returns the zero time with a nil error when the extent is empty.
 func FetchLatestReferenceTime(ctx context.Context) (time.Time, error) {
-	coll, err := stac.FetchJSON[stac.Collection](ctx, stac.GetCollectionURL())
+	client := geoadmin.NewClient(geoadmin.BaseURL)
+	coll, err := client.GetCollection(ctx, collection.ID)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("fetching STAC collection: %w", err)
 	}
-	return coll.NewestReferenceTime(), nil
+	return newestReferenceTime(coll), nil
 }
 
-// parseBBox fills the bounding-box fields of m from the STAC item's BBox slice,
-// which follows the GeoJSON convention [min_lon, min_lat, max_lon, max_lat].
+// parseBBox fills the bounding-box fields of m from a GeoJSON bbox slice
+// following the convention [min_lon, min_lat, max_lon, max_lat].
 // Fields are set to NaN when the bbox is absent or malformed.
-func parseBBox(item stac.Item, m *FileMeta) {
+func parseBBox(bbox []float64, m *FileMeta) {
 	m.BoundsMinLat = math.NaN()
 	m.BoundsMinLon = math.NaN()
 	m.BoundsMaxLat = math.NaN()
 	m.BoundsMaxLon = math.NaN()
-	if len(item.BBox) == 4 {
-		m.BoundsMinLon = item.BBox[0]
-		m.BoundsMinLat = item.BBox[1]
-		m.BoundsMaxLon = item.BBox[2]
-		m.BoundsMaxLat = item.BBox[3]
+	if len(bbox) == 4 {
+		m.BoundsMinLon = bbox[0]
+		m.BoundsMinLat = bbox[1]
+		m.BoundsMaxLon = bbox[2]
+		m.BoundsMaxLat = bbox[3]
 	}
 }
 

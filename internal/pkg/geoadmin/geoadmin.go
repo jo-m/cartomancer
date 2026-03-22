@@ -1,6 +1,10 @@
 // Package geoadmin provides a client for the STAC API at http://data.geo.admin.ch/api/stac/v1/.
-// API docs: https://data.geo.admin.ch/api/stac/static/spec/v1/api.html.
-// OpenAPI spec: https://data.geo.admin.ch/api/stac/static/spec/v1/openapi.yaml.
+//   - API docs: https://data.geo.admin.ch/api/stac/static/spec/v1/api.html.
+//   - OpenAPI spec: https://data.geo.admin.ch/api/stac/static/spec/v1/openapi.yaml.
+//   - STAC Browser: https://data.geo.admin.ch/browser/index.html.
+//   - Disclaimer: https://www.admin.ch/gov/en/start/terms-and-conditions.html.
+//   - Terms: https://www.geo.admin.ch/en/general-terms-of-use-fsdi.
+//
 // This package might also work with other generic STAC APIs (not tested).
 // Usage:
 //
