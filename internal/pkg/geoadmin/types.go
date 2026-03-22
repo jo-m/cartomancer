@@ -1,0 +1,235 @@
+package geoadmin
+
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+)
+
+// Link represents the STAC link object.
+// For POST-based pagination, Method is "POST", Merge is true, and Body carries
+// the cursor to merge into the next request.
+type Link struct {
+	Href     string          `json:"href"`
+	Rel      string          `json:"rel"`
+	Type     *string         `json:"type,omitempty"`
+	Title    *string         `json:"title,omitempty"`
+	Method   *string         `json:"method,omitempty"`
+	Hreflang *string         `json:"hreflang,omitempty"`
+	Merge    bool            `json:"merge,omitempty"`
+	Body     json.RawMessage `json:"body,omitempty"`
+}
+
+// Provider represents a STAC collection provider.
+type Provider struct {
+	Name        string   `json:"name"`
+	Description *string  `json:"description,omitempty"`
+	Roles       []string `json:"roles,omitempty"`
+	URL         *string  `json:"url,omitempty"`
+}
+
+// Extent represents the spatial and temporal extent of a collection.
+type Extent struct {
+	Spatial  SpatialExtent  `json:"spatial"`
+	Temporal TemporalExtent `json:"temporal"`
+}
+
+// SpatialExtent represents the spatial extent as bounding boxes.
+type SpatialExtent struct {
+	// One or more bounding boxes that describe the spatial extent of the dataset. In the Core only a single bounding box is supported. Extensions may support additional areas. If multiple areas are provided, the union of the bounding boxes describes the spatial extent.
+	BBox [][]float64 `json:"bbox"`
+}
+
+// TemporalExtent represents the temporal extent as intervals.
+// Each interval is a pair [start, end] where either may be nil (open-ended).
+type TemporalExtent struct {
+	// One time interval that describe the temporal extent of the dataset.
+	Interval [][2]time.Time `json:"interval"`
+}
+
+// Collection represents a STAC Collection object.
+type Collection struct {
+	Type        string         `json:"type"` // Always "Collection"
+	StacVersion string         `json:"stac_version"`
+	ID          string         `json:"id"`
+	Title       *string        `json:"title,omitempty"`
+	Description string         `json:"description"`
+	License     string         `json:"license,omitempty"`
+	ItemType    *string        `json:"itemType,omitempty"` // Default "Feature"
+	Extent      Extent         `json:"extent"`
+	Providers   []Provider     `json:"providers,omitempty"`
+	Summaries   map[string]any `json:"summaries,omitempty"`
+	Created     time.Time      `json:"created"`
+	Updated     time.Time      `json:"updated"`
+	Links       []Link         `json:"links"`
+}
+
+// CollectionsResponse represents the paginated response from GET /collections.
+type CollectionsResponse struct {
+	Collections []Collection `json:"collections"`
+	Links       []Link       `json:"links"`
+}
+
+// Position is a GeoJSON position: [longitude, latitude] or [longitude, latitude, elevation].
+type Position = []float64
+
+// Geometry represents a GeoJSON geometry object (RFC 7946 section 3.1).
+// Use the typed accessor methods (Point, MultiPoint, etc.) to extract coordinates.
+type Geometry struct {
+	Type        string          `json:"type"`
+	Coordinates json.RawMessage `json:"coordinates,omitempty"`
+	// Geometries holds the members for a GeometryCollection.
+	Geometries []Geometry `json:"geometries,omitempty"`
+}
+
+// Point returns the coordinates as a single position.
+// Valid when Type is "Point".
+func (g Geometry) Point() (Position, error) {
+	var pos Position
+	if err := json.Unmarshal(g.Coordinates, &pos); err != nil {
+		return nil, fmt.Errorf("decoding Point coordinates: %w", err)
+	}
+	return pos, nil
+}
+
+// MultiPoint returns the coordinates as a slice of positions.
+// Valid when Type is "MultiPoint".
+func (g Geometry) MultiPoint() ([]Position, error) {
+	var coords []Position
+	if err := json.Unmarshal(g.Coordinates, &coords); err != nil {
+		return nil, fmt.Errorf("decoding MultiPoint coordinates: %w", err)
+	}
+	return coords, nil
+}
+
+// LineString returns the coordinates as a slice of positions.
+// Valid when Type is "LineString".
+func (g Geometry) LineString() ([]Position, error) {
+	var coords []Position
+	if err := json.Unmarshal(g.Coordinates, &coords); err != nil {
+		return nil, fmt.Errorf("decoding LineString coordinates: %w", err)
+	}
+	return coords, nil
+}
+
+// MultiLineString returns the coordinates as a slice of line strings.
+// Valid when Type is "MultiLineString".
+func (g Geometry) MultiLineString() ([][]Position, error) {
+	var coords [][]Position
+	if err := json.Unmarshal(g.Coordinates, &coords); err != nil {
+		return nil, fmt.Errorf("decoding MultiLineString coordinates: %w", err)
+	}
+	return coords, nil
+}
+
+// Polygon returns the coordinates as a slice of linear rings.
+// Valid when Type is "Polygon".
+func (g Geometry) Polygon() ([][]Position, error) {
+	var coords [][]Position
+	if err := json.Unmarshal(g.Coordinates, &coords); err != nil {
+		return nil, fmt.Errorf("decoding Polygon coordinates: %w", err)
+	}
+	return coords, nil
+}
+
+// MultiPolygon returns the coordinates as a slice of polygons.
+// Valid when Type is "MultiPolygon".
+func (g Geometry) MultiPolygon() ([][][]Position, error) {
+	var coords [][][]Position
+	if err := json.Unmarshal(g.Coordinates, &coords); err != nil {
+		return nil, fmt.Errorf("decoding MultiPolygon coordinates: %w", err)
+	}
+	return coords, nil
+}
+
+// FeatureProperties holds the core metadata fields of a STAC Feature.
+// One of Datetime or the pair StartDatetime/EndDatetime is always set.
+type FeatureProperties struct {
+	Created       time.Time  `json:"created"`
+	Updated       time.Time  `json:"updated"`
+	Datetime      *time.Time `json:"datetime"`
+	StartDatetime *time.Time `json:"start_datetime,omitempty"`
+	EndDatetime   *time.Time `json:"end_datetime,omitempty"`
+	Expires       *time.Time `json:"expires,omitempty"`
+	Title         *string    `json:"title,omitempty"`
+	// Forecast extension fields.
+	ForecastReferenceDatetime *time.Time `json:"forecast:reference_datetime,omitempty"`
+	ForecastHorizon           *string    `json:"forecast:horizon,omitempty"`   // ISO 8601 compliant duration
+	ForecastDuration          *string    `json:"forecast:duration,omitempty"`  // ISO 8601 compliant duration
+	ForecastVariable          *string    `json:"forecast:variable,omitempty"`  // Name of the model variable that corresponds to the data. The variables should correspond to the CF Standard Names, e.g. air_temperature for the air temperature.
+	ForecastPerturbed         *bool      `json:"forecast:perturbed,omitempty"` // Denotes whether the data corresponds to the control run (false) or perturbed runs (true). The property needs to be specified in both cases as no default value is specified and as such the meaning is "unknown" in case it's missing.
+}
+
+// Feature represents a STAC Feature (GeoJSON Feature).
+type Feature struct {
+	Type           string   `json:"type"`
+	StacVersion    string   `json:"stac_version"`
+	StacExtensions []string `json:"stac_extensions,omitempty"`
+	ID             string   `json:"id"`
+	Collection     string   `json:"collection,omitempty"`
+	// GeoJSON Point (object) or GeoJSON LineString (object) or GeoJSON Polygon (object) or GeoJSON MultiPoint (object) or GeoJSON MultiLineString (object) or GeoJSON MultiPolygon (object) (itemGeometry)
+	Geometry   *Geometry               `json:"geometry"`
+	BBox       []float64               `json:"bbox,omitempty"`
+	Properties FeatureProperties       `json:"properties"`
+	Assets     map[string]FeatureAsset `json:"assets,omitempty"`
+	Links      []Link                  `json:"links"`
+}
+
+// ItemsResponse represents the paginated response from GET /collections/{id}/items.
+type ItemsResponse struct {
+	Type     string    `json:"type"`
+	Features []Feature `json:"features"`
+	Links    []Link    `json:"links"`
+}
+
+// Asset represents a STAC asset object from GET /collections/{id}/assets/{assetId}.
+type Asset struct {
+	ID              string    `json:"id"`
+	Type            string    `json:"type"`
+	Title           *string   `json:"title,omitempty"`
+	Description     *string   `json:"description,omitempty"`
+	Href            *string   `json:"href,omitempty"`
+	FileChecksum    *string   `json:"file:checksum,omitempty"`
+	Roles           []string  `json:"roles,omitempty"`
+	GeoadminVariant *string   `json:"geoadmin:variant,omitempty"`
+	GeoadminLang    *string   `json:"geoadmin:lang,omitempty"`
+	ProjEPSG        *int      `json:"proj:epsg,omitempty"`
+	GSD             *float64  `json:"gsd,omitempty"`
+	Created         time.Time `json:"created"`
+	Updated         time.Time `json:"updated"`
+	Links           []Link    `json:"links,omitempty"`
+}
+
+// FeatureAsset represents a STAC asset object from /collections/{id}/items/{featureID}.
+type FeatureAsset struct {
+	Type            string    `json:"type"`
+	Title           *string   `json:"title,omitempty"`
+	Description     *string   `json:"description,omitempty"`
+	Href            *string   `json:"href,omitempty"`
+	FileChecksum    *string   `json:"file:checksum,omitempty"`
+	Roles           []string  `json:"roles,omitempty"`
+	GeoadminVariant *string   `json:"geoadmin:variant,omitempty"`
+	GeoadminLang    *string   `json:"geoadmin:lang,omitempty"`
+	ProjEPSG        *int      `json:"proj:epsg,omitempty"`
+	GSD             *float64  `json:"gsd,omitempty"`
+	Created         time.Time `json:"created"`
+	Updated         time.Time `json:"updated"`
+	Links           []Link    `json:"links,omitempty"`
+}
+
+// AssetsResponse represents the response from GET /collections/{id}/assets.
+type AssetsResponse struct {
+	Assets []Asset `json:"assets"`
+	Links  []Link  `json:"links"`
+}
+
+// Catalog represents the core STAC Catalog object.
+type Catalog struct {
+	Type        string   `json:"type"`
+	StacVersion string   `json:"stac_version"`
+	ID          string   `json:"id"`
+	Title       *string  `json:"title,omitempty"`
+	Description string   `json:"description"`
+	ConformsTo  []string `json:"conformsTo,omitempty"`
+	Links       []Link   `json:"links"`
+}
