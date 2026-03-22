@@ -76,6 +76,8 @@ go tool goose up
 go tool goose validate
 ```
 Most tables must use `uuid TEXT PRIMARY KEY`, only internal ones can use `id INTEGER PRIMARY KEY`. Populated with uuid.NewV7().
+UUID v7 values are monotonically increasing (time-ordered), so they can be used as cursors for keyset/cursor-based pagination (e.g. `WHERE uuid > ? ORDER BY uuid ASC LIMIT ?`).
+Track points (lat/lon/elevation stored in blobs) are immutable once inserted.
 DO NOT explicitly annotate cols with NULL if they are nullable, otherwise sqlc will emit interface{} (NULL is implicit anyways if left out).
 Always store timestamps with timezone.
 Simple internal enums, where the logic/state is managed from within SQL queries only, are strings with CHECK, example: `status TEXT CHECK(status IN ('C', 'R', 'A', 'E', 'S') ) NOT NULL DEFAULT 'C'`.

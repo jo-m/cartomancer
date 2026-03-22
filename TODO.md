@@ -127,7 +127,7 @@
 - [ ] Improve the tracks geoname labelling algorithm
 - [ ] Extract all (some) of the hardcoded consts/limits into app settings
 - [ ] Explore by tags page
-- [ ] Periodically compute wind rose and average temp for all tracks
+- [x] Periodically compute wind rose and average temp for all tracks
 - [ ] On long tracks track on map is now imprecise when zooming in
 - [ ] Track sharing link with limited time (JWT)
 - [ ] Filter tracks by start/end point

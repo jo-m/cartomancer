@@ -27,41 +27,53 @@ import (
 )
 
 type trackResponse struct {
-	UUID                    string              `json:"uuid"`
-	Name                    string              `json:"name"`
-	Description             string              `json:"description,omitempty"`
-	Source                  string              `json:"source,omitempty"`
-	Author                  string              `json:"author,omitempty"`
-	AuthorLinkURL           string              `json:"authorLinkUrl,omitempty"`
-	FileFormat              int                 `json:"fileFormat"`
-	TrackType               int                 `json:"trackType"`
-	LinkURL                 string              `json:"linkUrl,omitempty"`
-	Sport                   int                 `json:"sport"`
-	SubSport                int                 `json:"subSport"`
-	TotalDistanceM          float64             `json:"totalDistanceM"`
-	TotalAscentM            float64             `json:"totalAscentM"`
-	MinElevationM           *float64            `json:"minElevationM,omitempty"`
-	MaxElevationM           *float64            `json:"maxElevationM,omitempty"`
-	StartLat                *float64            `json:"startLat,omitempty"`
-	StartLon                *float64            `json:"startLon,omitempty"`
-	EndLat                  *float64            `json:"endLat,omitempty"`
-	EndLon                  *float64            `json:"endLon,omitempty"`
-	BoundsMinLat            *float64            `json:"boundsMinLat,omitempty"`
-	BoundsMinLon            *float64            `json:"boundsMinLon,omitempty"`
-	BoundsMaxLat            *float64            `json:"boundsMaxLat,omitempty"`
-	BoundsMaxLon            *float64            `json:"boundsMaxLon,omitempty"`
-	OriginalCreatedAt       string              `json:"originalCreatedAt,omitempty"`
-	CreatedAt               string              `json:"createdAt"`
-	UpdatedAt               string              `json:"updatedAt"`
-	Public                  bool                `json:"public"`
-	InitialEditingCompleted bool                `json:"initialEditingCompleted"`
-	Starred                 bool                `json:"starred"`
-	IsOwner                 bool                `json:"isOwner"`
-	UserName                string              `json:"userName"`
-	UserUUID                string              `json:"userUuid"`
-	Tags                    []string            `json:"tags"`
-	GeonameLabel            string              `json:"geonameLabel,omitempty"`
-	SimilarTracks           []similarTrackEntry `json:"similarTracks"`
+	UUID                    string                 `json:"uuid"`
+	Name                    string                 `json:"name"`
+	Description             string                 `json:"description,omitempty"`
+	Source                  string                 `json:"source,omitempty"`
+	Author                  string                 `json:"author,omitempty"`
+	AuthorLinkURL           string                 `json:"authorLinkUrl,omitempty"`
+	FileFormat              int                    `json:"fileFormat"`
+	TrackType               int                    `json:"trackType"`
+	LinkURL                 string                 `json:"linkUrl,omitempty"`
+	Sport                   int                    `json:"sport"`
+	SubSport                int                    `json:"subSport"`
+	TotalDistanceM          float64                `json:"totalDistanceM"`
+	TotalAscentM            float64                `json:"totalAscentM"`
+	MinElevationM           *float64               `json:"minElevationM,omitempty"`
+	MaxElevationM           *float64               `json:"maxElevationM,omitempty"`
+	StartLat                *float64               `json:"startLat,omitempty"`
+	StartLon                *float64               `json:"startLon,omitempty"`
+	EndLat                  *float64               `json:"endLat,omitempty"`
+	EndLon                  *float64               `json:"endLon,omitempty"`
+	BoundsMinLat            *float64               `json:"boundsMinLat,omitempty"`
+	BoundsMinLon            *float64               `json:"boundsMinLon,omitempty"`
+	BoundsMaxLat            *float64               `json:"boundsMaxLat,omitempty"`
+	BoundsMaxLon            *float64               `json:"boundsMaxLon,omitempty"`
+	OriginalCreatedAt       string                 `json:"originalCreatedAt,omitempty"`
+	CreatedAt               string                 `json:"createdAt"`
+	UpdatedAt               string                 `json:"updatedAt"`
+	Public                  bool                   `json:"public"`
+	InitialEditingCompleted bool                   `json:"initialEditingCompleted"`
+	Starred                 bool                   `json:"starred"`
+	IsOwner                 bool                   `json:"isOwner"`
+	UserName                string                 `json:"userName"`
+	UserUUID                string                 `json:"userUuid"`
+	Tags                    []string               `json:"tags"`
+	GeonameLabel            string                 `json:"geonameLabel,omitempty"`
+	SimilarTracks           []similarTrackEntry    `json:"similarTracks"`
+	Forecast                *trackForecastResponse `json:"forecast,omitempty"`
+}
+
+type trackForecastResponse struct {
+	ForecastReferenceTime string   `json:"forecastReferenceTime"`
+	StartTime             string   `json:"startTime"`
+	AvgTemperatureC       *float64 `json:"avgTemperatureC,omitempty"`
+	TotalPrecipitationMm  *float64 `json:"totalPrecipitationMm,omitempty"`
+	WindHeadMs            *float64 `json:"windHeadMs,omitempty"`
+	WindRightMs           *float64 `json:"windRightMs,omitempty"`
+	WindTailMs            *float64 `json:"windTailMs,omitempty"`
+	WindLeftMs            *float64 `json:"windLeftMs,omitempty"`
 }
 
 type similarTrackEntry struct {
@@ -156,6 +168,18 @@ func trackResponseFromDB(tw db.TrackWithStarred, tags []string, similar []db.Get
 	}
 	if t.OriginalCreatedAt.Valid {
 		resp.OriginalCreatedAt = t.OriginalCreatedAt.Time.Format(time.RFC3339)
+	}
+	if tw.Forecast.HasData() {
+		resp.Forecast = &trackForecastResponse{
+			ForecastReferenceTime: tw.Forecast.ForecastReferenceTime.Time.Format(time.RFC3339),
+			StartTime:             tw.Forecast.StartTime.Time.Format(time.RFC3339),
+			AvgTemperatureC:       nullFloat64Ptr(tw.Forecast.AvgTemperatureC),
+			TotalPrecipitationMm:  nullFloat64Ptr(tw.Forecast.TotalPrecipitationMm),
+			WindHeadMs:            nullFloat64Ptr(tw.Forecast.WindHeadMs),
+			WindRightMs:           nullFloat64Ptr(tw.Forecast.WindRightMs),
+			WindTailMs:            nullFloat64Ptr(tw.Forecast.WindTailMs),
+			WindLeftMs:            nullFloat64Ptr(tw.Forecast.WindLeftMs),
+		}
 	}
 	return resp
 }

@@ -2319,6 +2319,48 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SimilarTrackEntry"
+        forecast:
+          $ref: "#/components/schemas/TrackForecastSummary"
+
+    TrackForecastSummary:
+      type: object
+      description: Pre-computed weather forecast summary for a track (28 km/h, starting in 1h).
+      required:
+        - forecastReferenceTime
+        - startTime
+      properties:
+        forecastReferenceTime:
+          type: string
+          format: date-time
+          description: Reference time of the forecast model run.
+        startTime:
+          type: string
+          format: date-time
+          description: Assumed journey start time.
+        avgTemperatureC:
+          type: number
+          format: double
+          description: Average temperature along the track in degrees Celsius.
+        totalPrecipitationMm:
+          type: number
+          format: double
+          description: Total precipitation collected over the ride duration in mm.
+        windHeadMs:
+          type: number
+          format: double
+          description: Average headwind speed in m/s.
+        windRightMs:
+          type: number
+          format: double
+          description: Average right crosswind speed in m/s.
+        windTailMs:
+          type: number
+          format: double
+          description: Average tailwind speed in m/s.
+        windLeftMs:
+          type: number
+          format: double
+          description: Average left crosswind speed in m/s.
 
     SimilarTrackEntry:
       type: object

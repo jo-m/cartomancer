@@ -21,6 +21,65 @@ function formatAscent(m: number): string {
   return `${Math.round(m)} m`
 }
 
+/** MiniWindRose renders a tiny 4-sector wind rose as an inline SVG. */
+function MiniWindRose({
+  head,
+  right,
+  tail,
+  left,
+}: {
+  head?: number
+  right?: number
+  tail?: number
+  left?: number
+}) {
+  const vals = [head ?? 0, right ?? 0, tail ?? 0, left ?? 0]
+  const maxVal = Math.max(...vals)
+  if (maxVal < 0.1) return null
+  const fracs = vals.map((v) => v / maxVal)
+
+  // Sectors: 0=head (top/red), 1=right (gray), 2=tail (bottom/green), 3=left (gray).
+  const colors = ["#ef4444", "#9ca3af", "#10b981", "#9ca3af"]
+  // Angles: head=up(-90), right=right(0), tail=down(90), left=left(180).
+  const angles = [-90, 0, 90, 180]
+  const cx = 16
+  const cy = 16
+  const maxR = 14
+  const wedge = 35
+
+  return (
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 32 32"
+      className="inline-block shrink-0"
+    >
+      {fracs.map((f, i) => {
+        if (f < 0.05) return null
+        const r = maxR * f
+        const a = angles[i]
+        const a1 = ((a - wedge) * Math.PI) / 180
+        const a2 = ((a + wedge) * Math.PI) / 180
+        const x1 = cx + r * Math.cos(a1)
+        const y1 = cy + r * Math.sin(a1)
+        const x2 = cx + r * Math.cos(a2)
+        const y2 = cy + r * Math.sin(a2)
+        return (
+          <path
+            key={i}
+            d={`M${cx},${cy} L${x1},${y1} A${r},${r} 0 0,1 ${x2},${y2} Z`}
+            fill={colors[i]}
+            fillOpacity={0.6}
+            stroke={colors[i]}
+            strokeWidth={0.5}
+          />
+        )
+      })}
+      <circle cx={cx} cy={cy} r={1} fill="#6b7280" />
+    </svg>
+  )
+}
+
 // DualRangeSlider uses pointer events on the outer container; thumbs are visual only.
 // Which thumb to move is decided by proximity to the pointer position.
 
@@ -604,6 +663,31 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                         className="w-full"
                       />
                     </div>
+                    {track.forecast && (
+                      <div
+                        className="mt-1.5 flex items-center gap-x-2 text-xs"
+                        title={`Forecast: ${new Date(track.forecast.forecastReferenceTime).toLocaleString()}\nStart: ${new Date(track.forecast.startTime).toLocaleString()}`}
+                      >
+                        {track.forecast.avgTemperatureC != null && (
+                          <span className="text-red-500">
+                            {track.forecast.avgTemperatureC.toFixed(0)}&deg;C
+                          </span>
+                        )}
+                        {track.forecast.totalPrecipitationMm != null && (
+                          <span className="text-blue-500">
+                            {track.forecast.totalPrecipitationMm < 0.1
+                              ? "dry"
+                              : `${track.forecast.totalPrecipitationMm.toFixed(1)} mm`}
+                          </span>
+                        )}
+                        <MiniWindRose
+                          head={track.forecast.windHeadMs}
+                          right={track.forecast.windRightMs}
+                          tail={track.forecast.windTailMs}
+                          left={track.forecast.windLeftMs}
+                        />
+                      </div>
+                    )}
                   </div>
                 </Link>
               ))}

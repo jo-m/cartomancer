@@ -99,13 +99,15 @@ type ListTracksParams struct {
 	PageSize int
 }
 
-// TrackWithStarred pairs a Track with the viewing user's star status and the track user's info.
+// TrackWithStarred pairs a Track with the viewing user's star status, the track user's info,
+// and an optional forecast summary.
 type TrackWithStarred struct {
 	Track
 	Starred        bool
 	UserName       string
 	UserAvatarSeed string
 	GeonameLabel   string
+	Forecast       TrackForecastSummary
 }
 
 // ListTracksResult holds a page of tracks and the total count.
@@ -119,8 +121,8 @@ type ListTracksResult struct {
 const trackAllCols = `tracks.uuid, tracks.created_at, tracks.updated_at, tracks.initial_editing_completed, tracks.user_id, tracks.public, tracks.blob_id, tracks.file_format, tracks.original_filename, tracks.name, tracks.description, tracks.source, tracks.author, tracks.author_link_url, tracks.track_type, tracks.link_url, tracks.sport, tracks.sub_sport, tracks.total_distance_m, tracks.total_ascent_m, tracks.start_lat, tracks.start_lon, tracks.end_lat, tracks.end_lon, tracks.bounds_min_lat, tracks.bounds_min_lon, tracks.bounds_max_lat, tracks.bounds_max_lon, tracks.min_elevation_m, tracks.max_elevation_m, tracks.original_created_at, users.name AS user_name, users.avatar_seed AS user_avatar_seed, tg.label AS geoname_label`
 
 // scanTrackWithStar scans a row containing all 31 track columns plus owner_name,
-// owner_avatar_seed, and geoname_label (in trackAllCols order) followed by a single
-// integer starred column.
+// owner_avatar_seed, and geoname_label (in trackAllCols order) followed by starred.
+// The Forecast field is left at its zero value.
 func scanTrackWithStar(rows *sql.Rows) (TrackWithStarred, error) {
 	var i Track
 	var starred int64
@@ -169,6 +171,69 @@ func scanTrackWithStar(rows *sql.Rows) (TrackWithStarred, error) {
 		UserName:       userName,
 		UserAvatarSeed: userAvatarSeed,
 		GeonameLabel:   geonameLabel.String,
+	}, err
+}
+
+// scanTrackWithStarAndForecast scans the same columns as scanTrackWithStar plus
+// the 8 forecast columns from a LEFT JOIN on track_forecasts.
+func scanTrackWithStarAndForecast(rows *sql.Rows) (TrackWithStarred, error) {
+	var i Track
+	var starred int64
+	var userName, userAvatarSeed string
+	var geonameLabel sql.NullString
+	var fc TrackForecastSummary
+	err := rows.Scan(
+		&i.Uuid,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.InitialEditingCompleted,
+		&i.UserID,
+		&i.Public,
+		&i.BlobID,
+		&i.FileFormat,
+		&i.OriginalFilename,
+		&i.Name,
+		&i.Description,
+		&i.Source,
+		&i.Author,
+		&i.AuthorLinkUrl,
+		&i.TrackType,
+		&i.LinkUrl,
+		&i.Sport,
+		&i.SubSport,
+		&i.TotalDistanceM,
+		&i.TotalAscentM,
+		&i.StartLat,
+		&i.StartLon,
+		&i.EndLat,
+		&i.EndLon,
+		&i.BoundsMinLat,
+		&i.BoundsMinLon,
+		&i.BoundsMaxLat,
+		&i.BoundsMaxLon,
+		&i.MinElevationM,
+		&i.MaxElevationM,
+		&i.OriginalCreatedAt,
+		&userName,
+		&userAvatarSeed,
+		&geonameLabel,
+		&starred,
+		&fc.ForecastReferenceTime,
+		&fc.StartTime,
+		&fc.AvgTemperatureC,
+		&fc.TotalPrecipitationMm,
+		&fc.WindHeadMs,
+		&fc.WindRightMs,
+		&fc.WindTailMs,
+		&fc.WindLeftMs,
+	)
+	return TrackWithStarred{
+		Track:          i,
+		Starred:        starred != 0,
+		UserName:       userName,
+		UserAvatarSeed: userAvatarSeed,
+		GeonameLabel:   geonameLabel.String,
+		Forecast:       fc,
 	}, err
 }
 
@@ -371,13 +436,17 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	}
 
 	where := b.whereClause()
-	// The JOINs fetch owner info, starred status for the viewer, and geoname label.
-	const joins = " JOIN users ON users.uuid = tracks.user_id" +
+	// The JOINs fetch owner info, starred status for the viewer, geoname label,
+	// and the forecast summary (only included when start_time is still in the future).
+	joins := " JOIN users ON users.uuid = tracks.user_id" +
 		" LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?" +
-		" LEFT JOIN track_geonames tg ON tg.track_id = tracks.uuid"
+		" LEFT JOIN track_geonames tg ON tg.track_id = tracks.uuid" +
+		" LEFT JOIN track_forecasts tf ON tf.track_uuid = tracks.uuid AND tf.start_time > ?"
 
-	// The ViewerUserID arg comes first, before the WHERE args, matching the JOIN position.
-	baseArgs := append([]any{p.ViewerUserID}, b.args...)
+	now := time.Now()
+
+	// The ViewerUserID and now args come first, before the WHERE args, matching the JOIN positions.
+	baseArgs := append([]any{p.ViewerUserID, now}, b.args...)
 
 	var total int
 	countSQL := "SELECT COUNT(*) FROM tracks" + joins + where
@@ -385,10 +454,12 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 		return ListTracksResult{}, fmt.Errorf("count tracks: %w", err)
 	}
 
+	const forecastCols = ", tf.forecast_reference_time, tf.start_time, tf.avg_temperature_c, tf.total_precipitation_mm, tf.wind_head_ms, tf.wind_right_ms, tf.wind_tail_ms, tf.wind_left_ms"
+
 	offset := (p.Page - 1) * p.PageSize
 	dataSQL := fmt.Sprintf(
-		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred FROM tracks%s%s ORDER BY %s %s LIMIT ? OFFSET ?",
-		trackAllCols, joins, where, sortCol, sortDir,
+		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred%s FROM tracks%s%s ORDER BY %s %s LIMIT ? OFFSET ?",
+		trackAllCols, forecastCols, joins, where, sortCol, sortDir,
 	)
 	dataArgs := append(append([]any{}, baseArgs...), int64(p.PageSize), int64(offset))
 
@@ -400,7 +471,7 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 
 	tracks := make([]TrackWithStarred, 0, p.PageSize)
 	for rows.Next() {
-		t, err := scanTrackWithStar(rows)
+		t, err := scanTrackWithStarAndForecast(rows)
 		if err != nil {
 			return ListTracksResult{}, fmt.Errorf("scan track: %w", err)
 		}
@@ -446,4 +517,21 @@ func (d *DB) GetTagsForTracks(ctx context.Context, trackUUIDs []string) (map[str
 		result[trackID] = append(result[trackID], tag)
 	}
 	return result, rows.Err()
+}
+
+// TrackForecastSummary holds the pre-computed forecast summary for a track.
+type TrackForecastSummary struct {
+	ForecastReferenceTime sql.NullTime
+	StartTime             sql.NullTime
+	AvgTemperatureC       sql.NullFloat64
+	TotalPrecipitationMm  sql.NullFloat64
+	WindHeadMs            sql.NullFloat64
+	WindRightMs           sql.NullFloat64
+	WindTailMs            sql.NullFloat64
+	WindLeftMs            sql.NullFloat64
+}
+
+// HasData reports whether the summary contains any forecast data.
+func (s TrackForecastSummary) HasData() bool {
+	return s.ForecastReferenceTime.Valid
 }
