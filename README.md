@@ -4,11 +4,11 @@ This one tries to be.
 
 # Features
 
-- Easy to self host, single binary, SQLite only
-- Weather forecasts for tracks (currently only [MeteoSwiss](https://opendatadocs.meteoswiss.ch/de/))
-- Map view (currently only [SwissTopo](https://map.geo.admin.ch/))
-- Reverse geocoding
-- Except for map, does not need any live APIs. Instead, will download data and query that locally (meteo and geo names).
+- Advanced features: live weather forecasts and road closures (Switzerland only), reverse geocoding.
+- Filtering, search, tagging, mark favorites.
+- Map view: [SwissTopo](https://map.geo.admin.ch/).
+- Except for map, does not need any live APIs. Instead, will download data in the background and query that locally (meteo and geo names).
+- Easy to self host, single binary, SQLite only.
 
 # Development
 
@@ -66,4 +66,4 @@ docker build -t detour .
 docker run -it --rm -p 8080:8080 --mount type=volume,src=detour-data,dst=/home/nonroot/data detour
 ```
 
-[^1]: There is https://wanderer.to/, which is quite nice. Then again has many features I don't need, and is missing some I want.
+[^1]: There is https://wanderer.to/, which is quite nice. But it has many features I don't need, and is missing some I want.
