@@ -589,6 +589,27 @@ export default function Track() {
             <dd className="mt-1 text-sm text-gray-900">{data.source}</dd>
           </div>
         )}
+        {data.author && (
+          <div className="col-span-2 sm:col-span-3">
+            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Author
+            </dt>
+            <dd className="mt-1 text-sm text-gray-900">
+              {data.authorLinkUrl ? (
+                <a
+                  href={data.authorLinkUrl}
+                  className="text-gray-700 hover:text-gray-900 underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {data.author}
+                </a>
+              ) : (
+                data.author
+              )}
+            </dd>
+          </div>
+        )}
       </dl>
 
       {data.tags.length > 0 && (
