@@ -24,7 +24,13 @@ CREATE TABLE road_closures (
     content_provider TEXT,
 
     -- geometry is the GeoJSON geometry object stored as a JSON text string.
-    geometry TEXT NOT NULL
+    geometry TEXT NOT NULL,
+
+    -- attribution is the human-readable data source credit.
+    attribution TEXT NOT NULL DEFAULT '',
+
+    -- attribution_href is the URL for the data source.
+    attribution_href TEXT NOT NULL DEFAULT ''
 );
 
 CREATE INDEX idx_road_closures_inserted_by ON road_closures (inserted_by);

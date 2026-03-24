@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"jo-m.ch/go/detour/internal/pkg/attribute"
 )
 
 const (
@@ -32,6 +34,17 @@ func getURL() string {
 	params.Add("lang", "en")
 
 	return fmt.Sprintf("%s?%s", baseURL, params.Encode())
+}
+
+// DataAttribution is the TASL attribution for MeteoSwiss ICON-CH1-EPS forecast data.
+// Verified by TestOnlineStacLicense.
+var DataAttribution = attribute.Attribution{
+	What:       "Road Closures (Switzerland)",
+	Title:      "Closures / Diversions \"Cycling in Switzerland\"",
+	Author:     "Federal Roads Office, Canton, SwitzerlandMobility Foundation",
+	Source:     "https://schweizmobil.info/de",
+	License:    "GeoIV, Art. 21",
+	LicenseURL: "https://schweizmobil.ch/en/copyright#copyright-2",
 }
 
 // Fetch retrieves all bike road closure and detour features from the

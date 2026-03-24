@@ -7,6 +7,7 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/attribute"
 	"jo-m.ch/go/detour/internal/pkg/geocode"
 	"jo-m.ch/go/detour/internal/pkg/meteo"
+	"jo-m.ch/go/detour/internal/pkg/roadclosures"
 )
 
 type buildInfoModule struct {
@@ -38,6 +39,7 @@ func (sv *server) handleGetVersion(w http.ResponseWriter, r *http.Request) {
 		Attributions: []attribute.Attribution{
 			meteo.DataAttribution,
 			geocode.DataAttribution,
+			roadclosures.DataAttribution,
 		},
 	}
 	for _, dep := range info.Deps {

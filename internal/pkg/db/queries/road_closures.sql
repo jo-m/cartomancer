@@ -13,11 +13,13 @@ DELETE FROM road_closures WHERE inserted_by = ?;
 INSERT INTO road_closures (
     uuid, source_id, inserted_by, created_at,
     type, starts_at, ends_at, reason,
-    title, description, content_provider, geometry
+    title, description, content_provider, geometry,
+    attribution, attribution_href
 ) VALUES (
     ?, ?, ?, ?,
     ?, ?, ?, ?,
-    ?, ?, ?, ?
+    ?, ?, ?, ?,
+    ?, ?
 );
 
 -- name: InsertRoadClosureCellRes7 :exec

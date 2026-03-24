@@ -130,6 +130,8 @@ func insertFeature(ctx context.Context, tx *db.Queries, f Feature, now time.Time
 		Description:     nullString(f.Properties.AbstractEn),
 		ContentProvider: nullString(f.Properties.ContentProviderEn),
 		Geometry:        string(geomJSON),
+		Attribution:     DataAttribution.Author,
+		AttributionHref: DataAttribution.Source,
 	})
 	if err != nil {
 		return fmt.Errorf("insert road closure: %w", err)
