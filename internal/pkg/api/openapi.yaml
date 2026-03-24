@@ -1108,6 +1108,85 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/{uuid}/road-closures:
+    get:
+      summary: Get road closures along a track
+      operationId: getTrackRoadClosures
+      tags: [Tracks]
+      description: >
+        Returns active road closures that intersect the track. Coarse filtering
+        uses H3 res-7 cells, fine filtering uses H3 res-12 intersection.
+        Public tracks are accessible without authentication; private tracks
+        require the owner's session.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Road closures along the track
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [closures]
+                properties:
+                  closures:
+                    type: array
+                    items:
+                      type: object
+                      required: [uuid, type, title, geometry, attribution]
+                      properties:
+                        uuid:
+                          type: string
+                        type:
+                          type: string
+                          description: Closure kind (e.g. "detour", "closed_way")
+                        startsAt:
+                          type: string
+                          format: date
+                          nullable: true
+                        endsAt:
+                          type: string
+                          format: date
+                          nullable: true
+                        title:
+                          type: string
+                        reason:
+                          type: string
+                          nullable: true
+                        description:
+                          type: string
+                          nullable: true
+                        contentProvider:
+                          type: string
+                          nullable: true
+                        geometry:
+                          type: string
+                          description: GeoJSON geometry object as JSON string
+                        attribution:
+                          type: object
+                          required: [text, href]
+                          properties:
+                            text:
+                              type: string
+                            href:
+                              type: string
+        "404":
+          description: Track not found or not accessible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /tracks/{uuid}/forecast:
     post:
       summary: Get weather forecast along a track

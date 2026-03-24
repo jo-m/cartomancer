@@ -26,9 +26,12 @@ const (
 	// jobKind identifies this job in the job queue and in the inserted_by column.
 	jobKind = "roadclosures.downloader"
 
-	// cellResolution is the H3 resolution used for spatial indexing.
+	// CellResolution is the H3 resolution used for coarse spatial indexing (DB lookup).
 	// See https://h3geo.org/docs/core-library/restable/.
-	cellResolution = 7
+	CellResolution = 7
+
+	// FineResolution is the H3 resolution used for fine-grained intersection checks.
+	FineResolution = 12
 
 	// MinRefreshAge is the minimum time between two successful downloads.
 	// The job returns early if the most recent insert is younger than this.
@@ -141,7 +144,7 @@ func insertFeature(ctx context.Context, tx *db.Queries, f Feature, now time.Time
 		return nil
 	}
 
-	cells := geometryCells(f.Geometry.Geometry(), cellResolution)
+	cells := geometryCells(f.Geometry.Geometry(), CellResolution)
 	for cell := range cells {
 		err = tx.InsertRoadClosureCellRes7(ctx, db.InsertRoadClosureCellRes7Params{
 			RoadClosureID: id.String(),

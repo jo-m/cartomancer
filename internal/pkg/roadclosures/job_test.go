@@ -11,7 +11,7 @@ import (
 
 func TestGeometryCells_Point(t *testing.T) {
 	pt := orb.Point{8.5, 47.3}
-	cells := geometryCells(pt, cellResolution)
+	cells := geometryCells(pt, CellResolution)
 	require.Len(t, cells, 1)
 }
 
@@ -21,7 +21,7 @@ func TestGeometryCells_LineString(t *testing.T) {
 		{8.5, 47.3},
 		{8.52, 47.32},
 	}
-	cells := geometryCells(ls, cellResolution)
+	cells := geometryCells(ls, CellResolution)
 	require.Greater(t, len(cells), 1, "line string should cover multiple cells")
 }
 
@@ -30,12 +30,12 @@ func TestGeometryCells_MultiLineString(t *testing.T) {
 		{{8.5, 47.3}, {8.52, 47.32}},
 		{{9.0, 46.5}, {9.02, 46.52}},
 	}
-	cells := geometryCells(mls, cellResolution)
+	cells := geometryCells(mls, CellResolution)
 	require.Greater(t, len(cells), 2, "two line strings should cover many cells")
 }
 
 func TestGeometryCells_NilGeometry(t *testing.T) {
-	cells := geometryCells(nil, cellResolution)
+	cells := geometryCells(nil, CellResolution)
 	require.Empty(t, cells)
 }
 
@@ -46,7 +46,7 @@ func TestAddPoints_Interpolation(t *testing.T) {
 		{8.1, 47.1},
 	}
 	cells := make(map[h3.Cell]struct{})
-	addPoints(cells, pts, cellResolution)
+	addPoints(cells, pts, CellResolution)
 	require.Greater(t, len(cells), 2, "interpolation should produce intermediate cells")
 }
 
