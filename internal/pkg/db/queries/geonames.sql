@@ -1,16 +1,18 @@
 -- name: InsertGeoname :exec
 INSERT OR REPLACE INTO geonames (
-    geonameid, name,
+    geonameid, name, asciiname,
     latitude, longitude,
     feature_class, feature_code,
     country_code, cc2,
-    admin1_code, admin2_code, admin3_code, admin4_code
+    admin1_code, admin2_code, admin3_code, admin4_code,
+    population
 ) VALUES (
+    ?, ?, ?,
     ?, ?,
     ?, ?,
     ?, ?,
-    ?, ?,
-    ?, ?, ?, ?
+    ?, ?, ?, ?,
+    ?
 );
 
 -- name: CreateGeonameImport :one

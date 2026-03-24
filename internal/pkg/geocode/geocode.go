@@ -42,11 +42,11 @@ const (
 	insertBatchSize = 50000
 
 	// multiInsertRows is the number of rows per multi-row INSERT statement.
-	// With 12 columns this uses 12*500 = 6000 parameters, well within SQLite limits.
+	// With 14 columns this uses 14*500 = 7000 parameters, well within SQLite limits.
 	multiInsertRows = 500
 
 	// geonamesCols is the number of columns in the geonames table.
-	geonamesCols = 12
+	geonamesCols = 14
 )
 
 // DownloadAllCountries downloads the allCountries.zip file to a temporary file
@@ -168,6 +168,7 @@ func createStagingTable(ctx context.Context, rw *sql.DB) error {
 	_, err = rw.ExecContext(ctx, `CREATE TABLE `+stagingTable+` (
 		geonameid INTEGER PRIMARY KEY,
 		name TEXT NOT NULL,
+		asciiname TEXT NOT NULL DEFAULT '',
 		latitude REAL NOT NULL,
 		longitude REAL NOT NULL,
 		feature_class TEXT NOT NULL DEFAULT '',
@@ -177,7 +178,8 @@ func createStagingTable(ctx context.Context, rw *sql.DB) error {
 		admin1_code TEXT NOT NULL DEFAULT '',
 		admin2_code TEXT NOT NULL DEFAULT '',
 		admin3_code TEXT NOT NULL DEFAULT '',
-		admin4_code TEXT NOT NULL DEFAULT ''
+		admin4_code TEXT NOT NULL DEFAULT '',
+		population INTEGER NOT NULL DEFAULT 0
 	)`)
 	if err != nil {
 		return fmt.Errorf("create staging table: %w", err)
@@ -295,17 +297,17 @@ func flushToStaging(ctx context.Context, rw *sql.DB, batch []db.InsertGeonamePar
 // insertChunk inserts a chunk of rows using a single multi-row INSERT statement.
 func insertChunk(ctx context.Context, tx *sql.Tx, chunk []db.InsertGeonameParams) error {
 	var sb strings.Builder
-	sb.WriteString("INSERT INTO " + stagingTable + " (geonameid, name, latitude, longitude, feature_class, feature_code, country_code, cc2, admin1_code, admin2_code, admin3_code, admin4_code) VALUES ")
+	sb.WriteString("INSERT INTO " + stagingTable + " (geonameid, name, asciiname, latitude, longitude, feature_class, feature_code, country_code, cc2, admin1_code, admin2_code, admin3_code, admin4_code, population) VALUES ")
 
 	args := make([]any, 0, len(chunk)*geonamesCols)
 	for i, p := range chunk {
 		if i > 0 {
 			sb.WriteByte(',')
 		}
-		sb.WriteString("(?,?,?,?,?,?,?,?,?,?,?,?)")
-		args = append(args, p.Geonameid, p.Name, p.Latitude, p.Longitude,
+		sb.WriteString("(?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+		args = append(args, p.Geonameid, p.Name, p.Asciiname, p.Latitude, p.Longitude,
 			p.FeatureClass, p.FeatureCode, p.CountryCode, p.Cc2,
-			p.Admin1Code, p.Admin2Code, p.Admin3Code, p.Admin4Code)
+			p.Admin1Code, p.Admin2Code, p.Admin3Code, p.Admin4Code, p.Population)
 	}
 
 	_, err := tx.ExecContext(ctx, sb.String(), args...)
@@ -343,9 +345,18 @@ func parseLine(line string) (db.InsertGeonameParams, error) {
 		return db.InsertGeonameParams{}, fmt.Errorf("parse longitude: %w", err)
 	}
 
+	var population int64
+	if fields[cols.IdxPopulation] != "" {
+		population, err = strconv.ParseInt(fields[cols.IdxPopulation], 10, 64)
+		if err != nil {
+			return db.InsertGeonameParams{}, fmt.Errorf("parse population: %w", err)
+		}
+	}
+
 	return db.InsertGeonameParams{
 		Geonameid:    geonameid,
 		Name:         fields[cols.IdxName],
+		Asciiname:    fields[cols.IdxAsciiname],
 		Latitude:     lat,
 		Longitude:    lon,
 		FeatureClass: fields[cols.IdxFeatureClass],
@@ -356,5 +367,6 @@ func parseLine(line string) (db.InsertGeonameParams, error) {
 		Admin2Code:   fields[cols.IdxAdmin2Code],
 		Admin3Code:   fields[cols.IdxAdmin3Code],
 		Admin4Code:   fields[cols.IdxAdmin4Code],
+		Population:   population,
 	}, nil
 }

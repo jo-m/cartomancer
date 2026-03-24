@@ -3,6 +3,7 @@
 CREATE TABLE geonames (
     geonameid INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
+    asciiname TEXT NOT NULL DEFAULT '',
     latitude REAL NOT NULL,
     longitude REAL NOT NULL,
     feature_class TEXT NOT NULL DEFAULT '',
@@ -12,7 +13,8 @@ CREATE TABLE geonames (
     admin1_code TEXT NOT NULL DEFAULT '',
     admin2_code TEXT NOT NULL DEFAULT '',
     admin3_code TEXT NOT NULL DEFAULT '',
-    admin4_code TEXT NOT NULL DEFAULT ''
+    admin4_code TEXT NOT NULL DEFAULT '',
+    population INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX idx_geonames_reverse
