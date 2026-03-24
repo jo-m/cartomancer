@@ -13,6 +13,7 @@ import {
 import { ArrowsPointingOutIcon, XMarkIcon } from "@heroicons/react/24/outline"
 import { $api, fetchClient, useAppConfig } from "../api/client"
 import { useSession } from "../context/SessionContext"
+import { externalUrl } from "../lib/externalUrl"
 import StarIcon from "../assets/StarIcon"
 import ElevationProfile from "../components/ElevationProfile"
 import ForecastChart from "../components/ForecastChart"
@@ -581,14 +582,6 @@ export default function Track() {
             {formatDate(data.createdAt)}
           </dd>
         </div>
-        {data.source && (
-          <div className="col-span-2 sm:col-span-3">
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Source
-            </dt>
-            <dd className="mt-1 text-sm text-gray-900">{data.source}</dd>
-          </div>
-        )}
         {data.author && (
           <div className="col-span-2 sm:col-span-3">
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -597,16 +590,29 @@ export default function Track() {
             <dd className="mt-1 text-sm text-gray-900">
               {data.authorLinkUrl ? (
                 <a
-                  href={data.authorLinkUrl}
+                  href={externalUrl(data.authorLinkUrl)}
                   className="text-gray-700 hover:text-gray-900 underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
                 >
                   {data.author}
                 </a>
               ) : (
                 data.author
               )}
+            </dd>
+          </div>
+        )}
+        {data.linkUrl && (
+          <div className="col-span-2 sm:col-span-3">
+            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Link
+            </dt>
+            <dd className="mt-1 text-sm truncate">
+              <a
+                href={externalUrl(data.linkUrl)}
+                className="text-gray-700 hover:text-gray-900 underline text-sm"
+              >
+                {data.linkUrl}
+              </a>
             </dd>
           </div>
         )}

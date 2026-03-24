@@ -278,6 +278,7 @@ Keep it very simple and barebones.
 - All links, including nav etc. must be proper `<a>` links such that right click, open in new tab etc. work as expected.
 - URL paths used in the router should generally roughly mirror those from the API. E.g. the tracks upload page (POST /api/tracks) should be at /tracks/uploads.
 - Error handling: Unless API errors have some separate handling mechanism like e.g. the failed uploads list on the upload page, use the toast element (frontend/src/components/Toast.tsx) to forward API errors to the user.
+- External links: Any `href` sourced from the API or database (e.g. track author links, attribution URLs) must NOT link directly to the external site. Instead, route them through the `/leaving` interstitial page using the `externalUrl()`. Links hardcoded in the backend are exempt.
 - NEVER must any assets in the frontend be loaded from a third party domain. All assets must be included in the build.
 
 ## Linting

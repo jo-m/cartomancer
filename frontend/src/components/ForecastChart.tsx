@@ -10,6 +10,7 @@ import {
   CartesianGrid,
 } from "recharts"
 import type { HoverStore } from "../hooks/useHoverSync"
+import { externalUrl } from "../lib/externalUrl"
 
 export interface ForecastPoint {
   index: number
@@ -611,7 +612,7 @@ export default function ForecastChart({
           Source:{" "}
           {attribution.href ? (
             <a
-              href={attribution.href}
+              href={externalUrl(attribution.href)}
               target="_blank"
               rel="noopener noreferrer"
               className="underline hover:text-gray-600"

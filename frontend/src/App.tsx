@@ -22,6 +22,7 @@ import GroupDetail from "./pages/GroupDetail"
 import AdminUsers from "./pages/AdminUsers"
 import AdminForecasts from "./pages/AdminForecasts"
 import About from "./pages/About"
+import Leaving from "./pages/Leaving"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -109,6 +110,7 @@ export default function App() {
               />
               <Route path="/tracks/:uuid" element={<Track />} />
               <Route path="/about" element={<About />} />
+              <Route path="/leaving" element={<Leaving />} />
               <Route
                 path="/admin/users"
                 element={
