@@ -1,11 +1,13 @@
-import { useEffect, useRef, useCallback, useMemo, memo } from "react"
+import { useEffect, useRef, useCallback, useMemo, useState, memo } from "react"
 import OlMap from "ol/Map"
 import OlView from "ol/View"
+import Overlay from "ol/Overlay"
 import TileLayer from "ol/layer/Tile"
 import VectorLayer from "ol/layer/Vector"
 import VectorSource from "ol/source/Vector"
 import WMTS from "ol/source/WMTS"
 import Feature from "ol/Feature"
+import GeoJSON from "ol/format/GeoJSON"
 import { LineString, Point } from "ol/geom"
 import { register } from "ol/proj/proj4"
 import { get as getProjection } from "ol/proj"
@@ -89,6 +91,72 @@ interface TrackPoint {
   d: number
 }
 
+/** A road closure to display on the map. */
+export interface RoadClosure {
+  uuid: string
+  type: string
+  title: string
+  startsAt?: string | null
+  endsAt?: string | null
+  reason?: string | null
+  description?: string | null
+  geometry: string
+  attribution: { text: string; href: string }
+}
+
+const detourStyle = new Style({
+  stroke: new Stroke({ color: "rgba(245, 158, 11, 0.7)", width: 10 }),
+})
+
+const detourStyleHover = new Style({
+  stroke: new Stroke({ color: "rgba(245, 158, 11, 0.9)", width: 10 }),
+})
+
+const closureStyle = [
+  new Style({
+    stroke: new Stroke({
+      color: "rgba(220, 38, 38, 0.7)",
+      width: 10,
+      lineDash: [14, 14],
+      lineCap: "butt",
+    }),
+  }),
+  new Style({
+    stroke: new Stroke({
+      color: "rgba(255, 255, 255, 0.7)",
+      width: 10,
+      lineDash: [14, 14],
+      lineDashOffset: 14,
+      lineCap: "butt",
+    }),
+  }),
+]
+
+const closureStyleHover = [
+  new Style({
+    stroke: new Stroke({
+      color: "rgba(220, 38, 38, .9)",
+      width: 10,
+      lineDash: [14, 14],
+      lineCap: "butt",
+    }),
+  }),
+  new Style({
+    stroke: new Stroke({
+      color: "rgba(255, 255, 255, .9)",
+      width: 10,
+      lineDash: [14, 14],
+      lineDashOffset: 14,
+      lineCap: "butt",
+    }),
+  }),
+]
+
+const geoJSONFormat = new GeoJSON({
+  dataProjection: "EPSG:4326",
+  featureProjection: "EPSG:2056",
+})
+
 /** Props for the TrackMap component. */
 interface TrackMapProps {
   /** Array of track point objects in WGS84. */
@@ -99,6 +167,8 @@ interface TrackMapProps {
   color: string
   /** Optional CSS class for the outer container, overriding the default height. */
   className?: string
+  /** Optional road closures to render on the map. */
+  closures?: RoadClosure[]
 }
 
 /** Renders an interactive swisstopo map with the track line and hover marker. */
@@ -107,12 +177,17 @@ export default memo(function TrackMap({
   hoverStore,
   color,
   className,
+  closures,
 }: TrackMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
+  const tooltipRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<OlMap | null>(null)
   const coordsRef = useRef<number[][]>([])
   const markerFeature = useRef<Feature | null>(null)
   const markerSource = useRef<VectorSource | null>(null)
+  const closureLayerRef = useRef<VectorLayer | null>(null)
+  const overlayRef = useRef<Overlay | null>(null)
+  const [tooltip, setTooltip] = useState<RoadClosure | null>(null)
 
   const markerVisibleStyle = useMemo(
     () =>
@@ -176,10 +251,23 @@ export default memo(function TrackMap({
     const vectorLayer = new VectorLayer({ source: vectorSource })
     const markerLayer = new VectorLayer({ source: mSource })
 
+    const closureSource = new VectorSource()
+    const closureLayer = new VectorLayer({ source: closureSource })
+    closureLayerRef.current = closureLayer
+
+    const overlay = new Overlay({
+      element: tooltipRef.current!,
+      positioning: "bottom-center",
+      offset: [0, -10],
+      stopEvent: false,
+    })
+    overlayRef.current = overlay
+
     const viewConfig = getLV95ViewConfig()
     const map = new OlMap({
       target: mapRef.current,
-      layers: [tileLayer, vectorLayer, markerLayer],
+      layers: [tileLayer, vectorLayer, closureLayer, markerLayer],
+      overlays: [overlay],
       view: new OlView(viewConfig),
     })
 
@@ -195,6 +283,8 @@ export default memo(function TrackMap({
       mapInstance.current = null
       markerFeature.current = null
       markerSource.current = null
+      closureLayerRef.current = null
+      overlayRef.current = null
     }
   }, [points, color])
 
@@ -267,6 +357,101 @@ export default memo(function TrackMap({
     })
   }, [hoverStore, markerVisibleStyle])
 
+  // Render road closure geometries on the map.
+  useEffect(() => {
+    const layer = closureLayerRef.current
+    if (!layer) return
+    const source = layer.getSource()!
+    source.clear()
+
+    if (!closures || closures.length === 0) return
+
+    for (const c of closures) {
+      try {
+        const geom = geoJSONFormat.readGeometry(JSON.parse(c.geometry))
+        const feature = new Feature({ geometry: geom })
+        feature.set("closure", c, true)
+        feature.setStyle(c.type === "detour" ? detourStyle : closureStyle)
+        source.addFeature(feature)
+      } catch {
+        // Skip closures with unparseable geometry.
+      }
+    }
+  }, [closures])
+
+  // Closure hover: show tooltip and highlight on pointer move over closure features.
+  useEffect(() => {
+    const map = mapInstance.current
+    if (!map) return
+
+    let highlightedFeature: Feature | null = null
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onMove = (evt: any) => {
+      const pixel = evt.pixel as number[]
+      const overlay = overlayRef.current
+      if (!overlay) return
+
+      // Restore previous highlight.
+      if (highlightedFeature) {
+        const prev = highlightedFeature.get("closure") as
+          | RoadClosure
+          | undefined
+        highlightedFeature.setStyle(
+          prev?.type === "detour" ? detourStyle : closureStyle
+        )
+        highlightedFeature = null
+      }
+
+      let found = false
+      map.forEachFeatureAtPixel(
+        pixel,
+        (f) => {
+          const c = (f as Feature).get("closure") as RoadClosure | undefined
+          if (!c) return false
+          found = true
+          const feat = f as Feature
+          feat.setStyle(
+            c.type === "detour" ? detourStyleHover : closureStyleHover
+          )
+          highlightedFeature = feat
+          overlay.setPosition(map.getCoordinateFromPixel(pixel)!)
+          setTooltip(c)
+          return true // stop iterating
+        },
+        { hitTolerance: 4 }
+      )
+
+      if (!found) {
+        overlay.setPosition(undefined)
+        setTooltip(null)
+      }
+    }
+
+    const onLeave = () => {
+      if (highlightedFeature) {
+        const prev = highlightedFeature.get("closure") as
+          | RoadClosure
+          | undefined
+        highlightedFeature.setStyle(
+          prev?.type === "detour" ? detourStyle : closureStyle
+        )
+        highlightedFeature = null
+      }
+      overlayRef.current?.setPosition(undefined)
+      setTooltip(null)
+    }
+
+    map.on("pointermove" as never, onMove)
+    const viewport = map.getViewport()
+    viewport.addEventListener("pointerleave", onLeave)
+
+    return () => {
+      map.un("pointermove" as never, onMove)
+      viewport.removeEventListener("pointerleave", onLeave)
+    }
+  }, [closures])
+
   return (
     <div
       className={
@@ -275,6 +460,32 @@ export default memo(function TrackMap({
       }
     >
       <div ref={mapRef} className="h-full w-full" />
+      <div
+        ref={tooltipRef}
+        className={tooltip ? "pointer-events-none" : "hidden"}
+      >
+        {tooltip && (
+          <div className="max-w-xs rounded bg-white px-2.5 py-1.5 text-xs shadow-md ring-1 ring-gray-200">
+            <p className="font-medium text-gray-900">{tooltip.title}</p>
+            {tooltip.reason && (
+              <p className="mt-0.5 text-gray-600">{tooltip.reason}</p>
+            )}
+            {(tooltip.startsAt || tooltip.endsAt) && (
+              <p className="mt-0.5 text-gray-500">
+                {tooltip.startsAt ?? "?"} &ndash; {tooltip.endsAt ?? "?"}
+              </p>
+            )}
+            {tooltip.description && (
+              <p className="mt-0.5 text-gray-500">{tooltip.description}</p>
+            )}
+            {tooltip.attribution.text && (
+              <p className="mt-0.5 text-gray-400">
+                Source: {tooltip.attribution.text}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
       <div className="pointer-events-none absolute bottom-0 right-0 z-10 px-1.5 py-0.5 text-xs text-gray-600 bg-white/80">
         Map data:&nbsp;
         <a

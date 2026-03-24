@@ -20,6 +20,7 @@ import type { ForecastPoint, ForecastUnits } from "../components/ForecastChart"
 import TagsInput from "../components/TagsInput"
 import Toast from "../components/Toast"
 import TrackMap from "../components/TrackMap"
+import type { RoadClosure } from "../components/TrackMap"
 import { useHoverStore, useHoverValue } from "../hooks/useHoverSync"
 import { fmtElapsed, fmtClock, buildForecastTimes } from "../lib/time"
 import {
@@ -96,6 +97,14 @@ export default function Track() {
   const trackPoints = pointsData?.points as
     | { lat: number; lon: number; ele: number; d: number }[]
     | undefined
+
+  const { data: closuresData } = $api.useQuery(
+    "get",
+    "/tracks/{uuid}/road-closures",
+    { params: { path: { uuid: uuid! } } }
+  )
+
+  const closures = closuresData?.closures as RoadClosure[] | undefined
 
   // Forecast state.
   const [forecastPoints, setForecastPoints] = useState<ForecastPoint[] | null>(
@@ -341,6 +350,7 @@ export default function Track() {
               points={trackPoints}
               hoverStore={hoverStore}
               color={trackColor}
+              closures={closures}
             />
             <MapHoverOverlay
               hoverStore={hoverStore}
@@ -394,6 +404,7 @@ export default function Track() {
                         hoverStore={hoverStore}
                         color={trackColor}
                         className="h-full w-full"
+                        closures={closures}
                       />
                       <MapHoverOverlay
                         hoverStore={hoverStore}
@@ -416,6 +427,14 @@ export default function Track() {
           </div>
         )}
       </div>
+
+      {closures && closures.length > 0 && (
+        <div className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2">
+          <p className="text-sm font-medium text-red-800">
+            Road closures or diversions on this track - see map.
+          </p>
+        </div>
+      )}
 
       <div className="mt-3">
         <div className="flex flex-wrap items-center gap-3">
