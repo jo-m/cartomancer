@@ -11,7 +11,8 @@ import {
 } from "../lib/sports"
 import { useQueryClient } from "@tanstack/react-query"
 
-const PAGE_SIZE = 24
+const DEFAULT_PAGE_SIZE = 24
+const PAGE_SIZE_OPTIONS = [12, 24, 48, 96]
 
 function formatDistance(m: number): string {
   return `${(m / 1000).toFixed(1)} km`
@@ -277,6 +278,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
   const [live, setLive] = useState<LiveFilters>(initialFilters)
   const [applied, setApplied] = useState<LiveFilters>(initialFilters)
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -378,7 +380,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
     params: {
       query: {
         page,
-        pageSize: PAGE_SIZE,
+        pageSize: pageSize,
         onlyMine,
         ...(publicParam !== undefined ? { public: publicParam } : {}),
         ...(applied.onlyStarred && user ? { onlyStarred: true } : {}),
@@ -405,7 +407,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
     },
   })
 
-  const totalPages = data ? Math.ceil(data.totalCount / PAGE_SIZE) : 1
+  const totalPages = data ? Math.ceil(data.totalCount / pageSize) : 1
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -694,7 +696,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
             </div>
           )}
 
-          {totalPages > 1 && (
+          {(totalPages > 1 || pageSize !== DEFAULT_PAGE_SIZE) && (
             <div className="mt-8 flex items-center justify-center gap-4">
               <button
                 disabled={page === 1}
@@ -713,6 +715,20 @@ export default function TrackGrid({ mode }: TrackGridProps) {
               >
                 Next
               </button>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value))
+                  setPage(1)
+                }}
+                className="rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-700 hover:border-gray-400"
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>
+                    {size} / page
+                  </option>
+                ))}
+              </select>
             </div>
           )}
         </>
