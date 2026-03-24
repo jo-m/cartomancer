@@ -29,10 +29,11 @@ func TestOnlineGeoNamesLicense(t *testing.T) {
 }
 
 // TestOnlineSubsampleAllCountries downloads allCountries.zip, extracts
-// allCountries.txt, and selects rows whose SHA-256 hash has 11 leading
-// zero bits (~1/2048 chance), producing a deterministic content-based
-// subsample. The resulting testdata file is used by offline tests for
-// parsing and database import without requiring a network download.
+// allCountries.txt, filters to Swiss (CH) entries only, and selects rows
+// whose SHA-256 hash has 3 leading zero bits (~1/8 chance), producing a
+// deterministic content-based subsample. The resulting testdata file is
+// used by offline tests for parsing and database import without requiring
+// a network download.
 func TestOnlineSubsampleAllCountries(t *testing.T) {
 	ctx := t.Context()
 
@@ -63,7 +64,10 @@ func TestOnlineSubsampleAllCountries(t *testing.T) {
 	var sampled []string
 	for scanner.Scan() {
 		line := scanner.Text()
-		if hashSelectLine(line, 11) {
+		if !isCountryLine(line, "CH") {
+			continue
+		}
+		if hashSelectLine(line, 3) {
 			sampled = append(sampled, line)
 		}
 	}
@@ -74,27 +78,27 @@ func TestOnlineSubsampleAllCountries(t *testing.T) {
 	golden.Verify(t, result, golden.Extension(".tsv")) // golden.WaitApproval()
 }
 
-// TestOnlineSubsampleAdmin1Codes downloads admin1CodesASCII.txt and writes
-// every ~16th row (4 leading zero bits) to a golden file for offline tests.
+// TestOnlineSubsampleAdmin1Codes downloads admin1CodesASCII.txt and keeps
+// all Swiss (CH.*) entries for offline tests.
 func TestOnlineSubsampleAdmin1Codes(t *testing.T) {
 	data, err := utl.DownloadFile(t.Context(), Admin1CodesURL)
 	require.NoError(t, err)
 	require.NotEmpty(t, data)
 
-	sampled := subsampleLines(string(data), 4)
+	sampled := filterLinesByPrefix(string(data), "CH.")
 	require.NotEmpty(t, sampled)
 
 	golden.Verify(t, strings.Join(sampled, "\n")+"\n", golden.Extension(".tsv")) // golden.WaitApproval()
 }
 
-// TestOnlineSubsampleAdmin2Codes downloads admin2Codes.txt and writes
-// every ~16th row (4 leading zero bits) to a golden file for offline tests.
+// TestOnlineSubsampleAdmin2Codes downloads admin2Codes.txt and keeps
+// all Swiss (CH.*) entries for offline tests.
 func TestOnlineSubsampleAdmin2Codes(t *testing.T) {
 	data, err := utl.DownloadFile(t.Context(), Admin2CodesURL)
 	require.NoError(t, err)
 	require.NotEmpty(t, data)
 
-	sampled := subsampleLines(string(data), 4)
+	sampled := filterLinesByPrefix(string(data), "CH.")
 	require.NotEmpty(t, sampled)
 
 	golden.Verify(t, strings.Join(sampled, "\n")+"\n", golden.Extension(".tsv")) // golden.WaitApproval()
@@ -115,15 +119,24 @@ func hashSelectLine(line string, nZeroBits int) bool {
 	return true
 }
 
-// subsampleLines returns non-empty lines from s whose SHA-256 hash has at
-// least nZeroBits leading zero bits.
-func subsampleLines(s string, nZeroBits int) []string {
+// isCountryLine returns true if the tab-delimited line has the given country
+// code at the IdxCountryCode position.
+func isCountryLine(line, countryCode string) bool {
+	fields := strings.Split(line, "\t")
+	if len(fields) <= cols.IdxCountryCode {
+		return false
+	}
+	return fields[cols.IdxCountryCode] == countryCode
+}
+
+// filterLinesByPrefix returns non-empty lines from s that start with prefix.
+func filterLinesByPrefix(s string, prefix string) []string {
 	lines := strings.Split(strings.TrimSpace(s), "\n")
-	var sampled []string
+	var filtered []string
 	for _, line := range lines {
-		if line != "" && hashSelectLine(line, nZeroBits) {
-			sampled = append(sampled, line)
+		if line != "" && strings.HasPrefix(line, prefix) {
+			filtered = append(filtered, line)
 		}
 	}
-	return sampled
+	return filtered
 }

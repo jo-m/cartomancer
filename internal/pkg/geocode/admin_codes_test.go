@@ -114,7 +114,7 @@ func TestImportSubsampledAdmin1(t *testing.T) {
 
 	n, err := ImportAdmin1Codes(ctx, d, f)
 	require.NoError(t, err)
-	require.Greater(t, n, 50, "should import many admin1 rows from subsampled file")
+	require.Greater(t, n, 20, "should import many admin1 rows from subsampled file")
 
 	count, err := d.QueryRO().CountGeonameAdmin1(ctx)
 	require.NoError(t, err)
