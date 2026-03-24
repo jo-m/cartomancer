@@ -75,6 +75,29 @@ WHERE feature_class = 'P'
 ORDER BY dist_sq
 LIMIT 1;
 
+-- name: FindPlacesInBBox :many
+-- Finds all populated places (feature_class = 'P') within a bounding box.
+SELECT geonameid, name, asciiname, latitude, longitude, population,
+       country_code, admin1_code, feature_code
+FROM geonames
+WHERE feature_class = 'P'
+  AND latitude >= sqlc.arg(min_lat)
+  AND latitude <= sqlc.arg(max_lat)
+  AND longitude >= sqlc.arg(min_lon)
+  AND longitude <= sqlc.arg(max_lon);
+
+-- name: FindLandmarksInBBox :many
+-- Finds terrain landmarks (passes, peaks, mountains) within a bounding box.
+SELECT geonameid, name, asciiname, latitude, longitude, feature_code,
+       country_code, admin1_code
+FROM geonames
+WHERE feature_class = 'T'
+  AND feature_code IN ('PASS', 'PK', 'MT')
+  AND latitude >= sqlc.arg(min_lat)
+  AND latitude <= sqlc.arg(max_lat)
+  AND longitude >= sqlc.arg(min_lon)
+  AND longitude <= sqlc.arg(max_lon);
+
 -- name: UpsertTrackGeoname :exec
 INSERT INTO track_geonames (track_id, label, created_at)
 VALUES (?, ?, ?)

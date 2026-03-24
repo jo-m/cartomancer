@@ -369,7 +369,7 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	}
 
 	if p.Name != nil {
-		b.add("tracks.name LIKE ?", "%"+*p.Name+"%")
+		b.add("(tracks.name LIKE ? OR tg.label LIKE ?)", "%"+*p.Name+"%", "%"+*p.Name+"%")
 	}
 	if p.Description != nil {
 		b.add("tracks.description LIKE ?", "%"+*p.Description+"%")

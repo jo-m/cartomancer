@@ -125,7 +125,7 @@
 - [ ] How could architecture of the db package be improved. Maybe split up "system" and "app" tables.
 - [ ] Improve error JSON struct, e.g. https://platform.claude.com/docs/en/api/errors#error-shapes, at least include request id
 - [ ] Allow to show meteo forecast in map overlay
-- [ ] Improve the tracks geoname labelling algorithm
+- [x] Improve the tracks geoname labelling algorithm
 - [ ] Extract all (some) of the hardcoded consts/limits into app settings
 - [ ] Explore by tags page
 - [x] Periodically compute wind rose and average temp for all tracks

@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"mime/multipart"
@@ -11,9 +12,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/detour/internal/pkg/db"
 )
 
 const testGPXFile = "../load/testdata/COURSE_436298480.gpx"
@@ -387,6 +390,39 @@ func TestListTracks_FilterByTagAND(t *testing.T) {
 
 	// AND mode: alpine AND road → no track has both → empty.
 	status, _ = e.do(alice, http.MethodGet, "/tracks?onlyMine=true&tag=alpine&tag=road&tagsAnd=true", nil, &listResp)
+	assert.Equal(t, http.StatusOK, status)
+	tracks, _ = listResp["tracks"].([]any)
+	assert.Empty(t, tracks)
+}
+
+func TestListTracks_SearchByGeoname(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret", false)
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret")
+
+	status, track1 := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	track1UUID := track1["uuid"].(string)
+
+	// Assign a geoname label to the track.
+	err := e.d.QueryRW().UpsertTrackGeoname(context.Background(), db.UpsertTrackGeonameParams{
+		TrackID:   track1UUID,
+		Label:     "Near Zurich, Switzerland",
+		CreatedAt: time.Now(),
+	})
+	require.NoError(t, err)
+
+	// Search by geoname label should find the track.
+	var listResp map[string]any
+	status, _ = e.do(alice, http.MethodGet, "/tracks?onlyMine=true&name=Zurich", nil, &listResp)
+	assert.Equal(t, http.StatusOK, status)
+	tracks, _ := listResp["tracks"].([]any)
+	require.Len(t, tracks, 1)
+	assert.Equal(t, track1UUID, tracks[0].(map[string]any)["uuid"])
+
+	// Search by a term not in name or geoname should return nothing.
+	status, _ = e.do(alice, http.MethodGet, "/tracks?onlyMine=true&name=Tokyo", nil, &listResp)
 	assert.Equal(t, http.StatusOK, status)
 	tracks, _ = listResp["tracks"].([]any)
 	assert.Empty(t, tracks)

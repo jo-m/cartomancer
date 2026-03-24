@@ -417,7 +417,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <input
             type="search"
-            placeholder="Search by name..."
+            placeholder="Search by name or location..."
             value={live.search}
             onChange={(e) =>
               setLive((prev) => ({ ...prev, search: e.target.value }))
