@@ -1,6 +1,9 @@
 -- name: DeleteTrackGroupsByUser :exec
 DELETE FROM track_groups WHERE user_id = ?;
 
+-- name: DeleteAllTrackGroups :exec
+DELETE FROM track_groups;
+
 -- name: CreateTrackGroup :exec
 INSERT INTO track_groups (uuid, created_at, user_id) VALUES (?, ?, ?);
 

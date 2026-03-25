@@ -41,9 +41,13 @@ type setpassCmd struct {
 	Password string `arg:"positional" help:"new password (generated if omitted)"`
 }
 
+// deletealltracksCmd deletes all tracks and associated data from the database.
+type deletealltracksCmd struct{}
+
 type config struct {
-	Serve   *serveCmd   `arg:"subcommand:serve" help:"start the web server and background jobs (default)"`
-	Setpass *setpassCmd `arg:"subcommand:setpass" help:"set password for a user"`
+	Serve           *serveCmd           `arg:"subcommand:serve" help:"start the web server and background jobs (default)"`
+	Setpass         *setpassCmd         `arg:"subcommand:setpass" help:"set password for a user"`
+	Deletealltracks *deletealltracksCmd `arg:"subcommand:deletealltracks" help:"delete all tracks (dev mode only)"`
 
 	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8080"`
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
@@ -194,6 +198,40 @@ func runSetpass(ctx context.Context, d *db.DB, cmd *setpassCmd) {
 	logg.Warn(ctx, "Password set successfully", "email", cmd.Email, "password", plainPass)
 }
 
+// runDeleteAllTracks deletes all tracks, groups, segments, and associated data from the database.
+// Refuses to run unless development mode is enabled.
+func runDeleteAllTracks(ctx context.Context, d *db.DB, appCfg app.AppConfig) {
+	if !appCfg.DevelopmentMode {
+		logg.Panic(ctx, "deletealltracks requires development mode (--app-dev-mode / APP_DEV_MODE)")
+	}
+
+	err := d.WithTx(ctx, func(q *db.Queries) error {
+		if txErr := q.DeleteAllSegmentTracks(ctx); txErr != nil {
+			return fmt.Errorf("delete segment tracks: %w", txErr)
+		}
+		if txErr := q.DeleteAllSegments(ctx); txErr != nil {
+			return fmt.Errorf("delete segments: %w", txErr)
+		}
+		if txErr := q.DeleteAllSegmentJunctions(ctx); txErr != nil {
+			return fmt.Errorf("delete segment junctions: %w", txErr)
+		}
+		if txErr := q.DeleteAllTrackGroups(ctx); txErr != nil {
+			return fmt.Errorf("delete track groups: %w", txErr)
+		}
+		return nil
+	})
+	if err != nil {
+		logg.Panic(ctx, "Failed to delete segments and groups", "err", err)
+	}
+	logg.Warn(ctx, "Deleted all segments and groups")
+
+	n, err := d.QueryRW().DeleteAllTracks(ctx)
+	if err != nil {
+		logg.Panic(ctx, "Failed to delete tracks", "err", err)
+	}
+	logg.Warn(ctx, "Deleted all tracks", "count", n)
+}
+
 func main() {
 	ctx := context.Background()
 
@@ -235,6 +273,12 @@ func main() {
 	// Handle setpass subcommand early, before server-specific setup.
 	if c.Setpass != nil {
 		runSetpass(ctx, d, c.Setpass)
+		return
+	}
+
+	// Handle deletealltracks subcommand early, before server-specific setup.
+	if c.Deletealltracks != nil {
+		runDeleteAllTracks(ctx, d, c.AppConfig)
 		return
 	}
 
