@@ -142,14 +142,14 @@ func (s *Summarizer) summarizeTrack(ctx context.Context, uuid string, refTime, s
 		return fmt.Errorf("parse blob: %w", err)
 	}
 
-	tr := track.New(src, 0)
-	pts := tr.Points().SubsampleLTTB(summaryPointsTarget, func(p track.Point) float64 {
-		return p.Elevation
-	})
-	if len(pts) < 2 {
+	tr, err := track.New(src, 0)
+	if err != nil {
 		logg.Debug(ctx, "track has too few points, skipping", "uuid", uuid)
 		return nil
 	}
+	pts := tr.Points().SubsampleLTTB(summaryPointsTarget, func(p track.Point) float64 {
+		return p.Elevation
+	})
 
 	distances, bearings := computeDistancesAndBearings(pts)
 

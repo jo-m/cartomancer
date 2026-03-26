@@ -315,7 +315,12 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	tr := track.New(src, 0)
+	tr, err := track.New(src, 0)
+	if err != nil {
+		logg.Error(ctx, "failed to create track", "err", err)
+		writeStatusError(w, http.StatusUnprocessableEntity)
+		return
+	}
 
 	var bounds *track.Bounds
 	if t.BoundsMinLat.Valid && t.BoundsMinLon.Valid && t.BoundsMaxLat.Valid && t.BoundsMaxLon.Valid {
@@ -385,7 +390,12 @@ func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	tr := track.New(src, 0)
+	tr, err := track.New(src, 0)
+	if err != nil {
+		logg.Error(ctx, "failed to create track", "err", err)
+		writeStatusError(w, http.StatusUnprocessableEntity)
+		return
+	}
 
 	svg := []byte(tr.ProfileSVG(opts))
 	w.Header().Set(headerContentType, "image/svg+xml")
@@ -464,7 +474,12 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tr := track.New(src, 0)
+	tr, err := track.New(src, 0)
+	if err != nil {
+		logg.Error(ctx, "failed to create track", "err", err)
+		writeStatusError(w, http.StatusUnprocessableEntity)
+		return
+	}
 	pts := tr.Points().SubsampleLTTB(TrackPointsTarget, func(p track.Point) float64 {
 		return p.Elevation
 	})
@@ -1214,7 +1229,11 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t := track.New(src, 0)
+	t, err := track.New(src, 0)
+	if err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "track must have at least 2 points")
+		return
+	}
 	if t.Len() < minTrackPoints {
 		writeError(w, http.StatusUnprocessableEntity, "track must have at least 3 points")
 		return

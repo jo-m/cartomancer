@@ -122,12 +122,12 @@ func (l *Labeler) Run(ctx context.Context, args LabelerArgs) error {
 		return fmt.Errorf("parse blob: %w", err)
 	}
 
-	tr := track.New(src, 0)
-	pts := tr.Points()
-	if len(pts) < 2 {
+	tr, err := track.New(src, 0)
+	if err != nil {
 		logg.Debug(ctx, "track has fewer than 2 points, skipping labeling", "trackId", args.TrackID)
 		return nil
 	}
+	pts := tr.Points()
 
 	polyline := pts.Subsample(polylineSubsampleM)
 	bbox := trackBBox(pts, bboxPadDeg)

@@ -1,6 +1,7 @@
 package track
 
 import (
+	"fmt"
 	"iter"
 	"time"
 )
@@ -75,6 +76,8 @@ type Metadata struct {
 	OriginalCreatedAt *time.Time
 }
 
+// Track holds a parsed GPS track with at least two points.
+// Use [New] to construct; it enforces the minimum-points invariant.
 type Track struct {
 	meta Metadata
 	// The track points as loaded from the original source.
@@ -200,10 +203,16 @@ type TrackSource interface {
 	All() iter.Seq[Point]
 }
 
-func New(src TrackSource, resolution int) *Track {
+// New creates a Track from a TrackSource. Returns an error if the source
+// contains fewer than two points.
+func New(src TrackSource, resolution int) (*Track, error) {
 	pts := []Point{}
 	for p := range src.All() {
 		pts = append(pts, p)
+	}
+
+	if len(pts) < 2 {
+		return nil, fmt.Errorf("track must have at least 2 points, got %d", len(pts))
 	}
 
 	track := Track{
@@ -211,5 +220,5 @@ func New(src TrackSource, resolution int) *Track {
 		pts:  pts,
 	}
 
-	return &track
+	return &track, nil
 }

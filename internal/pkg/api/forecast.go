@@ -107,14 +107,15 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	tr := track.New(src, 0)
+	tr, err := track.New(src, 0)
+	if err != nil {
+		logg.Error(ctx, "failed to create track", "err", err)
+		writeStatusError(w, http.StatusUnprocessableEntity)
+		return
+	}
 	pts := tr.Points().SubsampleLTTB(TrackPointsTarget, func(p track.Point) float64 {
 		return p.Elevation
 	})
-	if len(pts) < 2 {
-		writeError(w, http.StatusUnprocessableEntity, "track has too few points")
-		return
-	}
 
 	// Compute cumulative distances and travel bearings for the subsampled points.
 	distances := make([]float64, len(pts))

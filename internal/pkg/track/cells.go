@@ -8,7 +8,8 @@ import (
 	"github.com/uber/h3-go/v4"
 )
 
-// Cells is a [Track] indexed to H3.
+// Cells is a [Track] indexed to H3. Always contains at least one cell.
+// Use [NewCells] to construct; it enforces the minimum-cell invariant.
 type Cells struct {
 	// Ordered list of H3 cells forming a track.
 	// A track consists of one or more segments.
@@ -120,6 +121,8 @@ func interpolatePoints(pts []Point, resolution int) []h3.Cell {
 // NewCells builds a Cells index from a TrackSource at the given H3 resolution.
 // Points are validated, split into segments on discontinuities, and interpolated
 // into H3 cells. Segments are separated by zero values in the cell slice.
+// Returns an error if the source has fewer than two points or if no segments
+// with enough points remain after splitting.
 func NewCells(src TrackSource, resolution int) (*Cells, error) {
 	pts := []Point{}
 	for p := range src.All() {
@@ -128,6 +131,10 @@ func NewCells(src TrackSource, resolution int) (*Cells, error) {
 	pointSegs, err := checkAndSplit(pts, src.Metadata().TrackType == TrackTypeRecorded)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(pointSegs) == 0 {
+		return nil, fmt.Errorf("no segments with enough points")
 	}
 
 	track := Cells{

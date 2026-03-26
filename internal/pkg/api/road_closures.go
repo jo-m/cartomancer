@@ -68,7 +68,12 @@ func (sv *server) handleGetTrackRoadClosures(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Collect all track points and their coarse H3 cells.
-	tr := track.New(src, 0)
+	tr, err := track.New(src, 0)
+	if err != nil {
+		logg.Error(ctx, "failed to create track", "err", err)
+		writeStatusError(w, http.StatusUnprocessableEntity)
+		return
+	}
 	pts := tr.Points()
 	cellSet := make(map[h3.Cell]struct{})
 	lats := make([]float64, len(pts))

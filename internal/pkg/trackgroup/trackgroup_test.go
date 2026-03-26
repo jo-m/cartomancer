@@ -108,7 +108,7 @@ func TestGroupUser_SingleTrack(t *testing.T) {
 	t.Cleanup(func() { _ = d.Close() })
 
 	userID := createTestUser(t, d)
-	gpx := gpxLine(52.50, 13.00, 52.50, 14.00, 200)
+	gpx := gpxLine(52.50, 13.00, 52.50, 14.00, 500)
 	createTestTrack(t, d, userID, gpx, 5000)
 
 	err := GroupUser(t.Context(), d, userID)
@@ -124,7 +124,7 @@ func TestGroupUser_IdenticalTracks(t *testing.T) {
 	t.Cleanup(func() { _ = d.Close() })
 
 	userID := createTestUser(t, d)
-	gpx := gpxLine(52.50, 13.00, 52.50, 14.00, 200)
+	gpx := gpxLine(52.50, 13.00, 52.50, 14.00, 500)
 	id1 := createTestTrack(t, d, userID, gpx, 5000)
 	id2 := createTestTrack(t, d, userID, gpx, 5000)
 
@@ -144,8 +144,8 @@ func TestGroupUser_DisjointTracks(t *testing.T) {
 	t.Cleanup(func() { _ = d.Close() })
 
 	userID := createTestUser(t, d)
-	gpxA := gpxLine(52.50, 13.00, 52.50, 14.00, 200)
-	gpxB := gpxLine(48.10, 11.00, 48.10, 12.00, 200)
+	gpxA := gpxLine(52.50, 13.00, 52.50, 14.00, 500)
+	gpxB := gpxLine(48.10, 11.00, 48.10, 12.00, 500)
 	createTestTrack(t, d, userID, gpxA, 5000)
 	createTestTrack(t, d, userID, gpxB, 5000)
 
@@ -162,7 +162,7 @@ func TestGroupUser_ExcludesLongTracks(t *testing.T) {
 	t.Cleanup(func() { _ = d.Close() })
 
 	userID := createTestUser(t, d)
-	gpx := gpxLine(52.50, 13.00, 52.50, 14.00, 200)
+	gpx := gpxLine(52.50, 13.00, 52.50, 14.00, 500)
 	// One track is under the limit, the other exceeds it.
 	createTestTrack(t, d, userID, gpx, 5000)
 	createTestTrack(t, d, userID, gpx, maxTrackDistanceM+1)
@@ -181,7 +181,7 @@ func TestGroupUser_RegroupsAfterNewTrack(t *testing.T) {
 	t.Cleanup(func() { _ = d.Close() })
 
 	userID := createTestUser(t, d)
-	gpx := gpxLine(52.50, 13.00, 52.50, 14.00, 200)
+	gpx := gpxLine(52.50, 13.00, 52.50, 14.00, 500)
 	createTestTrack(t, d, userID, gpx, 5000)
 	createTestTrack(t, d, userID, gpx, 5000)
 
@@ -208,7 +208,7 @@ func TestGroupUser_DoesNotAffectOtherUsers(t *testing.T) {
 	alice := createTestUser(t, d)
 	bob := createTestUser(t, d)
 
-	gpx := gpxLine(52.50, 13.00, 52.50, 14.00, 200)
+	gpx := gpxLine(52.50, 13.00, 52.50, 14.00, 500)
 	createTestTrack(t, d, alice, gpx, 5000)
 	createTestTrack(t, d, alice, gpx, 5000)
 	createTestTrack(t, d, bob, gpx, 5000)
