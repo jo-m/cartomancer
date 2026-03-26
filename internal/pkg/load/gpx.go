@@ -85,11 +85,38 @@ func loadGpx(filename string, contents io.Reader) (track.TrackSource, error) {
 	return &g, nil
 }
 
+// detectTrackType infers whether a GPX track was recorded or planned.
+func (g *GPX) detectTrackType() track.TrackType {
+	hasAuthor := g.XMetadata.Author != nil && g.XMetadata.Author.Name != ""
+	hasAuthorLink := g.XMetadata.Author != nil && g.XMetadata.Author.Link != nil && g.XMetadata.Author.Link.Href != ""
+	hasMetadataName := g.XMetadata.Name != nil && *g.XMetadata.Name != ""
+	hasTrackName := len(g.Tracks) > 0 && g.Tracks[0].Name != ""
+
+	isGarmin := g.XMetadata.Link != nil && strings.Contains(g.XMetadata.Link.Href, "garmin.com")
+
+	if isGarmin {
+		// Garmin Connect: recorded tracks have a name in <trk> only, planned
+		// tracks have it in both <metadata> and <trk>.
+		if hasTrackName && !hasMetadataName {
+			return track.TrackTypeRecorded
+		}
+		return track.TrackTypePlanned
+	}
+
+	// Strava: tracks without author name/URL and without a source name are
+	// recorded. This heuristic holds for tracks exported from Strava only.
+	if !hasAuthor && !hasAuthorLink {
+		return track.TrackTypeRecorded
+	}
+
+	return track.TrackTypePlanned
+}
+
+// Metadata returns extracted track metadata from the GPX file.
 func (g *GPX) Metadata() track.Metadata {
 	ret := track.Metadata{
-		Source: g.Creator,
-		// For now, simply assume all GPX files are NOT recorded.
-		TrackType: track.TrackTypePlanned,
+		Source:    g.Creator,
+		TrackType: g.detectTrackType(),
 	}
 
 	t := g.Tracks[0]
