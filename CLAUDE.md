@@ -148,6 +148,11 @@ At-least-once semantics; configure retries via `jobs.Params{MaxRetries: N}`.
 
 After every change, `make check` MUST run successfully. This already includes `go build ./...`.
 
+## Looking up Go APIs
+
+When exploring unknown APIs, or even looking up APIs internal to the project, use `go doc -short <pkg>` (overview) and `go doc -all <pkg>` (detailed).
+Only read the full source code if you need detailed understanding of the implementation.
+
 ## Development
 
 ```bash
@@ -155,6 +160,8 @@ air        # Hot-reload (pre-build runs make gen, watches .go/.sql)
 make gen   # Regenerate sqlc code (required after query changes)
 make check # Full quality gate
 ```
+
+NEVER use `go build`, use `go run` directly to run binaries from this repo.
 
 For email, run the bundled MailHog: `go tool MailHog` (UI at http://127.0.0.1:8025).
 
