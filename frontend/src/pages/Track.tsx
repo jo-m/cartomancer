@@ -63,6 +63,7 @@ function formatDate(iso: string): string {
 const editSchema = z.object({
   name: z.string().min(1, "Name is required"),
   public: z.boolean(),
+  trackType: z.number().int(),
   sport: z.number().int(),
   subSport: z.number().int(),
   tags: z.array(z.string()),
@@ -206,6 +207,7 @@ export default function Track() {
       ? {
           name: data.name,
           public: data.public ?? false,
+          trackType: data.trackType,
           sport: data.sport,
           subSport: data.subSport,
           tags: data.tags,
@@ -243,10 +245,10 @@ export default function Track() {
         body: {
           name: values.name,
           public: values.public,
+          trackType: values.trackType,
           sport: values.sport,
           subSport: values.subSport,
           tags: values.tags,
-          trackType: data.trackType,
         },
       })
       await queryClient.invalidateQueries({
@@ -689,16 +691,28 @@ export default function Track() {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="track-public"
-                {...register("public")}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="track-public" className="text-sm text-gray-700">
-                Public
-              </label>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="track-public"
+                  {...register("public")}
+                  className="rounded border-gray-300"
+                />
+                <label htmlFor="track-public" className="text-sm text-gray-700">
+                  Public
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-700">Type</label>
+                <select
+                  {...register("trackType", { valueAsNumber: true })}
+                  className="rounded border border-gray-200 px-2 py-1 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                >
+                  <option value={2}>Recorded</option>
+                  <option value={1}>Planned</option>
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -228,6 +228,7 @@ interface LiveFilters {
   distRange: Range | null // km; null = full range
   ascentRange: Range | null // m; null = full range
   visibility: "all" | "public" | "private" // user mode only
+  trackType: "all" | "recorded" | "planned"
   onlyStarred: boolean
   sports: number[]
   subSports: number[]
@@ -242,6 +243,7 @@ const initialFilters: LiveFilters = {
   distRange: null,
   ascentRange: null,
   visibility: "all",
+  trackType: "all",
   onlyStarred: false,
   sports: [],
   subSports: [],
@@ -356,6 +358,14 @@ export default function TrackGrid({ mode }: TrackGridProps) {
     publicParam = false
   }
 
+  // Map trackType filter to API integer values (1=Planned, 2=Recorded).
+  const trackTypeParam: number[] | undefined =
+    applied.trackType === "recorded"
+      ? [2]
+      : applied.trackType === "planned"
+        ? [1]
+        : undefined
+
   const starMutation = $api.useMutation("post", "/tracks/{uuid}/star")
   const unstarMutation = $api.useMutation("delete", "/tracks/{uuid}/star")
 
@@ -383,6 +393,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
         pageSize: pageSize,
         onlyMine,
         ...(publicParam !== undefined ? { public: publicParam } : {}),
+        ...(trackTypeParam ? { trackType: trackTypeParam } : {}),
         ...(applied.onlyStarred && user ? { onlyStarred: true } : {}),
         ...(applied.search ? { name: applied.search } : {}),
         ...(applied.sports.length > 0 ? { sport: applied.sports } : {}),
@@ -445,6 +456,25 @@ export default function TrackGrid({ mode }: TrackGridProps) {
               ))}
             </div>
           )}
+          <div className="flex rounded border border-gray-300 text-sm">
+            {(["all", "recorded", "planned"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setLive((prev) => ({ ...prev, trackType: v }))}
+                className={`px-3 py-1.5 first:rounded-l last:rounded-r ${
+                  live.trackType === v
+                    ? "bg-gray-800 text-white"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {v === "all"
+                  ? "All"
+                  : v === "recorded"
+                    ? "Recorded"
+                    : "Planned"}
+              </button>
+            ))}
+          </div>
           {user && (
             <button
               onClick={() =>
