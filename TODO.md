@@ -90,8 +90,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] Allow to create an initial admin account (allow setting password only in dev mode)
 - [x] Demo mode, locks user table via trigger, insert some initial data, delete data periodically
 - [x] Disable public signup by default
-- [ ] 404 page in frontend and backend
-- [ ] Why does the backend return 200 on http://localhost:8080/nothinghere
+- [x] 404 page in frontend
 - [ ] Uncomment all the checks/linters in make check
 - [x] Log message cleanup and unification (case, punctuation)
 - [ ] Add CI setup/Docker build

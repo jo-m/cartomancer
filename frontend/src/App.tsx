@@ -25,6 +25,7 @@ import AdminUsers from "./pages/AdminUsers"
 import AdminForecasts from "./pages/AdminForecasts"
 import About from "./pages/About"
 import Leaving from "./pages/Leaving"
+import NotFound from "./pages/NotFound"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -145,6 +146,7 @@ export default function App() {
                   </AdminRoute>
                 }
               />
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
         </SessionProvider>
