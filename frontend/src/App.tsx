@@ -19,6 +19,8 @@ import Upload from "./pages/Upload"
 import Track from "./pages/Track"
 import Groups from "./pages/Groups"
 import GroupDetail from "./pages/GroupDetail"
+import Segments from "./pages/Segments"
+import SegmentDetail from "./pages/SegmentDetail"
 import AdminUsers from "./pages/AdminUsers"
 import AdminForecasts from "./pages/AdminForecasts"
 import About from "./pages/About"
@@ -109,6 +111,22 @@ export default function App() {
                 }
               />
               <Route path="/tracks/:uuid" element={<Track />} />
+              <Route
+                path="/admin/segments"
+                element={
+                  <AdminRoute>
+                    <Segments />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/segments/:uuid"
+                element={
+                  <AdminRoute>
+                    <SegmentDetail />
+                  </AdminRoute>
+                }
+              />
               <Route path="/about" element={<About />} />
               <Route path="/leaving" element={<Leaving />} />
               <Route

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"iter"
 
 	"github.com/uber/h3-go/v4"
 )
@@ -175,6 +176,32 @@ func (c *Cells) CellsToBytes() ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+// Edges returns all directed edges in the cell sequence as (origin, destination) cell pairs.
+// Segment separators (zero cells) are skipped.
+func (c *Cells) Edges() iter.Seq2[h3.Cell, h3.Cell] {
+	return func(yield func(h3.Cell, h3.Cell) bool) {
+		for j, c1 := range c.cells[1:] {
+			c0 := c.cells[j]
+			if c0 == 0 || c1 == 0 {
+				continue
+			}
+			if !yield(c0, c1) {
+				return
+			}
+		}
+	}
+}
+
+// AllCells returns all cells in the sequence, including zero separators.
+func (c *Cells) AllCells() []h3.Cell {
+	return c.cells
+}
+
+// Resolution returns the H3 resolution at which cells were created.
+func (c *Cells) Resolution() int {
+	return c.res
 }
 
 // CellsFromBytes deserializes Cells from a gob-encoded byte slice.

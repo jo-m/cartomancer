@@ -115,6 +115,10 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 		r.Post("/admin/users/{uuid}/reset-password", sv.handleAdminResetUserPassword)
 		r.Post("/admin/users/{uuid}/confirm-email", sv.handleAdminConfirmEmail)
 
+		r.Get("/admin/segments", sv.handleListSegments)
+		r.Get("/admin/segments/{uuid}", sv.handleGetSegment)
+		r.Get("/admin/segments/junctions", sv.handleListSegmentJunctions)
+
 		r.Get("/admin/forecasts", sv.handleAdminListForecasts)
 	})
 

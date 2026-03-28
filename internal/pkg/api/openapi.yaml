@@ -1475,6 +1475,102 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /admin/segments:
+    get:
+      summary: List all segments
+      operationId: listSegments
+      tags: [Segments]
+      description: >
+        Returns all extracted road/way segments with polylines for map display.
+        Admin only.
+      responses:
+        "200":
+          description: All segments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListSegmentsResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/segments/junctions:
+    get:
+      summary: List all segment junctions
+      operationId: listSegmentJunctions
+      tags: [Segments]
+      description: >
+        Returns all segment junctions (crossroads / endpoints) for map display.
+        Admin only.
+      responses:
+        "200":
+          description: All junctions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListJunctionsResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/segments/{uuid}:
+    get:
+      summary: Get segment details
+      operationId: getSegment
+      tags: [Segments]
+      description: >
+        Returns the detail of a single segment including its junctions,
+        polyline, and member track UUIDs. Admin only.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Segment detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SegmentDetailResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Segment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /admin/users:
     get:
       summary: List all users
@@ -2783,3 +2879,109 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Attribution"
+
+    SegmentEntry:
+      type: object
+      required:
+        - uuid
+        - distanceM
+        - ascentM
+        - nTracks
+        - h3Resolution
+        - polyline
+        - startLat
+        - startLon
+        - endLat
+        - endLon
+      properties:
+        uuid:
+          type: string
+        distanceM:
+          type: number
+        ascentM:
+          type: number
+        nTracks:
+          type: integer
+        h3Resolution:
+          type: integer
+        polyline:
+          type: string
+        startLat:
+          type: number
+        startLon:
+          type: number
+        endLat:
+          type: number
+        endLon:
+          type: number
+
+    ListSegmentsResponse:
+      type: object
+      required:
+        - segments
+      properties:
+        segments:
+          type: array
+          items:
+            $ref: "#/components/schemas/SegmentEntry"
+
+    ListJunctionsResponse:
+      type: object
+      required:
+        - junctions
+      properties:
+        junctions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SegmentJunction"
+
+    SegmentJunction:
+      type: object
+      required:
+        - uuid
+        - h3Cell
+        - lat
+        - lon
+      properties:
+        uuid:
+          type: string
+        h3Cell:
+          type: string
+        lat:
+          type: number
+        lon:
+          type: number
+
+    SegmentDetailResponse:
+      type: object
+      required:
+        - uuid
+        - distanceM
+        - ascentM
+        - nTracks
+        - h3Resolution
+        - polyline
+        - startJunction
+        - endJunction
+        - trackUuids
+      properties:
+        uuid:
+          type: string
+        distanceM:
+          type: number
+        ascentM:
+          type: number
+        nTracks:
+          type: integer
+        h3Resolution:
+          type: integer
+        polyline:
+          type: string
+        startJunction:
+          $ref: "#/components/schemas/SegmentJunction"
+        endJunction:
+          $ref: "#/components/schemas/SegmentJunction"
+        trackUuids:
+          type: array
+          items:
+            type: string

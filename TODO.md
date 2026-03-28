@@ -2,6 +2,8 @@
 
 **This file is ONLY FOR HUMANS. AI agents MUST IGNORE IT.**
 
+copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:*)' --allow-tool='shell(make:*)'
+
 ## Short term
 
 - [ ] Rename
@@ -51,6 +53,13 @@
   - [x] Drop the following cols: modification date, timezone, dem, elevation, population
   - [x] Maybe do import in a temp table which is then renamed
 - [ ] Extract segments to allow for "remixing" of tracks
+  - [ ] Ensure deleting tracks also correctly deletes segments
+  - [ ] Ensure the segments job also cleans the database before inserting
+  - [ ] Make segments available to non admins
+  - [ ] Increase the segments job debounce time
+  - [ ] Ensure the segmenting job gets triggered reliably in all scenarios
+  - [ ] Re-enable the segmenting job
+  - [ ] New approach for finding junctions: Iterate through all tracks, with cells, and for each cell keep the (interpolated) GPX track points. Then do negative filtering based on that.
 - [ ] Track grouping: treat recorded vs. planned tracks differently
 - [ ] Frontend polishing
   - [ ] Unified display of dates/times in frontend (iso and 24h format, "x ago")
@@ -104,6 +113,7 @@
 
 ## Before enabling public signup
 
+- [ ] Find a solution for segments extraction privacy
 - [ ] Add privacy policy, imprint, admin contact (https://notermsnoconditions.com/)
 - [ ] Periodically delete user accounts which have never had their email confirmed
 - [ ] Improve email messages sent to users, include instance name and base URL

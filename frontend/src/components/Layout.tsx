@@ -54,20 +54,28 @@ export default function Layout() {
                   >
                     Groups
                   </Link>
+                  {user.admin && (
+                    <>
+                      <Link
+                        to="/admin/segments"
+                        className="text-gray-700 hover:text-gray-900"
+                      >
+                        Segments
+                      </Link>
+                      <Link
+                        to="/admin/users"
+                        className="text-gray-700 hover:text-gray-900"
+                      >
+                        Admin
+                      </Link>
+                    </>
+                  )}
                   <Link
                     to="/upload"
                     className="text-gray-700 hover:text-gray-900"
                   >
                     Upload
                   </Link>
-                  {user.admin && (
-                    <Link
-                      to="/admin/users"
-                      className="text-gray-700 hover:text-gray-900"
-                    >
-                      Admin
-                    </Link>
-                  )}
                   <div
                     className="relative"
                     onMouseEnter={handleMouseEnter}

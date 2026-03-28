@@ -27,6 +27,7 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/meteo"
 	"jo-m.ch/go/detour/internal/pkg/password"
 	"jo-m.ch/go/detour/internal/pkg/roadclosures"
+	"jo-m.ch/go/detour/internal/pkg/segment"
 	"jo-m.ch/go/detour/internal/pkg/session"
 	"jo-m.ch/go/detour/internal/pkg/trackgroup"
 	"jo-m.ch/go/detour/internal/pkg/users"
@@ -349,6 +350,8 @@ func main() {
 	jobs.MustRegisterJob(w, geocode.NewLabeler(d))
 
 	jobs.MustRegisterJob(w, trackgroup.NewGrouper(d))
+
+	jobs.MustRegisterJob(w, segment.NewBuilder(d))
 
 	jobs.MustRegisterJob(w, roadclosures.NewDownloader(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), roadclosures.DownloaderArgs{}, 24*time.Hour, true)

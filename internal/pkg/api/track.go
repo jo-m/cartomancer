@@ -1376,6 +1376,13 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		logg.Error(ctx, "failed to submit grouper job", "err", submitErr)
 	}
 
+	// TODO: Uncomment this again as soon as segmenting works.
+	// // Schedule segment extraction with debounce so rapid uploads are coalesced.
+	// if submitErr := jobs.Submit(ctx, sv.jobSubmitter, segment.BuilderArgs{},
+	// 	jobs.Params{DelayS: 2 * time.Minute, Debounce: true}); submitErr != nil {
+	// 	logg.Error(ctx, "failed to submit segment builder job", "err", submitErr)
+	// }
+
 	writeJSON(w, http.StatusCreated, trackResponseFromDB(db.TrackWithStarred{
 		Track:          created,
 		UserName:       user.Name,
