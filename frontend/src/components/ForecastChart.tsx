@@ -4,7 +4,6 @@ import {
   ComposedChart,
   Line,
   Area,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -119,7 +118,7 @@ export default function ForecastChart({
               ? Math.round(p.temperatureC * 10) / 10
               : null,
           precipitationRate:
-            p.precipitationRate != null
+            p.precipitationRate != null && p.precipitationRate > 0
               ? Math.round(p.precipitationRate * 100) / 100
               : null,
           windSpeedMs:
@@ -418,12 +417,17 @@ export default function ForecastChart({
                 stroke="#d1d5db"
                 width={Y_AXIS_WIDTH}
               />
-              <Bar
+              <Area
+                type="stepAfter"
                 dataKey="precipitationRate"
                 fill="#3b82f6"
-                opacity={0.7}
-                maxBarSize={8}
+                fillOpacity={0.5}
+                stroke="#3b82f6"
+                strokeWidth={1}
+                dot={false}
+                activeDot={false}
                 isAnimationActive={false}
+                connectNulls={false}
               />
             </ComposedChart>
           </ResponsiveContainer>
