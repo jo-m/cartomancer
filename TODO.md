@@ -32,7 +32,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] On the tracks page allow sorting by distance, ascent, created_at
 - [x] Tracks filter view is currently inconsistent
 - [x] Deduplicate track blobs between users
-- [ ] Try to be smarter about imported tracks - recorded vs. planned. For Garmin also file name - COURSE vs. ACTIVITY.
+- [x] Try to be smarter about imported tracks - recorded vs. planned. For Garmin also file name - COURSE vs. ACTIVITY.
 - [x] Ensure long running periodic jobs cannot pile up
 - [x] Debouncing for job submitting
 - [x] Show overview of forecasts in db for admin, forecasts, vars, bbox, time window, step

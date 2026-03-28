@@ -85,8 +85,50 @@ func loadGpx(filename string, contents io.Reader) (track.TrackSource, error) {
 	return &g, nil
 }
 
+// planningOnlyCreators lists substrings of GPX creator attributes that
+// belong to route-planning-only tools (they never produce recorded tracks).
+var planningOnlyCreators = []string{
+	"schweizmobil.ch",
+	"cycle.travel",
+	"swisstopo",
+	"ridewithgps.com",
+}
+
+// isCreatorPlanningOnly returns true if the GPX creator attribute matches a
+// known route-planning-only tool.
+func isCreatorPlanningOnly(creator string) bool {
+	lc := strings.ToLower(creator)
+	for _, sub := range planningOnlyCreators {
+		if strings.Contains(lc, sub) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasTrackpointTimestamps checks whether the first track segment contains
+// trackpoints with non-zero timestamps, which is a strong signal for a
+// recorded (as opposed to planned) track.
+func (g *GPX) hasTrackpointTimestamps() bool {
+	for _, trk := range g.Tracks {
+		for _, seg := range trk.Segments {
+			for _, pt := range seg.Points {
+				if pt.Time != nil {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // detectTrackType infers whether a GPX track was recorded or planned.
 func (g *GPX) detectTrackType() track.TrackType {
+	// Known route-planning-only tools are always planned.
+	if isCreatorPlanningOnly(g.Creator) {
+		return track.TrackTypePlanned
+	}
+
 	hasAuthor := g.XMetadata.Author != nil && g.XMetadata.Author.Name != ""
 	hasAuthorLink := g.XMetadata.Author != nil && g.XMetadata.Author.Link != nil && g.XMetadata.Author.Link.Href != ""
 	hasMetadataName := g.XMetadata.Name != nil && *g.XMetadata.Name != ""
@@ -95,7 +137,16 @@ func (g *GPX) detectTrackType() track.TrackType {
 	isGarmin := g.XMetadata.Link != nil && strings.Contains(g.XMetadata.Link.Href, "garmin.com")
 
 	if isGarmin {
-		// Garmin Connect: recorded tracks have a name in <trk> only, planned
+		// Garmin exports use distinctive filename prefixes.
+		fnUpper := strings.ToUpper(g.filename)
+		if strings.Contains(fnUpper, "ACTIVITY_") {
+			return track.TrackTypeRecorded
+		}
+		if strings.Contains(fnUpper, "COURSE_") {
+			return track.TrackTypePlanned
+		}
+
+		// Fallback: recorded tracks have a name in <trk> only, planned
 		// tracks have it in both <metadata> and <trk>.
 		if hasTrackName && !hasMetadataName {
 			return track.TrackTypeRecorded
@@ -107,6 +158,12 @@ func (g *GPX) detectTrackType() track.TrackType {
 	// recorded. This heuristic holds for tracks exported from Strava only.
 	if !hasAuthor && !hasAuthorLink {
 		return track.TrackTypeRecorded
+	}
+
+	// General fallback: planned routes from route planners typically lack
+	// per-point timestamps, while recorded tracks always have them.
+	if !g.hasTrackpointTimestamps() {
+		return track.TrackTypePlanned
 	}
 
 	return track.TrackTypePlanned
