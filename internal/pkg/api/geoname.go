@@ -31,8 +31,8 @@ type geonameSearchResponse struct {
 	Results []geonameSearchResult `json:"results"`
 }
 
-// handleSearchGeonames searches populated places by name prefix and returns
-// results with resolved admin1/admin2 names.
+// handleSearchGeonames searches populated places by name prefix using FTS5
+// and returns results with resolved admin1/admin2 names.
 func (sv *server) handleSearchGeonames(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -42,9 +42,9 @@ func (sv *server) handleSearchGeonames(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	escaped := strings.NewReplacer("%", `\%`, "_", `\_`).Replace(q)
+	ftsQuery := fts5PrefixQuery(q)
 	rows, err := sv.d.QueryRO().SearchGeonames(ctx, db.SearchGeonamesParams{
-		Query:      escaped + "%",
+		Query:      ftsQuery,
 		MaxResults: geonameSearchMaxResults,
 	})
 	if err != nil {
@@ -70,4 +70,30 @@ func (sv *server) handleSearchGeonames(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, geonameSearchResponse{Results: results})
+}
+
+// fts5PrefixQuery sanitises user input for FTS5 prefix search.
+// Each whitespace-separated token becomes a quoted prefix token.
+// Example: `New York` -> `"New" "York"*`, `Zürich` -> `"Zürich"*`.
+func fts5PrefixQuery(input string) string {
+	tokens := strings.Fields(input)
+	if len(tokens) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+	for i, tok := range tokens {
+		if i > 0 {
+			sb.WriteByte(' ')
+		}
+		// Quote each token to prevent FTS5 syntax injection (e.g. AND, OR, NOT, *).
+		escaped := strings.ReplaceAll(tok, `"`, `""`)
+		sb.WriteByte('"')
+		sb.WriteString(escaped)
+		sb.WriteByte('"')
+	}
+	// Append prefix operator to the last token only.
+	sb.WriteByte('*')
+
+	return sb.String()
 }

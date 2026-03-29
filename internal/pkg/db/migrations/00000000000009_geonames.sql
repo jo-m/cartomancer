@@ -23,6 +23,18 @@ CREATE INDEX idx_geonames_reverse
 CREATE INDEX idx_geonames_country
     ON geonames (country_code, feature_class);
 
+-- FTS5 index for prefix search on place names.
+-- External-content table: data lives in geonames, FTS holds only the index.
+-- unicode61 tokenizer handles case folding and diacritic removal.
+CREATE VIRTUAL TABLE geonames_fts USING fts5(
+    name, asciiname,
+    content=geonames, content_rowid=geonameid,
+    tokenize='unicode61 remove_diacritics 2'
+);
+
+-- Populate the FTS index from any existing geonames data.
+INSERT INTO geonames_fts(geonames_fts) VALUES('rebuild');
+
 -- First-level administrative divisions (states, provinces, etc.).
 CREATE TABLE geoname_admin1 (
     code TEXT PRIMARY KEY,
@@ -58,5 +70,6 @@ DROP TABLE IF EXISTS track_geonames;
 DROP TABLE IF EXISTS geoname_imports;
 DROP TABLE IF EXISTS geoname_admin2;
 DROP TABLE IF EXISTS geoname_admin1;
+DROP TABLE IF EXISTS geonames_fts;
 DROP TABLE IF EXISTS geonames;
 -- +goose StatementEnd

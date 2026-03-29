@@ -51,6 +51,13 @@ func TestSearchGeonames(t *testing.T) {
 		CountryCode: "CH", Admin1Code: "BE", Admin2Code: "0246",
 		Population: 4000,
 	}))
+	require.NoError(t, q.InsertGeoname(ctx, db.InsertGeonameParams{
+		Geonameid: 104, Name: "Zürich", Asciiname: "Zurich",
+		Latitude: 47.37, Longitude: 8.55,
+		FeatureClass: "P", FeatureCode: "PPLA",
+		CountryCode: "CH", Admin1Code: "ZH",
+		Population: 400000,
+	}))
 	// Non-place feature class (should not appear in results).
 	require.NoError(t, q.InsertGeoname(ctx, db.InsertGeonameParams{
 		Geonameid: 200, Name: "Bernina Pass", Asciiname: "Bernina Pass",
@@ -59,9 +66,14 @@ func TestSearchGeonames(t *testing.T) {
 		CountryCode: "CH", Admin1Code: "GR",
 	}))
 
-	_, err := env.d.QueryRW().CreateGeonameImport(ctx, db.CreateGeonameImportParams{
+	// Rebuild FTS index after seeding data.
+	_, err := env.d.RW().ExecContext(ctx,
+		`INSERT INTO geonames_fts(geonames_fts) VALUES('rebuild')`)
+	require.NoError(t, err)
+
+	_, err = env.d.QueryRW().CreateGeonameImport(ctx, db.CreateGeonameImportParams{
 		CreatedAt: time.Now().UTC(),
-		RowCount:  5,
+		RowCount:  6,
 	})
 	require.NoError(t, err)
 
@@ -103,6 +115,29 @@ func TestSearchGeonames(t *testing.T) {
 		require.Equal(t, "Interlaken-Oberhasli", resp.Results[0].Admin2Name)
 	})
 
+	t.Run("accent insensitive", func(t *testing.T) {
+		var resp geonameSearchResponseTest
+		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=Z%C3%BCrich", nil, &resp)
+		require.Equal(t, http.StatusOK, status)
+		require.Len(t, resp.Results, 1)
+		require.Equal(t, "Zürich", resp.Results[0].Name)
+	})
+
+	t.Run("ascii matches accented name", func(t *testing.T) {
+		var resp geonameSearchResponseTest
+		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=Zurich", nil, &resp)
+		require.Equal(t, http.StatusOK, status)
+		require.Len(t, resp.Results, 1)
+		require.Equal(t, "Zürich", resp.Results[0].Name)
+	})
+
+	t.Run("case insensitive", func(t *testing.T) {
+		var resp geonameSearchResponseTest
+		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=bern", nil, &resp)
+		require.Equal(t, http.StatusOK, status)
+		require.Len(t, resp.Results, 2)
+	})
+
 	t.Run("no results", func(t *testing.T) {
 		var resp geonameSearchResponseTest
 		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=Zzzzz", nil, &resp)
@@ -110,9 +145,9 @@ func TestSearchGeonames(t *testing.T) {
 		require.Empty(t, resp.Results)
 	})
 
-	t.Run("special characters escaped", func(t *testing.T) {
+	t.Run("FTS syntax injection safe", func(t *testing.T) {
 		var resp geonameSearchResponseTest
-		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=%25wild", nil, &resp)
+		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=OR+NOT", nil, &resp)
 		require.Equal(t, http.StatusOK, status)
 		require.Empty(t, resp.Results)
 	})

@@ -198,6 +198,35 @@ func createGeonamesIndexes(ctx context.Context, rw *sql.DB) error {
 			return err
 		}
 	}
+
+	if err := rebuildGeonamesFTS(ctx, rw); err != nil {
+		return fmt.Errorf("rebuild FTS index: %w", err)
+	}
+
+	return nil
+}
+
+// rebuildGeonamesFTS recreates the FTS5 virtual table and populates it from
+// the geonames table. The table is dropped and recreated (rather than using
+// 'rebuild') because the content table was swapped via DROP+RENAME.
+func rebuildGeonamesFTS(ctx context.Context, rw *sql.DB) error {
+	logg.Info(ctx, "rebuilding geonames FTS index")
+
+	for _, stmt := range []string{
+		`DROP TABLE IF EXISTS geonames_fts`,
+		`CREATE VIRTUAL TABLE geonames_fts USING fts5(
+			name, asciiname,
+			content=geonames, content_rowid=geonameid,
+			tokenize='unicode61 remove_diacritics 2'
+		)`,
+		`INSERT INTO geonames_fts(geonames_fts) VALUES('rebuild')`,
+	} {
+		if _, err := rw.ExecContext(ctx, stmt); err != nil {
+			return fmt.Errorf("exec %q: %w", stmt[:min(len(stmt), 60)], err)
+		}
+	}
+
+	logg.Info(ctx, "geonames FTS index rebuilt")
 	return nil
 }
 
