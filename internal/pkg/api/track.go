@@ -17,7 +17,7 @@ import (
 	"github.com/google/uuid"
 	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/geocode"
+	"jo-m.ch/go/detour/internal/pkg/geonames"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/load"
 	"jo-m.ch/go/detour/internal/pkg/logg"
@@ -1363,7 +1363,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Schedule geoname labeling in the background.
-	if submitErr := jobs.Submit(ctx, sv.jobSubmitter, geocode.LabelerArgs{
+	if submitErr := jobs.Submit(ctx, sv.jobSubmitter, geonames.LabelerArgs{
 		TrackID: created.Uuid,
 	}, jobs.Params{MaxRetries: 2}); submitErr != nil {
 		logg.Error(ctx, "failed to submit labeler job", "err", submitErr)

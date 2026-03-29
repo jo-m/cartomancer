@@ -1,4 +1,4 @@
-package geocode
+package geonames
 
 import (
 	"errors"

@@ -1,4 +1,4 @@
-package geocode
+package geonames
 
 import (
 	"bufio"
@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/geocode/cols"
+	"jo-m.ch/go/detour/internal/pkg/geonames/cols"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 	"jo-m.ch/go/detour/internal/pkg/utl"
 )

@@ -1,4 +1,4 @@
-package geocode
+package geonames
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 
 	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/geocode/cols"
+	"jo-m.ch/go/detour/internal/pkg/geonames/cols"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/load"
 	"jo-m.ch/go/detour/internal/pkg/logg"
@@ -79,7 +79,7 @@ type LabelerArgs struct {
 }
 
 // Kind implements [jobs.Args].
-func (LabelerArgs) Kind() string { return "geocode.labeler" }
+func (LabelerArgs) Kind() string { return "geonames.labeler" }
 
 var _ jobs.Args = (*LabelerArgs)(nil)
 

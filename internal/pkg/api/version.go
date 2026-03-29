@@ -5,7 +5,7 @@ import (
 	"runtime/debug"
 
 	"jo-m.ch/go/detour/internal/pkg/attribute"
-	"jo-m.ch/go/detour/internal/pkg/geocode"
+	"jo-m.ch/go/detour/internal/pkg/geonames"
 	"jo-m.ch/go/detour/internal/pkg/meteo"
 	"jo-m.ch/go/detour/internal/pkg/roadclosures"
 )
@@ -38,7 +38,7 @@ func (sv *server) handleGetVersion(w http.ResponseWriter, r *http.Request) {
 		Deps:      make([]buildInfoModule, 0, len(info.Deps)),
 		Attributions: []attribute.Attribution{
 			meteo.DataAttribution,
-			geocode.DataAttribution,
+			geonames.DataAttribution,
 			roadclosures.DataAttribution,
 		},
 	}

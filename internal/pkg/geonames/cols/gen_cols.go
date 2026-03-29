@@ -3,7 +3,7 @@
 // gen_cols.go reads testdata/TestOnlineDownloadReadme.txt and writes
 // cols.gen.go containing Column definitions parsed from the GeoNames readme.
 //
-// Run via: go generate ./internal/pkg/geocode/cols/
+// Run via: go generate ./internal/pkg/geonames/cols/
 package main
 
 import (

@@ -11,7 +11,7 @@ import (
 
 const (
 	geonameSearchMinQuery   = 2
-	geonameSearchMaxResults = 20
+	geonameSearchMaxResults = 5
 )
 
 type geonameSearchResult struct {

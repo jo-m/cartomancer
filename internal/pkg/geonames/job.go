@@ -1,4 +1,4 @@
-package geocode
+package geonames
 
 import (
 	"bytes"
@@ -26,7 +26,7 @@ const (
 type DownloaderArgs struct{}
 
 // Kind implements [jobs.Args].
-func (DownloaderArgs) Kind() string { return "geocode.downloader" }
+func (DownloaderArgs) Kind() string { return "geonames.downloader" }
 
 var _ jobs.Args = (*DownloaderArgs)(nil)
 

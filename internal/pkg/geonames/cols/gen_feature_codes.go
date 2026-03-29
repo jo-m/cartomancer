@@ -3,7 +3,7 @@
 // gen_feature_codes.go reads testdata/TestOnlineDownloadFeatureCodes.txt and
 // writes feature_codes.gen.go containing feature code constants and metadata.
 //
-// Run via: go generate ./internal/pkg/geocode/cols/
+// Run via: go generate ./internal/pkg/geonames/cols/
 package main
 
 import (

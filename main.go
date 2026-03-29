@@ -20,7 +20,7 @@ import (
 	"jo-m.ch/go/detour/internal/pkg/app"
 	"jo-m.ch/go/detour/internal/pkg/db"
 	"jo-m.ch/go/detour/internal/pkg/forecast"
-	"jo-m.ch/go/detour/internal/pkg/geocode"
+	"jo-m.ch/go/detour/internal/pkg/geonames"
 	"jo-m.ch/go/detour/internal/pkg/jobs"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 	"jo-m.ch/go/detour/internal/pkg/mail"
@@ -345,9 +345,9 @@ func main() {
 	jobs.MustRegisterJob(w, forecast.NewSummarizer(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), forecast.SummarizerArgs{}, time.Hour, true)
 
-	jobs.MustRegisterJob(w, geocode.NewDownloader(d))
-	jobs.Periodic(ctxJobs, w.Submitter(), geocode.DownloaderArgs{}, 7*24*time.Hour, true)
-	jobs.MustRegisterJob(w, geocode.NewLabeler(d))
+	jobs.MustRegisterJob(w, geonames.NewDownloader(d))
+	jobs.Periodic(ctxJobs, w.Submitter(), geonames.DownloaderArgs{}, 7*24*time.Hour, true)
+	jobs.MustRegisterJob(w, geonames.NewLabeler(d))
 
 	jobs.MustRegisterJob(w, trackgroup.NewGrouper(d))
 

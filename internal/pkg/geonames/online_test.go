@@ -1,6 +1,6 @@
 //go:build online
 
-package geocode
+package geonames
 
 import (
 	"archive/zip"
@@ -12,7 +12,7 @@ import (
 
 	"github.com/franiglesias/golden"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/geocode/cols"
+	"jo-m.ch/go/detour/internal/pkg/geonames/cols"
 	"jo-m.ch/go/detour/internal/pkg/utl"
 )
 

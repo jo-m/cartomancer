@@ -1,4 +1,4 @@
-package geocode
+package geonames
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"jo-m.ch/go/detour/internal/pkg/blob"
 	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/geocode/cols"
+	"jo-m.ch/go/detour/internal/pkg/geonames/cols"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 	"jo-m.ch/go/detour/internal/pkg/track"
 )

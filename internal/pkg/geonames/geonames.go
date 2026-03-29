@@ -1,5 +1,5 @@
-// Package geocode provides reverse geocoding via GeoNames data.
-package geocode
+// Package geonames provides reverse geocoding via GeoNames data.
+package geonames
 
 import (
 	"archive/zip"
@@ -16,7 +16,7 @@ import (
 
 	"jo-m.ch/go/detour/internal/pkg/attribute"
 	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/geocode/cols"
+	"jo-m.ch/go/detour/internal/pkg/geonames/cols"
 	"jo-m.ch/go/detour/internal/pkg/logg"
 )
 
