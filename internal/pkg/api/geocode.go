@@ -15,7 +15,7 @@ const (
 )
 
 type geonameSearchResult struct {
-	GeonameID   int64   `json:"geonameId"`
+	ID          int64   `json:"id"`
 	Name        string  `json:"name"`
 	ASCIIName   string  `json:"asciiName"`
 	Latitude    float64 `json:"latitude"`
@@ -31,9 +31,9 @@ type geonameSearchResponse struct {
 	Results []geonameSearchResult `json:"results"`
 }
 
-// handleSearchGeonames searches populated places by name prefix using FTS5
+// handleSearchGeocodeName searches populated places by name prefix using FTS5
 // and returns results with resolved admin1/admin2 names.
-func (sv *server) handleSearchGeonames(w http.ResponseWriter, r *http.Request) {
+func (sv *server) handleSearchGeocodeName(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
@@ -56,7 +56,7 @@ func (sv *server) handleSearchGeonames(w http.ResponseWriter, r *http.Request) {
 	results := make([]geonameSearchResult, len(rows))
 	for i, row := range rows {
 		results[i] = geonameSearchResult{
-			GeonameID:   row.Geonameid,
+			ID:          row.Geonameid,
 			Name:        row.Name,
 			ASCIIName:   row.Asciiname,
 			Latitude:    row.Latitude,

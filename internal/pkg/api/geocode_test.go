@@ -78,18 +78,18 @@ func TestSearchGeonames(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("query too short", func(t *testing.T) {
-		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=B", nil, nil)
+		status, _ := env.do(client, http.MethodGet, "/geocode/search/name?q=B", nil, nil)
 		require.Equal(t, http.StatusBadRequest, status)
 	})
 
 	t.Run("empty query", func(t *testing.T) {
-		status, _ := env.do(client, http.MethodGet, "/geonames/search", nil, nil)
+		status, _ := env.do(client, http.MethodGet, "/geocode/search/name", nil, nil)
 		require.Equal(t, http.StatusBadRequest, status)
 	})
 
 	t.Run("search prefix Ber", func(t *testing.T) {
 		var resp geonameSearchResponseTest
-		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=Ber", nil, &resp)
+		status, _ := env.do(client, http.MethodGet, "/geocode/search/name?q=Ber", nil, &resp)
 		require.Equal(t, http.StatusOK, status)
 		require.Len(t, resp.Results, 2)
 		// Sorted by population descending: Bern (130000) before Berne (1000).
@@ -100,14 +100,14 @@ func TestSearchGeonames(t *testing.T) {
 
 	t.Run("search excludes non-places", func(t *testing.T) {
 		var resp geonameSearchResponseTest
-		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=Bernina", nil, &resp)
+		status, _ := env.do(client, http.MethodGet, "/geocode/search/name?q=Bernina", nil, &resp)
 		require.Equal(t, http.StatusOK, status)
 		require.Empty(t, resp.Results)
 	})
 
 	t.Run("admin2 joined", func(t *testing.T) {
 		var resp geonameSearchResponseTest
-		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=Grindelwald", nil, &resp)
+		status, _ := env.do(client, http.MethodGet, "/geocode/search/name?q=Grindelwald", nil, &resp)
 		require.Equal(t, http.StatusOK, status)
 		require.Len(t, resp.Results, 1)
 		require.Equal(t, "Grindelwald", resp.Results[0].Name)
@@ -117,7 +117,7 @@ func TestSearchGeonames(t *testing.T) {
 
 	t.Run("accent insensitive", func(t *testing.T) {
 		var resp geonameSearchResponseTest
-		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=Z%C3%BCrich", nil, &resp)
+		status, _ := env.do(client, http.MethodGet, "/geocode/search/name?q=Z%C3%BCrich", nil, &resp)
 		require.Equal(t, http.StatusOK, status)
 		require.Len(t, resp.Results, 1)
 		require.Equal(t, "Zürich", resp.Results[0].Name)
@@ -125,7 +125,7 @@ func TestSearchGeonames(t *testing.T) {
 
 	t.Run("ascii matches accented name", func(t *testing.T) {
 		var resp geonameSearchResponseTest
-		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=Zurich", nil, &resp)
+		status, _ := env.do(client, http.MethodGet, "/geocode/search/name?q=Zurich", nil, &resp)
 		require.Equal(t, http.StatusOK, status)
 		require.Len(t, resp.Results, 1)
 		require.Equal(t, "Zürich", resp.Results[0].Name)
@@ -133,21 +133,21 @@ func TestSearchGeonames(t *testing.T) {
 
 	t.Run("case insensitive", func(t *testing.T) {
 		var resp geonameSearchResponseTest
-		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=bern", nil, &resp)
+		status, _ := env.do(client, http.MethodGet, "/geocode/search/name?q=bern", nil, &resp)
 		require.Equal(t, http.StatusOK, status)
 		require.Len(t, resp.Results, 2)
 	})
 
 	t.Run("no results", func(t *testing.T) {
 		var resp geonameSearchResponseTest
-		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=Zzzzz", nil, &resp)
+		status, _ := env.do(client, http.MethodGet, "/geocode/search/name?q=Zzzzz", nil, &resp)
 		require.Equal(t, http.StatusOK, status)
 		require.Empty(t, resp.Results)
 	})
 
 	t.Run("FTS syntax injection safe", func(t *testing.T) {
 		var resp geonameSearchResponseTest
-		status, _ := env.do(client, http.MethodGet, "/geonames/search?q=OR+NOT", nil, &resp)
+		status, _ := env.do(client, http.MethodGet, "/geocode/search/name?q=OR+NOT", nil, &resp)
 		require.Equal(t, http.StatusOK, status)
 		require.Empty(t, resp.Results)
 	})

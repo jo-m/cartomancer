@@ -45,8 +45,8 @@ tags:
     description: Track starring
   - name: Admin
     description: Administrative user management
-  - name: Geonames
-    description: Geographic place name search
+  - name: Geocode
+    description: Geocoding API
 
 paths:
   /app_config:
@@ -2101,11 +2101,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /geonames/search:
+  /geocode/search/name:
     get:
-      summary: Search populated places by name prefix
-      operationId: searchGeonames
-      tags: [Geonames]
+      summary: Search populated places by name
+      operationId: searchGeocodeName
+      tags: [Geocode]
       parameters:
         - name: q
           in: query
@@ -2120,7 +2120,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GeonameSearchResponse"
+                $ref: "#/components/schemas/GeocodeSearchResponse"
         "400":
           description: Query too short
           content:
@@ -3021,7 +3021,7 @@ components:
           items:
             type: string
 
-    GeonameSearchResponse:
+    GeocodeSearchResponse:
       type: object
       required:
         - results
@@ -3029,12 +3029,12 @@ components:
         results:
           type: array
           items:
-            $ref: "#/components/schemas/GeonameSearchResult"
+            $ref: "#/components/schemas/GeocodeSearchResult"
 
-    GeonameSearchResult:
+    GeocodeSearchResult:
       type: object
       required:
-        - geonameId
+        - id
         - name
         - asciiName
         - latitude
@@ -3045,7 +3045,7 @@ components:
         - admin1Name
         - admin2Name
       properties:
-        geonameId:
+        id:
           type: integer
           format: int64
         name:

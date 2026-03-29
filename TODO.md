@@ -52,6 +52,9 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Also load the admin1CodesASCII.txt and admin2Codes.txt files and load them into tables
   - [x] Drop the following cols: modification date, timezone, dem, elevation, population
   - [x] Maybe do import in a temp table which is then renamed
+  - [x] `geocode` -> `geonames` in api
+  - [ ] Track filtering by location
+  - [ ] Maybe use simple index for search (faster, but can do only prefix)
 - [ ] Extract segments to allow for "remixing" of tracks
   - [ ] Ensure deleting tracks also correctly deletes segments
   - [ ] Ensure the segments job also cleans the database before inserting
