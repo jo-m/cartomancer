@@ -24,7 +24,7 @@ func TestDetectTrackType(t *testing.T) {
 		{
 			name: "garmin recorded: ACTIVITY in filename",
 			gpx: GPX{
-			filename: "ACTIVITY_123456.gpx",
+				filename: "ACTIVITY_123456.gpx",
 				XMetadata: Metadata{
 					Name: ptr("My Route"),
 					Link: &Link{Href: "connect.garmin.com"},
