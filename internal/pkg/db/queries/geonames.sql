@@ -105,3 +105,27 @@ ON CONFLICT(track_id) DO UPDATE SET label = excluded.label, created_at = exclude
 
 -- name: GetTrackGeoname :one
 SELECT * FROM track_geonames WHERE track_id = ?;
+
+-- name: SearchGeonames :many
+-- Searches geonames by ASCII name prefix, returning results with admin1/admin2 names joined.
+-- Only populated places (feature_class = 'P') are searched.
+SELECT
+    g.geonameid,
+    g.name,
+    g.asciiname,
+    g.latitude,
+    g.longitude,
+    g.country_code,
+    g.feature_code,
+    g.population,
+    COALESCE(a1.name, '') AS admin1_name,
+    COALESCE(a2.name, '') AS admin2_name
+FROM geonames g
+LEFT JOIN geoname_admin1 a1
+    ON a1.code = g.country_code || '.' || g.admin1_code
+LEFT JOIN geoname_admin2 a2
+    ON a2.code = g.country_code || '.' || g.admin1_code || '.' || g.admin2_code
+WHERE g.feature_class = 'P'
+  AND g.asciiname LIKE sqlc.arg(query)
+ORDER BY g.population DESC
+LIMIT sqlc.arg(max_results);

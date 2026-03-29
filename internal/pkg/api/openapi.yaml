@@ -45,6 +45,8 @@ tags:
     description: Track starring
   - name: Admin
     description: Administrative user management
+  - name: Geonames
+    description: Geographic place name search
 
 paths:
   /app_config:
@@ -2099,6 +2101,39 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /geonames/search:
+    get:
+      summary: Search populated places by name prefix
+      operationId: searchGeonames
+      tags: [Geonames]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query (minimum 2 characters, matched as prefix against ASCII name)
+          schema:
+            type: string
+            minLength: 2
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeonameSearchResponse"
+        "400":
+          description: Query too short
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /admin/forecasts:
     get:
       summary: List all forecasts with file metadata
@@ -2985,3 +3020,52 @@ components:
           type: array
           items:
             type: string
+
+    GeonameSearchResponse:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeonameSearchResult"
+
+    GeonameSearchResult:
+      type: object
+      required:
+        - geonameId
+        - name
+        - asciiName
+        - latitude
+        - longitude
+        - countryCode
+        - featureCode
+        - population
+        - admin1Name
+        - admin2Name
+      properties:
+        geonameId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        asciiName:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        countryCode:
+          type: string
+        featureCode:
+          type: string
+        population:
+          type: integer
+          format: int64
+        admin1Name:
+          type: string
+          description: First-level administrative division name (e.g. state, province)
+        admin2Name:
+          type: string
+          description: Second-level administrative division name (e.g. county, district)
