@@ -10,9 +10,7 @@ export default function Welcome() {
       <h1 className="mb-4 text-3xl font-semibold text-gray-900">
         {appConfig?.instanceName}
       </h1>
-      <p className="mb-8 text-gray-600">
-        Share and explore GPX tracks for cycling and running.
-      </p>
+      <p className="mb-8 text-gray-600">Your personal GPX track library.</p>
       <div className="flex gap-4">
         <Link
           to="/tracks"

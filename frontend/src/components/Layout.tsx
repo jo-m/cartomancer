@@ -2,13 +2,16 @@ import { useEffect, useRef, useState } from "react"
 import { Link, Outlet, useNavigate } from "react-router-dom"
 import { useSession } from "../context/SessionContext"
 import { useAppConfig } from "../api/client"
+import logoSvg from "../assets/logo.svg"
 
 export default function Layout() {
   const { user, loading, logout } = useSession()
   const { data: appConfig } = useAppConfig()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const menuTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [tracksMenuOpen, setTracksMenuOpen] = useState(false)
+  const tracksMenuTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (appConfig?.instanceName) {
@@ -23,67 +26,88 @@ export default function Layout() {
   }
 
   function handleMouseEnter() {
-    if (closeTimer.current) clearTimeout(closeTimer.current)
+    if (menuTimer.current) clearTimeout(menuTimer.current)
     setMenuOpen(true)
   }
 
   function handleMouseLeave() {
-    closeTimer.current = setTimeout(() => setMenuOpen(false), 150)
+    menuTimer.current = setTimeout(() => setMenuOpen(false), 150)
+  }
+
+  function handleTracksMenuEnter() {
+    if (tracksMenuTimer.current) clearTimeout(tracksMenuTimer.current)
+    setTracksMenuOpen(true)
+  }
+
+  function handleTracksMenuLeave() {
+    tracksMenuTimer.current = setTimeout(() => setTracksMenuOpen(false), 150)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <Link to="/" className="text-lg font-semibold text-gray-900">
-            {appConfig?.instanceName}
-          </Link>
-          <div className="flex items-center gap-4 text-sm">
-            <Link to="/tracks" className="text-gray-700 hover:text-gray-900">
+    <div className="flex min-h-screen flex-col bg-gray-50">
+      <nav className="sticky top-0 z-40 border-b border-gray-200 bg-white">
+        <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-4">
+            <Link to="/" className="text-lg font-semibold text-gray-900">
+              {appConfig?.instanceName}
+            </Link>
+            <Link
+              to="/tracks"
+              className="text-sm text-gray-700 hover:text-gray-900"
+            >
               Public Tracks
             </Link>
-            <Link to="/about" className="text-gray-700 hover:text-gray-900">
-              About
-            </Link>
+          </div>
+          <Link to="/" className="absolute left-1/2 -translate-x-1/2">
+            <img
+              src={logoSvg}
+              alt="Logo"
+              className="h-16 w-16 rounded-full border border-gray-200"
+            />
+          </Link>
+          <div className="flex items-center gap-4 text-sm">
             {!loading &&
               (user ? (
                 <>
-                  <Link
-                    to="/account/tracks"
-                    className="text-gray-700 hover:text-gray-900"
-                  >
-                    My Tracks
-                  </Link>
-                  <Link
-                    to="/tracks/groups"
-                    className="text-gray-700 hover:text-gray-900"
-                  >
-                    Groups
-                  </Link>
-                  {user.admin && (
-                    <>
-                      <Link
-                        to="/admin/segments"
-                        className="text-gray-700 hover:text-gray-900"
-                      >
-                        Segments
-                      </Link>
-                      <Link
-                        to="/admin/users"
-                        className="text-gray-700 hover:text-gray-900"
-                      >
-                        Admin
-                      </Link>
-                    </>
-                  )}
-                  <Link
-                    to="/upload"
-                    className="text-gray-700 hover:text-gray-900"
-                  >
-                    Upload
-                  </Link>
                   <div
-                    className="relative"
+                    className="relative flex items-center self-stretch"
+                    onMouseEnter={handleTracksMenuEnter}
+                    onMouseLeave={handleTracksMenuLeave}
+                  >
+                    <Link
+                      to="/account/tracks"
+                      className="text-gray-700 hover:text-gray-900"
+                    >
+                      My Tracks
+                    </Link>
+                    {tracksMenuOpen && (
+                      <div className="absolute left-0 top-full z-50 mt-1 w-40 rounded border border-gray-200 bg-white py-1 shadow-md">
+                        <Link
+                          to="/account/tracks"
+                          className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setTracksMenuOpen(false)}
+                        >
+                          My Tracks
+                        </Link>
+                        <Link
+                          to="/tracks/groups"
+                          className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setTracksMenuOpen(false)}
+                        >
+                          Groups
+                        </Link>
+                        <Link
+                          to="/upload"
+                          className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setTracksMenuOpen(false)}
+                        >
+                          Upload
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                  <div
+                    className="relative flex items-center self-stretch"
                     onMouseEnter={handleMouseEnter}
                     onMouseLeave={handleMouseLeave}
                   >
@@ -105,6 +129,15 @@ export default function Layout() {
                         >
                           Account
                         </Link>
+                        {user.admin && (
+                          <Link
+                            to="/admin/users"
+                            className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            onClick={() => setMenuOpen(false)}
+                          >
+                            Admin
+                          </Link>
+                        )}
                         <button
                           onClick={handleLogout}
                           className="w-full cursor-pointer px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
@@ -136,9 +169,16 @@ export default function Layout() {
           </div>
         </div>
       </nav>
-      <main>
+      <main className="flex-1">
         <Outlet />
       </main>
+      <footer className="border-t border-gray-200 bg-white">
+        <div className="mx-auto flex max-w-5xl items-center justify-start px-4 py-2 text-xs text-gray-400">
+          <Link to="/about" className="hover:text-gray-700">
+            About
+          </Link>
+        </div>
+      </footer>
     </div>
   )
 }

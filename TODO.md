@@ -67,6 +67,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Frontend polishing
   - [ ] Unified display of dates/times in frontend (iso and 24h format, "x ago")
   - [ ] Shared components
+  - [ ] New tagline (also update repo desc)
   - [ ] Theming
   - [ ] Branding
   - [ ] Favicon, Logo
@@ -81,6 +82,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [ ] Frontend aria/accessibility
   - [ ] Avoid any layout shifts with interactive elements
   - [ ] Bulk editing and deletion of tracks
+  - [ ] Automatic dark mode
 
 ## Test (manually)
 

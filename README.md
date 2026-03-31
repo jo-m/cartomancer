@@ -1,4 +1,4 @@
-A personal GPX tracks library.
+Your personal GPX track library.
 There are a bazillion route planning and activity tracking apps, but none of them is good at managing a library of existing tracks[^1].
 This one tries to be.
 
