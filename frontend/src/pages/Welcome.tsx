@@ -7,7 +7,9 @@ export default function Welcome() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-16">
-      <h1 className="mb-4 text-3xl font-semibold text-gray-900">Cartomancer</h1>
+      <h1 className="mb-4 text-3xl font-semibold text-gray-900">
+        {appConfig?.instanceName}
+      </h1>
       <p className="mb-8 text-gray-600">
         Share and explore GPX tracks for cycling and running.
       </p>

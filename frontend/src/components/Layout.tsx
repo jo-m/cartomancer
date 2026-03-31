@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, Outlet, useNavigate } from "react-router-dom"
 import { useSession } from "../context/SessionContext"
 import { useAppConfig } from "../api/client"
@@ -9,6 +9,12 @@ export default function Layout() {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (appConfig?.instanceName) {
+      document.title = appConfig.instanceName
+    }
+  }, [appConfig?.instanceName])
 
   async function handleLogout() {
     setMenuOpen(false)
@@ -30,7 +36,7 @@ export default function Layout() {
       <nav className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <Link to="/" className="text-lg font-semibold text-gray-900">
-            Cartomancer
+            {appConfig?.instanceName}
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <Link to="/tracks" className="text-gray-700 hover:text-gray-900">
