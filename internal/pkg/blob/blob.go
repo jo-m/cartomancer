@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/DataDog/zstd"
-	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
 )
 
 // Compression represents the compression algorithm used for a blob.

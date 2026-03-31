@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
 type segmentEntry struct {

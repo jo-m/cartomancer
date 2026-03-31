@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"jo-m.ch/go/detour/internal/pkg/app"
+	"jo-m.ch/go/cartomancer/internal/pkg/app"
 )
 
 type appConfigResponse struct {

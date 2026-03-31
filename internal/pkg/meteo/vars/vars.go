@@ -7,8 +7,8 @@ import (
 	"io"
 	"net/http"
 
-	"jo-m.ch/go/detour/internal/pkg/geoadmin"
-	"jo-m.ch/go/detour/internal/pkg/meteo/collection"
+	"jo-m.ch/go/cartomancer/internal/pkg/geoadmin"
+	"jo-m.ch/go/cartomancer/internal/pkg/meteo/collection"
 )
 
 const (

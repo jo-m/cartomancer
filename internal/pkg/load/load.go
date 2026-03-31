@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"jo-m.ch/go/detour/internal/pkg/track"
+	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
 var (

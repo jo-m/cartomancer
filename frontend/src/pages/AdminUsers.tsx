@@ -92,7 +92,7 @@ export default function AdminUsers() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Requested-With": "detour",
+          "X-Requested-With": "cartomancer",
         },
         body: "{}",
       })
@@ -115,7 +115,7 @@ export default function AdminUsers() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Requested-With": "detour",
+          "X-Requested-With": "cartomancer",
         },
         body: "{}",
       })

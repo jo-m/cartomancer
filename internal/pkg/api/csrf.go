@@ -6,7 +6,7 @@ const (
 	// csrfHeaderName is the custom header required on all state-changing requests.
 	csrfHeaderName = "X-Requested-With"
 	// csrfHeaderValue is the expected value of the CSRF header.
-	csrfHeaderValue = "detour"
+	csrfHeaderValue = "cartomancer"
 )
 
 // csrfProtect is middleware that rejects non-safe HTTP methods unless the

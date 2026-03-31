@@ -3,7 +3,7 @@ package segment
 import (
 	"github.com/uber/h3-go/v4"
 
-	"jo-m.ch/go/detour/internal/pkg/track"
+	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
 // PointLoader loads GPS points for a track given its UUID at the specified

@@ -30,7 +30,7 @@ export function setQueryClient(qc: QueryClient) {
 
 fetchClient.use({
   async onRequest({ request }) {
-    request.headers.set("X-Requested-With", "detour")
+    request.headers.set("X-Requested-With", "cartomancer")
     return request
   },
   async onResponse({ request, response }) {

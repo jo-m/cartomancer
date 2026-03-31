@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Detour API
+  title: Cartomancer API
   version: 0.1.0
   description: |
     REST API for managing GPX/FIT tracks for cycling and running.

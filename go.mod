@@ -1,4 +1,4 @@
-module jo-m.ch/go/detour
+module jo-m.ch/go/cartomancer
 
 go 1.25.0
 

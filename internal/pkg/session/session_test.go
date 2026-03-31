@@ -12,10 +12,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/app"
-	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/password"
-	"jo-m.ch/go/detour/internal/pkg/utl"
+	"jo-m.ch/go/cartomancer/internal/pkg/app"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/password"
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
 func TestContext(t *testing.T) {

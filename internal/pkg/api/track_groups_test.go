@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
 )
 
 func createTestTrack(t *testing.T, d *db.DB, userID, name string) string {

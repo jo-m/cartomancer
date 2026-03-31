@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"jo-m.ch/go/detour/internal/pkg/attribute"
-	"jo-m.ch/go/detour/internal/pkg/geoadmin"
-	"jo-m.ch/go/detour/internal/pkg/logg"
-	"jo-m.ch/go/detour/internal/pkg/meteo/collection"
+	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
+	"jo-m.ch/go/cartomancer/internal/pkg/geoadmin"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/meteo/collection"
 )
 
 // https://data.geo.admin.ch/browser/index.html#/collections/ch.meteoschweiz.ogd-forecasting-icon-ch1?.language=en

@@ -12,7 +12,7 @@ import (
 	"github.com/muktihari/fit/decoder"
 	"github.com/muktihari/fit/profile/filedef"
 	"github.com/muktihari/fit/profile/typedef"
-	"jo-m.ch/go/detour/internal/pkg/track"
+	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
 func parseFitActivity(filename string, r io.ReadSeeker) (*filedef.Activity, error) {

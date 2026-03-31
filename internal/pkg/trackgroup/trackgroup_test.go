@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
 )
 
 // gpxLine generates a minimal GPX file with points along a line between two coordinates.

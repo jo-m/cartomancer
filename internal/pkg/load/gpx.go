@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"jo-m.ch/go/detour/internal/pkg/track"
+	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
 type Link struct {

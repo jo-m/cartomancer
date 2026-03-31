@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/blob"
-	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/geonames/cols"
-	"jo-m.ch/go/detour/internal/pkg/logg"
-	"jo-m.ch/go/detour/internal/pkg/track"
+	"jo-m.ch/go/cartomancer/internal/pkg/blob"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/geonames/cols"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
 func TestTrackBBox(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/franiglesias/golden"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/geoadmin"
+	"jo-m.ch/go/cartomancer/internal/pkg/geoadmin"
 )
 
 func toJSON(t *testing.T, val any) string {

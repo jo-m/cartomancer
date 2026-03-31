@@ -9,10 +9,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/logg"
-	"jo-m.ch/go/detour/internal/pkg/password"
-	"jo-m.ch/go/detour/internal/pkg/session"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/password"
+	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
 type adminUserResponse struct {

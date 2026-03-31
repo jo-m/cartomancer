@@ -12,8 +12,8 @@ import (
 
 	"github.com/franiglesias/golden"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/geonames/cols"
-	"jo-m.ch/go/detour/internal/pkg/utl"
+	"jo-m.ch/go/cartomancer/internal/pkg/geonames/cols"
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
 // TestOnlineGeoNamesLicense downloads the GeoNames readme and verifies that

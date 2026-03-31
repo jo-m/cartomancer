@@ -10,7 +10,7 @@ import (
 	"github.com/DataDog/zstd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
 )
 
 func TestCreateUncompressed(t *testing.T) {

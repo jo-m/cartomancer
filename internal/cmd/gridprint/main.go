@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"os"
 
-	"jo-m.ch/go/detour/internal/pkg/grib2"
+	"jo-m.ch/go/cartomancer/internal/pkg/grib2"
 )
 
 // GRIB2 parameter codes for the fields we extract.

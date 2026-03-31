@@ -15,13 +15,13 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/api"
-	"jo-m.ch/go/detour/internal/pkg/app"
-	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/jobs"
-	"jo-m.ch/go/detour/internal/pkg/logg"
-	"jo-m.ch/go/detour/internal/pkg/password"
-	"jo-m.ch/go/detour/internal/pkg/session"
+	"jo-m.ch/go/cartomancer/internal/pkg/api"
+	"jo-m.ch/go/cartomancer/internal/pkg/app"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/password"
+	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
 const testCookieName = "sid"
@@ -184,7 +184,7 @@ func (e *testEnv) do(client *http.Client, method, path string, body any, result 
 	switch method {
 	case http.MethodGet, http.MethodHead, http.MethodOptions:
 	default:
-		req.Header.Set("X-Requested-With", "detour")
+		req.Header.Set("X-Requested-With", "cartomancer")
 	}
 
 	resp, err := client.Do(req)

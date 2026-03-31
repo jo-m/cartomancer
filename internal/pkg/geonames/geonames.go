@@ -14,10 +14,10 @@ import (
 	"strconv"
 	"strings"
 
-	"jo-m.ch/go/detour/internal/pkg/attribute"
-	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/geonames/cols"
-	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/geonames/cols"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
 // DataAttribution is the TASL attribution for GeoNames geographical data.

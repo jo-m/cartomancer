@@ -9,9 +9,9 @@ import (
 	"os"
 	"time"
 
-	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/jobs"
-	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
 const (

@@ -18,10 +18,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"jo-m.ch/go/detour/internal/pkg/logg"
-	"jo-m.ch/go/detour/internal/pkg/meteo"
-	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
-	"jo-m.ch/go/detour/internal/pkg/utl"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/meteo"
+	"jo-m.ch/go/cartomancer/internal/pkg/meteo/vars"
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
 const outDir = "internal/pkg/grib2/testdata"

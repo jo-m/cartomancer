@@ -6,7 +6,7 @@ import (
 
 	"github.com/uber/h3-go/v4"
 
-	"jo-m.ch/go/detour/internal/pkg/track"
+	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
 // EdgeIndex holds the directed edge map built during junction detection.

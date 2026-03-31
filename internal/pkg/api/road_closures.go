@@ -8,12 +8,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/uber/h3-go/v4"
-	"jo-m.ch/go/detour/internal/pkg/blob"
-	"jo-m.ch/go/detour/internal/pkg/load"
-	"jo-m.ch/go/detour/internal/pkg/logg"
-	"jo-m.ch/go/detour/internal/pkg/roadclosures"
-	"jo-m.ch/go/detour/internal/pkg/session"
-	"jo-m.ch/go/detour/internal/pkg/track"
+	"jo-m.ch/go/cartomancer/internal/pkg/blob"
+	"jo-m.ch/go/cartomancer/internal/pkg/load"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures"
+	"jo-m.ch/go/cartomancer/internal/pkg/session"
+	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
 type roadClosureResponse struct {

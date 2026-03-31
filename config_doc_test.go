@@ -22,7 +22,7 @@ func TestOptionsDoc(t *testing.T) {
 
 	buf.WriteString("```\n")
 	c := config{}
-	p, err := arg.NewParser(arg.Config{Program: "detour"}, &c)
+	p, err := arg.NewParser(arg.Config{Program: "cartomancer"}, &c)
 	require.NoError(t, err)
 	err = p.WriteHelpForSubcommand(&buf, "serve")
 	require.NoError(t, err)

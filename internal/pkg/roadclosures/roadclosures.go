@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"jo-m.ch/go/detour/internal/pkg/attribute"
+	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
 )
 
 const (

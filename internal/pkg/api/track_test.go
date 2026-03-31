@@ -16,7 +16,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
 )
 
 const testGPXFile = "../load/testdata/COURSE_436298480.gpx"
@@ -42,7 +42,7 @@ func (e *testEnv) doUploadRaw(client *http.Client, content []byte, uploadFilenam
 	req, err := http.NewRequest(http.MethodPost, e.ts.URL+"/tracks", &buf)
 	require.NoError(e.t, err)
 	req.Header.Set("Content-Type", mw.FormDataContentType())
-	req.Header.Set("X-Requested-With", "detour")
+	req.Header.Set("X-Requested-With", "cartomancer")
 
 	resp, err := client.Do(req)
 	require.NoError(e.t, err)

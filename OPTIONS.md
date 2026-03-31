@@ -7,7 +7,7 @@ Regenerate: go test -run TestOptionsDoc -update-options-doc
 All options can be passed as CLI flags or environment variables.
 
 ```
-Usage: detour serve
+Usage: cartomancer serve
 
 Global options:
   --listen-addr HOST:PORT
@@ -16,7 +16,7 @@ Global options:
   --log-pretty           Log pretty/with colors [default: false, env: LOG_PRETTY]
   --log-level LEVEL      Log level [default: INFO, env: LOG_LEVEL]
   --app-instance-name NAME
-                         Name of the application instance, used as issuer in tokens [default: Detour, env: APP_INSTANCE_NAME]
+                         Name of the application instance, used as issuer in tokens [default: Cartomancer, env: APP_INSTANCE_NAME]
   --app-external-base-url URL
                          Base URL of the application, needed for links and emails [default: http://localhost:8080, env: APP_EXTERNAL_BASE_URL]
   --app-dev-mode         Enable development mode [default: false, env: APP_DEV_MODE]

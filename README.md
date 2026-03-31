@@ -48,7 +48,7 @@ go tool sqlc vet --file internal/pkg/db/sqlc.yaml
 
 # View Go docs
 go run golang.org/x/pkgsite/cmd/pkgsite@latest -open -http localhost:8081
-open http://localhost:8081/jo-m.ch/go/detour
+open http://localhost:8081/jo-m.ch/go/cartomancer
 ```
 
 ## Email
@@ -62,8 +62,8 @@ open http://127.0.0.1:8025/
 ## Docker
 
 ```bash
-docker build -t detour .
-docker run -it --rm -p 8080:8080 --mount type=volume,src=detour-data,dst=/home/nonroot/data detour
+docker build -t cartomancer .
+docker run -it --rm -p 8080:8080 --mount type=volume,src=cartomancer-data,dst=/home/nonroot/data cartomancer
 ```
 
 [^1]: There is https://wanderer.to/, which is quite nice. But it has many features I don't need, and is missing some I want.

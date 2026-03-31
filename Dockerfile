@@ -16,15 +16,15 @@ RUN go mod download
 COPY . .
 COPY --from=frontend /app/static ./static
 RUN go generate ./...
-RUN go build -trimpath -ldflags="-s -w -linkmode external -extldflags '-static'" -o /detour .
+RUN go build -trimpath -ldflags="-s -w -linkmode external -extldflags '-static'" -o /cartomancer .
 RUN mkdir /data
 
 # Stage 3: Final minimal image
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=backend /detour /detour
+COPY --from=backend /cartomancer /cartomancer
 COPY --from=backend --chown=nonroot:nonroot /data /home/nonroot/data
 WORKDIR /home/nonroot
-ENTRYPOINT ["/detour"]
+ENTRYPOINT ["/cartomancer"]
 
 ENV LOG_PRETTY=true
 ENV LISTEN_ADDR=0.0.0.0:8080

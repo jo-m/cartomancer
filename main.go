@@ -1,4 +1,4 @@
-// Detour runs the web server and job runner.
+// Cartomancer runs the web server and job runner.
 package main
 
 import (
@@ -16,21 +16,21 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
-	"jo-m.ch/go/detour/internal/pkg/api"
-	"jo-m.ch/go/detour/internal/pkg/app"
-	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/forecast"
-	"jo-m.ch/go/detour/internal/pkg/geonames"
-	"jo-m.ch/go/detour/internal/pkg/jobs"
-	"jo-m.ch/go/detour/internal/pkg/logg"
-	"jo-m.ch/go/detour/internal/pkg/mail"
-	"jo-m.ch/go/detour/internal/pkg/meteo"
-	"jo-m.ch/go/detour/internal/pkg/password"
-	"jo-m.ch/go/detour/internal/pkg/roadclosures"
-	"jo-m.ch/go/detour/internal/pkg/segment"
-	"jo-m.ch/go/detour/internal/pkg/session"
-	"jo-m.ch/go/detour/internal/pkg/trackgroup"
-	"jo-m.ch/go/detour/internal/pkg/users"
+	"jo-m.ch/go/cartomancer/internal/pkg/api"
+	"jo-m.ch/go/cartomancer/internal/pkg/app"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/forecast"
+	"jo-m.ch/go/cartomancer/internal/pkg/geonames"
+	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/mail"
+	"jo-m.ch/go/cartomancer/internal/pkg/meteo"
+	"jo-m.ch/go/cartomancer/internal/pkg/password"
+	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures"
+	"jo-m.ch/go/cartomancer/internal/pkg/segment"
+	"jo-m.ch/go/cartomancer/internal/pkg/session"
+	"jo-m.ch/go/cartomancer/internal/pkg/trackgroup"
+	"jo-m.ch/go/cartomancer/internal/pkg/users"
 )
 
 // serveCmd starts the web server and job runner.

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/jobs"
-	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
 // DemoTrackPurgePeriod is the interval at which all tracks are deleted in demo mode.

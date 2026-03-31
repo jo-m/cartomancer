@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/grib2"
+	"jo-m.ch/go/cartomancer/internal/pkg/grib2"
 )
 
 const (

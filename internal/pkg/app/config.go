@@ -18,7 +18,7 @@ const (
 type AppConfig struct {
 	// InstanceName is the name of this hosted application instance.
 	// Used e.g. as issuer name for tokens.
-	InstanceName string `arg:"--app-instance-name,env:APP_INSTANCE_NAME" default:"Detour" help:"Name of the application instance, used as issuer in tokens" placeholder:"NAME"`
+	InstanceName string `arg:"--app-instance-name,env:APP_INSTANCE_NAME" default:"Cartomancer" help:"Name of the application instance, used as issuer in tokens" placeholder:"NAME"`
 	// ExternalBaseURL is the URL at which the application is reachable from the outside.
 	// REQUIRED for production deployments.
 	ExternalBaseURL string `arg:"--app-external-base-url,env:APP_EXTERNAL_BASE_URL" default:"http://localhost:8080" help:"Base URL of the application, needed for links and emails" placeholder:"URL"`

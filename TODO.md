@@ -6,7 +6,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 
 ## Short term
 
-- [ ] Rename
+- [x] Rename
 - [x] Track/forecast view
   - [x] Hide data from the forecast charts if no forecast data available.
   - [x] Maybe debounce the tooltip

@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/grib2"
-	"jo-m.ch/go/detour/internal/pkg/meteo"
-	"jo-m.ch/go/detour/internal/pkg/meteo/vars"
+	"jo-m.ch/go/cartomancer/internal/pkg/grib2"
+	"jo-m.ch/go/cartomancer/internal/pkg/meteo"
+	"jo-m.ch/go/cartomancer/internal/pkg/meteo/vars"
 )
 
 // TestOnlineParseU downloads the U wind component at the 0-hour horizon, parses the

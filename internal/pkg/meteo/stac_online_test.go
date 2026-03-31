@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/geoadmin"
-	"jo-m.ch/go/detour/internal/pkg/meteo/collection"
-	"jo-m.ch/go/detour/internal/pkg/utl"
+	"jo-m.ch/go/cartomancer/internal/pkg/geoadmin"
+	"jo-m.ch/go/cartomancer/internal/pkg/meteo/collection"
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
 func TestOnlineStacLicense(t *testing.T) {

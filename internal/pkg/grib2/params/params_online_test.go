@@ -7,7 +7,7 @@ import (
 
 	"github.com/franiglesias/golden"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/utl"
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
 const wmoCSVURL = "https://codes.wmo.int/grib2/codeflag/4.2?_format=csv&status=valid"

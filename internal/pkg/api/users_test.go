@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/password"
+	"jo-m.ch/go/cartomancer/internal/pkg/password"
 )
 
 func TestUpdateAccount_Success(t *testing.T) {

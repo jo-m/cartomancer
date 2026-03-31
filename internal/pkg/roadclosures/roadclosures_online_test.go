@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/detour/internal/pkg/roadclosures"
+	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures"
 )
 
 func TestOnlineFetchRoadClosures(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"jo-m.ch/go/detour/internal/pkg/utl"
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
 // ListTracksParams defines the filter and pagination parameters for listing tracks.

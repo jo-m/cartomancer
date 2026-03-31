@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"jo-m.ch/go/detour/internal/pkg/attribute"
-	"jo-m.ch/go/detour/internal/pkg/geonames"
-	"jo-m.ch/go/detour/internal/pkg/meteo"
-	"jo-m.ch/go/detour/internal/pkg/roadclosures"
+	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
+	"jo-m.ch/go/cartomancer/internal/pkg/geonames"
+	"jo-m.ch/go/cartomancer/internal/pkg/meteo"
+	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures"
 )
 
 type buildInfoModule struct {

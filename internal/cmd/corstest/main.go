@@ -1,5 +1,5 @@
 // Corstest is a minimal "third-party" server that serves an HTML page
-// attempting cross-origin requests against the main Detour API. It is used
+// attempting cross-origin requests against the main Cartomancer API. It is used
 // to manually verify that CSRF protection works correctly.
 //
 // Usage:
@@ -19,7 +19,7 @@ import (
 
 var (
 	listen = flag.String("listen", "127.0.0.1:8888", "address to listen on")
-	target = flag.String("target", "http://127.0.0.1:8080", "base URL of the Detour server")
+	target = flag.String("target", "http://127.0.0.1:8080", "base URL of the Cartomancer server")
 )
 
 var page = template.Must(template.New("page").Parse(`<!DOCTYPE html>
@@ -78,7 +78,7 @@ async function doTest(id, method, path, withCsrfHeader) {
   try {
     const headers = { "Content-Type": "application/json" };
     if (withCsrfHeader) {
-      headers["X-Requested-With"] = "detour";
+      headers["X-Requested-With"] = "cartomancer";
     }
     const resp = await fetch(BASE + path, {
       method: method,

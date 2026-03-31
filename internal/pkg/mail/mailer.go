@@ -9,8 +9,8 @@ import (
 
 	"github.com/wneessen/go-mail"
 	"github.com/wneessen/go-mail/log"
-	"jo-m.ch/go/detour/internal/pkg/jobs"
-	"jo-m.ch/go/detour/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
 // MailerConfig is the configuration for a mailer.

@@ -12,8 +12,8 @@ import (
 	"sort"
 	"time"
 
-	"jo-m.ch/go/detour/internal/pkg/db"
-	"jo-m.ch/go/detour/internal/pkg/grib2"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/grib2"
 )
 
 // Sentinel errors returned by [Load].
