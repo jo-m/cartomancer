@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This is a web app to manage GPX tracks for cycling/running.
+This is a web app to manage GPX and FIT tracks for cycling/running.
 Frontend is React + TypeScript + Vite in `frontend/`.
 Backend is a Golang REST API.
 Most Go code is in `internal/`, some files (main.go etc) at top level.

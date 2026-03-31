@@ -4,24 +4,33 @@
 
 ```
 internal/pkg/
-├── app/      # Application-level config
-├── blob/     # Blob storage for GPX/FIT files (zstd-compressed, SQLite)
-├── db/       # SQLite connection, migrations, sqlc-generated queries
-├── jobs/     # Persistent async job queue
-├── load/     # GPX/FIT file parsing → TrackSource
-├── logg/     # Structured logging (slog), middleware, context helpers
-├── mail/     # Email job handler (SMTP via go-mail)
-├── password/ # Argon2id hashing
-├── rest/     # HTTP handlers (Chi router)
-├── session/  # JWT+cookie session management, middleware
-├── track/    # Track types, enums, metadata calculations
-├── users/    # OTP (TOTP/HOTP) support
-└── utl/      # General utilities
+├── api/          # HTTP REST API endpoints and handlers (Chi router)
+├── app/          # Application-level config
+├── attribute/    # Standard TASL attribution struct for CC-licensed data sources
+├── blob/         # Blob storage for GPX/FIT files (zstd-compressed, SQLite)
+├── db/           # SQLite connection, migrations, sqlc-generated queries
+├── forecast/     # Loads GRIB2 weather forecast data, point sampling by variable/time/location
+├── geoadmin/     # Client for Swiss government STAC API (data.geo.admin.ch)
+├── geonames/     # Reverse geocoding via GeoNames geographical database
+├── grib2/        # Minimal parser for GRIB2 binary meteorological data format
+├── jobs/         # Persistent async job queue
+├── load/         # GPX/FIT file parsing → TrackSource
+├── logg/         # Structured logging (slog), middleware, context helpers
+├── mail/         # Email job handler (SMTP via go-mail)
+├── meteo/        # Downloads ICON-CH1-EPS weather forecast data from Swiss STAC API
+├── password/     # Argon2id hashing
+├── roadclosures/ # Fetches bike road closures and detours from geo.admin.ch
+├── segment/      # Extracts shared road segments from tracks using H3 cell clustering
+├── session/      # JWT+cookie session management, middleware
+├── track/        # Track types, enums, metadata calculations
+├── trackgroup/   # Groups similar tracks by comparing H3 cell paths
+├── users/        # OTP (TOTP/HOTP) support
+└── utl/          # General utilities
 ```
 
 ### REST API
 
-Handlers are mounted in `internal/pkg/api/rest.go`.
+Handlers are mounted in `internal/pkg/api/api.go`.
 Group handler fns into files, approx. 1 per resource, in `internal/pkg/api/*.go`.
 They all must be methods on the `Server` struct.
 `internal/pkg/api/openapi.yaml` MUST be updated when ever endpoints change.
