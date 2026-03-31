@@ -1,8 +1,17 @@
+<p align="center">
+  <img src="frontend/src/assets/logo-bw.svg" width="128" alt="Cartomancer logo">
+</p>
+
+# Cartomancer
+
 Your personal GPX track library.
+
 There are a bazillion route planning and activity tracking apps, but none of them is good at managing a library of existing tracks[^1].
 This one tries to be.
 
-# Features
+**⚠️ Note**: This is a work in progress and not yet ready for deployment. There are also no releases to download yet, you need a Go toolchain.
+
+## Features
 
 - Advanced features: live weather forecasts and road closures (Switzerland only), reverse geocoding.
 - Filtering, search, tagging, mark favorites.
@@ -10,7 +19,7 @@ This one tries to be.
 - Except for map, does not need any live APIs. Instead, will download data in the background and query that locally (meteo and geo names).
 - Easy to self host, single binary, SQLite only.
 
-# Development
+## Development
 
 `.envrc` contains the default dev config.
 Use (direnv)[https://direnv.net/] to load it.
@@ -27,7 +36,7 @@ npm run dev
 open http://localhost:5173
 ```
 
-## Commands
+### Commands
 
 ```bash
 # See Makefile for more.
@@ -51,7 +60,7 @@ go run golang.org/x/pkgsite/cmd/pkgsite@latest -open -http localhost:8081
 open http://localhost:8081/jo-m.ch/go/cartomancer
 ```
 
-## Email
+### Email
 
 ```bash
 # Run the mock emails server (in a separate shell)
@@ -59,7 +68,7 @@ go tool MailHog
 open http://127.0.0.1:8025/
 ```
 
-## Docker
+### Docker
 
 ```bash
 docker build -t cartomancer .

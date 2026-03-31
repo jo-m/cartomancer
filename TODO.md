@@ -96,6 +96,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] Demo mode, locks user table via trigger, insert some initial data, delete data periodically
 - [x] Disable public signup by default
 - [x] 404 page in frontend
+- [ ] Setup and installation instructions
 - [ ] Uncomment all the checks/linters in make check
 - [x] Log message cleanup and unification (case, punctuation)
 - [ ] Add CI setup/Docker build
