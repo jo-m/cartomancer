@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Link, Outlet, useNavigate } from "react-router-dom"
+import { ChevronDownIcon } from "@heroicons/react/20/solid"
 import { useSession } from "../context/SessionContext"
 import { useAppConfig } from "../api/client"
 import logoSvg from "../assets/logo.svg?raw"
@@ -107,19 +108,20 @@ export default function Layout() {
               (user ? (
                 <>
                   <div
-                    className="relative flex items-center self-stretch"
+                    className={`relative -my-3 flex items-center self-stretch px-3 py-3 transition-colors ${tracksMenuOpen ? "bg-panel" : ""}`}
                     onMouseEnter={handleTracksMenuEnter}
                     onMouseLeave={handleTracksMenuLeave}
                   >
                     <Link
                       to="/account/tracks"
-                      className="text-nav-text/70 hover:text-nav-text transition-colors"
+                      className={`flex items-center gap-1 transition-colors ${tracksMenuOpen ? "text-text-secondary" : "text-nav-text/70 hover:text-nav-text"}`}
                     >
                       My Tracks
+                      <ChevronDownIcon className="h-4 w-4" />
                     </Link>
                     {tracksMenuOpen && (
                       <div
-                        className="absolute left-0 top-full z-50 mt-1 w-40 rounded border border-border bg-panel py-1 shadow-lg"
+                        className="absolute left-0 top-full z-50 w-40 rounded-b border-x border-b border-border bg-panel py-1 shadow-lg"
                         role="menu"
                       >
                         <Link
@@ -142,24 +144,26 @@ export default function Layout() {
                     )}
                   </div>
                   <div
-                    className="relative flex items-center self-stretch"
+                    className={`relative -my-3 flex items-center self-stretch px-3 py-3 transition-colors ${menuOpen ? "bg-panel" : ""}`}
                     onMouseEnter={handleMouseEnter}
                     onMouseLeave={handleMouseLeave}
                   >
-                    <img
-                      src={`/api/users/${user.uuid}/avatar?v=${user.avatarSeed}`}
-                      alt={user.name}
-                      className="h-8 w-8 cursor-pointer rounded-full border border-border-hover"
-                    />
+                    <div
+                      className={`flex cursor-pointer items-center gap-2 transition-colors ${menuOpen ? "text-text-secondary" : "text-nav-text/70 hover:text-nav-text"}`}
+                    >
+                      <img
+                        src={`/api/users/${user.uuid}/avatar?v=${user.avatarSeed}`}
+                        alt={user.name}
+                        className="h-8 w-8 rounded-full border border-border-hover"
+                      />
+                      <span className="text-sm">{user.name}</span>
+                      <ChevronDownIcon className="h-4 w-4" />
+                    </div>
                     {menuOpen && (
                       <div
-                        className="absolute right-0 top-full z-50 mt-1 w-40 rounded border border-border bg-panel py-1 shadow-lg"
+                        className="absolute right-0 top-full z-50 w-40 rounded-b border-x border-b border-border bg-panel py-1 shadow-lg"
                         role="menu"
                       >
-                        <div className="px-3 py-2 text-xs font-medium text-text-muted">
-                          {user.name}
-                        </div>
-                        <hr className="border-border" />
                         <Link
                           to="/account"
                           className="block px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
