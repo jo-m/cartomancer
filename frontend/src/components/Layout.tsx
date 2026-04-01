@@ -48,17 +48,21 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen flex-col bg-surface">
       <nav
-        className="sticky top-0 z-40 border-b border-border bg-nav"
+        className="sticky top-0 z-40 overflow-visible border-b border-border bg-nav"
         role="navigation"
         aria-label="Main navigation"
       >
         <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
-            <Link
-              to="/"
-              className="text-lg font-semibold tracking-wide text-nav-text hover:text-nav-text/80 transition-colors"
-            >
-              {appConfig?.instanceName}
+            <Link to="/" className="flex items-center gap-3" aria-label="Home">
+              <span
+                className="-my-4 block h-16 w-16 shrink-0 rounded-full border border-border-hover bg-nav text-nav-text [&>svg]:h-full [&>svg]:w-full"
+                dangerouslySetInnerHTML={{ __html: logoSvg }}
+                aria-hidden="true"
+              />
+              <span className="text-lg font-semibold tracking-wide text-nav-text hover:text-nav-text/80 transition-colors">
+                {appConfig?.instanceName}
+              </span>
             </Link>
             <Link
               to="/tracks"
@@ -67,17 +71,6 @@ export default function Layout() {
               Public Tracks
             </Link>
           </div>
-          <Link
-            to="/"
-            className="absolute left-1/2 -translate-x-1/2"
-            aria-label="Home"
-          >
-            <span
-              className="block h-16 w-16 rounded-full border border-border-hover text-nav-text [&>svg]:h-full [&>svg]:w-full"
-              dangerouslySetInnerHTML={{ __html: logoSvg }}
-              aria-hidden="true"
-            />
-          </Link>
           {/* Mobile menu button */}
           <button
             type="button"
@@ -129,14 +122,6 @@ export default function Layout() {
                         className="absolute left-0 top-full z-50 mt-1 w-40 rounded border border-border bg-panel py-1 shadow-lg"
                         role="menu"
                       >
-                        <Link
-                          to="/account/tracks"
-                          className="block px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
-                          onClick={() => setTracksMenuOpen(false)}
-                          role="menuitem"
-                        >
-                          My Tracks
-                        </Link>
                         <Link
                           to="/tracks/groups"
                           className="block px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
