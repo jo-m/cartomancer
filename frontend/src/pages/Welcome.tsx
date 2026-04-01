@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom"
 import { useAppConfig } from "../api/client"
+import { useSession } from "../context/SessionContext"
 import PageContainer from "../components/ui/PageContainer"
 import Button from "../components/ui/Button"
 
 /** Welcome landing page shown to all visitors at the root route. */
 export default function Welcome() {
   const { data: appConfig } = useAppConfig()
+  const { user } = useSession()
 
   return (
     <PageContainer className="py-16">
@@ -19,7 +21,7 @@ export default function Welcome() {
         <Link to="/tracks">
           <Button variant="primary">Browse tracks</Button>
         </Link>
-        {appConfig?.registrationEnabled && (
+        {!user && appConfig?.registrationEnabled && (
           <Link to="/register">
             <Button variant="secondary">Create account</Button>
           </Link>
