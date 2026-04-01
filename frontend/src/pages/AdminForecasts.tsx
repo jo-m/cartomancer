@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { $api } from "../api/client"
+import PageContainer from "../components/ui/PageContainer"
+import Card from "../components/ui/Card"
 
 /** Formats a byte count into a human-readable size string. */
 function formatBytes(bytes: number): string {
@@ -23,18 +25,19 @@ export default function AdminForecasts() {
   )
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <PageContainer size="lg">
       <div className="mb-6 flex items-center gap-4">
-        <h1 className="text-2xl font-semibold text-gray-900">Admin</h1>
+        <h1 className="text-2xl font-semibold text-text">Admin</h1>
         <Link
           to="/admin/users"
-          className="pb-0.5 text-sm font-medium text-gray-500 hover:text-gray-700"
+          className="pb-0.5 text-sm font-medium text-text-muted hover:text-text-secondary transition-colors"
         >
           Users
         </Link>
         <Link
           to="/admin/forecasts"
-          className="border-b-2 border-gray-900 pb-0.5 text-sm font-medium text-gray-900"
+          className="border-b-2 border-primary pb-0.5 text-sm font-medium text-text"
+          aria-current="page"
         >
           Forecasts
         </Link>
@@ -46,14 +49,15 @@ export default function AdminForecasts() {
           placeholder="Search forecasts..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-xs rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+          aria-label="Search forecasts"
+          className="w-full max-w-xs rounded border border-border bg-panel px-3 py-2 text-sm text-text placeholder-text-muted focus:border-primary focus:outline-none transition-colors"
         />
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white">
+      <Card className="overflow-hidden">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-xs font-medium text-gray-500">
+            <tr className="border-b border-border text-xs font-medium text-text-muted">
               <th className="px-4 py-3">Reference time</th>
               <th className="px-4 py-3">Attribution</th>
               <th className="px-4 py-3">Bounds</th>
@@ -70,19 +74,16 @@ export default function AdminForecasts() {
               const isExpanded = expandedId === f.id
 
               return (
-                <tr
-                  key={f.id}
-                  className="border-b border-gray-100 last:border-0"
-                >
+                <tr key={f.id} className="border-b border-border last:border-0">
                   <td colSpan={5} className="px-0 py-0">
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : f.id)}
                       className="flex w-full cursor-pointer items-center text-left"
                     >
-                      <span className="w-1/5 px-4 py-3 text-gray-900">
+                      <span className="w-1/5 px-4 py-3 text-text">
                         {f.referenceTime.slice(0, 16).replace("T", " ")}
                       </span>
-                      <span className="w-1/5 px-4 py-3 text-gray-600">
+                      <span className="w-1/5 px-4 py-3 text-text-secondary">
                         <a
                           href={f.attribution.href}
                           target="_blank"
@@ -93,24 +94,24 @@ export default function AdminForecasts() {
                           {f.attribution.text}
                         </a>
                       </span>
-                      <span className="w-1/5 px-4 py-3 text-xs text-gray-500">
+                      <span className="w-1/5 px-4 py-3 text-xs text-text-muted">
                         {f.bounds
                           ? `${f.bounds.min.lat.toFixed(1)}, ${f.bounds.min.lon.toFixed(1)} - ${f.bounds.max.lat.toFixed(1)}, ${f.bounds.max.lon.toFixed(1)}`
                           : "--"}
                       </span>
-                      <span className="w-1/5 px-4 py-3 text-gray-600">
+                      <span className="w-1/5 px-4 py-3 text-text-secondary">
                         {f.files.length} ({formatBytes(totalSize)})
                       </span>
-                      <span className="w-1/5 px-4 py-3 text-gray-500">
+                      <span className="w-1/5 px-4 py-3 text-text-muted">
                         {f.createdAt.slice(0, 10)}
                       </span>
                     </button>
 
                     {isExpanded && f.files.length > 0 && (
-                      <div className="border-t border-gray-100 bg-gray-50 px-4 py-3">
+                      <div className="border-t border-border bg-surface px-4 py-3">
                         <table className="w-full text-xs">
                           <thead>
-                            <tr className="text-gray-500">
+                            <tr className="text-text-muted">
                               <th className="pb-1 pr-4 text-left font-medium">
                                 Variable
                               </th>
@@ -128,20 +129,20 @@ export default function AdminForecasts() {
                           <tbody>
                             {f.files.map((file) => (
                               <tr key={file.id}>
-                                <td className="py-0.5 pr-4 text-gray-700">
+                                <td className="py-0.5 pr-4 text-text-secondary">
                                   {file.variable}
                                 </td>
-                                <td className="py-0.5 pr-4 text-gray-600">
+                                <td className="py-0.5 pr-4 text-text-muted">
                                   {file.validTime
                                     .slice(0, 16)
                                     .replace("T", " ")}
                                 </td>
-                                <td className="py-0.5 pr-4 text-gray-600">
+                                <td className="py-0.5 pr-4 text-text-muted">
                                   {file.validUntilTime
                                     .slice(0, 16)
                                     .replace("T", " ")}
                                 </td>
-                                <td className="py-0.5 text-gray-600">
+                                <td className="py-0.5 text-text-muted">
                                   {formatBytes(file.fileSize)}
                                 </td>
                               </tr>
@@ -158,7 +159,7 @@ export default function AdminForecasts() {
               <tr>
                 <td
                   colSpan={5}
-                  className="px-4 py-6 text-center text-sm text-gray-500"
+                  className="px-4 py-6 text-center text-sm text-text-muted"
                 >
                   No forecasts found.
                 </td>
@@ -166,7 +167,7 @@ export default function AdminForecasts() {
             )}
           </tbody>
         </table>
-      </div>
-    </div>
+      </Card>
+    </PageContainer>
   )
 }

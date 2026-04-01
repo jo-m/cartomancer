@@ -88,7 +88,37 @@ Use `mutation.isSuccess` / `mutation.error` for success/error display on mutatio
 
 Tailwind CSS v4 with `@tailwindcss/vite` plugin. CSS-based config (no `tailwind.config.js`).
 Use Tailwind utility classes directly. `@headlessui/react` for accessible interactive components, `@heroicons/react` for icons.
-Keep it very simple and barebones.
+
+### Theme
+
+"Cartomancer" medieval/mystic theme. All colors are CSS custom properties defined in `src/index.css` via `@theme`, with automatic dark mode via `@media (prefers-color-scheme: dark)`. Never use hardcoded color classes (e.g. `text-gray-500`, `bg-white`); always use theme tokens (e.g. `text-text-muted`, `bg-panel`).
+
+Key color tokens: `surface`, `panel`, `primary`, `border`, `text`, `text-secondary`, `text-muted`, `nav`, `nav-text`, `error`, `success`, `star`.
+
+### Shared UI components
+
+Reusable themed components live in `src/components/ui/`:
+- `Button` — 4 variants (primary, secondary, danger, ghost), uses `forwardRef`
+- `Input` — labeled input with error display and ARIA attributes, uses `forwardRef`
+- `Select` — labeled select dropdown, uses `forwardRef`
+- `Card` — themed container with border and background
+- `Badge` — tag/chip with optional `onRemove`
+- `ToggleGroup` — segmented toggle with `role="radiogroup"`
+- `SectionHeading` — uppercase tracking-wide label
+- `Alert` — 4 variants (info, warning, error, success) with `role="alert"`
+- `PageContainer` — page wrapper with size variants (sm, md, lg, xl)
+
+Always use these components instead of repeating raw Tailwind classes. All interactive elements must have `cursor-pointer` and `transition-colors`.
+
+### SVG assets
+
+SVGs in `src/assets/` must use `currentColor` (not hardcoded colors like `#000`) for fill/stroke so they inherit text color and respond to dark mode. Import SVGs with `?raw` (Vite raw import) and render inline via `dangerouslySetInnerHTML` when they need to inherit CSS color. Set the parent's `text-*` class to control the SVG color.
+
+### Accessibility
+
+- All interactive elements must have appropriate ARIA attributes (`role`, `aria-label`, `aria-pressed`, `aria-expanded`, etc.)
+- Error messages use `role="alert"`
+- Navigation uses proper `<a>` elements via React Router `<Link>`
 
 ## Conventions
 

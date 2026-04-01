@@ -1,5 +1,6 @@
 import { useSearchParams, Link, useNavigate } from "react-router-dom"
 import { useAppConfig } from "../api/client"
+import Button from "../components/ui/Button"
 
 /** Interstitial page warning users they are about to leave the app via an external link. */
 export default function Leaving() {
@@ -12,13 +13,13 @@ export default function Leaving() {
   if (!target) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <h1 className="text-xl font-semibold text-gray-900">Invalid link</h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <h1 className="text-xl font-semibold text-text">Invalid link</h1>
+        <p className="mt-2 text-sm text-text-secondary">
           No destination URL provided.
         </p>
         <Link
           to="/"
-          className="mt-4 inline-block text-sm text-gray-700 underline hover:text-gray-900"
+          className="mt-4 inline-block text-sm text-text-secondary underline hover:text-text transition-colors"
         >
           Go back home
         </Link>
@@ -28,29 +29,22 @@ export default function Leaving() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center">
-      <h1 className="text-xl font-semibold text-gray-900">
+      <h1 className="text-xl font-semibold text-text">
         You are leaving {name}
       </h1>
-      <p className="mt-3 text-sm text-gray-600">
+      <p className="mt-3 text-sm text-text-secondary">
         You are about to visit an external link. This link has not been verified
         and may lead to a third-party site.
       </p>
-      <p className="mt-4 break-all rounded bg-gray-50 px-4 py-3 text-sm font-mono text-gray-700">
+      <p className="mt-4 break-all rounded bg-panel border border-border px-4 py-3 text-sm font-mono text-text-secondary">
         {target}
       </p>
       <div className="mt-6 flex items-center justify-center gap-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-        >
+        <Button variant="secondary" onClick={() => navigate(-1)}>
           Go back
-        </button>
-        <a
-          href={target}
-          rel="noopener noreferrer"
-          className="rounded bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-700"
-        >
-          Continue to site
+        </Button>
+        <a href={target} rel="noopener noreferrer">
+          <Button variant="primary">Continue to site</Button>
         </a>
       </div>
     </div>

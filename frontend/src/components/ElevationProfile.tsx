@@ -149,31 +149,31 @@ export default memo(function ElevationProfile({
 
   return (
     <div className="mt-4">
-      <p className="mb-1 text-xs font-medium text-gray-500">
+      <p className="mb-1 text-xs font-medium text-text-muted">
         Elevation profile (m)
       </p>
       <div className="relative">
         <ResponsiveContainer width="100%" height={180}>
           <AreaChart data={data} margin={CHART_MARGIN}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
             <XAxis
               dataKey="dKm"
               type="number"
               domain={["dataMin", "dataMax"]}
               tickFormatter={(v: number) => `${v}`}
-              tick={{ fontSize: 11, fill: "#6b7280" }}
-              stroke="#d1d5db"
+              tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+              stroke="var(--color-border)"
               label={{
                 value: "km",
                 position: "insideBottomRight",
                 offset: -5,
-                style: { fontSize: 10, fill: "#9ca3af" },
+                style: { fontSize: 10, fill: "var(--color-text-muted)" },
               }}
             />
             <YAxis
               domain={[minEle, maxEle]}
-              tick={{ fontSize: 11, fill: "#6b7280" }}
-              stroke="#d1d5db"
+              tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+              stroke="var(--color-border)"
               width={Y_AXIS_WIDTH}
             />
             <Area
@@ -196,12 +196,12 @@ export default memo(function ElevationProfile({
         />
         <div
           ref={lineRef}
-          className="pointer-events-none absolute top-0 bottom-0 w-px bg-gray-400"
+          className="pointer-events-none absolute top-0 bottom-0 w-px bg-text-muted"
           style={{ display: "none" }}
         />
         <div
           ref={labelRef}
-          className="pointer-events-none absolute bottom-2 left-12 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm"
+          className="pointer-events-none absolute bottom-2 left-12 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
           style={{ display: "none" }}
         />
       </div>

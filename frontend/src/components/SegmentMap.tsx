@@ -115,9 +115,6 @@ export default function SegmentMap({ polyline }: SegmentMapProps) {
   }, [polyline])
 
   return (
-    <div
-      ref={mapRef}
-      className="h-80 w-full rounded-lg border border-gray-200"
-    />
+    <div ref={mapRef} className="h-80 w-full rounded-lg border border-border" />
   )
 }

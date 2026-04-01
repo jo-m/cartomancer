@@ -1,6 +1,8 @@
 import { Link, useParams } from "react-router-dom"
 import { $api } from "../api/client"
 import SegmentMap from "../components/SegmentMap"
+import PageContainer from "../components/ui/PageContainer"
+import Card from "../components/ui/Card"
 
 /** SegmentDetail shows details for a single segment. */
 export default function SegmentDetail() {
@@ -15,45 +17,45 @@ export default function SegmentDetail() {
   )
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
+    <PageContainer className="py-6">
       <Link
         to="/admin/segments"
-        className="text-sm text-gray-500 hover:text-gray-700"
+        className="text-sm text-text-muted hover:text-text-secondary transition-colors"
       >
         &larr; All segments
       </Link>
 
-      {isLoading && <p className="mt-6 text-sm text-gray-500">Loading...</p>}
+      {isLoading && <p className="mt-6 text-sm text-text-muted">Loading...</p>}
       {error && (
-        <p className="mt-6 text-sm text-red-600">
+        <p role="alert" className="mt-6 text-sm text-error">
           {(error as unknown as Error).message}
         </p>
       )}
 
       {data && (
         <div className="mt-4">
-          <h1 className="text-lg font-semibold text-gray-900">
+          <h1 className="text-lg font-semibold text-text">
             Segment: {(data.distanceM / 1000).toFixed(1)} km
           </h1>
 
           <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
             <div>
-              <dt className="text-gray-500">Distance</dt>
-              <dd className="font-medium text-gray-900">
+              <dt className="text-text-muted">Distance</dt>
+              <dd className="font-medium text-text">
                 {(data.distanceM / 1000).toFixed(2)} km
               </dd>
             </div>
             <div>
-              <dt className="text-gray-500">Tracks</dt>
-              <dd className="font-medium text-gray-900">{data.nTracks}</dd>
+              <dt className="text-text-muted">Tracks</dt>
+              <dd className="font-medium text-text">{data.nTracks}</dd>
             </div>
             <div>
-              <dt className="text-gray-500">H3 Resolution</dt>
-              <dd className="font-medium text-gray-900">{data.h3Resolution}</dd>
+              <dt className="text-text-muted">H3 Resolution</dt>
+              <dd className="font-medium text-text">{data.h3Resolution}</dd>
             </div>
             <div>
-              <dt className="text-gray-500">Ascent</dt>
-              <dd className="font-medium text-gray-900">
+              <dt className="text-text-muted">Ascent</dt>
+              <dd className="font-medium text-text">
                 {data.ascentM.toFixed(0)} m
               </dd>
             </div>
@@ -64,33 +66,33 @@ export default function SegmentDetail() {
           </div>
 
           <div className="mt-6">
-            <h2 className="text-sm font-medium text-gray-900">Junctions</h2>
+            <h2 className="text-sm font-medium text-text">Junctions</h2>
             <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-                <p className="text-xs text-gray-500">Start</p>
-                <p className="text-sm text-gray-900">
+              <Card className="px-4 py-3">
+                <p className="text-xs text-text-muted">Start</p>
+                <p className="text-sm text-text">
                   {data.startJunction.lat.toFixed(5)},{" "}
                   {data.startJunction.lon.toFixed(5)}
                 </p>
-                <p className="mt-0.5 text-xs text-gray-400">
+                <p className="mt-0.5 text-xs text-text-muted">
                   {data.startJunction.h3Cell}
                 </p>
-              </div>
-              <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-                <p className="text-xs text-gray-500">End</p>
-                <p className="text-sm text-gray-900">
+              </Card>
+              <Card className="px-4 py-3">
+                <p className="text-xs text-text-muted">End</p>
+                <p className="text-sm text-text">
                   {data.endJunction.lat.toFixed(5)},{" "}
                   {data.endJunction.lon.toFixed(5)}
                 </p>
-                <p className="mt-0.5 text-xs text-gray-400">
+                <p className="mt-0.5 text-xs text-text-muted">
                   {data.endJunction.h3Cell}
                 </p>
-              </div>
+              </Card>
             </div>
           </div>
 
           <div className="mt-6">
-            <h2 className="text-sm font-medium text-gray-900">
+            <h2 className="text-sm font-medium text-text">
               Tracks ({data.trackUuids.length})
             </h2>
             <ul className="mt-2 space-y-1">
@@ -98,7 +100,7 @@ export default function SegmentDetail() {
                 <li key={trackUuid}>
                   <Link
                     to={`/tracks/${trackUuid}`}
-                    className="text-sm text-blue-600 hover:text-blue-800"
+                    className="text-sm text-primary hover:text-primary-hover transition-colors"
                   >
                     {trackUuid}
                   </Link>
@@ -108,6 +110,6 @@ export default function SegmentDetail() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   )
 }

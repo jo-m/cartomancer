@@ -25,12 +25,14 @@ export default function Toast({ message, onDismiss }: Props) {
 
   return (
     <div
-      className={`fixed bottom-4 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-lg bg-red-600 px-4 py-3 text-sm text-white shadow-lg transition-opacity duration-500 ${fading ? "opacity-0" : "opacity-100"}`}
+      role="alert"
+      className={`fixed bottom-4 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-lg bg-error px-4 py-3 text-sm text-primary-text shadow-lg transition-opacity duration-500 ${fading ? "opacity-0" : "opacity-100"}`}
     >
       <span>{message}</span>
       <button
         onClick={onDismiss}
-        className="shrink-0 cursor-pointer text-white/70 hover:text-white"
+        className="shrink-0 cursor-pointer text-primary-text/70 hover:text-primary-text transition-colors"
+        aria-label="Dismiss notification"
       >
         Dismiss
       </button>

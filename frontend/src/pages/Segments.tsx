@@ -14,6 +14,7 @@ import { get as getProjection } from "ol/proj"
 import proj4 from "proj4"
 import { Circle, Fill, Stroke, Style } from "ol/style"
 import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
+import PageContainer from "../components/ui/PageContainer"
 
 import "ol/ol.css"
 
@@ -121,7 +122,6 @@ export default function Segments() {
       map.getView().fit(extent, { padding: [40, 40, 40, 40], maxZoom: 14 })
     }
 
-    // Hover: highlight segment under cursor.
     let currentHover: Feature | null = null
     map.on("pointermove", (e) => {
       if (currentHover) {
@@ -143,7 +143,6 @@ export default function Segments() {
       map.getTargetElement().style.cursor = currentHover ? "pointer" : ""
     })
 
-    // Click: navigate to segment detail.
     map.on("click", (e) => {
       map.forEachFeatureAtPixel(e.pixel, (f) => {
         const feature = f as Feature
@@ -169,23 +168,23 @@ export default function Segments() {
     : null
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
-      <h1 className="text-lg font-semibold text-gray-900">Segments</h1>
-      <p className="mt-1 text-sm text-gray-500">
+    <PageContainer size="xl" className="max-w-7xl py-6">
+      <h1 className="text-lg font-semibold text-text">Segments</h1>
+      <p className="mt-1 text-sm text-text-muted">
         Road/way segments shared by multiple tracks. Click a segment to see
         details.
       </p>
 
-      {segLoading && <p className="mt-6 text-sm text-gray-500">Loading...</p>}
+      {segLoading && <p className="mt-6 text-sm text-text-muted">Loading...</p>}
       {segError && (
-        <p className="mt-6 text-sm text-red-600">
+        <p role="alert" className="mt-6 text-sm text-error">
           {(segError as unknown as Error).message}
         </p>
       )}
 
       {segData && (
         <>
-          <p className="mt-2 text-xs text-gray-400">
+          <p className="mt-2 text-xs text-text-muted">
             {segData.segments.length} segments
             {juncData ? `, ${juncData.junctions.length} junctions` : ""}
           </p>
@@ -193,15 +192,15 @@ export default function Segments() {
           <div className="relative mt-3">
             <div
               ref={mapRef}
-              className="h-[calc(100vh-220px)] w-full rounded-lg border border-gray-200"
+              className="h-[calc(100vh-220px)] w-full rounded-lg border border-border"
             />
 
             {hoveredSeg && (
-              <div className="absolute bottom-4 left-4 rounded-lg border border-gray-200 bg-white/90 px-3 py-2 text-sm shadow-sm">
-                <p className="font-medium text-gray-900">
+              <div className="absolute bottom-4 left-4 rounded-lg border border-border bg-panel/90 px-3 py-2 text-sm shadow-sm">
+                <p className="font-medium text-text">
                   {(hoveredSeg.distanceM / 1000).toFixed(1)} km
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-text-muted">
                   {hoveredSeg.nTracks} tracks
                 </p>
               </div>
@@ -209,6 +208,6 @@ export default function Segments() {
           </div>
         </>
       )}
-    </div>
+    </PageContainer>
   )
 }

@@ -455,8 +455,7 @@ export default memo(function TrackMap({
   return (
     <div
       className={
-        className ??
-        "relative h-[400px] w-full rounded-lg border border-gray-200"
+        className ?? "relative h-[400px] w-full rounded-lg border border-border"
       }
     >
       <div ref={mapRef} className="h-full w-full" />
@@ -465,28 +464,28 @@ export default memo(function TrackMap({
         className={tooltip ? "pointer-events-none" : "hidden"}
       >
         {tooltip && (
-          <div className="max-w-xs rounded bg-white px-2.5 py-1.5 text-xs shadow-md ring-1 ring-gray-200">
-            <p className="font-medium text-gray-900">{tooltip.title}</p>
+          <div className="max-w-xs rounded bg-panel px-2.5 py-1.5 text-xs shadow-md ring-1 ring-border">
+            <p className="font-medium text-text">{tooltip.title}</p>
             {tooltip.reason && (
-              <p className="mt-0.5 text-gray-600">{tooltip.reason}</p>
+              <p className="mt-0.5 text-text-secondary">{tooltip.reason}</p>
             )}
             {(tooltip.startsAt || tooltip.endsAt) && (
-              <p className="mt-0.5 text-gray-500">
+              <p className="mt-0.5 text-text-muted">
                 {tooltip.startsAt ?? "?"} &ndash; {tooltip.endsAt ?? "?"}
               </p>
             )}
             {tooltip.description && (
-              <p className="mt-0.5 text-gray-500">{tooltip.description}</p>
+              <p className="mt-0.5 text-text-muted">{tooltip.description}</p>
             )}
             {tooltip.attribution.text && (
-              <p className="mt-0.5 text-gray-400">
+              <p className="mt-0.5 text-text-muted/70">
                 Source: {tooltip.attribution.text}
               </p>
             )}
           </div>
         )}
       </div>
-      <div className="pointer-events-none absolute bottom-0 right-0 z-10 px-1.5 py-0.5 text-xs text-gray-600 bg-white/80">
+      <div className="pointer-events-none absolute bottom-0 right-0 z-10 px-1.5 py-0.5 text-xs text-text-muted bg-panel/80">
         Map data:&nbsp;
         <a
           href="https://www.swisstopo.admin.ch/"

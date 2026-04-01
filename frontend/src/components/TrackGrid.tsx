@@ -4,6 +4,11 @@ import { $api } from "../api/client"
 import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
 import TagsInput from "./TagsInput"
+import Button from "./ui/Button"
+import Select from "./ui/Select"
+import ToggleGroup from "./ui/ToggleGroup"
+import SectionHeading from "./ui/SectionHeading"
+import PageContainer from "./ui/PageContainer"
 import {
   SPORT_LABELS,
   SUB_SPORT_LABELS,
@@ -39,9 +44,7 @@ function MiniWindRose({
   if (maxVal < 0.1) return null
   const fracs = vals.map((v) => v / maxVal)
 
-  // Sectors: 0=head (top/red), 1=right (gray), 2=tail (bottom/green), 3=left (gray).
   const colors = ["#ef4444", "#9ca3af", "#10b981", "#9ca3af"]
-  // Angles: head=up(-90), right=right(0), tail=down(90), left=left(180).
   const angles = [-90, 0, 90, 180]
   const cx = 16
   const cy = 16
@@ -54,6 +57,7 @@ function MiniWindRose({
       height="32"
       viewBox="0 0 32 32"
       className="inline-block shrink-0"
+      aria-label="Wind rose"
     >
       {fracs.map((f, i) => {
         if (f < 0.05) return null
@@ -76,13 +80,10 @@ function MiniWindRose({
           />
         )
       })}
-      <circle cx={cx} cy={cy} r={1} fill="#6b7280" />
+      <circle cx={cx} cy={cy} r={1} fill="var(--color-text-muted)" />
     </svg>
   )
 }
-
-// DualRangeSlider uses pointer events on the outer container; thumbs are visual only.
-// Which thumb to move is decided by proximity to the pointer position.
 
 interface DualRangeSliderProps {
   absoluteMin: number
@@ -108,8 +109,6 @@ function DualRangeSlider({
 
   const range = absoluteMax - absoluteMin || 1
 
-  // The outer div has 8px horizontal padding so thumbs at 0%/100% stay fully visible.
-  // Value calculations subtract that padding from the bounding rect.
   function valueFromClientX(clientX: number): number {
     if (!outerRef.current) return absoluteMin
     const { left, width } = outerRef.current.getBoundingClientRect()
@@ -146,8 +145,6 @@ function DualRangeSlider({
     activeThumb.current = null
   }
 
-  // Thumb position: calc(frac*100% + (8 - frac*16)px) places the center
-  // exactly at the correct inner position while the outer 8px padding absorbs overflow.
   function thumbLeft(v: number): string {
     const frac = (v - absoluteMin) / range
     return `calc(${frac * 100}% + ${8 - frac * 16}px)`
@@ -171,35 +168,48 @@ function DualRangeSlider({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        role="slider"
+        aria-valuemin={absoluteMin}
+        aria-valuemax={absoluteMax}
+        aria-valuenow={valueMin}
+        tabIndex={0}
       >
-        <div className="absolute inset-x-2 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-gray-200" />
+        <div className="absolute inset-x-2 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slider-track" />
         <div
-          className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-gray-500"
+          className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slider-fill"
           style={highlightStyle}
         />
         <div
-          className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-white"
+          className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-slider-thumb"
           style={{
             left: thumbLeft(valueMin),
-            borderColor: minActive ? "#6b7280" : "#d1d5db",
+            borderColor: minActive
+              ? "var(--color-slider-thumb-active)"
+              : "var(--color-slider-thumb-inactive)",
           }}
         />
         <div
-          className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-white"
+          className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-slider-thumb"
           style={{
             left: thumbLeft(valueMax),
-            borderColor: maxActive ? "#6b7280" : "#d1d5db",
+            borderColor: maxActive
+              ? "var(--color-slider-thumb-active)"
+              : "var(--color-slider-thumb-inactive)",
           }}
         />
       </div>
       <div className="mt-1 flex justify-between text-xs">
         <span
-          className={minActive ? "font-medium text-gray-700" : "text-gray-400"}
+          className={
+            minActive ? "font-medium text-text-secondary" : "text-text-muted"
+          }
         >
           {formatValue(valueMin)}
         </span>
         <span
-          className={maxActive ? "font-medium text-gray-700" : "text-gray-400"}
+          className={
+            maxActive ? "font-medium text-text-secondary" : "text-text-muted"
+          }
         >
           {formatValue(valueMax)}
         </span>
@@ -208,10 +218,8 @@ function DualRangeSlider({
   )
 }
 
-// Slider range state is null when at the full range (= no filter).
 type Range = [number, number]
 
-// All known sport IDs (excluding Unknown = 0 which is rarely useful as a filter).
 const SPORT_IDS = [1, 2] as const
 
 type SortBy = "created_at" | "total_distance_m" | "total_ascent_m"
@@ -225,9 +233,9 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
 
 interface LiveFilters {
   search: string
-  distRange: Range | null // km; null = full range
-  ascentRange: Range | null // m; null = full range
-  visibility: "all" | "public" | "private" // user mode only
+  distRange: Range | null
+  ascentRange: Range | null
+  visibility: "all" | "public" | "private"
   trackType: "all" | "recorded" | "planned"
   onlyStarred: boolean
   sports: number[]
@@ -254,7 +262,6 @@ const initialFilters: LiveFilters = {
 }
 
 export interface TrackGridProps {
-  // mode "public" shows all public tracks; "user" shows only the current user's tracks.
   mode: "public" | "user"
 }
 
@@ -312,7 +319,6 @@ export default function TrackGrid({ mode }: TrackGridProps) {
       const next = prev.sports.includes(id)
         ? prev.sports.filter((s) => s !== id)
         : [...prev.sports, id]
-      // Remove any sub-sports that are no longer valid for the new sport selection.
       const validSubSports = next.flatMap((s) => SUB_SPORTS_BY_SPORT[s] ?? [])
       return {
         ...prev,
@@ -331,7 +337,6 @@ export default function TrackGrid({ mode }: TrackGridProps) {
     }))
   }
 
-  // Sub-sports available given the currently selected sports.
   const availableSubSports =
     live.sports.length === 0
       ? []
@@ -348,7 +353,6 @@ export default function TrackGrid({ mode }: TrackGridProps) {
   const appliedAscentMin = applied.ascentRange?.[0] ?? 0
   const appliedAscentMax = applied.ascentRange?.[1] ?? absMaxAscentM
 
-  // Derive the public query param from mode and user visibility filter.
   let publicParam: boolean | undefined
   if (mode === "public") {
     publicParam = true
@@ -358,7 +362,6 @@ export default function TrackGrid({ mode }: TrackGridProps) {
     publicParam = false
   }
 
-  // Map trackType filter to API integer values (1=Planned, 2=Recorded).
   const trackTypeParam: number[] | undefined =
     applied.trackType === "recorded"
       ? [2]
@@ -421,12 +424,12 @@ export default function TrackGrid({ mode }: TrackGridProps) {
   const totalPages = data ? Math.ceil(data.totalCount / pageSize) : 1
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="mb-4 text-xl font-semibold text-gray-900">
+    <PageContainer className="py-10">
+      <h1 className="mb-4 text-xl font-semibold text-text">
         {mode === "public" ? "Public Tracks" : "My Tracks"}
       </h1>
 
-      <div className="mb-6 rounded-lg border border-gray-200 bg-white px-4 pb-4 pt-3">
+      <div className="mb-6 rounded-lg border border-border bg-panel px-4 pb-4 pt-3">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <input
             type="search"
@@ -435,46 +438,31 @@ export default function TrackGrid({ mode }: TrackGridProps) {
             onChange={(e) =>
               setLive((prev) => ({ ...prev, search: e.target.value }))
             }
-            className="w-56 rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none"
+            aria-label="Search tracks"
+            className="w-56 rounded border border-border bg-panel px-3 py-1.5 text-sm text-text placeholder-text-muted focus:border-primary focus:outline-none transition-colors"
           />
           {mode === "user" && (
-            <div className="flex rounded border border-gray-300 text-sm">
-              {(["all", "public", "private"] as const).map((v) => (
-                <button
-                  key={v}
-                  onClick={() =>
-                    setLive((prev) => ({ ...prev, visibility: v }))
-                  }
-                  className={`px-3 py-1.5 first:rounded-l last:rounded-r ${
-                    live.visibility === v
-                      ? "bg-gray-800 text-white"
-                      : "text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  {v === "all" ? "All" : v === "public" ? "Public" : "Private"}
-                </button>
-              ))}
-            </div>
+            <ToggleGroup
+              options={[
+                { value: "all", label: "All" },
+                { value: "public", label: "Public" },
+                { value: "private", label: "Private" },
+              ]}
+              value={live.visibility}
+              onChange={(v) => setLive((prev) => ({ ...prev, visibility: v }))}
+              ariaLabel="Visibility filter"
+            />
           )}
-          <div className="flex rounded border border-gray-300 text-sm">
-            {(["all", "recorded", "planned"] as const).map((v) => (
-              <button
-                key={v}
-                onClick={() => setLive((prev) => ({ ...prev, trackType: v }))}
-                className={`px-3 py-1.5 first:rounded-l last:rounded-r ${
-                  live.trackType === v
-                    ? "bg-gray-800 text-white"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {v === "all"
-                  ? "All"
-                  : v === "recorded"
-                    ? "Recorded"
-                    : "Planned"}
-              </button>
-            ))}
-          </div>
+          <ToggleGroup
+            options={[
+              { value: "all", label: "All" },
+              { value: "recorded", label: "Recorded" },
+              { value: "planned", label: "Planned" },
+            ]}
+            value={live.trackType}
+            onChange={(v) => setLive((prev) => ({ ...prev, trackType: v }))}
+            ariaLabel="Track type filter"
+          />
           {user && (
             <button
               onClick={() =>
@@ -483,17 +471,18 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                   onlyStarred: !prev.onlyStarred,
                 }))
               }
-              className={`rounded border px-3 py-1.5 text-sm ${
+              aria-pressed={live.onlyStarred}
+              className={`cursor-pointer rounded border px-3 py-1.5 text-sm transition-colors ${
                 live.onlyStarred
-                  ? "border-gray-700 bg-gray-800 text-white"
-                  : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  ? "border-active bg-active text-active-text"
+                  : "border-border text-text-secondary hover:bg-surface"
               }`}
             >
               Starred
             </button>
           )}
           <div className="ml-auto flex items-center gap-2">
-            <select
+            <Select
               value={live.sortBy}
               onChange={(e) =>
                 setLive((prev) => ({
@@ -501,14 +490,15 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                   sortBy: e.target.value as SortBy,
                 }))
               }
-              className="rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-gray-500 focus:outline-none"
+              className="px-2 py-1.5 text-sm"
+              aria-label="Sort by"
             >
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
               ))}
-            </select>
+            </Select>
             <button
               onClick={() =>
                 setLive((prev) => ({
@@ -516,8 +506,9 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                   sortOrder: prev.sortOrder === "asc" ? "desc" : "asc",
                 }))
               }
-              className="rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-700 hover:border-gray-400"
+              className="cursor-pointer rounded border border-border px-2 py-1.5 text-sm text-text-secondary hover:border-border-hover transition-colors"
               title={live.sortOrder === "asc" ? "Ascending" : "Descending"}
+              aria-label={`Sort order: ${live.sortOrder === "asc" ? "ascending" : "descending"}`}
             >
               {live.sortOrder === "asc" ? "A-Z" : "Z-A"}
             </button>
@@ -527,9 +518,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
         <div className="grid grid-cols-2 gap-6">
           {absMaxDistKm > 0 && (
             <div>
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">
-                Distance
-              </p>
+              <SectionHeading className="mb-3">Distance</SectionHeading>
               <DualRangeSlider
                 absoluteMin={0}
                 absoluteMax={absMaxDistKm}
@@ -543,9 +532,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
           )}
           {absMaxAscentM > 0 && (
             <div>
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">
-                Ascent
-              </p>
+              <SectionHeading className="mb-3">Ascent</SectionHeading>
               <DualRangeSlider
                 absoluteMin={0}
                 absoluteMax={absMaxAscentM}
@@ -561,18 +548,17 @@ export default function TrackGrid({ mode }: TrackGridProps) {
 
         <div className="mt-4 grid grid-cols-2 gap-6">
           <div>
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-              Sport
-            </p>
+            <SectionHeading className="mb-2">Sport</SectionHeading>
             <div className="flex flex-wrap gap-1.5">
               {SPORT_IDS.map((id) => (
                 <button
                   key={id}
                   onClick={() => toggleSport(id)}
-                  className={`rounded border px-2.5 py-1 text-xs ${
+                  aria-pressed={live.sports.includes(id)}
+                  className={`cursor-pointer rounded border px-2.5 py-1 text-xs transition-colors ${
                     live.sports.includes(id)
-                      ? "border-gray-700 bg-gray-800 text-white"
-                      : "border-gray-300 text-gray-600 hover:border-gray-400"
+                      ? "border-active bg-active text-active-text"
+                      : "border-border text-text-secondary hover:border-border-hover"
                   }`}
                 >
                   {SPORT_LABELS[id]}
@@ -585,10 +571,11 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                   <button
                     key={id}
                     onClick={() => toggleSubSport(id)}
-                    className={`rounded border px-2.5 py-1 text-xs ${
+                    aria-pressed={live.subSports.includes(id)}
+                    className={`cursor-pointer rounded border px-2.5 py-1 text-xs transition-colors ${
                       live.subSports.includes(id)
-                        ? "border-gray-500 bg-gray-600 text-white"
-                        : "border-gray-200 text-gray-500 hover:border-gray-300"
+                        ? "border-primary bg-primary/80 text-primary-text"
+                        : "border-border text-text-muted hover:border-border-hover"
                     }`}
                   >
                     {SUB_SPORT_LABELS[id]}
@@ -600,30 +587,20 @@ export default function TrackGrid({ mode }: TrackGridProps) {
 
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Tags
-              </p>
+              <SectionHeading>Tags</SectionHeading>
               {live.tags.length > 1 && (
-                <div className="flex rounded border border-gray-200 text-xs">
-                  {(["or", "and"] as const).map((m) => (
-                    <button
-                      key={m}
-                      onClick={() =>
-                        setLive((prev) => ({
-                          ...prev,
-                          tagsAnd: m === "and",
-                        }))
-                      }
-                      className={`px-2 py-0.5 first:rounded-l last:rounded-r ${
-                        (m === "and") === live.tagsAnd
-                          ? "bg-gray-700 text-white"
-                          : "text-gray-500 hover:bg-gray-50"
-                      }`}
-                    >
-                      {m.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
+                <ToggleGroup
+                  options={[
+                    { value: "or", label: "OR" },
+                    { value: "and", label: "AND" },
+                  ]}
+                  value={live.tagsAnd ? "and" : "or"}
+                  onChange={(v) =>
+                    setLive((prev) => ({ ...prev, tagsAnd: v === "and" }))
+                  }
+                  ariaLabel="Tag match mode"
+                  className="text-xs"
+                />
               )}
             </div>
             <TagsInput
@@ -635,37 +612,42 @@ export default function TrackGrid({ mode }: TrackGridProps) {
         </div>
       </div>
 
-      {isLoading && <p className="text-gray-500">Loading...</p>}
+      {isLoading && <p className="text-text-muted">Loading...</p>}
 
       {error && (
-        <p className="text-red-600">{(error as unknown as Error).message}</p>
+        <p role="alert" className="text-error">
+          {(error as unknown as Error).message}
+        </p>
       )}
 
       {data && (
         <>
           {data.tracks.length === 0 ? (
-            <p className="py-12 text-center text-gray-500">No tracks found.</p>
+            <p className="py-12 text-center text-text-muted">
+              No tracks found.
+            </p>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {data.tracks.map((track) => (
                 <Link
                   key={track.uuid}
                   to={`/tracks/${track.uuid}`}
-                  className="group relative block rounded-lg border border-gray-200 bg-white hover:border-gray-400"
+                  className="group relative block rounded-lg border border-border bg-panel hover:border-border-hover transition-colors"
                 >
                   {user && (
                     <button
                       onClick={(e) =>
                         toggleStar(e, track.uuid, track.starred ?? false)
                       }
-                      className="absolute right-1.5 top-1.5 z-10 cursor-pointer rounded bg-white/80 p-1 hover:bg-white"
+                      className="absolute right-1.5 top-1.5 z-10 cursor-pointer rounded bg-panel/80 p-1 hover:bg-panel"
+                      aria-label={track.starred ? "Unstar track" : "Star track"}
                     >
                       <StarIcon
-                        className={`h-4 w-4 ${track.starred ? "text-yellow-400" : "text-gray-300"}`}
+                        className={`h-4 w-4 ${track.starred ? "text-star" : "text-text-muted"}`}
                       />
                     </button>
                   )}
-                  <div className="aspect-square overflow-hidden rounded-t-lg bg-gray-50">
+                  <div className="aspect-square overflow-hidden rounded-t-lg bg-surface">
                     <img
                       src={`/api/tracks/${track.uuid}/preview.svg?size=256`}
                       alt="Track preview"
@@ -679,16 +661,16 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                         alt=""
                         className="h-4 w-4 shrink-0 rounded-full"
                       />
-                      <p className="truncate text-sm font-medium text-gray-900">
+                      <p className="truncate text-sm font-medium text-text">
                         {track.name}
                       </p>
                     </div>
-                    <p className="mt-0.5 text-xs text-gray-500">
+                    <p className="mt-0.5 text-xs text-text-muted">
                       {track.user.name} &middot;{" "}
                       {formatDistance(track.totalDistanceM)} &middot;{" "}
                       {formatAscent(track.totalAscentM)}
                     </p>
-                    <div className="mt-1.5 overflow-hidden rounded bg-gray-50">
+                    <div className="mt-1.5 overflow-hidden rounded bg-surface">
                       <img
                         src={`/api/tracks/${track.uuid}/profile.svg?size=256`}
                         alt="Elevation profile"
@@ -701,12 +683,12 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                         title={`Forecast: ${new Date(track.forecast.forecastReferenceTime).toLocaleString()}\nStart: ${new Date(track.forecast.startTime).toLocaleString()}`}
                       >
                         {track.forecast.avgTemperatureC != null && (
-                          <span className="text-red-500">
+                          <span className="text-error">
                             {track.forecast.avgTemperatureC.toFixed(0)}&deg;C
                           </span>
                         )}
                         {track.forecast.totalPrecipitationMm != null && (
-                          <span className="text-blue-500">
+                          <span className="text-info">
                             {track.forecast.totalPrecipitationMm < 0.1
                               ? "dry"
                               : `${track.forecast.totalPrecipitationMm.toFixed(1)} mm`}
@@ -728,41 +710,44 @@ export default function TrackGrid({ mode }: TrackGridProps) {
 
           {(totalPages > 1 || pageSize !== DEFAULT_PAGE_SIZE) && (
             <div className="mt-8 flex items-center justify-center gap-4">
-              <button
+              <Button
+                variant="secondary"
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:border-gray-400 disabled:cursor-not-allowed disabled:opacity-40"
+                className="px-3 py-1.5"
               >
                 Previous
-              </button>
-              <span className="text-sm text-gray-600">
+              </Button>
+              <span className="text-sm text-text-secondary">
                 {page} / {totalPages}
               </span>
-              <button
+              <Button
+                variant="secondary"
                 disabled={page === totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:border-gray-400 disabled:cursor-not-allowed disabled:opacity-40"
+                className="px-3 py-1.5"
               >
                 Next
-              </button>
-              <select
-                value={pageSize}
+              </Button>
+              <Select
+                value={String(pageSize)}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value))
                   setPage(1)
                 }}
-                className="rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-700 hover:border-gray-400"
+                className="px-2 py-1.5 text-sm"
+                aria-label="Page size"
               >
                 {PAGE_SIZE_OPTIONS.map((size) => (
                   <option key={size} value={size}>
                     {size} / page
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           )}
         </>
       )}
-    </div>
+    </PageContainer>
   )
 }

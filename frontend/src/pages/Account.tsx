@@ -5,6 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useSession } from "../context/SessionContext"
 import { $api } from "../api/client"
+import PageContainer from "../components/ui/PageContainer"
+import Card from "../components/ui/Card"
+import Input from "../components/ui/Input"
+import Button from "../components/ui/Button"
 
 const profileSchema = z.object({
   name: z.string().min(1, "Required"),
@@ -99,244 +103,195 @@ export default function Account() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-8">
-      <h1 className="mb-8 text-2xl font-semibold text-gray-900">Account</h1>
+    <PageContainer size="sm">
+      <h1 className="mb-8 text-2xl font-semibold text-text">Account</h1>
 
-      <section className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-base font-medium text-gray-900">Avatar</h2>
+      <Card className="mb-6 p-6">
+        <h2 className="mb-4 text-base font-medium text-text">Avatar</h2>
         <div className="flex items-center gap-4">
           {user && (
             <img
               src={`/api/users/${user.uuid}/avatar?v=${user.avatarSeed}`}
               alt={user.name}
-              className="h-16 w-16 rounded-full"
+              className="h-16 w-16 rounded-full border border-border"
             />
           )}
           <div>
-            <button
+            <Button
+              variant="secondary"
               onClick={handleRotateAvatar}
               disabled={rotateAvatarMutation.isPending}
-              className="cursor-pointer rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {rotateAvatarMutation.isPending ? "Rotating…" : "Rotate avatar"}
-            </button>
+              {rotateAvatarMutation.isPending ? "Rotating..." : "Rotate avatar"}
+            </Button>
             {rotateAvatarMutation.error && (
-              <p className="mt-1 text-sm text-red-600">
+              <p role="alert" className="mt-1 text-sm text-error">
                 {(rotateAvatarMutation.error as unknown as Error).message}
               </p>
             )}
           </div>
         </div>
-      </section>
+      </Card>
 
-      <section className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-base font-medium text-gray-900">Profile</h2>
+      <Card className="mb-6 p-6">
+        <h2 className="mb-4 text-base font-medium text-text">Profile</h2>
         <form
           onSubmit={profileForm.handleSubmit(onUpdateProfile)}
           className="space-y-4"
         >
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-text-secondary">
               Email
             </label>
-            <p className="text-sm text-gray-500">{user?.email}</p>
+            <p className="text-sm text-text-muted">{user?.email}</p>
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Name
-            </label>
-            <input
-              type="text"
-              {...profileForm.register("name")}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
-            />
-            {profileForm.formState.errors.name && (
-              <p className="mt-1 text-sm text-red-600">
-                {profileForm.formState.errors.name.message}
-              </p>
-            )}
-          </div>
+          <Input
+            label="Name"
+            type="text"
+            error={profileForm.formState.errors.name?.message}
+            {...profileForm.register("name")}
+          />
           {updateMeMutation.error && (
-            <p className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-error">
               {(updateMeMutation.error as unknown as Error).message}
             </p>
           )}
           {updateMeMutation.isSuccess && (
-            <p className="text-sm text-green-600">Profile updated.</p>
+            <p className="text-sm text-success">Profile updated.</p>
           )}
-          <button
+          <Button
             type="submit"
+            variant="primary"
             disabled={profileForm.formState.isSubmitting}
-            className="cursor-pointer rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {profileForm.formState.isSubmitting ? "Saving…" : "Save"}
-          </button>
+            {profileForm.formState.isSubmitting ? "Saving..." : "Save"}
+          </Button>
         </form>
-      </section>
+      </Card>
 
-      <section className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-base font-medium text-gray-900">
-          Change Email
-        </h2>
+      <Card className="mb-6 p-6">
+        <h2 className="mb-4 text-base font-medium text-text">Change Email</h2>
         <form
           onSubmit={changeEmailForm.handleSubmit(onChangeEmail)}
           className="space-y-4"
         >
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              New email
-            </label>
-            <input
-              type="email"
-              autoComplete="email"
-              {...changeEmailForm.register("newEmail")}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
-            />
-            {changeEmailForm.formState.errors.newEmail && (
-              <p className="mt-1 text-sm text-red-600">
-                {changeEmailForm.formState.errors.newEmail.message}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Current password
-            </label>
-            <input
-              type="password"
-              autoComplete="current-password"
-              {...changeEmailForm.register("password")}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
-            />
-            {changeEmailForm.formState.errors.password && (
-              <p className="mt-1 text-sm text-red-600">
-                {changeEmailForm.formState.errors.password.message}
-              </p>
-            )}
-          </div>
+          <Input
+            label="New email"
+            type="email"
+            autoComplete="email"
+            error={changeEmailForm.formState.errors.newEmail?.message}
+            {...changeEmailForm.register("newEmail")}
+          />
+          <Input
+            label="Current password"
+            type="password"
+            autoComplete="current-password"
+            error={changeEmailForm.formState.errors.password?.message}
+            {...changeEmailForm.register("password")}
+          />
           {changeEmailMutation.error && (
-            <p className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-error">
               {(changeEmailMutation.error as unknown as Error).message}
             </p>
           )}
           {changeEmailMutation.isSuccess && (
-            <p className="text-sm text-green-600">
+            <p className="text-sm text-success">
               Confirmation email sent. Check your inbox.
             </p>
           )}
-          <button
+          <Button
             type="submit"
+            variant="primary"
             disabled={changeEmailForm.formState.isSubmitting}
-            className="cursor-pointer rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {changeEmailForm.formState.isSubmitting
-              ? "Sending…"
+              ? "Sending..."
               : "Change email"}
-          </button>
+          </Button>
         </form>
-      </section>
+      </Card>
 
-      <section className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-base font-medium text-gray-900">
+      <Card className="mb-6 p-6">
+        <h2 className="mb-4 text-base font-medium text-text">
           Change Password
         </h2>
         <form
           onSubmit={passwordForm.handleSubmit(onChangePassword)}
           className="space-y-4"
         >
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Current password
-            </label>
-            <input
-              type="password"
-              autoComplete="current-password"
-              {...passwordForm.register("oldPassword")}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
-            />
-            {passwordForm.formState.errors.oldPassword && (
-              <p className="mt-1 text-sm text-red-600">
-                {passwordForm.formState.errors.oldPassword.message}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              New password
-            </label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              {...passwordForm.register("newPassword")}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
-            />
-            {passwordForm.formState.errors.newPassword && (
-              <p className="mt-1 text-sm text-red-600">
-                {passwordForm.formState.errors.newPassword.message}
-              </p>
-            )}
-          </div>
+          <Input
+            label="Current password"
+            type="password"
+            autoComplete="current-password"
+            error={passwordForm.formState.errors.oldPassword?.message}
+            {...passwordForm.register("oldPassword")}
+          />
+          <Input
+            label="New password"
+            type="password"
+            autoComplete="new-password"
+            error={passwordForm.formState.errors.newPassword?.message}
+            {...passwordForm.register("newPassword")}
+          />
           {changePasswordMutation.error && (
-            <p className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-error">
               {(changePasswordMutation.error as unknown as Error).message}
             </p>
           )}
           {changePasswordMutation.isSuccess && (
-            <p className="text-sm text-green-600">Password changed.</p>
+            <p className="text-sm text-success">Password changed.</p>
           )}
-          <button
+          <Button
             type="submit"
+            variant="primary"
             disabled={passwordForm.formState.isSubmitting}
-            className="cursor-pointer rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {passwordForm.formState.isSubmitting
-              ? "Saving…"
+              ? "Saving..."
               : "Change password"}
-          </button>
+          </Button>
         </form>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border border-red-200 bg-white p-6">
-        <h2 className="mb-4 text-base font-medium text-red-800">Danger Zone</h2>
+      <Card className="border-error-border p-6">
+        <h2 className="mb-4 text-base font-medium text-error">Danger Zone</h2>
         {deleteMeMutation.error && (
-          <p className="mb-3 text-sm text-red-600">
+          <p role="alert" className="mb-3 text-sm text-error">
             {(deleteMeMutation.error as unknown as Error).message}
           </p>
         )}
         {confirmDelete ? (
           <div>
-            <p className="mb-3 text-sm text-gray-700">
+            <p className="mb-3 text-sm text-text-secondary">
               This will permanently delete your account and all your data. This
               cannot be undone.
             </p>
             <div className="flex gap-2">
-              <button
+              <Button
+                variant="danger"
                 onClick={handleDeleteAccount}
                 disabled={deleteMeMutation.isPending}
-                className="cursor-pointer rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="bg-error text-primary-text hover:bg-error/90"
               >
                 {deleteMeMutation.isPending
-                  ? "Deleting…"
+                  ? "Deleting..."
                   : "Yes, delete my account"}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleteMeMutation.isPending}
-                className="cursor-pointer rounded border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="cursor-pointer rounded border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
-          >
+          <Button variant="danger" onClick={() => setConfirmDelete(true)}>
             Delete account
-          </button>
+          </Button>
         )}
-      </section>
-    </div>
+      </Card>
+    </PageContainer>
   )
 }

@@ -66,23 +66,23 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Track grouping: treat recorded vs. planned tracks differently
 - [ ] Frontend polishing
   - [ ] Unified display of dates/times in frontend (iso and 24h format, "x ago")
-  - [ ] Shared components
+  - [x] Shared components
   - [ ] New tagline (also update repo desc)
-  - [ ] Theming
-  - [ ] Branding
-  - [ ] Favicon, Logo
+  - [x] Theming
+  - [x] Branding
+  - [x] Favicon, Logo
   - [ ] Move at least some page state to URL in frontend
-  - [ ] Ensure correct cursors used everywhere (buttons etc), why is this not standard?
-  - [ ] Mobile friendly and responsive
-  - [ ] Use full width on desktop
+  - [x] Ensure correct cursors used everywhere (buttons etc), why is this not standard?
+  - [x] Mobile friendly and responsive
+  - [x] Use full width on desktop
   - [ ] Use https://github.com/simonw/rodney to let Claude inspect the frontend and CSS, or https://github.com/ChromeDevTools/chrome-devtools-mcp/tree/main
   - [ ] Nicer UI for track editing
   - [ ] In `App.tsx` let `QueryClient` use `staleTime`.
   - [ ] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
-  - [ ] Frontend aria/accessibility
-  - [ ] Avoid any layout shifts with interactive elements
+  - [x] Frontend aria/accessibility
+  - [x] Avoid any layout shifts with interactive elements
   - [ ] Bulk editing and deletion of tracks
-  - [ ] Automatic dark mode
+  - [x] Automatic dark mode
 
 ## Test (manually)
 

@@ -29,6 +29,13 @@ import {
   SUB_SPORT_LABELS,
   SUB_SPORTS_BY_SPORT,
 } from "../lib/sports"
+import PageContainer from "../components/ui/PageContainer"
+import Button from "../components/ui/Button"
+import Input from "../components/ui/Input"
+import Select from "../components/ui/Select"
+import Badge from "../components/ui/Badge"
+import SectionHeading from "../components/ui/SectionHeading"
+import Alert from "../components/ui/Alert"
 
 const TRACK_TYPE_LABELS: Record<number, string> = {
   0: "Unknown",
@@ -108,7 +115,6 @@ export default function Track() {
 
   const closures = closuresData?.closures as RoadClosure[] | undefined
 
-  // Forecast state.
   const [forecastPoints, setForecastPoints] = useState<ForecastPoint[] | null>(
     null
   )
@@ -183,7 +189,6 @@ export default function Track() {
     [uuid]
   )
 
-  // Auto-load forecast on first render.
   useEffect(() => {
     if (uuid) {
       fetchForecast(startHoursOffset, speedKmh)
@@ -274,30 +279,33 @@ export default function Track() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-10">
-        <p className="text-gray-500">Loading...</p>
-      </div>
+      <PageContainer size="lg" className="py-10">
+        <p className="text-text-muted">Loading...</p>
+      </PageContainer>
     )
   }
 
   if (error || !data) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-10">
-        <p className="text-red-600">
+      <PageContainer size="lg" className="py-10">
+        <p role="alert" className="text-error">
           {(error as Error | null)?.message ?? "Track not found."}
         </p>
-      </div>
+      </PageContainer>
     )
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
+    <PageContainer size="lg" className="py-10">
       {toastMessage && (
         <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
       )}
 
-      <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
-        ← Tracks
+      <Link
+        to="/"
+        className="text-sm text-text-muted hover:text-text-secondary transition-colors"
+      >
+        &larr; Tracks
       </Link>
 
       <div className="mt-4 flex items-center gap-2">
@@ -306,32 +314,33 @@ export default function Track() {
           alt=""
           className="h-6 w-6 shrink-0 rounded-full"
         />
-        <span className="text-sm text-gray-500">{data.user.name}</span>
+        <span className="text-sm text-text-muted">{data.user.name}</span>
       </div>
 
       <div className="mt-2 flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">{data.name}</h1>
+        <h1 className="text-2xl font-bold text-text">{data.name}</h1>
         {user && (
           <button
             onClick={toggleStar}
             disabled={starMutation.isPending || unstarMutation.isPending}
-            className="shrink-0 cursor-pointer rounded border border-gray-200 p-1.5 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="shrink-0 cursor-pointer rounded border border-border p-1.5 hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+            aria-label={data.starred ? "Unstar track" : "Star track"}
           >
             <StarIcon
-              className={`h-5 w-5 ${data.starred ? "text-yellow-400" : "text-gray-300"}`}
+              className={`h-5 w-5 ${data.starred ? "text-star" : "text-text-muted"}`}
             />
           </button>
         )}
       </div>
 
       {data.geonameLabel && (
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-text-muted">
           {data.geonameLabel}
-          <span className="ml-1.5 text-xs text-gray-400">
+          <span className="ml-1.5 text-xs text-text-muted">
             (
             <a
               href="https://www.geonames.org/"
-              className="hover:text-gray-600"
+              className="hover:text-text-secondary transition-colors"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -343,7 +352,7 @@ export default function Track() {
       )}
 
       {data.description && (
-        <p className="mt-2 text-sm text-gray-600">{data.description}</p>
+        <p className="mt-2 text-sm text-text-secondary">{data.description}</p>
       )}
 
       <div className="mt-6">
@@ -363,7 +372,8 @@ export default function Track() {
             <button
               type="button"
               onClick={() => setMapFullscreen(true)}
-              className="absolute top-2 right-2 z-10 rounded bg-white/90 p-1.5 text-gray-600 shadow-sm hover:bg-white hover:text-gray-900"
+              className="absolute top-2 right-2 z-10 cursor-pointer rounded bg-panel/90 p-1.5 text-text-secondary shadow-sm hover:bg-panel hover:text-text transition-colors"
+              aria-label="Fullscreen map"
             >
               <ArrowsPointingOutIcon className="h-5 w-5" />
             </button>
@@ -382,7 +392,7 @@ export default function Track() {
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <div className="fixed inset-0 bg-black/40" />
+                  <div className="fixed inset-0 bg-overlay" />
                 </TransitionChild>
                 <TransitionChild
                   as={Fragment}
@@ -393,11 +403,12 @@ export default function Track() {
                   leaveFrom="opacity-100 scale-100"
                   leaveTo="opacity-0 scale-95"
                 >
-                  <DialogPanel className="fixed inset-0 flex flex-col bg-white">
+                  <DialogPanel className="fixed inset-0 flex flex-col bg-panel">
                     <button
                       type="button"
                       onClick={() => setMapFullscreen(false)}
-                      className="absolute top-3 right-3 z-10 rounded bg-white/90 p-1.5 text-gray-600 shadow-sm hover:bg-white hover:text-gray-900"
+                      className="absolute top-3 right-3 z-10 cursor-pointer rounded bg-panel/90 p-1.5 text-text-secondary shadow-sm hover:bg-panel hover:text-text transition-colors"
+                      aria-label="Close fullscreen"
                     >
                       <XMarkIcon className="h-6 w-6" />
                     </button>
@@ -421,7 +432,7 @@ export default function Track() {
             </Transition>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+          <div className="overflow-hidden rounded-lg border border-border bg-surface">
             <img
               src={`/api/tracks/${data.uuid}/preview.svg?size=512`}
               alt="Track preview"
@@ -432,17 +443,17 @@ export default function Track() {
       </div>
 
       {closures && closures.length > 0 && (
-        <div className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2">
-          <p className="text-sm font-medium text-red-800">
+        <Alert variant="error" className="mt-3">
+          <p className="font-medium">
             Road closures or diversions on this track - see map.
           </p>
-        </div>
+        </Alert>
       )}
 
       <div className="mt-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">Start in:</span>
+            <span className="text-xs text-text-muted">Start in:</span>
             {START_HOUR_OPTIONS.map((h) => (
               <button
                 key={h}
@@ -451,10 +462,10 @@ export default function Track() {
                   setStartHoursOffset(h)
                   fetchForecast(h, speedKmh)
                 }}
-                className={`rounded border px-1.5 py-1 text-xs ${
+                className={`cursor-pointer rounded border px-1.5 py-1 text-xs transition-colors ${
                   startHoursOffset === h
-                    ? "border-gray-400 bg-gray-200 font-medium text-gray-800"
-                    : "border-gray-200 text-gray-600 hover:bg-gray-100"
+                    ? "border-border-hover bg-surface font-medium text-text"
+                    : "border-border text-text-secondary hover:bg-surface"
                 }`}
               >
                 +{h}h
@@ -462,7 +473,7 @@ export default function Track() {
             ))}
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">Est. speed:</span>
+            <span className="text-xs text-text-muted">Est. speed:</span>
             {SPEED_OPTIONS.map((s) => (
               <button
                 key={s}
@@ -471,10 +482,10 @@ export default function Track() {
                   setSpeedKmh(s)
                   fetchForecast(startHoursOffset, s)
                 }}
-                className={`rounded border px-1.5 py-1 text-xs ${
+                className={`cursor-pointer rounded border px-1.5 py-1 text-xs transition-colors ${
                   speedKmh === s
-                    ? "border-gray-400 bg-gray-200 font-medium text-gray-800"
-                    : "border-gray-200 text-gray-600 hover:bg-gray-100"
+                    ? "border-border-hover bg-surface font-medium text-text"
+                    : "border-border text-text-secondary hover:bg-surface"
                 }`}
               >
                 {s}km/h
@@ -482,23 +493,23 @@ export default function Track() {
             ))}
           </div>
           {forecastLoading && (
-            <span className="text-xs text-gray-400">Loading...</span>
+            <span className="text-xs text-text-muted">Loading...</span>
           )}
           {!forecastLoading && estDurationH > 0 && (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-text-muted">
               Est. {estDurationH.toFixed(1)}h
             </span>
           )}
         </div>
         {forecastStatus === "none" && (
-          <p className="mt-2 text-xs text-amber-600">
+          <Alert variant="warning" className="mt-2 text-xs">
             No weather forecast data available. Time estimates are still shown.
-          </p>
+          </Alert>
         )}
         {forecastStatus === "partial" && (
-          <p className="mt-2 text-xs text-amber-600">
+          <Alert variant="warning" className="mt-2 text-xs">
             Weather forecast only partially covers the requested time window.
-          </p>
+          </Alert>
         )}
       </div>
 
@@ -522,78 +533,78 @@ export default function Track() {
 
       <dl className="mt-6 grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
             Distance
           </dt>
-          <dd className="mt-1 text-sm text-gray-900">
+          <dd className="mt-1 text-sm text-text">
             {formatDistance(data.totalDistanceM)}
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
             Ascent
           </dt>
-          <dd className="mt-1 text-sm text-gray-900">
+          <dd className="mt-1 text-sm text-text">
             {formatAscent(data.totalAscentM)}
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
             Sport
           </dt>
-          <dd className="mt-1 text-sm text-gray-900">
+          <dd className="mt-1 text-sm text-text">
             {SPORT_LABELS[data.sport] ?? data.sport}
             {data.subSport !== 0 && (
-              <span className="ml-1 text-gray-500">
+              <span className="ml-1 text-text-muted">
                 ({SUB_SPORT_LABELS[data.subSport] ?? data.subSport})
               </span>
             )}
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
             Type
           </dt>
-          <dd className="mt-1 text-sm text-gray-900">
+          <dd className="mt-1 text-sm text-text">
             {TRACK_TYPE_LABELS[data.trackType] ?? data.trackType}
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
             Format
           </dt>
-          <dd className="mt-1 text-sm text-gray-900">
+          <dd className="mt-1 text-sm text-text">
             {FILE_FORMAT_LABELS[data.fileFormat] ?? data.fileFormat}
           </dd>
         </div>
         {data.originalCreatedAt && (
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
               Activity date
             </dt>
-            <dd className="mt-1 text-sm text-gray-900">
+            <dd className="mt-1 text-sm text-text">
               {formatDate(data.originalCreatedAt)}
             </dd>
           </div>
         )}
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
             Uploaded
           </dt>
-          <dd className="mt-1 text-sm text-gray-900">
+          <dd className="mt-1 text-sm text-text">
             {formatDate(data.createdAt)}
           </dd>
         </div>
         {data.author && (
           <div className="col-span-2 sm:col-span-3">
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
               Author
             </dt>
-            <dd className="mt-1 text-sm text-gray-900">
+            <dd className="mt-1 text-sm text-text">
               {data.authorLinkUrl ? (
                 <a
                   href={externalUrl(data.authorLinkUrl)}
-                  className="text-gray-700 hover:text-gray-900 underline"
+                  className="text-text-secondary hover:text-text underline transition-colors"
                 >
                   {data.author}
                 </a>
@@ -605,13 +616,13 @@ export default function Track() {
         )}
         {data.linkUrl && (
           <div className="col-span-2 sm:col-span-3">
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
               Link
             </dt>
             <dd className="mt-1 text-sm truncate">
               <a
                 href={externalUrl(data.linkUrl)}
-                className="text-gray-700 hover:text-gray-900 underline text-sm"
+                className="text-text-secondary hover:text-text underline text-sm transition-colors"
               >
                 {data.linkUrl}
               </a>
@@ -622,17 +633,10 @@ export default function Track() {
 
       {data.tags.length > 0 && (
         <div className="mt-6">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-            Tags
-          </p>
+          <SectionHeading>Tags</SectionHeading>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {data.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs text-gray-700"
-              >
-                {tag}
-              </span>
+              <Badge key={tag}>{tag}</Badge>
             ))}
           </div>
         </div>
@@ -640,18 +644,16 @@ export default function Track() {
 
       {data.similarTracks.length > 0 && (
         <div className="mt-6">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-            Similar tracks
-          </p>
+          <SectionHeading>Similar tracks</SectionHeading>
           <ul className="mt-2 space-y-1">
             {data.similarTracks.map((st) => (
               <li key={st.uuid}>
                 <Link
                   to={`/tracks/${st.uuid}`}
-                  className="text-sm text-gray-700 hover:text-gray-900"
+                  className="text-sm text-text-secondary hover:text-text transition-colors"
                 >
                   {st.name}
-                  <span className="ml-1.5 text-gray-400">
+                  <span className="ml-1.5 text-text-muted">
                     {formatDistance(st.totalDistanceM)}
                   </span>
                 </Link>
@@ -664,32 +666,23 @@ export default function Track() {
       <div className="mt-6">
         <a
           href={`/api/tracks/${data.uuid}/download`}
-          className="text-sm text-gray-500 hover:text-gray-700"
+          className="text-sm text-text-muted hover:text-text-secondary transition-colors"
         >
           Download original file
         </a>
       </div>
 
       {data.isOwner && (
-        <div className="mt-8 border-t border-gray-200 pt-6">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-gray-500">
+        <div className="mt-8 border-t border-border pt-6">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-text-muted">
             Edit
           </h2>
           <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700">
-                Name
-              </label>
-              <input
-                {...register("name")}
-                className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300"
-              />
-              {errors.name && (
-                <p className="mt-1 text-xs text-red-600">
-                  {errors.name.message}
-                </p>
-              )}
-            </div>
+            <Input
+              label="Name"
+              error={errors.name?.message}
+              {...register("name")}
+            />
 
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -697,59 +690,52 @@ export default function Track() {
                   type="checkbox"
                   id="track-public"
                   {...register("public")}
-                  className="rounded border-gray-300"
+                  className="rounded border-border accent-primary"
                 />
-                <label htmlFor="track-public" className="text-sm text-gray-700">
+                <label
+                  htmlFor="track-public"
+                  className="text-sm text-text-secondary"
+                >
                   Public
                 </label>
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-700">Type</label>
-                <select
+                <label className="text-sm text-text-secondary">Type</label>
+                <Select
                   {...register("trackType", { valueAsNumber: true })}
-                  className="rounded border border-gray-200 px-2 py-1 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  className="px-2 py-1 text-sm"
                 >
                   <option value={2}>Recorded</option>
                   <option value={1}>Planned</option>
-                </select>
+                </Select>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-700">
-                  Sport
-                </label>
-                <select
-                  {...register("sport", { valueAsNumber: true })}
-                  className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300"
-                >
-                  {Object.entries(SPORT_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700">
-                  Sub-sport
-                </label>
-                <select
-                  {...register("subSport", { valueAsNumber: true })}
-                  className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300"
-                >
-                  {(SUB_SPORTS_BY_SPORT[watchedSport] ?? [0]).map((id) => (
-                    <option key={id} value={id}>
-                      {SUB_SPORT_LABELS[id]}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Sport"
+                {...register("sport", { valueAsNumber: true })}
+              >
+                {Object.entries(SPORT_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                label="Sub-sport"
+                {...register("subSport", { valueAsNumber: true })}
+              >
+                {(SUB_SPORTS_BY_SPORT[watchedSport] ?? [0]).map((id) => (
+                  <option key={id} value={id}>
+                    {SUB_SPORT_LABELS[id]}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700">
+              <label className="block text-xs font-medium text-text-secondary">
                 Tags
               </label>
               <div className="mt-1">
@@ -767,55 +753,52 @@ export default function Track() {
             </div>
 
             <div className="flex items-center gap-3 pt-1">
-              <button
+              <Button
                 type="submit"
+                variant="secondary"
                 disabled={isSubmitting || editMutation.isPending}
-                className="rounded border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {editMutation.isPending ? "Saving..." : "Save"}
-              </button>
+              </Button>
 
               {editMutation.isSuccess && (
-                <span className="text-xs text-gray-500">Saved.</span>
+                <span className="text-xs text-text-muted">Saved.</span>
               )}
 
               <div className="ml-auto flex items-center gap-2">
                 {confirmDelete ? (
                   <>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-text-secondary">
                       Delete this track?
                     </span>
-                    <button
-                      type="button"
+                    <Button
+                      variant="danger"
                       onClick={handleDelete}
                       disabled={deleteMutation.isPending}
-                      className="rounded border border-red-300 bg-white px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
                       {deleteMutation.isPending ? "Deleting..." : "Confirm"}
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant="secondary"
                       onClick={() => setConfirmDelete(false)}
-                      className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </>
                 ) : (
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
                     onClick={() => setConfirmDelete(true)}
-                    className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
                   >
                     Delete
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
           </form>
         </div>
       )}
-    </div>
+    </PageContainer>
   )
 }
 
@@ -845,7 +828,7 @@ function MapHoverOverlay({
   }
 
   return (
-    <div className="pointer-events-none absolute bottom-2 left-2 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">
+    <div className="pointer-events-none absolute bottom-2 left-2 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm">
       {dKm} km &middot; {Math.round(p.ele)} m{timeInfo}
     </div>
   )

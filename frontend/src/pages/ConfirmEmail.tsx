@@ -2,6 +2,8 @@ import { useState } from "react"
 import { useSearchParams, Link } from "react-router-dom"
 import { useSession } from "../context/SessionContext"
 import { fetchClient } from "../api/client"
+import Card from "../components/ui/Card"
+import Button from "../components/ui/Button"
 
 export default function ConfirmEmail() {
   const [searchParams] = useSearchParams()
@@ -28,53 +30,57 @@ export default function ConfirmEmail() {
 
   if (!token) {
     return (
-      <div className="flex min-h-[calc(100vh-57px)] items-center justify-center">
-        <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-          <p className="text-sm text-red-600">Missing confirmation token.</p>
-        </div>
+      <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4">
+        <Card className="w-full max-w-sm p-8 shadow-sm">
+          <p role="alert" className="text-sm text-error">
+            Missing confirmation token.
+          </p>
+        </Card>
       </div>
     )
   }
 
   if (confirmed) {
     return (
-      <div className="flex min-h-[calc(100vh-57px)] items-center justify-center">
-        <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="mb-4 text-xl font-semibold text-gray-900">
+      <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4">
+        <Card className="w-full max-w-sm p-8 shadow-sm">
+          <h1 className="mb-4 text-xl font-semibold text-text">
             Email confirmed
           </h1>
-          <p className="mb-4 text-sm text-gray-600">
+          <p className="mb-4 text-sm text-text-secondary">
             Your email has been confirmed. Please log in to continue.
           </p>
-          <Link
-            to="/login"
-            className="inline-block rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-          >
-            Go to login
+          <Link to="/login">
+            <Button variant="primary">Go to login</Button>
           </Link>
-        </div>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-57px)] items-center justify-center">
-      <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-4 text-xl font-semibold text-gray-900">
+    <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4">
+      <Card className="w-full max-w-sm p-8 shadow-sm">
+        <h1 className="mb-4 text-xl font-semibold text-text">
           Confirm your email
         </h1>
-        <p className="mb-6 text-sm text-gray-600">
+        <p className="mb-6 text-sm text-text-secondary">
           Click the button below to confirm your email address.
         </p>
-        {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
-        <button
+        {error && (
+          <p role="alert" className="mb-4 text-sm text-error">
+            {error}
+          </p>
+        )}
+        <Button
+          variant="primary"
           onClick={handleConfirm}
           disabled={confirming}
-          className="w-full cursor-pointer rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full"
         >
-          {confirming ? "Confirming…" : "Confirm email"}
-        </button>
-      </div>
+          {confirming ? "Confirming..." : "Confirm email"}
+        </Button>
+      </Card>
     </div>
   )
 }

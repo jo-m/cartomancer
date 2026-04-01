@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { $api } from "../api/client"
+import Badge from "./ui/Badge"
 
 interface TagsInputProps {
   value: string[]
@@ -11,7 +12,7 @@ interface TagsInputProps {
 export default function TagsInput({
   value,
   onChange,
-  placeholder = "Add tags…",
+  placeholder = "Add tags...",
 }: TagsInputProps) {
   const [input, setInput] = useState("")
 
@@ -44,21 +45,11 @@ export default function TagsInput({
   }
 
   return (
-    <div className="flex items-center gap-1 overflow-x-auto rounded border border-gray-200 px-2 py-1 focus-within:ring-1 focus-within:ring-gray-300">
+    <div className="flex items-center gap-1 overflow-x-auto rounded border border-border bg-panel px-2 py-1 focus-within:border-primary transition-colors">
       {value.map((tag) => (
-        <span
-          key={tag}
-          className="flex items-center gap-1 rounded-full border border-gray-200 bg-gray-100 px-2 py-px text-xs text-gray-700"
-        >
+        <Badge key={tag} onRemove={() => removeTag(tag)}>
           {tag}
-          <button
-            type="button"
-            onClick={() => removeTag(tag)}
-            className="cursor-pointer leading-none text-gray-400 hover:text-gray-600"
-          >
-            &times;
-          </button>
-        </span>
+        </Badge>
       ))}
       <datalist id="tags-input-suggestions">
         {(suggestionsData?.tags ?? []).map((t) => (
@@ -72,7 +63,8 @@ export default function TagsInput({
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={value.length === 0 ? placeholder : ""}
-        className="min-w-16 flex-1 text-xs text-gray-700 placeholder-gray-400 outline-none"
+        className="min-w-16 flex-1 bg-transparent text-xs text-text placeholder-text-muted outline-none"
+        aria-label="Add tag"
       />
     </div>
   )

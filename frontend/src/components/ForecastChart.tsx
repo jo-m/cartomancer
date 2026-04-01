@@ -329,33 +329,36 @@ export default function ForecastChart({
   return (
     <div className="mt-4 space-y-2">
       <div>
-        <p className="mb-1 text-xs font-medium text-gray-500">
+        <p className="mb-1 text-xs font-medium text-text-muted">
           Temperature ({units.temperatureC})
         </p>
         <div className="relative">
           <ResponsiveContainer width="100%" height={180}>
             <ComposedChart data={data} margin={CHART_MARGIN}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--color-border)"
+              />
               <XAxis
                 dataKey="dKm"
                 type="number"
                 domain={["dataMin", "dataMax"]}
                 tickFormatter={xTickFormatter}
-                tick={{ fontSize: 11, fill: "#6b7280" }}
-                stroke="#d1d5db"
+                tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+                stroke="var(--color-border)"
                 label={{
                   value: "km",
                   position: "insideBottomRight",
                   offset: -5,
-                  style: { fontSize: 10, fill: "#9ca3af" },
+                  style: { fontSize: 10, fill: "var(--color-text-muted)" },
                 }}
               />
               <YAxis
                 domain={[minTemp, maxTemp]}
                 ticks={tempTicks}
                 allowDataOverflow
-                tick={{ fontSize: 11, fill: "#6b7280" }}
-                stroke="#d1d5db"
+                tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+                stroke="var(--color-border)"
                 width={Y_AXIS_WIDTH}
               />
               <Line
@@ -376,45 +379,48 @@ export default function ForecastChart({
           />
           <div
             ref={tempLineRef}
-            className="pointer-events-none absolute top-0 bottom-0 w-px bg-gray-400"
+            className="pointer-events-none absolute top-0 bottom-0 w-px bg-text-muted"
             style={{ display: "none" }}
           />
           <div
             ref={tempLabelRef}
-            className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm"
+            className="pointer-events-none absolute bottom-2 left-10 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
             style={{ display: "none" }}
           />
         </div>
       </div>
 
       <div>
-        <p className="mb-1 text-xs font-medium text-gray-500">
+        <p className="mb-1 text-xs font-medium text-text-muted">
           Precipitation ({units.precipitationRate})
         </p>
         <div className="relative">
           <ResponsiveContainer width="100%" height={120}>
             <ComposedChart data={data} margin={CHART_MARGIN}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--color-border)"
+              />
               <XAxis
                 dataKey="dKm"
                 type="number"
                 domain={["dataMin", "dataMax"]}
                 tickFormatter={xTickFormatter}
-                tick={{ fontSize: 11, fill: "#6b7280" }}
-                stroke="#d1d5db"
+                tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+                stroke="var(--color-border)"
                 label={{
                   value: "km",
                   position: "insideBottomRight",
                   offset: -5,
-                  style: { fontSize: 10, fill: "#9ca3af" },
+                  style: { fontSize: 10, fill: "var(--color-text-muted)" },
                 }}
               />
               <YAxis
                 domain={[0, 8]}
                 ticks={[0, 2, 4, 6, 8]}
                 allowDataOverflow
-                tick={{ fontSize: 11, fill: "#6b7280" }}
-                stroke="#d1d5db"
+                tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+                stroke="var(--color-border)"
                 width={Y_AXIS_WIDTH}
               />
               <Area
@@ -438,12 +444,12 @@ export default function ForecastChart({
           />
           <div
             ref={precipLineRef}
-            className="pointer-events-none absolute top-0 bottom-0 w-px bg-gray-400"
+            className="pointer-events-none absolute top-0 bottom-0 w-px bg-text-muted"
             style={{ display: "none" }}
           />
           <div
             ref={precipLabelRef}
-            className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm"
+            className="pointer-events-none absolute bottom-2 left-10 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
             style={{ display: "none" }}
           />
         </div>
@@ -451,7 +457,7 @@ export default function ForecastChart({
 
       {hasRelativeWind ? (
         <div>
-          <p className="mb-1 text-xs font-medium text-gray-500">
+          <p className="mb-1 text-xs font-medium text-text-muted">
             Head/tailwind ({units.windSpeedMs})
           </p>
           <div className="relative">
@@ -473,25 +479,28 @@ export default function ForecastChart({
                     <stop offset={1} stopColor="#10b981" stopOpacity={0.4} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--color-border)"
+                />
                 <XAxis
                   dataKey="dKm"
                   type="number"
                   domain={["dataMin", "dataMax"]}
                   tickFormatter={xTickFormatter}
-                  tick={{ fontSize: 11, fill: "#6b7280" }}
-                  stroke="#d1d5db"
+                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+                  stroke="var(--color-border)"
                   label={{
                     value: "km",
                     position: "insideBottomRight",
                     offset: -5,
-                    style: { fontSize: 10, fill: "#9ca3af" },
+                    style: { fontSize: 10, fill: "var(--color-text-muted)" },
                   }}
                 />
                 <YAxis
                   domain={headwindDomain}
-                  tick={{ fontSize: 11, fill: "#6b7280" }}
-                  stroke="#d1d5db"
+                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+                  stroke="var(--color-border)"
                   width={Y_AXIS_WIDTH}
                 />
                 <Area
@@ -505,7 +514,7 @@ export default function ForecastChart({
                 <Line
                   type="monotone"
                   dataKey="headwindMs"
-                  stroke="#6b7280"
+                  stroke="var(--color-text-muted)"
                   strokeWidth={1}
                   dot={false}
                   activeDot={false}
@@ -520,42 +529,45 @@ export default function ForecastChart({
             />
             <div
               ref={windLineRef}
-              className="pointer-events-none absolute top-0 bottom-0 w-px bg-gray-400"
+              className="pointer-events-none absolute top-0 bottom-0 w-px bg-text-muted"
               style={{ display: "none" }}
             />
             <div
               ref={windLabelRef}
-              className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm"
+              className="pointer-events-none absolute bottom-2 left-10 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
               style={{ display: "none" }}
             />
           </div>
         </div>
       ) : (
         <div>
-          <p className="mb-1 text-xs font-medium text-gray-500">
+          <p className="mb-1 text-xs font-medium text-text-muted">
             Wind ({units.windSpeedMs})
           </p>
           <div className="relative">
             <ResponsiveContainer width="100%" height={120}>
               <ComposedChart data={data} margin={CHART_MARGIN}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--color-border)"
+                />
                 <XAxis
                   dataKey="dKm"
                   type="number"
                   domain={["dataMin", "dataMax"]}
                   tickFormatter={xTickFormatter}
-                  tick={{ fontSize: 11, fill: "#6b7280" }}
-                  stroke="#d1d5db"
+                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+                  stroke="var(--color-border)"
                   label={{
                     value: "km",
                     position: "insideBottomRight",
                     offset: -5,
-                    style: { fontSize: 10, fill: "#9ca3af" },
+                    style: { fontSize: 10, fill: "var(--color-text-muted)" },
                   }}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: "#6b7280" }}
-                  stroke="#d1d5db"
+                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+                  stroke="var(--color-border)"
                   width={Y_AXIS_WIDTH}
                 />
                 <Line
@@ -576,12 +588,12 @@ export default function ForecastChart({
             />
             <div
               ref={windLineRef}
-              className="pointer-events-none absolute top-0 bottom-0 w-px bg-gray-400"
+              className="pointer-events-none absolute top-0 bottom-0 w-px bg-text-muted"
               style={{ display: "none" }}
             />
             <div
               ref={windLabelRef}
-              className="pointer-events-none absolute bottom-2 left-10 rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm"
+              className="pointer-events-none absolute bottom-2 left-10 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
               style={{ display: "none" }}
             />
           </div>
@@ -612,14 +624,14 @@ export default function ForecastChart({
       )}
 
       {attribution && (
-        <p className="mt-1 text-right text-[10px] text-gray-400">
+        <p className="mt-1 text-right text-[10px] text-text-muted">
           Source:{" "}
           {attribution.href ? (
             <a
               href={externalUrl(attribution.href)}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-gray-600"
+              className="underline hover:text-text-secondary transition-colors"
             >
               {attribution.text}
             </a>
@@ -741,7 +753,7 @@ function WindRose({
         textAnchor="middle"
         dominantBaseline="central"
         fontSize={10}
-        fill="#6b7280"
+        fill="var(--color-text-muted)"
       >
         {label}
       </text>
@@ -750,7 +762,7 @@ function WindRose({
 
   return (
     <div className="flex items-center gap-3">
-      <p className="text-xs font-medium text-gray-500 [writing-mode:vertical-lr] rotate-180">
+      <p className="text-xs font-medium text-text-muted [writing-mode:vertical-lr] rotate-180">
         {config.title}
       </p>
       <svg
@@ -764,7 +776,7 @@ function WindRose({
           cy={ROSE_CY}
           r={ROSE_MAX_R}
           fill="none"
-          stroke="#e5e7eb"
+          stroke="var(--color-border)"
           strokeWidth={0.5}
         />
         <circle
@@ -772,7 +784,7 @@ function WindRose({
           cy={ROSE_CY}
           r={ROSE_MAX_R / 2}
           fill="none"
-          stroke="#e5e7eb"
+          stroke="var(--color-border)"
           strokeWidth={0.5}
         />
         {/* Cross hairs. */}
@@ -781,7 +793,7 @@ function WindRose({
           y1={ROSE_CY - ROSE_MAX_R}
           x2={ROSE_CX}
           y2={ROSE_CY + ROSE_MAX_R}
-          stroke="#e5e7eb"
+          stroke="var(--color-border)"
           strokeWidth={0.5}
         />
         <line
@@ -789,7 +801,7 @@ function WindRose({
           y1={ROSE_CY}
           x2={ROSE_CX + ROSE_MAX_R}
           y2={ROSE_CY}
-          stroke="#e5e7eb"
+          stroke="var(--color-border)"
           strokeWidth={0.5}
         />
         {petals}

@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router-dom"
 import { $api } from "../api/client"
+import PageContainer from "../components/ui/PageContainer"
 
 function formatDistance(m: number): string {
   return `${(m / 1000).toFixed(1)} km`
@@ -21,29 +22,29 @@ export default function GroupDetail() {
   )
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
+    <PageContainer className="py-6">
       <Link
         to="/tracks/groups"
-        className="text-sm text-gray-500 hover:text-gray-700"
+        className="text-sm text-text-muted hover:text-text-secondary transition-colors"
       >
         &larr; All groups
       </Link>
 
-      {isLoading && <p className="mt-6 text-sm text-gray-500">Loading...</p>}
+      {isLoading && <p className="mt-6 text-sm text-text-muted">Loading...</p>}
       {error && (
-        <p className="mt-6 text-sm text-red-600">
+        <p role="alert" className="mt-6 text-sm text-error">
           {(error as unknown as Error).message}
         </p>
       )}
 
       {data && (
         <>
-          <h1 className="mt-4 text-lg font-semibold text-gray-900">
+          <h1 className="mt-4 text-lg font-semibold text-text">
             Group ({data.tracks.length} tracks)
           </h1>
 
           {data.tracks.length === 0 ? (
-            <p className="mt-6 text-sm text-gray-500">
+            <p className="mt-6 text-sm text-text-muted">
               No tracks in this group.
             </p>
           ) : (
@@ -52,9 +53,9 @@ export default function GroupDetail() {
                 <Link
                   key={track.uuid}
                   to={`/tracks/${track.uuid}`}
-                  className="group relative block rounded-lg border border-gray-200 bg-white hover:border-gray-400"
+                  className="group relative block rounded-lg border border-border bg-panel hover:border-border-hover transition-colors"
                 >
-                  <div className="aspect-square overflow-hidden rounded-t-lg bg-gray-50">
+                  <div className="aspect-square overflow-hidden rounded-t-lg bg-surface">
                     <img
                       src={`/api/tracks/${track.uuid}/preview.svg?size=256`}
                       alt="Track preview"
@@ -68,16 +69,16 @@ export default function GroupDetail() {
                         alt=""
                         className="h-4 w-4 shrink-0 rounded-full"
                       />
-                      <p className="truncate text-sm font-medium text-gray-900">
+                      <p className="truncate text-sm font-medium text-text">
                         {track.name}
                       </p>
                     </div>
-                    <p className="mt-0.5 text-xs text-gray-500">
+                    <p className="mt-0.5 text-xs text-text-muted">
                       {track.user.name} &middot;{" "}
                       {formatDistance(track.totalDistanceM)} &middot;{" "}
                       {formatAscent(track.totalAscentM)}
                     </p>
-                    <div className="mt-1.5 overflow-hidden rounded bg-gray-50">
+                    <div className="mt-1.5 overflow-hidden rounded bg-surface">
                       <img
                         src={`/api/tracks/${track.uuid}/profile.svg?size=256`}
                         alt="Elevation profile"
@@ -91,6 +92,6 @@ export default function GroupDetail() {
           )}
         </>
       )}
-    </div>
+    </PageContainer>
   )
 }

@@ -9,7 +9,7 @@ Your personal GPX track library.
 There are a bazillion route planning and activity tracking apps, but none of them is good at managing a library of existing tracks[^1].
 This one tries to be.
 
-**⚠️ Note**: This is a work in progress and not yet ready for deployment. There are also no releases to download yet, you need a Go toolchain.
+**⚠️ Note**: This is a work in progress and not yet ready for deployment. There are also no pre built releases, you need a (recent) Go toolchain.
 
 ## Features
 

@@ -5,6 +5,11 @@ import { fetchClient, $api } from "../api/client"
 import { useSession } from "../context/SessionContext"
 import TagsInput from "../components/TagsInput"
 import Toast from "../components/Toast"
+import Badge from "../components/ui/Badge"
+import Card from "../components/ui/Card"
+import Select from "../components/ui/Select"
+import SectionHeading from "../components/ui/SectionHeading"
+import PageContainer from "../components/ui/PageContainer"
 import {
   SPORT_LABELS,
   SUB_SPORT_LABELS,
@@ -80,8 +85,6 @@ function formatAscent(m: number): string {
 
 export default function Upload() {
   const queryClient = useQueryClient()
-  // useSession is called before useState so user.uuid is available for the
-  // lazy initializer. ProtectedRoute guarantees user is non-null here.
   const { user } = useSession()
   const userUuid = user!.uuid
   const [uploads, setUploads] = useState<FileUpload[]>(() =>
@@ -276,20 +279,24 @@ export default function Upload() {
   const pendingTracks = editingData?.tracks ?? []
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="mb-6 text-xl font-semibold text-gray-900">
-        Upload Tracks
-      </h1>
+    <PageContainer size="md" className="py-10">
+      <h1 className="mb-6 text-xl font-semibold text-text">Upload Tracks</h1>
 
       <div
         onClick={() => inputRef.current?.click()}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
+        role="button"
+        tabIndex={0}
+        aria-label="Drop files or click to select"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") inputRef.current?.click()
+        }}
         className={`cursor-pointer rounded-lg border-2 border-dashed p-12 text-center transition-colors ${
           isDragging
-            ? "border-blue-400 bg-blue-50"
-            : "border-gray-300 bg-white hover:border-gray-400"
+            ? "border-primary bg-drop-zone-active"
+            : "border-border bg-drop-zone hover:border-border-hover"
         }`}
       >
         <input
@@ -300,82 +307,82 @@ export default function Upload() {
           className="hidden"
           onChange={handleChange}
         />
-        <p className="text-sm text-gray-500">
-          Drop <span className="font-medium text-gray-700">.gpx</span> or{" "}
-          <span className="font-medium text-gray-700">.fit</span> files here, or
-          click to select
+        <p className="text-sm text-text-muted">
+          Drop <span className="font-medium text-text-secondary">.gpx</span> or{" "}
+          <span className="font-medium text-text-secondary">.fit</span> files
+          here, or click to select
         </p>
       </div>
 
       {activeUploads.length > 0 && (
-        <ul className="mt-4 divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
-          {activeUploads.map((u) => (
-            <li
-              key={u.id}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm"
-            >
-              <span className="min-w-0 flex-1 truncate text-gray-800">
-                {u.filename}
-              </span>
-              {u.status === "pending" && (
-                <span className="shrink-0 text-gray-400">Pending</span>
-              )}
-              {u.status === "uploading" && (
-                <span className="shrink-0 text-blue-500">Uploading…</span>
-              )}
-            </li>
-          ))}
-        </ul>
+        <Card className="mt-4">
+          <ul className="divide-y divide-border">
+            {activeUploads.map((u) => (
+              <li
+                key={u.id}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm"
+              >
+                <span className="min-w-0 flex-1 truncate text-text">
+                  {u.filename}
+                </span>
+                {u.status === "pending" && (
+                  <span className="shrink-0 text-text-muted">Pending</span>
+                )}
+                {u.status === "uploading" && (
+                  <span className="shrink-0 text-info">Uploading...</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
 
       {failedUploads.length > 0 && (
         <div className="mt-4">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Failed uploads
-            </p>
+            <SectionHeading>Failed uploads</SectionHeading>
             {failedUploads.length > 1 && (
               <button
                 onClick={dismissAllErrors}
-                className="cursor-pointer text-xs text-gray-400 hover:text-gray-600"
+                className="cursor-pointer text-xs text-text-muted hover:text-text-secondary transition-colors"
               >
                 Dismiss all
               </button>
             )}
           </div>
-          <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
-            {failedUploads.map((u) => (
-              <li
-                key={u.id}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm"
-              >
-                <span className="min-w-0 flex-1 truncate text-gray-800">
-                  {u.filename}
-                </span>
-                <span className="shrink-0 text-red-600">{u.errorMsg}</span>
-                <button
-                  onClick={() => dismiss(u.id)}
-                  className="shrink-0 cursor-pointer text-xs text-gray-300 hover:text-gray-500"
+          <Card>
+            <ul className="divide-y divide-border">
+              {failedUploads.map((u) => (
+                <li
+                  key={u.id}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm"
                 >
-                  Dismiss
-                </button>
-              </li>
-            ))}
-          </ul>
+                  <span className="min-w-0 flex-1 truncate text-text">
+                    {u.filename}
+                  </span>
+                  <span className="shrink-0 text-error">{u.errorMsg}</span>
+                  <button
+                    onClick={() => dismiss(u.id)}
+                    className="shrink-0 cursor-pointer text-xs text-text-muted hover:text-text-secondary transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Card>
         </div>
       )}
 
       {(editingLoading || pendingTracks.length > 0) && (
         <div className="mt-8">
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Pending review
-            </p>
+            <SectionHeading>Pending review</SectionHeading>
             {pendingTracks.length > 1 && (
               <button
                 onClick={dismissAllTracks}
                 disabled={dismissMutation.isPending}
-                className="cursor-pointer text-xs text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
               >
                 Dismiss all
               </button>
@@ -386,40 +393,40 @@ export default function Upload() {
               <button
                 onClick={() => bulkSetVisibility(true)}
                 disabled={bulkEditMutation.isPending}
-                className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
               >
                 Set all public
               </button>
               <button
                 onClick={() => bulkSetVisibility(false)}
                 disabled={bulkEditMutation.isPending}
-                className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
               >
                 Set all private
               </button>
-              <span className="text-gray-200">|</span>
-              <select
+              <span className="text-border">|</span>
+              <Select
                 value={bulkSport}
                 onChange={(e) => {
                   setBulkSport(e.target.value)
                   setBulkSubSport("")
                 }}
-                className="cursor-pointer rounded border border-gray-200 px-1.5 py-0.5 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                className="px-1.5 py-0.5 text-xs"
               >
-                <option value="">Sport…</option>
+                <option value="">Sport...</option>
                 {Object.entries(SPORT_LABELS).map(([id, label]) => (
                   <option key={id} value={id}>
                     {label}
                   </option>
                 ))}
-              </select>
+              </Select>
               {bulkSport !== "" && (
-                <select
+                <Select
                   value={bulkSubSport}
                   onChange={(e) => setBulkSubSport(e.target.value)}
-                  className="cursor-pointer rounded border border-gray-200 px-1.5 py-0.5 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  className="px-1.5 py-0.5 text-xs"
                 >
-                  <option value="">Sub-sport…</option>
+                  <option value="">Sub-sport...</option>
                   {(SUB_SPORTS_BY_SPORT[parseInt(bulkSport)] ?? []).map(
                     (id) => (
                       <option key={id} value={String(id)}>
@@ -427,22 +434,22 @@ export default function Upload() {
                       </option>
                     )
                   )}
-                </select>
+                </Select>
               )}
               <button
                 onClick={bulkSetSport}
                 disabled={!bulkSport || bulkEditMutation.isPending}
-                className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
               >
                 Set sport on all
               </button>
-              <span className="text-gray-200">|</span>
+              <span className="text-border">|</span>
               <div className="flex min-w-48 flex-1 items-center gap-2">
                 <TagsInput value={bulkTags} onChange={setBulkTags} />
                 <button
                   onClick={() => void bulkSetTags()}
                   disabled={bulkTags.length === 0 || bulkEditMutation.isPending}
-                  className="shrink-0 cursor-pointer text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                  className="shrink-0 cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
                 >
                   Set tags on all
                 </button>
@@ -450,68 +457,66 @@ export default function Upload() {
             </div>
           )}
           {editingLoading ? (
-            <p className="text-sm text-gray-400">Loading…</p>
+            <p className="text-sm text-text-muted">Loading...</p>
           ) : (
-            <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
-              {pendingTracks.map((track) => (
-                <li
-                  key={track.uuid}
-                  className="flex items-center gap-3 px-4 py-2.5"
-                >
-                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-gray-50">
-                    <img
-                      src={`/api/tracks/${track.uuid}/preview.svg?size=40`}
-                      alt="Track preview"
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      to={`/tracks/${track.uuid}`}
-                      className="block truncate text-sm font-medium text-gray-900 hover:underline"
-                    >
-                      {track.name}
-                    </Link>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                      <span className="text-xs text-gray-500">
-                        {formatDistance(track.totalDistanceM)} ·{" "}
-                        {formatAscent(track.totalAscentM)}
-                      </span>
-                      <span
-                        className={`text-xs ${track.public ? "text-green-600" : "text-gray-400"}`}
-                      >
-                        {track.public ? "public" : "private"}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {SPORT_LABELS[track.sport] ?? track.sport}
-                        {track.subSport !== 0 && (
-                          <>
-                            {" "}
-                            (
-                            {SUB_SPORT_LABELS[track.subSport] ?? track.subSport}
-                            )
-                          </>
-                        )}
-                      </span>
-                      {track.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full border border-gray-200 bg-gray-100 px-2 py-px text-xs text-gray-600"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => dismissTrack(track.uuid)}
-                    className="shrink-0 cursor-pointer text-xs text-gray-300 hover:text-gray-500"
+            <Card>
+              <ul className="divide-y divide-border">
+                {pendingTracks.map((track) => (
+                  <li
+                    key={track.uuid}
+                    className="flex items-center gap-3 px-4 py-2.5"
                   >
-                    Dismiss
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-surface">
+                      <img
+                        src={`/api/tracks/${track.uuid}/preview.svg?size=40`}
+                        alt="Track preview"
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        to={`/tracks/${track.uuid}`}
+                        className="block truncate text-sm font-medium text-text hover:underline"
+                      >
+                        {track.name}
+                      </Link>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs text-text-muted">
+                          {formatDistance(track.totalDistanceM)} ·{" "}
+                          {formatAscent(track.totalAscentM)}
+                        </span>
+                        <span
+                          className={`text-xs ${track.public ? "text-success" : "text-text-muted"}`}
+                        >
+                          {track.public ? "public" : "private"}
+                        </span>
+                        <span className="text-xs text-text-muted">
+                          {SPORT_LABELS[track.sport] ?? track.sport}
+                          {track.subSport !== 0 && (
+                            <>
+                              {" "}
+                              (
+                              {SUB_SPORT_LABELS[track.subSport] ??
+                                track.subSport}
+                              )
+                            </>
+                          )}
+                        </span>
+                        {track.tags.map((tag) => (
+                          <Badge key={tag}>{tag}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => dismissTrack(track.uuid)}
+                      className="shrink-0 cursor-pointer text-xs text-text-muted hover:text-text-secondary transition-colors"
+                    >
+                      Dismiss
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </Card>
           )}
         </div>
       )}
@@ -523,6 +528,6 @@ export default function Upload() {
           onDismiss={() => setToastError(null)}
         />
       )}
-    </div>
+    </PageContainer>
   )
 }
