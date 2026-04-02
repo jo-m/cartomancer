@@ -11,7 +11,6 @@ import Card from "../components/ui/Card"
 import Select from "../components/ui/Select"
 import SectionHeading from "../components/ui/SectionHeading"
 import PageContainer from "../components/ui/PageContainer"
-import SvgIcon from "../assets/SvgIcon"
 import {
   SPORT_LABELS,
   SUB_SPORT_LABELS,
