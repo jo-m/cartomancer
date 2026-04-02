@@ -24,10 +24,17 @@ export default function About() {
               <tbody className="divide-y divide-border">
                 <tr>
                   <td className="py-2 px-4 pr-4 font-medium text-text-muted w-32">
-                    Go version
+                    Source code
                   </td>
                   <td className="py-2 px-4 font-mono text-text">
-                    {data.goVersion}
+                    <a
+                      href="https://github.com/jo-m/cartomancer"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline hover:text-text-secondary transition-colors"
+                    >
+                      github.com/jo-m/cartomancer
+                    </a>
                   </td>
                 </tr>
                 <tr>
@@ -43,6 +50,14 @@ export default function About() {
                     >
                       {data.path}
                     </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-4 pr-4 font-medium text-text-muted w-32">
+                    Go version
+                  </td>
+                  <td className="py-2 px-4 font-mono text-text">
+                    {data.goVersion}
                   </td>
                 </tr>
                 <tr>

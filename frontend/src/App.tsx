@@ -24,6 +24,7 @@ import SegmentDetail from "./pages/SegmentDetail"
 import AdminUsers from "./pages/AdminUsers"
 import AdminForecasts from "./pages/AdminForecasts"
 import About from "./pages/About"
+import Help from "./pages/Help"
 import Leaving from "./pages/Leaving"
 import NotFound from "./pages/NotFound"
 
@@ -129,6 +130,7 @@ export default function App() {
                 }
               />
               <Route path="/about" element={<About />} />
+              <Route path="/help" element={<Help />} />
               <Route path="/leaving" element={<Leaving />} />
               <Route
                 path="/admin/users"

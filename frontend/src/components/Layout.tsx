@@ -340,12 +340,18 @@ export default function Layout() {
               className="h-2.5 w-40 text-border"
             />
           </div>
-          <div className="flex items-center justify-start text-xs text-text-muted">
+          <div className="flex items-center gap-4 justify-start text-xs text-text-muted">
             <Link
               to="/about"
               className="hover:text-text-secondary transition-colors"
             >
               About
+            </Link>
+            <Link
+              to="/help"
+              className="hover:text-text-secondary transition-colors"
+            >
+              Help
             </Link>
           </div>
         </div>
