@@ -55,15 +55,49 @@ export default function Layout() {
       >
         <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center gap-3" aria-label="Home">
+            <Link
+              to="/"
+              className="relative z-50 flex flex-col items-center"
+              aria-label="Home"
+            >
               <span
                 className="-my-4 block h-16 w-16 shrink-0 rounded-full border border-border-hover bg-nav text-nav-text [&>svg]:h-full [&>svg]:w-full"
                 dangerouslySetInnerHTML={{ __html: logoSvg }}
                 aria-hidden="true"
               />
-              <span className="text-lg font-semibold tracking-wide text-nav-text hover:text-nav-text/80 transition-colors">
-                {appConfig?.instanceName}
-              </span>
+              {appConfig?.instanceName && (
+                <svg
+                  className="absolute top-full -mt-4.5 -z-10 h-auto w-20 overflow-visible"
+                  viewBox="0 0 100 30"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <path
+                      id="title-arc"
+                      d="M 8,28 A 50,50 0 0,0 92,28"
+                      fill="none"
+                    />
+                  </defs>
+                  <path
+                    d="M 8,28 A 50,50 0 0,0 92,28"
+                    className="stroke-nav"
+                    fill="none"
+                    strokeWidth="20"
+                    strokeLinecap="round"
+                  />
+                  <text
+                    className="fill-nav-text font-semibold"
+                    fontSize="13"
+                    textAnchor="middle"
+                    letterSpacing="1"
+                    dy="4"
+                  >
+                    <textPath href="#title-arc" startOffset="50%">
+                      {appConfig.instanceName}
+                    </textPath>
+                  </text>
+                </svg>
+              )}
             </Link>
             <Link
               to="/tracks"
