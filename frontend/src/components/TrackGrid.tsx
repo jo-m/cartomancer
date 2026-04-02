@@ -10,7 +10,6 @@ import elevationSvg from "../assets/elevation.svg?raw"
 import temperatureSvg from "../assets/temperature.svg?raw"
 import rainSvg from "../assets/rain.svg?raw"
 import cardCornerSvg from "../assets/card-corner.svg?raw"
-import ornamentDividerSvg from "../assets/ornament-divider.svg?raw"
 import TagsInput from "./TagsInput"
 import Button from "./ui/Button"
 import Select from "./ui/Select"
@@ -684,10 +683,6 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                       />
                     </div>
                     <div className="px-2.5 pb-2.5">
-                      <SvgIcon
-                        svg={ornamentDividerSvg}
-                        className="mx-auto mb-1.5 h-2 w-full text-border"
-                      />
                       <div className="flex items-center gap-1.5">
                         <img
                           src={`/api/users/${track.user.uuid}/avatar`}

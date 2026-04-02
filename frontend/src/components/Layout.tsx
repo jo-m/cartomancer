@@ -334,10 +334,12 @@ export default function Layout() {
       </main>
       <footer className="border-t border-border bg-panel">
         <div className="mx-auto max-w-5xl px-4 pt-3 pb-2">
-          <SvgIcon
-            svg={ornamentDividerSvg}
-            className="mx-auto mb-2 h-2.5 w-40 text-border"
-          />
+          <div className="mb-2 flex justify-center">
+            <SvgIcon
+              svg={ornamentDividerSvg}
+              className="h-2.5 w-40 text-border"
+            />
+          </div>
           <div className="flex items-center justify-start text-xs text-text-muted">
             <Link
               to="/about"
