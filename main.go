@@ -46,7 +46,7 @@ type setpassCmd struct {
 type deletealltracksCmd struct{}
 
 type config struct {
-	Serve           *serveCmd           `arg:"subcommand:serve" help:"start the web server and background jobs (default)"`
+	Serve           *serveCmd           `arg:"subcommand:serve" help:"start the web server and background jobs"`
 	Setpass         *setpassCmd         `arg:"subcommand:setpass" help:"set password for a user"`
 	Deletealltracks *deletealltracksCmd `arg:"subcommand:deletealltracks" help:"delete all tracks (dev mode only)"`
 
@@ -238,11 +238,15 @@ func main() {
 
 	// Parse args.
 	c := config{}
-	//revive:disable:superfluous-else
-	if p, err := arg.NewParser(arg.Config{Out: os.Stderr}, &c); err != nil {
+	p, err := arg.NewParser(arg.Config{Out: os.Stderr}, &c)
+	if err != nil {
 		panic(err)
-	} else {
-		p.MustParse(os.Args[1:])
+	}
+	p.MustParse(os.Args[1:])
+
+	if c.Serve == nil && c.Setpass == nil && c.Deletealltracks == nil {
+		p.WriteHelp(os.Stdout)
+		os.Exit(0)
 	}
 
 	if err := c.validate(); err != nil {

@@ -19,10 +19,30 @@ This one tries to be.
 - Except for map, does not need any live APIs. Instead, will download data in the background and query that locally (meteo and geo names).
 - Easy to self host, single binary, SQLite only.
 
+## Deployment
+
+You may deploy the binary or the Docker image.
+Configuration is possible via env vars or CLI flags, see [OPTIONS.md](OPTIONS.md).
+
+The absolute minimum for a production deployment:
+
+```bash
+export APP_INIT_ADMIN_EMAIL=admin@example.org # Password will be printed to log once.
+export APP_REGISTRATION_ENABLED=true
+# Those should be persisted, otherwise sessions are lost between restarts.
+export SESSION_JWT_SECRET=$(openssl rand -hex 24)
+export APP_EMAIL_JWT_SECRET=$(openssl rand -hex 24)
+# You may also want to configure email sending (MAIL_...).
+cartomancer serve --log-pretty
+```
+
+On startup, forecast files and the geonames database will be downloaded and indexed, which hogs the database for a while.
+
 ## Development
 
 `.envrc` contains the default dev config.
 Use (direnv)[https://direnv.net/] to load it.
+Otherwise, the Go toolchain and Node/npm are required.
 
 ```bash
 # Starts the backend, with auto reload
@@ -64,16 +84,25 @@ open http://localhost:8081/jo-m.ch/go/cartomancer
 ### Email
 
 ```bash
-# Run the mock emails server (in a separate shell)
+# Run the mock email server (in a separate shell)
 go tool MailHog
 open http://127.0.0.1:8025/
 ```
 
-### Docker
+### Build
+
+The compiled frontend assets are embedded directly into the binary.
+Thus, the frontend needs to be built before the backend.
+`make build` will do all of that.
+
+### Docker image
 
 ```bash
 docker build -t cartomancer .
-docker run -it --rm -p 8080:8080 --mount type=volume,src=cartomancer-data,dst=/home/nonroot/data cartomancer
+docker run -it --rm \
+  -p 8080:8080 \
+  --mount type=volume,src=cartomancer-data,dst=/home/nonroot/data \
+  cartomancer
 ```
 
 [^1]: There is https://wanderer.to/, which is quite nice. But it has many features I don't need, and is missing some I want.

@@ -7,3 +7,6 @@
 
 # Frontend build
 /static
+
+# Backend build
+/cartomancer

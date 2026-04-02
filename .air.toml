@@ -1,3 +1,5 @@
+#:schema https://json.schemastore.org/any.json
+
 root = "."
 tmp_dir = "tmp"
 
@@ -5,6 +7,7 @@ tmp_dir = "tmp"
 pre_cmd = ["make gen"]
 cmd = "go build -o ./tmp/main ."
 bin = "tmp/main"
+args_bin = ["serve"]
 log = "./tmp/air.log"
 
 include_dir = []
