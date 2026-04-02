@@ -1,6 +1,16 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { Link } from "react-router-dom"
 import { $api } from "../api/client"
+import {
+  useUrlState,
+  stringParam,
+  numberParam,
+  boolParam,
+  numArrayParam,
+  strArrayParam,
+  rangeParam,
+  enumParam,
+} from "../hooks/useUrlState"
 import SvgPreview from "./SvgPreview"
 import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
@@ -253,23 +263,77 @@ interface LiveFilters {
   sortOrder: SortOrder
 }
 
-const initialFilters: LiveFilters = {
-  search: "",
-  distRange: null,
-  ascentRange: null,
-  visibility: "all",
-  trackType: "all",
-  onlyStarred: false,
-  sports: [],
-  subSports: [],
-  tags: [],
-  tagsAnd: false,
-  sortBy: "created_at",
-  sortOrder: "desc",
-}
-
 export interface TrackGridProps {
   mode: "public" | "user"
+}
+
+const urlSchema = {
+  q: stringParam(),
+  dist: rangeParam(),
+  ascent: rangeParam(),
+  vis: enumParam("all" as const, ["all", "public", "private"] as const),
+  type: enumParam("all" as const, ["all", "recorded", "planned"] as const),
+  starred: boolParam(),
+  sports: numArrayParam(),
+  subsports: numArrayParam(),
+  tags: strArrayParam(),
+  tagsAnd: boolParam(),
+  sort: enumParam(
+    "created_at" as SortBy,
+    ["created_at", "total_distance_m", "total_ascent_m"] as const
+  ),
+  order: enumParam("desc" as SortOrder, ["asc", "desc"] as const),
+  page: numberParam(1),
+  pageSize: numberParam(DEFAULT_PAGE_SIZE),
+}
+
+/** Converts URL state to LiveFilters. */
+function urlToFilters(url: {
+  q: string
+  dist: [number, number] | null
+  ascent: [number, number] | null
+  vis: "all" | "public" | "private"
+  type: "all" | "recorded" | "planned"
+  starred: boolean
+  sports: number[]
+  subsports: number[]
+  tags: string[]
+  tagsAnd: boolean
+  sort: SortBy
+  order: SortOrder
+}): LiveFilters {
+  return {
+    search: url.q,
+    distRange: url.dist,
+    ascentRange: url.ascent,
+    visibility: url.vis,
+    trackType: url.type,
+    onlyStarred: url.starred,
+    sports: url.sports,
+    subSports: url.subsports,
+    tags: url.tags,
+    tagsAnd: url.tagsAnd,
+    sortBy: url.sort,
+    sortOrder: url.order,
+  }
+}
+
+/** Converts LiveFilters to URL state params. */
+function filtersToUrl(f: LiveFilters) {
+  return {
+    q: f.search,
+    dist: f.distRange,
+    ascent: f.ascentRange,
+    vis: f.visibility,
+    type: f.trackType,
+    starred: f.onlyStarred,
+    sports: f.sports,
+    subsports: f.subSports,
+    tags: f.tags,
+    tagsAnd: f.tagsAnd,
+    sort: f.sortBy,
+    order: f.sortOrder,
+  }
 }
 
 /** TrackGrid renders a filterable, paginated grid of track cards. */
@@ -291,17 +355,32 @@ export default function TrackGrid({ mode }: TrackGridProps) {
       ? Math.ceil(stats.totalAscentM.max / 10) * 10
       : 0
 
-  const [live, setLive] = useState<LiveFilters>(initialFilters)
-  const [applied, setApplied] = useState<LiveFilters>(initialFilters)
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
+  const schema = useMemo(() => urlSchema, [])
+  const [urlState, setUrlState] = useUrlState(schema)
 
+  const applied = useMemo(() => urlToFilters(urlState), [urlState])
+  const [live, setLive] = useState<LiveFilters>(() => applied)
+  const page = urlState.page
+  const pageSize = urlState.pageSize
+
+  function setPage(update: number | ((prev: number) => number)) {
+    const next = typeof update === "function" ? update(page) : update
+    setUrlState({ page: next })
+  }
+
+  function setPageSize(size: number) {
+    setUrlState({ pageSize: size, page: 1 })
+  }
+
+  const prevLiveRef = useRef(live)
   useEffect(() => {
+    if (prevLiveRef.current === live) return
+    prevLiveRef.current = live
     const timer = setTimeout(() => {
-      setApplied(live)
-      setPage(1)
+      setUrlState({ ...filtersToUrl(live), page: 1 })
     }, 200)
     return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live])
 
   const distMin = live.distRange?.[0] ?? 0
@@ -782,7 +861,6 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                 value={String(pageSize)}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value))
-                  setPage(1)
                 }}
                 className="px-2 py-1.5 text-sm"
                 aria-label="Page size"

@@ -71,7 +71,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Theming
   - [x] Branding
   - [x] Favicon, Logo
-  - [ ] Move at least some page state to URL in frontend
+  - [x] Move at least some page state to URL in frontend
   - [x] Ensure correct cursors used everywhere (buttons etc), why is this not standard?
   - [x] Mobile friendly and responsive
   - [x] Use full width on desktop

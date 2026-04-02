@@ -1,10 +1,11 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { $api, fetchClient } from "../api/client"
 import { useSession } from "../context/SessionContext"
+import { useUrlState, stringParam } from "../hooks/useUrlState"
 import Toast from "../components/Toast"
 import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
@@ -28,7 +29,10 @@ type UserFormData = z.infer<typeof userSchema>
 
 export default function AdminUsers() {
   const { user: currentUser } = useSession()
-  const [search, setSearch] = useState("")
+  const searchSchema = useMemo(() => ({ q: stringParam() }), [])
+  const [urlState, setUrlState] = useUrlState(searchSchema)
+  const search = urlState.q
+  const setSearch = (v: string) => setUrlState({ q: v })
   const [showCreate, setShowCreate] = useState(false)
   const [initialPassword, setInitialPassword] = useState<string | null>(null)
   const [editingUuid, setEditingUuid] = useState<string | null>(null)

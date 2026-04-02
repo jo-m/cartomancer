@@ -1,6 +1,7 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { $api } from "../api/client"
+import { useUrlState, stringParam } from "../hooks/useUrlState"
 import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
 
@@ -13,7 +14,10 @@ function formatBytes(bytes: number): string {
 
 export default function AdminForecasts() {
   const [expandedId, setExpandedId] = useState<number | null>(null)
-  const [search, setSearch] = useState("")
+  const searchSchema = useMemo(() => ({ q: stringParam() }), [])
+  const [urlState, setUrlState] = useUrlState(searchSchema)
+  const search = urlState.q
+  const setSearch = (v: string) => setUrlState({ q: v })
 
   const { data } = $api.useQuery("get", "/admin/forecasts", {})
   const forecasts = data?.forecasts ?? []
