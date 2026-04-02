@@ -4,6 +4,13 @@ import { $api } from "../api/client"
 import SvgPreview from "./SvgPreview"
 import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
+import SvgIcon from "../assets/SvgIcon"
+import distanceSvg from "../assets/distance.svg?raw"
+import elevationSvg from "../assets/elevation.svg?raw"
+import temperatureSvg from "../assets/temperature.svg?raw"
+import rainSvg from "../assets/rain.svg?raw"
+import cardCornerSvg from "../assets/card-corner.svg?raw"
+import ornamentDividerSvg from "../assets/ornament-divider.svg?raw"
 import TagsInput from "./TagsInput"
 import Button from "./ui/Button"
 import Select from "./ui/Select"
@@ -628,81 +635,127 @@ export default function TrackGrid({ mode }: TrackGridProps) {
               No tracks found.
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
               {data.tracks.map((track) => (
                 <Link
                   key={track.uuid}
                   to={`/tracks/${track.uuid}`}
-                  className="group relative block rounded-lg border border-border bg-panel hover:border-border-hover transition-colors"
+                  className="tarot-card group relative block"
                 >
-                  {user && (
-                    <button
-                      onClick={(e) =>
-                        toggleStar(e, track.uuid, track.starred ?? false)
-                      }
-                      className="absolute right-1.5 top-1.5 z-10 cursor-pointer rounded bg-panel/80 p-1 hover:bg-panel"
-                      aria-label={track.starred ? "Unstar track" : "Star track"}
-                    >
-                      <StarIcon
-                        className={`h-4 w-4 ${track.starred ? "text-star" : "text-text-muted"}`}
-                      />
-                    </button>
-                  )}
-                  <div className="aspect-square overflow-hidden rounded-t-lg bg-surface text-track">
-                    <SvgPreview
-                      src={`/api/tracks/${track.uuid}/preview.svg?size=256`}
-                      alt="Track preview"
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                  <div className="p-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <img
-                        src={`/api/users/${track.user.uuid}/avatar`}
-                        alt=""
-                        className="h-4 w-4 shrink-0 rounded-full"
-                      />
-                      <p className="truncate text-sm font-medium text-text">
-                        {track.name}
-                      </p>
-                    </div>
-                    <p className="mt-0.5 text-xs text-text-muted">
-                      {track.user.name} &middot;{" "}
-                      {formatDistance(track.totalDistanceM)} &middot;{" "}
-                      {formatAscent(track.totalAscentM)}
-                    </p>
-                    <div className="mt-1.5 overflow-hidden rounded bg-surface text-track">
-                      <SvgPreview
-                        src={`/api/tracks/${track.uuid}/profile.svg?size=256`}
-                        alt="Elevation profile"
-                        className="w-full"
-                      />
-                    </div>
-                    {track.forecast && (
-                      <div
-                        className="mt-1.5 flex items-center gap-x-2 text-xs"
-                        title={`Forecast: ${new Date(track.forecast.forecastReferenceTime).toLocaleString()}\nStart: ${new Date(track.forecast.startTime).toLocaleString()}`}
+                  {/* Corner flourishes */}
+                  <SvgIcon
+                    svg={cardCornerSvg}
+                    className="tarot-corner -top-0.5 -left-0.5"
+                  />
+                  <SvgIcon
+                    svg={cardCornerSvg}
+                    className="tarot-corner -top-0.5 -right-0.5 -scale-x-100"
+                  />
+                  <SvgIcon
+                    svg={cardCornerSvg}
+                    className="tarot-corner -bottom-0.5 -left-0.5 -scale-y-100"
+                  />
+                  <SvgIcon
+                    svg={cardCornerSvg}
+                    className="tarot-corner -bottom-0.5 -right-0.5 -scale-x-100 -scale-y-100"
+                  />
+
+                  <div className="tarot-card-inner">
+                    {user && (
+                      <button
+                        onClick={(e) =>
+                          toggleStar(e, track.uuid, track.starred ?? false)
+                        }
+                        className="absolute right-3 top-3 z-10 cursor-pointer rounded bg-panel/80 p-1 hover:bg-panel transition-colors"
+                        aria-label={
+                          track.starred ? "Unstar track" : "Star track"
+                        }
                       >
-                        {track.forecast.avgTemperatureC != null && (
-                          <span className="text-error">
-                            {track.forecast.avgTemperatureC.toFixed(0)}&deg;C
-                          </span>
-                        )}
-                        {track.forecast.totalPrecipitationMm != null && (
-                          <span className="text-info">
-                            {track.forecast.totalPrecipitationMm < 0.1
-                              ? "dry"
-                              : `${track.forecast.totalPrecipitationMm.toFixed(1)} mm`}
-                          </span>
-                        )}
-                        <MiniWindRose
-                          head={track.forecast.windHeadMs}
-                          right={track.forecast.windRightMs}
-                          tail={track.forecast.windTailMs}
-                          left={track.forecast.windLeftMs}
+                        <StarIcon
+                          className={`h-4 w-4 ${track.starred ? "text-star" : "text-text-muted"}`}
+                        />
+                      </button>
+                    )}
+                    <div className="aspect-square overflow-hidden bg-surface text-track">
+                      <SvgPreview
+                        src={`/api/tracks/${track.uuid}/preview.svg?size=256`}
+                        alt="Track preview"
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                    <div className="px-2.5 pb-2.5">
+                      <SvgIcon
+                        svg={ornamentDividerSvg}
+                        className="mx-auto mb-1.5 h-2 w-full text-border"
+                      />
+                      <div className="flex items-center gap-1.5">
+                        <img
+                          src={`/api/users/${track.user.uuid}/avatar`}
+                          alt=""
+                          className="h-4 w-4 shrink-0 rounded-full"
+                        />
+                        <p className="truncate font-[Fondamento] text-sm font-medium text-text">
+                          {track.name}
+                        </p>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-text-muted">
+                        <span>{track.user.name}</span>
+                        <span className="flex items-center gap-0.5">
+                          <SvgIcon
+                            svg={distanceSvg}
+                            className="inline h-3 w-3"
+                          />
+                          {formatDistance(track.totalDistanceM)}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <SvgIcon
+                            svg={elevationSvg}
+                            className="inline h-3 w-3"
+                          />
+                          {formatAscent(track.totalAscentM)}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 overflow-hidden rounded bg-surface text-track">
+                        <SvgPreview
+                          src={`/api/tracks/${track.uuid}/profile.svg?size=256`}
+                          alt="Elevation profile"
+                          className="w-full"
                         />
                       </div>
-                    )}
+                      {track.forecast && (
+                        <div
+                          className="mt-1.5 flex items-center gap-x-2 text-xs"
+                          title={`Forecast: ${new Date(track.forecast.forecastReferenceTime).toLocaleString()}\nStart: ${new Date(track.forecast.startTime).toLocaleString()}`}
+                        >
+                          {track.forecast.avgTemperatureC != null && (
+                            <span className="flex items-center gap-0.5 text-error">
+                              <SvgIcon
+                                svg={temperatureSvg}
+                                className="inline h-3 w-3"
+                              />
+                              {track.forecast.avgTemperatureC.toFixed(0)}&deg;C
+                            </span>
+                          )}
+                          {track.forecast.totalPrecipitationMm != null && (
+                            <span className="flex items-center gap-0.5 text-info">
+                              <SvgIcon
+                                svg={rainSvg}
+                                className="inline h-3 w-3"
+                              />
+                              {track.forecast.totalPrecipitationMm < 0.1
+                                ? "dry"
+                                : `${track.forecast.totalPrecipitationMm.toFixed(1)} mm`}
+                            </span>
+                          )}
+                          <MiniWindRose
+                            head={track.forecast.windHeadMs}
+                            right={track.forecast.windRightMs}
+                            tail={track.forecast.windTailMs}
+                            left={track.forecast.windLeftMs}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </Link>
               ))}

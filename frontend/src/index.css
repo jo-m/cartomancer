@@ -43,6 +43,8 @@
   --color-drop-zone-active: #d4c4a8;
   --color-overlay: rgba(44, 24, 16, 0.4);
   --color-track: #ec5927;
+  --color-glow: rgba(200, 160, 32, 0.35);
+  --color-card-inner: rgba(107, 58, 42, 0.12);
   --text-sm: 1rem;
 }
 
@@ -111,6 +113,8 @@
       --color-drop-zone-active: #3d3228;
       --color-overlay: rgba(0, 0, 0, 0.5);
       --color-track: #c0502b;
+      --color-glow: rgba(218, 176, 48, 0.25);
+      --color-card-inner: rgba(200, 132, 90, 0.1);
     }
   }
 
@@ -118,4 +122,48 @@
     outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
   }
+}
+
+/* Tarot card styles for track cards */
+.tarot-card {
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: linear-gradient(
+    168deg,
+    var(--color-panel) 0%,
+    var(--color-surface) 50%,
+    var(--color-panel) 100%
+  );
+  padding: 6px;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.tarot-card:hover {
+  transform: scale(1.03) translateY(-2px);
+  box-shadow: 0 0 18px 2px var(--color-glow);
+  border-color: var(--color-border-hover);
+}
+
+.tarot-card-inner {
+  border: 1px solid var(--color-card-inner);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.tarot-corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  color: var(--color-border);
+  z-index: 2;
+  pointer-events: none;
+  transition: color 0.25s ease;
+}
+
+.tarot-card:hover .tarot-corner {
+  color: var(--color-star);
 }

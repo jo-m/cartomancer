@@ -4,6 +4,8 @@ import { ChevronDownIcon } from "@heroicons/react/20/solid"
 import { useSession } from "../context/SessionContext"
 import { useAppConfig } from "../api/client"
 import logoSvg from "../assets/logo.svg?raw"
+import SvgIcon from "../assets/SvgIcon"
+import ornamentDividerSvg from "../assets/ornament-divider.svg?raw"
 
 export default function Layout() {
   const { user, loading, logout } = useSession()
@@ -168,7 +170,7 @@ export default function Layout() {
                         </Link>
                         <Link
                           to="/upload"
-                          className="block px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
                           onClick={() => setTracksMenuOpen(false)}
                           role="menuitem"
                         >
@@ -331,13 +333,19 @@ export default function Layout() {
         <Outlet />
       </main>
       <footer className="border-t border-border bg-panel">
-        <div className="mx-auto flex max-w-5xl items-center justify-start px-4 py-2 text-xs text-text-muted">
-          <Link
-            to="/about"
-            className="hover:text-text-secondary transition-colors"
-          >
-            About
-          </Link>
+        <div className="mx-auto max-w-5xl px-4 pt-3 pb-2">
+          <SvgIcon
+            svg={ornamentDividerSvg}
+            className="mx-auto mb-2 h-2.5 w-40 text-border"
+          />
+          <div className="flex items-center justify-start text-xs text-text-muted">
+            <Link
+              to="/about"
+              className="hover:text-text-secondary transition-colors"
+            >
+              About
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

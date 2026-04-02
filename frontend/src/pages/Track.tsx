@@ -17,6 +17,9 @@ import SvgPreview from "../components/SvgPreview"
 import { useSession } from "../context/SessionContext"
 import { externalUrl } from "../lib/externalUrl"
 import StarIcon from "../assets/StarIcon"
+import SvgIcon from "../assets/SvgIcon"
+import distanceSvg from "../assets/distance.svg?raw"
+import elevationSvg from "../assets/elevation.svg?raw"
 import ElevationProfile from "../components/ElevationProfile"
 import ForecastChart from "../components/ForecastChart"
 import type { ForecastPoint, ForecastUnits } from "../components/ForecastChart"
@@ -531,7 +534,8 @@ export default function Track() {
 
       <dl className="mt-6 grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
+          <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-text-muted">
+            <SvgIcon svg={distanceSvg} className="h-3.5 w-3.5" />
             Distance
           </dt>
           <dd className="mt-1 text-sm text-text">
@@ -539,7 +543,8 @@ export default function Track() {
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
+          <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-text-muted">
+            <SvgIcon svg={elevationSvg} className="h-3.5 w-3.5" />
             Ascent
           </dt>
           <dd className="mt-1 text-sm text-text">
