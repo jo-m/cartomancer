@@ -11,7 +11,9 @@ import {
   TransitionChild,
 } from "@headlessui/react"
 import { ArrowsPointingOutIcon, XMarkIcon } from "@heroicons/react/24/outline"
-import { $api, fetchClient, useAppConfig } from "../api/client"
+import { $api, fetchClient } from "../api/client"
+import { getTrackColor } from "../lib/trackColor"
+import SvgPreview from "../components/SvgPreview"
 import { useSession } from "../context/SessionContext"
 import { externalUrl } from "../lib/externalUrl"
 import StarIcon from "../assets/StarIcon"
@@ -89,11 +91,7 @@ export default function Track() {
   const [mapFullscreen, setMapFullscreen] = useState(false)
   const hoverStore = useHoverStore()
 
-  const { data: appConfig } = useAppConfig()
-  const trackColor =
-    appConfig?.trackColor && appConfig.trackColor !== "currentColor"
-      ? appConfig.trackColor
-      : "#111827"
+  const trackColor = getTrackColor()
 
   const { data, isLoading, error } = $api.useQuery("get", "/tracks/{uuid}", {
     params: { path: { uuid: uuid! } },
@@ -432,8 +430,8 @@ export default function Track() {
             </Transition>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border bg-surface">
-            <img
+          <div className="overflow-hidden rounded-lg border border-border bg-surface text-track">
+            <SvgPreview
               src={`/api/tracks/${data.uuid}/preview.svg?size=512`}
               alt="Track preview"
               className="w-full object-contain"

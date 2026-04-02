@@ -292,10 +292,8 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	opts.Color = sv.appConfig.TrackColor
-
 	// Compute ETag before the expensive blob load so 304s are cheap.
-	eTag := fmt.Sprintf(`"%d-%d-%s-v0"`, t.UpdatedAt.UnixMilli(), opts.Size, opts.Color)
+	eTag := fmt.Sprintf(`"%d-%d-v1"`, t.UpdatedAt.UnixMilli(), opts.Size)
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -367,10 +365,9 @@ func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.R
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	opts.Color = sv.appConfig.TrackColor
 
 	// Compute ETag before the expensive blob load so 304s are cheap.
-	eTag := fmt.Sprintf(`"%d-%d-%s-v0"`, t.UpdatedAt.UnixMilli(), opts.Size, opts.Color)
+	eTag := fmt.Sprintf(`"%d-%d-v1"`, t.UpdatedAt.UnixMilli(), opts.Size)
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -408,7 +405,7 @@ func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.R
 
 // parseSVGOptions reads the optional size query parameter from r and returns a
 // PreviewOptions struct, falling back to defaults for missing params.
-// The color field is not set here; callers should populate it from server config.
+// The color is always "currentColor" so the frontend can override it via CSS.
 func parseSVGOptions(r *http.Request) (track.PreviewOptions, error) {
 	opts := track.DefaultPreviewOptions()
 	q := r.URL.Query()

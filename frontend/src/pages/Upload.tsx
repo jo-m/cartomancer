@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Link } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { fetchClient, $api } from "../api/client"
+import SvgPreview from "../components/SvgPreview"
 import { useSession } from "../context/SessionContext"
 import TagsInput from "../components/TagsInput"
 import Toast from "../components/Toast"
@@ -466,8 +467,8 @@ export default function Upload() {
                     key={track.uuid}
                     className="flex items-center gap-3 px-4 py-2.5"
                   >
-                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-surface">
-                      <img
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-surface text-track">
+                      <SvgPreview
                         src={`/api/tracks/${track.uuid}/preview.svg?size=40`}
                         alt="Track preview"
                         className="h-full w-full object-contain"

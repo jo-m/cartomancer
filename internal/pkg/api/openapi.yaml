@@ -2246,15 +2246,12 @@ components:
       required:
         - externalBaseUrl
         - instanceName
-        - trackColor
         - registrationEnabled
         - demoMode
       properties:
         externalBaseUrl:
           type: string
         instanceName:
-          type: string
-        trackColor:
           type: string
         registrationEnabled:
           type: boolean

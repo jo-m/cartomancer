@@ -46,9 +46,6 @@ type AppConfig struct {
 	// A .demo suffix is appended to the database path to prevent accidental overwrites.
 	// Cannot be active together with DevelopmentMode.
 	DemoMode bool `arg:"--app-demo-mode,env:APP_DEMO_MODE" default:"false" help:"Enable demo mode (locks users, periodically deletes tracks, uses .demo DB suffix)"`
-	// TrackColor is the stroke color used for all track preview SVGs.
-	// Accepts a CSS hex value (e.g. "#f00", "#rrggbb") or "currentColor".
-	TrackColor string `arg:"--app-track-color,env:APP_TRACK_COLOR" default:"currentColor" help:"Stroke color for track preview SVGs, CSS hex or currentColor" placeholder:"COLOR"`
 }
 
 // Validate checks for basic configuration errors.
@@ -58,9 +55,6 @@ func (c *AppConfig) Validate() error {
 	}
 	if c.EmailVerificationExpiry <= 0 {
 		return errors.New("--app-email-verification-expiry / APP_EMAIL_VERIFICATION_EXPIRY must be positive")
-	}
-	if c.TrackColor == "" {
-		return errors.New("--app-track-color / APP_TRACK_COLOR must not be empty")
 	}
 	if c.DemoMode && c.DevelopmentMode {
 		return errors.New("--app-demo-mode / APP_DEMO_MODE and --app-dev-mode / APP_DEV_MODE cannot both be enabled")

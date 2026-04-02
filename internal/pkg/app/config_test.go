@@ -13,7 +13,6 @@ func validConfig() AppConfig {
 		ExternalBaseURL:         "https://example.com",
 		EmailJWTSecret:          "secret",
 		EmailVerificationExpiry: 2 * time.Hour,
-		TrackColor:              "currentColor",
 	}
 }
 
@@ -35,9 +34,4 @@ func TestValidate(t *testing.T) {
 		require.ErrorContains(t, c.Validate(), "APP_EMAIL_VERIFICATION_EXPIRY")
 	})
 
-	t.Run("empty track color", func(t *testing.T) {
-		c := validConfig()
-		c.TrackColor = ""
-		require.ErrorContains(t, c.Validate(), "APP_TRACK_COLOR")
-	})
 }

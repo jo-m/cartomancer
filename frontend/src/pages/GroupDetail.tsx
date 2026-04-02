@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router-dom"
 import { $api } from "../api/client"
+import SvgPreview from "../components/SvgPreview"
 import PageContainer from "../components/ui/PageContainer"
 
 function formatDistance(m: number): string {
@@ -55,8 +56,8 @@ export default function GroupDetail() {
                   to={`/tracks/${track.uuid}`}
                   className="group relative block rounded-lg border border-border bg-panel hover:border-border-hover transition-colors"
                 >
-                  <div className="aspect-square overflow-hidden rounded-t-lg bg-surface">
-                    <img
+                  <div className="aspect-square overflow-hidden rounded-t-lg bg-surface text-track">
+                    <SvgPreview
                       src={`/api/tracks/${track.uuid}/preview.svg?size=256`}
                       alt="Track preview"
                       className="h-full w-full object-contain"
@@ -78,8 +79,8 @@ export default function GroupDetail() {
                       {formatDistance(track.totalDistanceM)} &middot;{" "}
                       {formatAscent(track.totalAscentM)}
                     </p>
-                    <div className="mt-1.5 overflow-hidden rounded bg-surface">
-                      <img
+                    <div className="mt-1.5 overflow-hidden rounded bg-surface text-track">
+                      <SvgPreview
                         src={`/api/tracks/${track.uuid}/profile.svg?size=256`}
                         alt="Elevation profile"
                         className="w-full"

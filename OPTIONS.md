@@ -29,8 +29,6 @@ Global options:
   --app-init-admin-email EMAIL
                          Email for the initial admin account created on first startup [env: APP_INIT_ADMIN_EMAIL]
   --app-demo-mode        Enable demo mode (locks users, periodically deletes tracks, uses .demo DB suffix) [default: false, env: APP_DEMO_MODE]
-  --app-track-color COLOR
-                         Stroke color for track preview SVGs, CSS hex or currentColor [default: currentColor, env: APP_TRACK_COLOR]
   --session-idle-timeout DUR
                          Session idle timeout [default: 24h, env: SESSION_IDLE_TIMEOUT]
   --session-abs-timeout DUR

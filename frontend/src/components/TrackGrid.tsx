@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
 import { $api } from "../api/client"
+import SvgPreview from "./SvgPreview"
 import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
 import TagsInput from "./TagsInput"
@@ -647,8 +648,8 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                       />
                     </button>
                   )}
-                  <div className="aspect-square overflow-hidden rounded-t-lg bg-surface">
-                    <img
+                  <div className="aspect-square overflow-hidden rounded-t-lg bg-surface text-track">
+                    <SvgPreview
                       src={`/api/tracks/${track.uuid}/preview.svg?size=256`}
                       alt="Track preview"
                       className="h-full w-full object-contain"
@@ -670,8 +671,8 @@ export default function TrackGrid({ mode }: TrackGridProps) {
                       {formatDistance(track.totalDistanceM)} &middot;{" "}
                       {formatAscent(track.totalAscentM)}
                     </p>
-                    <div className="mt-1.5 overflow-hidden rounded bg-surface">
-                      <img
+                    <div className="mt-1.5 overflow-hidden rounded bg-surface text-track">
+                      <SvgPreview
                         src={`/api/tracks/${track.uuid}/profile.svg?size=256`}
                         alt="Elevation profile"
                         className="w-full"

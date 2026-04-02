@@ -42,6 +42,7 @@
   --color-drop-zone: #ebe2d0;
   --color-drop-zone-active: #d4c4a8;
   --color-overlay: rgba(44, 24, 16, 0.4);
+  --color-track: #ec5927;
 }
 
 @layer base {
@@ -96,6 +97,7 @@
       --color-drop-zone: #241c16;
       --color-drop-zone-active: #3d3228;
       --color-overlay: rgba(0, 0, 0, 0.5);
+      --color-track: #c0502b;
     }
   }
 
