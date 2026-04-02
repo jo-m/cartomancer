@@ -1,6 +1,6 @@
 module jo-m.ch/go/cartomancer
 
-go 1.25.8
+go 1.26.1
 
 tool (
 	github.com/air-verse/air
