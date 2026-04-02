@@ -1,16 +1,21 @@
-.PHONY: clean
-clean:
-	find . -name '*.gen.go' -delete
-
-.PHONY: reset_data
-reset_data:
-	rm -f data/db.sqlite
-
 .PHONY: gen
 gen: clean
 	# Generate.
 	go generate ./...
+	mkdir -p static/ && touch static/empty
 	go test -run TestOptionsDoc -update-options-doc
+
+.PHONY: dev
+dev:
+	go tool air
+
+.PHONY: build_frontend
+build_frontend:
+	cd frontend && npm ci && npm run build
+
+.PHONY: build
+build: gen build_frontend
+	go build ./
 
 .PHONY: format
 format:
@@ -19,6 +24,7 @@ format:
 
 .PHONY: lint
 lint:
+	go mod tidy -diff
 	gofmt -l .; test -z "$$(gofmt -l .)"
 	go vet ./...
 	go tool staticcheck -f stylish ./...
@@ -39,11 +45,15 @@ test_online:
 bench:
 	go test -bench=. -run=Bench ./...
 
-.PHONY: frontend
-frontend:
-	cd frontend && npm ci && npm run build
-
 .PHONY: check
-check: gen format lint
+check: gen lint
 	go build ./...
 	go test ./...
+
+.PHONY: clean
+clean:
+	find . -name '*.gen.go' -delete
+
+.PHONY: reset_data
+reset_data:
+	rm -f data/db.sqlite

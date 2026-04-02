@@ -31,6 +31,7 @@ go tool air
 
 # In a separate shell, start the backend
 cd frontend/
+npm install
 npm run dev
 # See internal/pkg/app/config.go for login.
 open http://localhost:5173

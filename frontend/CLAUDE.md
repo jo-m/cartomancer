@@ -37,7 +37,7 @@ npm run build
 ## API client
 
 Types are generated from `internal/pkg/api/openapi.yaml` via `openapi-typescript`.
-Run `npm run generate` (already included in `dev`/`build`) to regenerate `src/api/schema.gen.ts`.
+Run `npm run gen` (already done in `dev`/`build`) to regenerate `src/api/schema.gen.ts`.
 `src/api/schema.gen.ts` is NOT committed.
 All API interactions MUST use the generated client.
 
