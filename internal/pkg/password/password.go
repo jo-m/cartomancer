@@ -15,6 +15,7 @@ import (
 // MaxPasswordLen to avoid DOS via Argon2.
 const MaxPasswordLen = 512
 
+// ErrTooLong is returned when a password exceeds [MaxPasswordLen] bytes.
 var ErrTooLong = errors.New("password exceeds maximum length")
 
 type argon2idparams struct {

@@ -142,7 +142,7 @@ func (s *Summarizer) summarizeTrack(ctx context.Context, uuid string, refTime, s
 		return fmt.Errorf("parse blob: %w", err)
 	}
 
-	tr, err := track.New(src, 0)
+	tr, err := track.New(src)
 	if err != nil {
 		logg.Debug(ctx, "track has too few points, skipping", "uuid", uuid)
 		return nil

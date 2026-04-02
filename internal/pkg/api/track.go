@@ -313,7 +313,7 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	tr, err := track.New(src, 0)
+	tr, err := track.New(src)
 	if err != nil {
 		logg.Error(ctx, "failed to create track", "err", err)
 		writeStatusError(w, http.StatusUnprocessableEntity)
@@ -387,7 +387,7 @@ func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	tr, err := track.New(src, 0)
+	tr, err := track.New(src)
 	if err != nil {
 		logg.Error(ctx, "failed to create track", "err", err)
 		writeStatusError(w, http.StatusUnprocessableEntity)
@@ -471,7 +471,7 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tr, err := track.New(src, 0)
+	tr, err := track.New(src)
 	if err != nil {
 		logg.Error(ctx, "failed to create track", "err", err)
 		writeStatusError(w, http.StatusUnprocessableEntity)
@@ -1226,7 +1226,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, err := track.New(src, 0)
+	t, err := track.New(src)
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "track must have at least 2 points")
 		return

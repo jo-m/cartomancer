@@ -10,6 +10,7 @@ import (
 	"github.com/uber/h3-go/v4"
 )
 
+// Point is a single GPS sample with time, coordinates, and elevation.
 type Point struct {
 	Time      time.Time
 	Lat, Lon  float64
@@ -79,6 +80,7 @@ func (p *Point) Cell(resolution int) h3.Cell {
 	return cell
 }
 
+// Points is a slice of Point values.
 type Points []Point
 
 // PreviewOptions configures SVG rendering parameters for track previews.

@@ -107,7 +107,7 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	tr, err := track.New(src, 0)
+	tr, err := track.New(src)
 	if err != nil {
 		logg.Error(ctx, "failed to create track", "err", err)
 		writeStatusError(w, http.StatusUnprocessableEntity)

@@ -116,10 +116,10 @@ func TestScoreCandidate_populationMatters(t *testing.T) {
 }
 
 func TestScoreCandidate_proximityMatters(t *testing.T) {
-	close := candidate{kind: candidatePlace, population: 1000, trackDist: 100}
+	nearby := candidate{kind: candidatePlace, population: 1000, trackDist: 100}
 	far := candidate{kind: candidatePlace, population: 1000, trackDist: 2500}
 
-	require.Greater(t, scoreCandidate(&close), scoreCandidate(&far))
+	require.Greater(t, scoreCandidate(&nearby), scoreCandidate(&far))
 }
 
 func TestScoreCandidate_passBonus(t *testing.T) {
@@ -293,7 +293,7 @@ func TestFormatLabel_truncatesIntermediates(t *testing.T) {
 }
 
 // createTestTrack inserts a minimal track with a GPX blob and returns the track UUID.
-func createTestTrack(t *testing.T, ctx context.Context, d *db.DB, pts []struct{ lat, lon float64 }) string {
+func createTestTrack(ctx context.Context, t *testing.T, d *db.DB, pts []struct{ lat, lon float64 }) string {
 	t.Helper()
 
 	var sb strings.Builder
@@ -345,7 +345,7 @@ func createTestTrack(t *testing.T, ctx context.Context, d *db.DB, pts []struct{ 
 	return trackUUID
 }
 
-func setupTestUser(t *testing.T, ctx context.Context, d *db.DB) {
+func setupTestUser(ctx context.Context, t *testing.T, d *db.DB) {
 	t.Helper()
 	err := d.WithTx(ctx, func(tx *db.Queries) error {
 		_, txErr := tx.CreateUser(ctx, db.CreateUserParams{
@@ -361,7 +361,7 @@ func setupTestUser(t *testing.T, ctx context.Context, d *db.DB) {
 	require.NoError(t, err)
 }
 
-func importTestGeodata(t *testing.T, ctx context.Context, d *db.DB) {
+func importTestGeodata(ctx context.Context, t *testing.T, d *db.DB) {
 	t.Helper()
 
 	geoData := strings.Join([]string{
@@ -392,10 +392,10 @@ func TestLabelerRun(t *testing.T) {
 
 	ctx := logg.WithTestLogger(t.Context(), t)
 
-	importTestGeodata(t, ctx, d)
-	setupTestUser(t, ctx, d)
+	importTestGeodata(ctx, t, d)
+	setupTestUser(ctx, t, d)
 
-	trackUUID := createTestTrack(t, ctx, d, []struct{ lat, lon float64 }{
+	trackUUID := createTestTrack(ctx, t, d, []struct{ lat, lon float64 }{
 		{47.37, 8.55}, // Near Zurich.
 		{46.95, 7.45}, // Near Bern.
 		{47.56, 7.57}, // Near Basel.
@@ -419,11 +419,11 @@ func TestLabelerRun_withLandmark(t *testing.T) {
 
 	ctx := logg.WithTestLogger(t.Context(), t)
 
-	importTestGeodata(t, ctx, d)
-	setupTestUser(t, ctx, d)
+	importTestGeodata(ctx, t, d)
+	setupTestUser(ctx, t, d)
 
 	// Track goes from Zurich past Grimselpass to Bern.
-	trackUUID := createTestTrack(t, ctx, d, []struct{ lat, lon float64 }{
+	trackUUID := createTestTrack(ctx, t, d, []struct{ lat, lon float64 }{
 		{47.37, 8.55}, // Near Zurich.
 		{46.80, 8.40}, // Approaching pass.
 		{46.57, 8.34}, // Near Grimselpass.
@@ -448,11 +448,11 @@ func TestLabelerRun_suppressesSuburbs(t *testing.T) {
 
 	ctx := logg.WithTestLogger(t.Context(), t)
 
-	importTestGeodata(t, ctx, d)
-	setupTestUser(t, ctx, d)
+	importTestGeodata(ctx, t, d)
+	setupTestUser(ctx, t, d)
 
 	// Short track near Zurich that passes close to both Zurich and Wiedikon.
-	trackUUID := createTestTrack(t, ctx, d, []struct{ lat, lon float64 }{
+	trackUUID := createTestTrack(ctx, t, d, []struct{ lat, lon float64 }{
 		{47.37, 8.55},  // Zurich center.
 		{47.365, 8.53}, // Moving through Wiedikon area.
 		{47.36, 8.50},  // Still near Zurich.
@@ -489,8 +489,8 @@ func TestLabelerRun_noGeonameData(t *testing.T) {
 
 	ctx := logg.WithTestLogger(t.Context(), t)
 
-	setupTestUser(t, ctx, d)
-	trackUUID := createTestTrack(t, ctx, d, []struct{ lat, lon float64 }{
+	setupTestUser(ctx, t, d)
+	trackUUID := createTestTrack(ctx, t, d, []struct{ lat, lon float64 }{
 		{47.37, 8.55},
 		{46.95, 7.45},
 		{47.56, 7.57},

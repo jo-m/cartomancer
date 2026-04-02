@@ -116,7 +116,7 @@ func main() {
 		Target string
 	}{*listen, *target}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if err := page.Execute(w, data); err != nil {
 			log.Printf("template error: %v", err)

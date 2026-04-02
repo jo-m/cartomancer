@@ -28,12 +28,16 @@ import (
 	"github.com/paulmach/orb/geojson"
 )
 
+// BaseURL is the default base URL for the Swiss government STAC API.
 const BaseURL = "http://data.geo.admin.ch/api/stac/v1/"
 
+// Client is a client for the Swiss government STAC API.
 type Client struct {
 	baseURL string
 }
 
+// NewClient creates a new Client for the given base URL.
+// Trailing slashes in baseURL are trimmed.
 func NewClient(baseURL string) Client {
 	return Client{baseURL: strings.TrimRight(baseURL, "/")}
 }

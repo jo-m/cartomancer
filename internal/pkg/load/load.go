@@ -12,17 +12,21 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
+// ErrUnsupportedFileExtension is returned when the file extension is not recognized.
 var (
 	ErrUnsupportedFileExtension = errors.New("unsupported file extension")
 )
 
-type LoadFn func(filename string, contents io.Reader) (track.TrackSource, error)
+// Fn is a function that parses a file by name and content into a TrackSource.
+type Fn func(filename string, contents io.Reader) (track.TrackSource, error)
 
-var loaders map[string]LoadFn = map[string]LoadFn{
+var loaders = map[string]Fn{
 	".fit": loadFit,
 	".gpx": loadGpx,
 }
 
+// Blob parses a track from an in-memory blob by inferring the format from filename's extension.
+// Returns [ErrUnsupportedFileExtension] if the extension is not supported.
 func Blob(filename string, contents io.Reader) (track.TrackSource, error) {
 	ext := strings.ToLower(filepath.Ext(filename))
 	loader, ok := loaders[ext]
@@ -33,6 +37,8 @@ func Blob(filename string, contents io.Reader) (track.TrackSource, error) {
 	return loader(filename, contents)
 }
 
+// Path loads a track from the file at the given path, inferring the format from the extension.
+// Returns [ErrUnsupportedFileExtension] if the extension is not supported.
 func Path(path string) (track.TrackSource, error) {
 	filename := filepath.Base(path)
 

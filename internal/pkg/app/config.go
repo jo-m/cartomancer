@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+// DevInitialAdminEmail and DevInitialAdminPassword are the credentials used for
+// the pre-created admin account in development and demo mode.
 const (
 	DevInitialAdminEmail    = "admin@example.com"
 	DevInitialAdminPassword = "admin"

@@ -16,7 +16,7 @@ type appConfigResponse struct {
 }
 
 // handleGetAppConfig returns public application configuration.
-func (sv *server) handleGetAppConfig(w http.ResponseWriter, r *http.Request) {
+func (sv *server) handleGetAppConfig(w http.ResponseWriter, _ *http.Request) {
 	resp := appConfigResponse{
 		ExternalBaseURL:     sv.appConfig.ExternalBaseURL,
 		InstanceName:        sv.appConfig.InstanceName,

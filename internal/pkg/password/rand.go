@@ -2,6 +2,7 @@ package password
 
 import "crypto/rand"
 
+// GeneratedPasswordLen is the length in characters of randomly generated passwords.
 const GeneratedPasswordLen = 24
 
 // GenRandBytes returns n cryptographically safe random bytes.

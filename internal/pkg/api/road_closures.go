@@ -68,7 +68,7 @@ func (sv *server) handleGetTrackRoadClosures(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Collect all track points and their coarse H3 cells.
-	tr, err := track.New(src, 0)
+	tr, err := track.New(src)
 	if err != nil {
 		logg.Error(ctx, "failed to create track", "err", err)
 		writeStatusError(w, http.StatusUnprocessableEntity)

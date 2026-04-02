@@ -24,7 +24,7 @@ type versionResponse struct {
 }
 
 // handleGetVersion returns build information from the Go runtime and data source attributions.
-func (sv *server) handleGetVersion(w http.ResponseWriter, r *http.Request) {
+func (sv *server) handleGetVersion(w http.ResponseWriter, _ *http.Request) {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
 		writeError(w, http.StatusInternalServerError, "build info unavailable")

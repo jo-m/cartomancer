@@ -33,7 +33,7 @@ func parseFitActivity(filename string, r io.ReadSeeker) (*filedef.Activity, erro
 		return nil, fmt.Errorf("seek failed: %w", err)
 	}
 
-	var file *filedef.Activity = nil
+	var file *filedef.Activity
 	i := 0
 	for dec.Next() {
 		if i > 0 {
@@ -60,11 +60,13 @@ func parseFitActivity(filename string, r io.ReadSeeker) (*filedef.Activity, erro
 	return file, nil
 }
 
+// Activity holds a parsed FIT activity file.
 type Activity struct {
 	filename string
 	act      *filedef.Activity
 }
 
+// Filename returns the original file name of the parsed activity.
 func (f *Activity) Filename() string {
 	return f.filename
 }
@@ -94,6 +96,7 @@ func alt32(s uint32) float64 {
 	return float64(s)/5 - 500
 }
 
+// All iterates over all GPS track points in the activity.
 func (f *Activity) All() iter.Seq[track.Point] {
 	return func(yield func(track.Point) bool) {
 		for _, rec := range f.act.Records {
@@ -117,6 +120,7 @@ func (f *Activity) All() iter.Seq[track.Point] {
 
 var activityID = regexp.MustCompile(`[1-9][0-9]{5,}`)
 
+// Metadata extracts track metadata from the FIT activity file.
 func (f *Activity) Metadata() track.Metadata {
 	ret := track.Metadata{
 		Name:   filepath.Base(f.filename),

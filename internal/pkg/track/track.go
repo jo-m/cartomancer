@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Sport identifies the primary sport of a track.
 type Sport int
 
 // When editing this list, the frontend code at frontend/src/lib/sports.ts MUST be updated as well.
@@ -15,6 +16,7 @@ const (
 	SportCycling
 )
 
+// SubSport further classifies the sport variant of a track.
 type SubSport int
 
 // When editing this list, the frontend code at frontend/src/lib/sports.ts MUST be updated as well.
@@ -31,21 +33,28 @@ const (
 	SubSportCyclingCommuting
 )
 
+// TrackType distinguishes planned routes from recorded activities.
+//
+//revive:disable-next-line:exported
 type TrackType int
 
+// TrackTypeUnknown, TrackTypePlanned, and TrackTypeRecorded enumerate the known track types.
 const (
 	TrackTypeUnknown TrackType = iota
 	TrackTypePlanned
 	TrackTypeRecorded
 )
 
+// FileFormat identifies the file format of the original track file.
 type FileFormat int
 
+// FileFormatGPX and FileFormatFIT enumerate the supported file formats.
 const (
 	FileFormatGPX FileFormat = iota
 	FileFormatFIT
 )
 
+// Metadata holds descriptive information about a track extracted from its source file.
 type Metadata struct {
 	Name          string
 	Description   string
@@ -198,6 +207,9 @@ func (t *Track) ProfileSVG(opts PreviewOptions) string {
 	return Points(t.pts).ProfileSVG(opts)
 }
 
+// TrackSource is a source of track points and metadata, typically a parsed GPX or FIT file.
+//
+//revive:disable-next-line:exported
 type TrackSource interface {
 	Metadata() Metadata
 	All() iter.Seq[Point]
@@ -205,7 +217,7 @@ type TrackSource interface {
 
 // New creates a Track from a TrackSource. Returns an error if the source
 // contains fewer than two points.
-func New(src TrackSource, resolution int) (*Track, error) {
+func New(src TrackSource) (*Track, error) {
 	pts := []Point{}
 	for p := range src.All() {
 		pts = append(pts, p)

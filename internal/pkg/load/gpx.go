@@ -11,17 +11,20 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
+// Link represents a hyperlink element in a GPX file.
 type Link struct {
 	Href string `xml:"href,attr"`
 	Text string `xml:"text"`
 	Type string `xml:"type"`
 }
 
+// Author represents an author element in a GPX file.
 type Author struct {
 	Name string `xml:"name"`
 	Link *Link  `xml:"link"`
 }
 
+// Metadata represents the metadata section of a GPX file.
 type Metadata struct {
 	Time   *time.Time `xml:"time"`
 	Name   *string    `xml:"name"`
@@ -29,6 +32,7 @@ type Metadata struct {
 	Author *Author    `xml:"author"`
 }
 
+// TrackPoint represents a single trkpt element in a GPX file.
 type TrackPoint struct {
 	Lat  float64    `xml:"lat,attr"`
 	Lon  float64    `xml:"lon,attr"`
@@ -36,10 +40,12 @@ type TrackPoint struct {
 	Time *time.Time `xml:"time"`
 }
 
+// TrackSegment represents a trkseg element containing track points.
 type TrackSegment struct {
 	Points []TrackPoint `xml:"trkpt"`
 }
 
+// Track represents a trk element in a GPX file.
 type Track struct {
 	Name        string         `xml:"name"`
 	Description string         `xml:"desc"`
@@ -47,6 +53,7 @@ type Track struct {
 	Segments    []TrackSegment `xml:"trkseg"`
 }
 
+// Waypoint represents a wpt element in a GPX file.
 type Waypoint struct {
 	Lat         float64 `xml:"lat,attr"`
 	Lon         float64 `xml:"lon,attr"`
@@ -56,6 +63,7 @@ type Waypoint struct {
 	Type        string  `xml:"type"`
 }
 
+// GPX is the root element of a parsed GPX file.
 type GPX struct {
 	filename string
 
@@ -220,6 +228,7 @@ func (g *GPX) Metadata() track.Metadata {
 	return ret
 }
 
+// All iterates over all track points across all tracks and segments in the GPX file.
 func (g *GPX) All() iter.Seq[track.Point] {
 	return func(yield func(track.Point) bool) {
 		for _, trk := range g.Tracks {

@@ -31,13 +31,13 @@ func nullBBox(minLat, minLon, maxLat, maxLon sql.NullFloat64) *bboxResponse {
 
 // nullMinMax returns a minMaxResponse pointer from two nullable float64 values.
 // Returns nil if both values are null.
-func nullMinMax(min, max sql.NullFloat64) *minMaxResponse {
-	if !min.Valid && !max.Valid {
+func nullMinMax(minVal, maxVal sql.NullFloat64) *minMaxResponse {
+	if !minVal.Valid && !maxVal.Valid {
 		return nil
 	}
 	return &minMaxResponse{
-		Min: nullFloat64Ptr(min),
-		Max: nullFloat64Ptr(max),
+		Min: nullFloat64Ptr(minVal),
+		Max: nullFloat64Ptr(maxVal),
 	}
 }
 
