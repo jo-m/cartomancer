@@ -43,6 +43,7 @@
   --color-drop-zone-active: #d4c4a8;
   --color-overlay: rgba(44, 24, 16, 0.4);
   --color-track: #ec5927;
+  --text-sm: 1rem;
 }
 
 @layer base {
@@ -50,7 +51,19 @@
     color-scheme: light dark;
   }
 
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  nav,
+  nav * {
+    font-family: "Fondamento", cursive;
+  }
+
   body {
+    font-family: "Crimson Text", serif;
     background-color: var(--color-surface);
     color: var(--color-text);
   }
