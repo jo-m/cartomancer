@@ -394,13 +394,10 @@ func (pts Points) SubsampleLTTB(targetN int, valueFn func(Point) float64) Points
 
 	prevSelected := 0
 
-	for b := 0; b < buckets; b++ {
+	for b := range buckets {
 		// Current bucket range (interior points start at index 1).
 		bucketStart := int(math.Floor(float64(b)*bucketSize)) + 1
-		bucketEnd := int(math.Floor(float64(b+1)*bucketSize)) + 1
-		if bucketEnd > n-1 {
-			bucketEnd = n - 1
-		}
+		bucketEnd := min(int(math.Floor(float64(b+1)*bucketSize))+1, n-1)
 
 		// Next bucket average (for the triangle area calculation).
 		nextStart := bucketEnd
