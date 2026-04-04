@@ -144,7 +144,7 @@ export default function Layout() {
               (user ? (
                 <>
                   <div
-                    className={`relative -my-3 flex items-center self-stretch px-3 py-3 transition-colors ${tracksMenuOpen ? "bg-panel" : ""}`}
+                    className={`relative -my-3 flex items-center self-stretch px-3 py-3 transition-colors cursor-pointer ${tracksMenuOpen ? "bg-panel" : ""}`}
                     onMouseEnter={handleTracksMenuEnter}
                     onMouseLeave={handleTracksMenuLeave}
                   >
@@ -160,6 +160,14 @@ export default function Layout() {
                         className="absolute left-0 top-full z-50 w-40 rounded-b border-x border-b border-border bg-panel py-1 shadow-lg"
                         role="menu"
                       >
+                        <Link
+                          to="/account/tracks"
+                          className="block px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
+                          onClick={() => setTracksMenuOpen(false)}
+                          role="menuitem"
+                        >
+                          Tracks
+                        </Link>
                         <Link
                           to="/tracks/groups"
                           className="block px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
