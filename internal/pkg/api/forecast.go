@@ -6,10 +6,12 @@ import (
 	"errors"
 	"math"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sixdouglas/suncalc"
 	"jo-m.ch/go/cartomancer/internal/pkg/blob"
 	"jo-m.ch/go/cartomancer/internal/pkg/forecast"
 	"jo-m.ch/go/cartomancer/internal/pkg/load"
@@ -39,11 +41,18 @@ type forecastUnits struct {
 	RelativeWindDirectionDeg string `json:"relativeWindDirectionDeg"`
 }
 
+type sunEventResponse struct {
+	Type      string  `json:"type"`
+	Time      string  `json:"time"`
+	DistanceM float64 `json:"distanceM"`
+}
+
 type forecastResponse struct {
 	ForecastStatus string                  `json:"forecastStatus"`
 	Attribution    attributionResponse     `json:"attribution"`
 	Units          forecastUnits           `json:"units"`
 	Points         []forecastPointResponse `json:"points"`
+	SunEvents      []sunEventResponse      `json:"sunEvents"`
 }
 
 // handleGetTrackForecast returns a weather forecast time series along a track.
@@ -202,6 +211,10 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		result[i] = rp
 	}
 
+	midLat := (bbox.MinLat + bbox.MaxLat) / 2
+	midLon := (bbox.MinLon + bbox.MaxLon) / 2
+	sunEvents := computeSunEvents(startTime, endTime, midLat, midLon, totalDist)
+
 	resp := forecastResponse{
 		ForecastStatus: status,
 		Units: forecastUnits{
@@ -211,12 +224,57 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 			WindDirectionDeg:         "deg",
 			RelativeWindDirectionDeg: "deg",
 		},
-		Points: result,
+		Points:    result,
+		SunEvents: sunEvents,
 	}
 	if h != nil {
 		resp.Attribution = attributionResponse{Text: h.Attribution, Href: h.AttributionHref}
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// sunEventNames lists the suncalc event types to include in the response.
+var sunEventNames = []suncalc.DayTimeName{
+	suncalc.Dawn,
+	suncalc.Sunrise,
+	suncalc.Sunset,
+	suncalc.Dusk,
+}
+
+// computeSunEvents returns sunrise, sunset, dawn, and dusk events that fall within the ride window.
+// Events are interpolated to a distance along the track using a constant speed model.
+func computeSunEvents(start, end time.Time, lat, lon, totalDist float64) []sunEventResponse {
+	duration := end.Sub(start)
+
+	// Check sun times for each day the ride spans plus padding.
+	startDay := start.Add(-24 * time.Hour)
+	endDay := end.Add(24 * time.Hour)
+
+	var events []sunEventResponse
+	for d := startDay; !d.After(endDay); d = d.Add(24 * time.Hour) {
+		times := suncalc.GetTimes(d, lat, lon)
+		for _, name := range sunEventNames {
+			dt, ok := times[name]
+			if !ok || dt.Value.IsZero() {
+				continue
+			}
+			if dt.Value.Before(start) || dt.Value.After(end) {
+				continue
+			}
+			fraction := dt.Value.Sub(start).Seconds() / duration.Seconds()
+			distM := fraction * totalDist
+			events = append(events, sunEventResponse{
+				Type:      string(name),
+				Time:      dt.Value.Format(time.RFC3339),
+				DistanceM: distM,
+			})
+		}
+	}
+
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].DistanceM < events[j].DistanceM
+	})
+	return events
 }
 
 // forwardBearing computes the initial bearing in degrees [0, 360) from point 1 to point 2.

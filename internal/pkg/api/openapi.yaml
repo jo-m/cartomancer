@@ -1228,7 +1228,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [forecastStatus, attribution, units, points]
+                required: [forecastStatus, attribution, units, points, sunEvents]
                 properties:
                   attribution:
                     $ref: "#/components/schemas/SourceAttribution"
@@ -1259,6 +1259,24 @@ paths:
                       relativeWindDirectionDeg:
                         type: string
                         description: Unit for the relativeWindDirectionDeg field (e.g. "deg").
+                  sunEvents:
+                    type: array
+                    description: Sunrise, sunset, dawn, and dusk events that fall within the ride window.
+                    items:
+                      type: object
+                      required: [type, time, distanceM]
+                      properties:
+                        type:
+                          type: string
+                          enum: [dawn, sunrise, sunset, dusk]
+                          description: Type of sun event.
+                        time:
+                          type: string
+                          format: date-time
+                          description: Time of the sun event.
+                        distanceM:
+                          type: number
+                          description: Estimated distance along the track in meters when this event occurs.
                   points:
                     type: array
                     items:

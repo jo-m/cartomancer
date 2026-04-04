@@ -26,6 +26,7 @@ require (
 	github.com/paulmach/orb v0.12.0
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.27.0
+	github.com/sixdouglas/suncalc v0.0.0-20250114185126-291b1938b70c
 	github.com/stretchr/testify v1.11.1
 	github.com/twpayne/go-kml/v3 v3.6.0
 	github.com/uber/h3-go/v4 v4.4.0

@@ -7,6 +7,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  ReferenceLine,
 } from "recharts"
 import type { HoverStore } from "../hooks/useHoverSync"
 import { externalUrl } from "../lib/externalUrl"
@@ -20,6 +21,12 @@ export interface ForecastPoint {
   windSpeedMs: number | null
   windDirectionDeg: number | null
   relativeWindDirectionDeg: number | null
+}
+
+export interface SunEvent {
+  type: "dawn" | "sunrise" | "sunset" | "dusk"
+  time: string
+  distanceM: number
 }
 
 interface ChartDatum {
@@ -47,6 +54,7 @@ interface Props {
   units: ForecastUnits
   hoverStore: HoverStore
   attribution?: { text: string; href: string }
+  sunEvents?: SunEvent[]
 }
 
 const Y_AXIS_WIDTH = 36
@@ -86,11 +94,97 @@ function headwindComponent(
 }
 
 /** Renders temperature, precipitation, and wind as vertically stacked recharts. */
+const SUN_EVENT_COLORS: Record<string, string> = {
+  dawn: "#f59e0b",
+  sunrise: "#f59e0b",
+  sunset: "#8b5cf6",
+  dusk: "#8b5cf6",
+}
+
+const SUN_EVENT_DASH: Record<string, string> = {
+  dawn: "4 3",
+  sunrise: "",
+  sunset: "",
+  dusk: "4 3",
+}
+
+/** Renders a sun-up or sun-down icon as a custom ReferenceLine label. */
+function SunEventIcon({
+  viewBox,
+  color,
+  rising,
+}: {
+  viewBox?: { x: number; y: number }
+  color: string
+  rising: boolean
+}) {
+  if (!viewBox) return null
+  const { x } = viewBox
+  const cy = 6
+  const r = 5
+  const rayLen = 3
+  const rays = 8
+  return (
+    <g>
+      {/* Horizon line. */}
+      <line
+        x1={x - r - rayLen}
+        y1={cy + r}
+        x2={x + r + rayLen}
+        y2={cy + r}
+        stroke={color}
+        strokeWidth={1}
+      />
+      {/* Sun disc (half-circle above horizon). */}
+      <path
+        d={`M${x - r},${cy + r} A${r},${r} 0 1,1 ${x + r},${cy + r}`}
+        fill={color}
+        fillOpacity={0.3}
+        stroke={color}
+        strokeWidth={1}
+      />
+      {/* Rays above horizon. */}
+      {Array.from({ length: rays }, (_, i) => {
+        const angle = (Math.PI * i) / (rays - 1)
+        const x1 = x + (r + 1) * Math.cos(Math.PI - angle)
+        const y1 = cy + r - (r + 1) * Math.sin(angle)
+        const x2 = x + (r + rayLen) * Math.cos(Math.PI - angle)
+        const y2 = cy + r - (r + rayLen) * Math.sin(angle)
+        return (
+          <line
+            key={i}
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            stroke={color}
+            strokeWidth={0.8}
+          />
+        )
+      })}
+      {/* Arrow indicating direction. */}
+      <polyline
+        points={
+          rising
+            ? `${x - 2.5},${cy - r - rayLen + 2} ${x},${cy - r - rayLen - 1} ${x + 2.5},${cy - r - rayLen + 2}`
+            : `${x - 2.5},${cy - r - rayLen - 1} ${x},${cy - r - rayLen + 2} ${x + 2.5},${cy - r - rayLen - 1}`
+        }
+        fill="none"
+        stroke={color}
+        strokeWidth={1.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </g>
+  )
+}
+
 export default function ForecastChart({
   points,
   units,
   hoverStore,
   attribution,
+  sunEvents,
 }: Props) {
   const tempLineRef = useRef<HTMLDivElement>(null)
   const tempLabelRef = useRef<HTMLDivElement>(null)
@@ -243,6 +337,17 @@ export default function ForecastChart({
 
   const xTickFormatter = (v: number) => `${v}`
 
+  const sunEventMarkers = useMemo(
+    () =>
+      (sunEvents ?? []).map((e) => ({
+        dKm: Math.round((e.distanceM / 1000) * 100) / 100,
+        color: SUN_EVENT_COLORS[e.type] ?? "var(--color-text-muted)",
+        dash: SUN_EVENT_DASH[e.type] ?? "",
+        rising: e.type === "dawn" || e.type === "sunrise",
+      })),
+    [sunEvents]
+  )
+
   const hasRelativeWind = data.some((d) => d.headwindMs != null)
 
   // Imperatively update all hover lines and labels from store changes.
@@ -370,6 +475,16 @@ export default function ForecastChart({
                 activeDot={false}
                 isAnimationActive={false}
               />
+              {sunEventMarkers.map((m, i) => (
+                <ReferenceLine
+                  key={i}
+                  x={m.dKm}
+                  stroke={m.color}
+                  strokeWidth={1}
+                  strokeDasharray={m.dash}
+                  label={<SunEventIcon color={m.color} rising={m.rising} />}
+                />
+              ))}
             </ComposedChart>
           </ResponsiveContainer>
           <div
@@ -435,6 +550,15 @@ export default function ForecastChart({
                 isAnimationActive={false}
                 connectNulls={false}
               />
+              {sunEventMarkers.map((m, i) => (
+                <ReferenceLine
+                  key={i}
+                  x={m.dKm}
+                  stroke={m.color}
+                  strokeWidth={1}
+                  strokeDasharray={m.dash}
+                />
+              ))}
             </ComposedChart>
           </ResponsiveContainer>
           <div
@@ -520,6 +644,15 @@ export default function ForecastChart({
                   activeDot={false}
                   isAnimationActive={false}
                 />
+                {sunEventMarkers.map((m, i) => (
+                  <ReferenceLine
+                    key={i}
+                    x={m.dKm}
+                    stroke={m.color}
+                    strokeWidth={1}
+                    strokeDasharray={m.dash}
+                  />
+                ))}
               </ComposedChart>
             </ResponsiveContainer>
             <div
@@ -579,6 +712,15 @@ export default function ForecastChart({
                   activeDot={false}
                   isAnimationActive={false}
                 />
+                {sunEventMarkers.map((m, i) => (
+                  <ReferenceLine
+                    key={i}
+                    x={m.dKm}
+                    stroke={m.color}
+                    strokeWidth={1}
+                    strokeDasharray={m.dash}
+                  />
+                ))}
               </ComposedChart>
             </ResponsiveContainer>
             <div

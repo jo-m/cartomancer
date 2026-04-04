@@ -22,7 +22,11 @@ import distanceSvg from "../assets/distance.svg?raw"
 import elevationSvg from "../assets/elevation.svg?raw"
 import ElevationProfile from "../components/ElevationProfile"
 import ForecastChart from "../components/ForecastChart"
-import type { ForecastPoint, ForecastUnits } from "../components/ForecastChart"
+import type {
+  ForecastPoint,
+  ForecastUnits,
+  SunEvent,
+} from "../components/ForecastChart"
 import TagsInput from "../components/TagsInput"
 import Toast from "../components/Toast"
 import TrackMap from "../components/TrackMap"
@@ -119,6 +123,7 @@ export default function Track() {
   const [forecastPoints, setForecastPoints] = useState<ForecastPoint[] | null>(
     null
   )
+  const [sunEvents, setSunEvents] = useState<SunEvent[]>([])
   const [forecastLoading, setForecastLoading] = useState(false)
   const [forecastStatus, setForecastStatus] = useState<string | null>(null)
   const [forecastAttribution, setForecastAttribution] = useState<
@@ -181,6 +186,7 @@ export default function Track() {
           setForecastUnits(result.units as ForecastUnits)
         }
         setForecastPoints(result.points as ForecastPoint[])
+        setSunEvents((result.sunEvents as SunEvent[]) ?? [])
       } catch (err) {
         setToastMessage((err as Error).message)
       } finally {
@@ -444,9 +450,17 @@ export default function Track() {
       </div>
 
       {closures && closures.length > 0 && (
-        <Alert variant="error" className="mt-3">
+        <Alert variant="warning" className="mt-3">
           <p className="font-medium">
-            Road closures or diversions on this track - see map.
+            🚧 Road closures or diversions on this track - see map.
+          </p>
+        </Alert>
+      )}
+
+      {sunEvents.length > 0 && (
+        <Alert variant="warning" className="mt-3">
+          <p className="font-medium">
+            🔦 Don't forget to bring lights when riding in the dark.
           </p>
         </Alert>
       )}
@@ -529,6 +543,7 @@ export default function Track() {
           units={forecastUnits}
           hoverStore={hoverStore}
           attribution={forecastAttribution}
+          sunEvents={sunEvents}
         />
       )}
 
