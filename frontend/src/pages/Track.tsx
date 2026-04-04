@@ -76,6 +76,12 @@ function formatDate(iso: string): string {
   })
 }
 
+function getStartTime(hoursOffset: number): Date {
+  const startDate = new Date()
+  startDate.setHours(startDate.getHours() + hoursOffset)
+  return startDate
+}
+
 const editSchema = z.object({
   name: z.string().min(1, "Name is required"),
   public: z.boolean(),
@@ -151,9 +157,7 @@ export default function Track() {
   const fetchForecast = useCallback(
     async (hoursOffset: number, speed: number) => {
       if (!uuid) return
-      const startDate = new Date()
-      startDate.setMinutes(0, 0, 0)
-      startDate.setHours(startDate.getHours() + hoursOffset)
+      const startDate = getStartTime(hoursOffset)
 
       setForecastLoading(true)
       setForecastStatus(null)
@@ -510,9 +514,13 @@ export default function Track() {
           {forecastLoading && (
             <span className="text-xs text-text-muted">Loading...</span>
           )}
-          {!forecastLoading && estDurationH > 0 && (
+          {!forecastLoading && estDurationH > 0 && startHoursOffset > 0 && (
             <span className="text-xs text-text-muted">
-              Est. {estDurationH.toFixed(1)}h
+              Est. {estDurationH.toFixed(1)}h,&ensp;
+              {fmtClock(getStartTime(startHoursOffset).getTime())}-
+              {fmtClock(
+                getStartTime(startHoursOffset + estDurationH).getTime()
+              )}
             </span>
           )}
         </div>
