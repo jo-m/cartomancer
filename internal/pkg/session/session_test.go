@@ -242,9 +242,11 @@ func TestSessionExpiry(t *testing.T) {
 	createUser(t, d)
 
 	// Setup session store.
+	// Timeouts must be at least 1 second because SQLite's datetime() used in
+	// cleanup queries has second resolution.
 	conf := SessionConfig{
-		IdleTimeout:             time.Millisecond * 100,
-		AbsoluteTimeout:         time.Millisecond * 400,
+		IdleTimeout:             2 * time.Second,
+		AbsoluteTimeout:         5 * time.Second,
 		CookieName:              cookieName,
 		insecureUseOnlyForTests: true,
 	}
@@ -257,12 +259,12 @@ func TestSessionExpiry(t *testing.T) {
 
 	// Create a session.
 	cookieVal := createSession(t, d, store)
-	// And it remains valid.
-	for range 35 {
+	// And it remains valid while we keep poking it within the idle timeout.
+	for range 8 {
 		require.NoError(t, pokeSession(t, d, store, cookieVal))
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(500 * time.Millisecond)
 	}
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(2 * time.Second)
 	// Hit the absolute timeout.
 	assert.EqualError(t, pokeSession(t, d, store, cookieVal), "session expired (absolute)")
 
@@ -273,7 +275,7 @@ func TestSessionExpiry(t *testing.T) {
 
 	// Create a new session.
 	cookieVal = createSession(t, d, store)
-	time.Sleep(time.Millisecond * 101)
+	time.Sleep(3 * time.Second)
 	// Hit the idle timeout.
 	assert.EqualError(t, pokeSession(t, d, store, cookieVal), "session expired (idle)")
 

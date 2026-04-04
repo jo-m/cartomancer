@@ -23,11 +23,11 @@ SELECT t.uuid
 FROM tracks t
 LEFT JOIN track_forecasts tf ON t.uuid = tf.track_uuid
 WHERE (tf.id IS NULL
-   OR tf.forecast_reference_time != ?
-   OR tf.start_time != ?)
-  AND t.uuid > ?
+   OR datetime(tf.forecast_reference_time) != datetime(sqlc.arg(forecast_reference_time))
+   OR datetime(tf.start_time) != datetime(sqlc.arg(start_time)))
+  AND t.uuid > sqlc.arg(uuid)
 ORDER BY t.uuid ASC
-LIMIT ?;
+LIMIT sqlc.arg(limit);
 
 -- name: DeleteTrackForecast :exec
 DELETE FROM track_forecasts WHERE track_uuid = ?;

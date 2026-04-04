@@ -50,5 +50,5 @@ WHERE user_id = ?;
 -- name: CleanupSessions :execrows
 DELETE FROM sessions
 WHERE
-  created_at < @createdBefore
-  OR last_active_at < @activeBefore;
+  datetime(created_at) < datetime(@createdBefore)
+  OR datetime(last_active_at) < datetime(@activeBefore);

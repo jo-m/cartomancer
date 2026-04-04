@@ -27,4 +27,4 @@ SELECT DISTINCT user_id FROM email_verifications;
 
 -- name: DeleteExpiredEmailVerifications :execrows
 DELETE FROM email_verifications
-WHERE expires_at < ?;
+WHERE datetime(expires_at) < datetime(?);

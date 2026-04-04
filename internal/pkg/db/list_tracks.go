@@ -379,22 +379,22 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	}
 
 	if p.CreatedAtMin != nil {
-		b.add("tracks.created_at >= ?", *p.CreatedAtMin)
+		b.add("datetime(tracks.created_at) >= datetime(?)", *p.CreatedAtMin)
 	}
 	if p.CreatedAtMax != nil {
-		b.add("tracks.created_at <= ?", *p.CreatedAtMax)
+		b.add("datetime(tracks.created_at) <= datetime(?)", *p.CreatedAtMax)
 	}
 	if p.UpdatedAtMin != nil {
-		b.add("tracks.updated_at >= ?", *p.UpdatedAtMin)
+		b.add("datetime(tracks.updated_at) >= datetime(?)", *p.UpdatedAtMin)
 	}
 	if p.UpdatedAtMax != nil {
-		b.add("tracks.updated_at <= ?", *p.UpdatedAtMax)
+		b.add("datetime(tracks.updated_at) <= datetime(?)", *p.UpdatedAtMax)
 	}
 	if p.OriginalCreatedAtMin != nil {
-		b.add("tracks.original_created_at >= ?", *p.OriginalCreatedAtMin)
+		b.add("datetime(tracks.original_created_at) >= datetime(?)", *p.OriginalCreatedAtMin)
 	}
 	if p.OriginalCreatedAtMax != nil {
-		b.add("tracks.original_created_at <= ?", *p.OriginalCreatedAtMax)
+		b.add("datetime(tracks.original_created_at) <= datetime(?)", *p.OriginalCreatedAtMax)
 	}
 
 	if p.TotalDistanceMMin != nil {
@@ -441,7 +441,7 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	joins := " JOIN users ON users.uuid = tracks.user_id" +
 		" LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?" +
 		" LEFT JOIN track_geonames tg ON tg.track_id = tracks.uuid" +
-		" LEFT JOIN track_forecasts tf ON tf.track_uuid = tracks.uuid AND tf.start_time > ?"
+		" LEFT JOIN track_forecasts tf ON tf.track_uuid = tracks.uuid AND datetime(tf.start_time) > datetime(?)"
 
 	now := time.Now()
 

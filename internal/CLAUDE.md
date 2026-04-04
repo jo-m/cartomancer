@@ -129,6 +129,7 @@ No ORM.
 Written in SQL in `internal/pkg/db/queries/*.sql`.
 Compiled to Go methods via sqlc.
 Run `make gen` after editing queries.
+When querying datetimes, you MUST use the sqlite `datetime()` function on both sides to account for timezones etc.
 
 ## Job queue
 

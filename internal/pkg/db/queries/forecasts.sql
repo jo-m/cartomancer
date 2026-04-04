@@ -14,15 +14,15 @@ LIMIT 1;
 -- name: DeleteOutdatedForecastFiles :execrows
 -- Deletes all forecast_files rows whose valid_time is before the given cutoff.
 DELETE FROM forecast_files
-WHERE valid_time < ?;
+WHERE datetime(valid_time) < datetime(sqlc.arg(cutoff));
 
 -- name: ListForecastFilesForWindow :many
 -- Returns forecast_files rows for the requested time window and bbox.
 -- For each (variable, valid_time) pair, returns the file from the newest
 -- forecast run that has it, falling back to older runs to fill gaps.
 SELECT mf.* FROM forecast_files mf
-WHERE mf.valid_until_time > sqlc.arg(start)
-  AND mf.valid_time <= sqlc.arg(end)
+WHERE datetime(mf.valid_until_time) > datetime(sqlc.arg(start))
+  AND datetime(mf.valid_time) <= datetime(sqlc.arg(end))
   AND mf.forecast_id = (
     SELECT mf2.forecast_id FROM forecast_files mf2
     JOIN forecasts f2 ON mf2.forecast_id = f2.id
