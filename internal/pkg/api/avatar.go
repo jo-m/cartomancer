@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"codeberg.org/Codeberg/avatars"
 	"github.com/go-chi/chi/v5"
+	"jo-m.ch/go/cartomancer/internal/pkg/avatar"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
@@ -35,13 +35,13 @@ func (sv *server) handleGetUserAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eTag := fmt.Sprintf(`"%s-v0"`, u.AvatarSeed)
+	eTag := fmt.Sprintf(`"%s-v1"`, u.AvatarSeed)
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	svg := []byte(avatars.MakeAvatar(u.AvatarSeed))
+	svg := []byte(avatar.MakeAvatar(u.AvatarSeed))
 	w.Header().Set(headerContentType, "image/svg+xml")
 	w.Header().Set(headerCacheControl, "public, max-age=86400")
 	w.Header().Set(headerETag, eTag)

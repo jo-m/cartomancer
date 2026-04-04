@@ -14,8 +14,6 @@ cloud.google.com/go/compute/metadata v0.9.0 h1:pDUj4QMoPejqq20dK0Pg2N4yG9zIkYGdB
 cloud.google.com/go/compute/metadata v0.9.0/go.mod h1:E0bWwX5wTnLPedCKqk3pJmVgCBSM6qQI1yTBdEb3C10=
 cloud.google.com/go/longrunning v0.5.7 h1:WLbHekDbjK1fVFD3ibpFFVoyizlLRl73I7YKuAKilhU=
 cloud.google.com/go/longrunning v0.5.7/go.mod h1:8GClkudohy1Fxm3owmBGid8W0pSgodEMwEAztp38Xng=
-codeberg.org/Codeberg/avatars v1.0.0 h1:MRx5QxuT/oVCcPvC5rXwgwWKD7hc6J0GnZ0Kl67lYEM=
-codeberg.org/Codeberg/avatars v1.0.0/go.mod h1:ML/htpPRb3+owhkm4+qG2ZrXnk5WXaQLASOZ5GLCPi8=
 codeberg.org/h7c/go-diff v0.1.0 h1:TLZHKae9HTYPgw5NrUY1a729W9hXLON/EDOTwbIufsM=
 codeberg.org/h7c/go-diff v0.1.0/go.mod h1:hk65xahMRRzYtv/l36DV7Ss9ANeiFVBpxKA/2QVu0TM=
 dario.cat/mergo v1.0.2 h1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=
