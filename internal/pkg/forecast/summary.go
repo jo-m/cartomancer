@@ -36,7 +36,11 @@ const (
 )
 
 // SummarizerArgs are the arguments for the track forecast summarizer job.
-type SummarizerArgs struct{}
+// When TrackUUID is set, only that single track is processed.
+// When empty, all tracks needing a forecast update are processed.
+type SummarizerArgs struct {
+	TrackUUID string `json:"trackUUID,omitempty"`
+}
 
 // Kind implements [jobs.Args].
 func (SummarizerArgs) Kind() string { return "forecast.summarizer" }
@@ -59,7 +63,9 @@ var _ jobs.Job[SummarizerArgs] = (*Summarizer)(nil)
 // Run implements [jobs.Job].
 // It looks up the latest forecast reference time, finds all tracks that need
 // updating, and computes a weather summary for each one.
-func (s *Summarizer) Run(ctx context.Context, _ SummarizerArgs) error {
+// When args.TrackUUID is set, only that single track is processed regardless
+// of whether its forecast is already up to date.
+func (s *Summarizer) Run(ctx context.Context, args SummarizerArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, summarizerTimeout)
 	defer cancel()
 
@@ -73,6 +79,12 @@ func (s *Summarizer) Run(ctx context.Context, _ SummarizerArgs) error {
 	}
 
 	startTime := nextFullHour(time.Now()).Add(summaryStartOffset)
+
+	if args.TrackUUID != "" {
+		logg.Info(ctx, "computing forecast summary for single track",
+			"trackUUID", args.TrackUUID, "referenceTime", refTime, "startTime", startTime)
+		return s.summarizeTrack(ctx, args.TrackUUID, refTime, startTime)
+	}
 
 	logg.Info(ctx, "computing track forecast summaries", "referenceTime", refTime, "startTime", startTime)
 
