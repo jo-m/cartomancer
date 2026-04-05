@@ -654,6 +654,46 @@ func (sv *server) handleDeleteTrack(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+type bulkDeleteTracksRequest struct {
+	UUIDs []string `json:"uuids"`
+}
+
+// handleBulkDeleteTracks handles POST /tracks/bulk-delete.
+// Deletes multiple tracks and all associated data in a single operation.
+// All tracks must belong to the authenticated user.
+func (sv *server) handleBulkDeleteTracks(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.MustGetUser(ctx)
+
+	var req bulkDeleteTracksRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeDecodeError(w, err)
+		return
+	}
+
+	if len(req.UUIDs) == 0 {
+		writeError(w, http.StatusBadRequest, "uuids is required and must not be empty")
+		return
+	}
+	if len(req.UUIDs) > maxBulkEditUUIDs {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("at most %d uuids allowed", maxBulkEditUUIDs))
+		return
+	}
+
+	err := sv.d.BulkDeleteTracks(ctx, req.UUIDs, user.Uuid)
+	if errors.Is(err, db.ErrBulkDeleteMismatch) {
+		writeError(w, http.StatusNotFound, "one or more tracks not found or not owned by you")
+		return
+	}
+	if err != nil {
+		logg.Error(ctx, "failed to bulk delete tracks", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 type listTracksResponse struct {
 	Tracks     []trackResponse `json:"tracks"`
 	TotalCount int             `json:"totalCount"`

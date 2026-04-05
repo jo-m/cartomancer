@@ -30,7 +30,7 @@ frontend/
 ```bash
 cd frontend
 npm run dev
-npm run check
+npm run lint
 npm run build
 ```
 
@@ -132,4 +132,4 @@ SVGs in `src/assets/` must use `currentColor` (not hardcoded colors like `#000`)
 
 ## Linting
 
-After every change, `npm run check` MUST run successfully.
+After every change, `npm run lint` MUST run successfully.
