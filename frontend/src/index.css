@@ -14,7 +14,6 @@
   --color-text-muted: #7a6a54;
   --color-nav: #2c1810;
   --color-nav-text: #e8dcc8;
-  --color-nav-hover: #3d2a1e;
   --color-active: #6b3a2a;
   --color-active-text: #faf6ef;
   --color-error: #a03030;
@@ -84,7 +83,6 @@
       --color-text-muted: #a09078;
       --color-nav: #0f0c08;
       --color-nav-text: #f0e6d4;
-      --color-nav-hover: #1a1410;
       --color-active: #c8845a;
       --color-active-text: #1a1410;
       --color-error: #d45050;

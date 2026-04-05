@@ -24,6 +24,7 @@ import TagsInput from "./TagsInput"
 import Button from "./ui/Button"
 import Select from "./ui/Select"
 import ToggleGroup from "./ui/ToggleGroup"
+import Input from "./ui/Input"
 import SectionHeading from "./ui/SectionHeading"
 import PageContainer from "./ui/PageContainer"
 import {
@@ -517,16 +518,17 @@ export default function TrackGrid({ mode }: TrackGridProps) {
 
       <div className="mb-6 rounded-lg border border-border bg-panel px-4 pb-4 pt-3">
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <input
-            type="search"
-            placeholder="Search by name or location..."
-            value={live.search}
-            onChange={(e) =>
-              setLive((prev) => ({ ...prev, search: e.target.value }))
-            }
-            aria-label="Search tracks"
-            className="w-56 rounded border border-border bg-panel px-3 py-1.5 text-sm text-text placeholder-text-muted focus:border-primary focus:outline-none transition-colors"
-          />
+          <div className="w-56">
+            <Input
+              type="search"
+              placeholder="Search by name or location..."
+              value={live.search}
+              onChange={(e) =>
+                setLive((prev) => ({ ...prev, search: e.target.value }))
+              }
+              aria-label="Search tracks"
+            />
+          </div>
           {mode === "user" && (
             <ToggleGroup
               options={[

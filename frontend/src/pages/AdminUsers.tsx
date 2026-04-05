@@ -11,6 +11,7 @@ import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Alert from "../components/ui/Alert"
+import Input from "../components/ui/Input"
 
 const userSchema = z.object({
   email: z.string().min(1, "Required").email("Invalid email"),
@@ -193,13 +194,13 @@ export default function AdminUsers() {
       )}
 
       <div className="mb-4 flex items-center gap-3">
-        <input
+        <Input
           type="text"
           placeholder="Search users..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           aria-label="Search users"
-          className="w-full max-w-xs rounded border border-border bg-panel px-3 py-2 text-sm text-text placeholder-text-muted focus:border-primary focus:outline-none transition-colors"
+          className="max-w-xs"
         />
         <Button
           variant="primary"
@@ -219,32 +220,18 @@ export default function AdminUsers() {
             onSubmit={createForm.handleSubmit(onCreateUser)}
             className="flex flex-wrap items-start gap-3"
           >
-            <div>
-              <input
-                type="email"
-                placeholder="Email"
-                {...createForm.register("email")}
-                className="rounded border border-border bg-panel px-3 py-2 text-sm text-text placeholder-text-muted focus:border-primary focus:outline-none transition-colors"
-              />
-              {createForm.formState.errors.email && (
-                <p role="alert" className="mt-1 text-xs text-error">
-                  {createForm.formState.errors.email.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <input
-                type="text"
-                placeholder="Name"
-                {...createForm.register("name")}
-                className="rounded border border-border bg-panel px-3 py-2 text-sm text-text placeholder-text-muted focus:border-primary focus:outline-none transition-colors"
-              />
-              {createForm.formState.errors.name && (
-                <p role="alert" className="mt-1 text-xs text-error">
-                  {createForm.formState.errors.name.message}
-                </p>
-              )}
-            </div>
+            <Input
+              type="email"
+              placeholder="Email"
+              {...createForm.register("email")}
+              error={createForm.formState.errors.email?.message}
+            />
+            <Input
+              type="text"
+              placeholder="Name"
+              {...createForm.register("name")}
+              error={createForm.formState.errors.name?.message}
+            />
             <label className="flex items-center gap-1.5 py-2 text-sm text-text-secondary">
               <input
                 type="checkbox"
@@ -284,30 +271,16 @@ export default function AdminUsers() {
                       onSubmit={editForm.handleSubmit(onEditUser)}
                       className="flex flex-wrap items-start gap-3"
                     >
-                      <div>
-                        <input
-                          type="text"
-                          {...editForm.register("name")}
-                          className="rounded border border-border bg-panel px-2 py-1 text-sm text-text focus:border-primary focus:outline-none transition-colors"
-                        />
-                        {editForm.formState.errors.name && (
-                          <p role="alert" className="mt-0.5 text-xs text-error">
-                            {editForm.formState.errors.name.message}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <input
-                          type="email"
-                          {...editForm.register("email")}
-                          className="rounded border border-border bg-panel px-2 py-1 text-sm text-text focus:border-primary focus:outline-none transition-colors"
-                        />
-                        {editForm.formState.errors.email && (
-                          <p role="alert" className="mt-0.5 text-xs text-error">
-                            {editForm.formState.errors.email.message}
-                          </p>
-                        )}
-                      </div>
+                      <Input
+                        type="text"
+                        {...editForm.register("name")}
+                        error={editForm.formState.errors.name?.message}
+                      />
+                      <Input
+                        type="email"
+                        {...editForm.register("email")}
+                        error={editForm.formState.errors.email?.message}
+                      />
                       <label className="flex items-center gap-1.5 py-1 text-sm text-text-secondary">
                         <input
                           type="checkbox"

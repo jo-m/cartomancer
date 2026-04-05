@@ -4,6 +4,7 @@ import { $api } from "../api/client"
 import { useUrlState, stringParam } from "../hooks/useUrlState"
 import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
+import Input from "../components/ui/Input"
 
 /** Formats a byte count into a human-readable size string. */
 function formatBytes(bytes: number): string {
@@ -48,13 +49,13 @@ export default function AdminForecasts() {
       </div>
 
       <div className="mb-4">
-        <input
+        <Input
           type="text"
           placeholder="Search forecasts..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           aria-label="Search forecasts"
-          className="w-full max-w-xs rounded border border-border bg-panel px-3 py-2 text-sm text-text placeholder-text-muted focus:border-primary focus:outline-none transition-colors"
+          className="max-w-xs"
         />
       </div>
 
