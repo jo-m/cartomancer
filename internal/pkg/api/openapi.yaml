@@ -1190,7 +1190,7 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   /tracks/{uuid}/forecast:
-    post:
+    get:
       summary: Get weather forecast along a track
       operationId: getTrackForecast
       tags: [Tracks]

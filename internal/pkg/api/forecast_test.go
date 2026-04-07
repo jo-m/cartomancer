@@ -54,7 +54,7 @@ func TestGetTrackForecast_Unauthenticated_NotFound(t *testing.T) {
 	e := newTestEnv(t)
 	client := e.newClient()
 
-	status, _ := e.do(client, http.MethodPost, "/tracks/nonexistent/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, nil)
+	status, _ := e.do(client, http.MethodGet, "/tracks/nonexistent/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, nil)
 	assert.Equal(t, http.StatusNotFound, status)
 }
 
@@ -70,7 +70,7 @@ func TestGetTrackForecast_Unauthenticated_PrivateTrack(t *testing.T) {
 
 	// Anonymous client cannot see a private track.
 	anon := e.newClient()
-	status, _ = e.do(anon, http.MethodPost, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, nil)
+	status, _ = e.do(anon, http.MethodGet, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, nil)
 	assert.Equal(t, http.StatusNotFound, status)
 }
 
@@ -80,7 +80,7 @@ func TestGetTrackForecast_NotFound(t *testing.T) {
 	client := e.newClient()
 	e.login(client, "alice@example.com", "secret")
 
-	status, _ := e.do(client, http.MethodPost, "/tracks/nonexistent/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, nil)
+	status, _ := e.do(client, http.MethodGet, "/tracks/nonexistent/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, nil)
 	assert.Equal(t, http.StatusNotFound, status)
 }
 
@@ -95,11 +95,11 @@ func TestGetTrackForecast_MissingParams(t *testing.T) {
 	uuid := resp["uuid"].(string)
 
 	// Missing startTime.
-	status, _ = e.do(client, http.MethodPost, "/tracks/"+uuid+"/forecast?speedKmh=25", nil, nil)
+	status, _ = e.do(client, http.MethodGet, "/tracks/"+uuid+"/forecast?speedKmh=25", nil, nil)
 	assert.Equal(t, http.StatusBadRequest, status)
 
 	// Missing speedKmh.
-	status, _ = e.do(client, http.MethodPost, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z", nil, nil)
+	status, _ = e.do(client, http.MethodGet, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z", nil, nil)
 	assert.Equal(t, http.StatusBadRequest, status)
 }
 
@@ -114,7 +114,7 @@ func TestGetTrackForecast_NoForecastData(t *testing.T) {
 	uuid := resp["uuid"].(string)
 
 	var result map[string]any
-	status, _ = e.do(client, http.MethodPost, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, &result)
+	status, _ = e.do(client, http.MethodGet, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, &result)
 	assert.Equal(t, http.StatusOK, status)
 	assert.Equal(t, "none", result["forecastStatus"])
 
@@ -143,7 +143,7 @@ func TestGetTrackForecast_Success(t *testing.T) {
 	seedForecastDB(t, e.d, refTime)
 
 	var result map[string]any
-	status, _ = e.do(client, http.MethodPost, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, &result)
+	status, _ = e.do(client, http.MethodGet, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, &result)
 	assert.Equal(t, http.StatusOK, status)
 	// The seeded test data covers one 1h step starting at refTime, which is
 	// enough for the short test track at 25 km/h.

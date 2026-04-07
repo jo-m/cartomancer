@@ -79,7 +79,7 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 	mux.Get("/tracks/{uuid}/profile.svg", sv.handleDownloadTrackProfileSVG)
 	mux.Get("/tracks/{uuid}/points", sv.handleGetTrackPoints)
 	mux.Get("/tracks/{uuid}/road-closures", sv.handleGetTrackRoadClosures)
-	mux.Post("/tracks/{uuid}/forecast", sv.handleGetTrackForecast)
+	mux.Get("/tracks/{uuid}/forecast", sv.handleGetTrackForecast)
 	mux.Get("/tags", sv.handleSuggestTags)
 	mux.Get("/geocode/search/name", sv.handleSearchGeocodeName)
 

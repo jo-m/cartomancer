@@ -162,7 +162,7 @@ export default function Track() {
       setForecastLoading(true)
       setForecastStatus(null)
       try {
-        const { data: result, error: apiError } = await fetchClient.POST(
+        const { data: result, error: apiError } = await fetchClient.GET(
           "/tracks/{uuid}/forecast",
           {
             params: {
