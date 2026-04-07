@@ -291,7 +291,8 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 			}
 		}
 		// Check email uniqueness (excluding this user).
-		if !strings.EqualFold(existing.Email, req.Email) {
+		// Both values are already lowercased via normalizeEmail.
+		if existing.Email != req.Email {
 			_, txErr = q.GetUserByEmail(ctx, req.Email)
 			if txErr == nil {
 				return errEmailTaken
