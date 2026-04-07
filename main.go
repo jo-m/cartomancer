@@ -260,7 +260,7 @@ func main() {
 	} else {
 		slog.SetDefault(logger)
 	}
-	ctx = logg.WithLogger(ctx, logg.New(c.LoggConfig))
+	ctx = logg.WithLogger(ctx, logger)
 
 	// In demo mode, use a separate database file to avoid overwriting production data.
 	if c.DemoMode {

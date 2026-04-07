@@ -43,6 +43,7 @@ func NewHandler(c LoggConfig, w io.Writer) slog.Handler {
 	})
 }
 
+// New creates a new slog.Logger with the given configuration, writing JSON to stderr.
 func New(c LoggConfig) *slog.Logger {
 	return slog.New(NewHandler(c, os.Stderr))
 }
