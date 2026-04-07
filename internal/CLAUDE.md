@@ -45,11 +45,10 @@ Caching: Endpoints which seldomly change and are expensive to compute should inc
 1. `chi.middleware.RequestID`
 2. `logg.AttachLogger` — attaches logger with request ID to context
 3. `logg.RequestLogger` — logs each request with duration/status
-4. `chi.middleware.RequestSize(1MB)`
+4. `chi.middleware.RequestSize(5MB)`
 5. `chi.middleware.Compress(5)`
-6. `chi.middleware.RedirectSlashes`
-7. `sess.Middleware` — auto-creates/loads session for every request
-8. `chi.middleware.Recoverer`
+6. `sess.Middleware` — auto-creates/loads session for every request
+7. `chi.middleware.Recoverer`
 
 ### Context access in handlers
 
