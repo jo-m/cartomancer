@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
+	"jo-m.ch/go/cartomancer/internal/pkg/client"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
 	"jo-m.ch/go/cartomancer/internal/pkg/geonames/cols"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
@@ -56,7 +57,7 @@ func DownloadAllCountries(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.New().Do(req)
 	if err != nil {
 		return "", fmt.Errorf("download allCountries.zip: %w", err)
 	}

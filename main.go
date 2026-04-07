@@ -394,6 +394,7 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       20 * time.Second,
 		WriteTimeout:      20 * time.Second,
+		IdleTimeout:       120 * time.Second,
 		MaxHeaderBytes:    1 << 20,
 	}
 

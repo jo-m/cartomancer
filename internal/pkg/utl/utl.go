@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+
+	"jo-m.ch/go/cartomancer/internal/pkg/client"
 )
 
 // Ptr returns a pointer to the given value.
@@ -35,7 +37,7 @@ func DownloadFile(ctx context.Context, httpURL string) ([]byte, error) {
 		return nil, err
 	}
 
-	resp, err := http.DefaultClient.Do(req) //nolint:gosec // URL is caller-supplied intentionally.
+	resp, err := client.New().Do(req) //nolint:gosec // URL is caller-supplied intentionally.
 	if err != nil {
 		return nil, err
 	}

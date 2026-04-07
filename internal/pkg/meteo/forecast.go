@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"jo-m.ch/go/cartomancer/internal/pkg/client"
 	"jo-m.ch/go/cartomancer/internal/pkg/geoadmin"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo/collection"
@@ -310,7 +311,7 @@ func downloadFile(ctx context.Context, url, destPath string) error {
 	if err != nil {
 		return err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.New().Do(req)
 	if err != nil {
 		return err
 	}

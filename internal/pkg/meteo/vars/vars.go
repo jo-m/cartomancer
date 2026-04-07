@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 
+	"jo-m.ch/go/cartomancer/internal/pkg/client"
 	"jo-m.ch/go/cartomancer/internal/pkg/geoadmin"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo/collection"
 )
@@ -65,7 +66,7 @@ func downloadAndParseCSV(ctx context.Context, href string) ([]Variable, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.New().Do(req)
 	if err != nil {
 		return nil, err
 	}

@@ -10,6 +10,7 @@ import (
 	"net/url"
 
 	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
+	"jo-m.ch/go/cartomancer/internal/pkg/client"
 )
 
 const (
@@ -56,7 +57,7 @@ func Fetch(ctx context.Context) (*FindResponse, error) {
 	}
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.New().Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("executing request: %w", err)
 	}

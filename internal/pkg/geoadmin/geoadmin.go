@@ -26,6 +26,8 @@ import (
 	"strings"
 
 	"github.com/paulmach/orb/geojson"
+
+	"jo-m.ch/go/cartomancer/internal/pkg/client"
 )
 
 // BaseURL is the default base URL for the Swiss government STAC API.
@@ -54,7 +56,7 @@ func getJSON[T any](ctx context.Context, url string) (*T, error) {
 	}
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.New().Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("executing request: %w", err)
 	}
@@ -85,7 +87,7 @@ func postJSON[T any](ctx context.Context, url string, body any) (*T, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.New().Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("executing request: %w", err)
 	}
@@ -227,7 +229,7 @@ func DownloadAsset(ctx context.Context, asset Asset) (body io.ReadCloser, conten
 		return nil, "", fmt.Errorf("creating request: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.New().Do(req)
 	if err != nil {
 		return nil, "", fmt.Errorf("executing request: %w", err)
 	}
