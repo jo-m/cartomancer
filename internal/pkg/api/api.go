@@ -11,6 +11,7 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
 // requireUser is middleware that allows only authenticated (non-admin) users.
@@ -34,12 +35,15 @@ type server struct {
 
 // New creates a new API handler.
 func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig app.AppConfig) (http.Handler, error) {
-	emailSecret := []byte(appConfig.EmailJWTSecret)
-	if len(emailSecret) == 0 {
-		emailSecret = password.GenRandBytes(emailJWTSecretLenBytes)
-	}
-	if len(emailSecret) != emailJWTSecretLenBytes {
-		return nil, fmt.Errorf("email JWT secret must be %d bytes but is %d", emailJWTSecretLenBytes, len(emailSecret))
+	var emailSecret []byte
+	if appConfig.EmailJWTSecret == "" {
+		emailSecret = password.GenRandBytes(utl.JWTSecretMinBytes)
+	} else {
+		var err error
+		emailSecret, err = utl.DecodeJWTSecret(appConfig.EmailJWTSecret)
+		if err != nil {
+			return nil, fmt.Errorf("invalid email JWT secret: %w", err)
+		}
 	}
 
 	sv := server{

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
 const issuer = "ACME corp"
@@ -17,7 +18,7 @@ func makeTestClaimsAndKey(tb testing.TB) (jwtClaims, []byte) {
 
 	id, err := uuid.NewV7()
 	require.NoError(tb, err)
-	return claimsForSession(id.String(), time.Now(), time.Hour, issuer), password.GenRandBytes(jwtSecretLenBytes / 8)
+	return claimsForSession(id.String(), time.Now(), time.Hour, issuer), password.GenRandBytes(utl.JWTSecretMinBytes)
 }
 
 func TestSimple(t *testing.T) {

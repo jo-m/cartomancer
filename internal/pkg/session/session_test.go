@@ -255,7 +255,7 @@ func TestSessionExpiry(t *testing.T) {
 	}
 	store, err := NewStore(d, conf, appConf)
 	require.NoError(t, err)
-	require.Len(t, store.c.JWTSecret, jwtSecretLenBytes)
+	require.Len(t, store.jwtSecret, utl.JWTSecretMinBytes)
 
 	// Create a session.
 	cookieVal := createSession(t, d, store)

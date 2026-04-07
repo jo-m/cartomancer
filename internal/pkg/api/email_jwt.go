@@ -6,10 +6,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const (
-	emailJWTSubject        = "email-verification"
-	emailJWTSecretLenBytes = 384 / 8
-)
+const emailJWTSubject = "email-verification"
 
 var emailJWTAlg = jwt.SigningMethodHS384
 

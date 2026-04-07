@@ -21,7 +21,7 @@ Global options:
                          Base URL of the application, needed for links and emails [default: http://localhost:8080, env: APP_EXTERNAL_BASE_URL]
   --app-dev-mode         Enable development mode [default: false, env: APP_DEV_MODE]
   --app-email-jwt-secret SECRET
-                         Secret to sign email verification JWTs, generated on startup if not set [env: APP_EMAIL_JWT_SECRET]
+                         Base64-encoded secret (min 512 bits) to sign email verification JWTs, generated on startup if not set [env: APP_EMAIL_JWT_SECRET]
   --app-email-verification-expiry DUR
                          How long email verification links are valid [default: 2h, env: APP_EMAIL_VERIFICATION_EXPIRY]
   --app-registration-enabled
@@ -34,7 +34,7 @@ Global options:
   --session-abs-timeout DUR
                          Session absolute timeout [default: 72h, env: SESSION_ABS_TIMEOUT]
   --session-jwt-secret SECRET
-                         Secret to sign JWT, generated on startup if not set [env: SESSION_JWT_SECRET]
+                         Base64-encoded secret (min 512 bits) to sign JWT, generated on startup if not set [env: SESSION_JWT_SECRET]
   --session-cookie-name NAME
                          Session cookie name [default: sid, env: SESSION_COOKIE_NAME]
   --session-cookie-domain HOST

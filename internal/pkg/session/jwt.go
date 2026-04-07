@@ -11,10 +11,7 @@ func init() {
 	jwt.TimePrecision = time.Millisecond
 }
 
-const (
-	jwtClaimSubject   = "session"
-	jwtSecretLenBytes = 384 / 8
-)
+const jwtClaimSubject = "session"
 
 var (
 	jwtAlg = jwt.SigningMethodHS384

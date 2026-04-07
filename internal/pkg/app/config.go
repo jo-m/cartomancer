@@ -3,7 +3,10 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"time"
+
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
 // DevInitialAdminEmail and DevInitialAdminPassword are the credentials used for
@@ -31,7 +34,7 @@ type AppConfig struct {
 	// EmailJWTSecret is the secret used to sign email verification JWTs.
 	// Generated on startup if not set.
 	// REQUIRED for production deployments.
-	EmailJWTSecret string `arg:"--app-email-jwt-secret,env:APP_EMAIL_JWT_SECRET" help:"Secret to sign email verification JWTs, generated on startup if not set" placeholder:"SECRET"`
+	EmailJWTSecret string `arg:"--app-email-jwt-secret,env:APP_EMAIL_JWT_SECRET" help:"Base64-encoded secret (min 512 bits) to sign email verification JWTs, generated on startup if not set" placeholder:"SECRET"`
 	// EmailVerificationExpiry is how long an email verification link remains valid.
 	EmailVerificationExpiry time.Duration `arg:"--app-email-verification-expiry,env:APP_EMAIL_VERIFICATION_EXPIRY" default:"2h" help:"How long email verification links are valid" placeholder:"DUR"`
 	// RegistrationEnabled controls whether new users can self-register via the /register endpoint.
@@ -57,6 +60,11 @@ func (c *AppConfig) Validate() error {
 	}
 	if c.EmailVerificationExpiry <= 0 {
 		return errors.New("--app-email-verification-expiry / APP_EMAIL_VERIFICATION_EXPIRY must be positive")
+	}
+	if c.EmailJWTSecret != "" {
+		if _, err := utl.DecodeJWTSecret(c.EmailJWTSecret); err != nil {
+			return fmt.Errorf("--app-email-jwt-secret / APP_EMAIL_JWT_SECRET: %w", err)
+		}
 	}
 	if c.DemoMode && c.DevelopmentMode {
 		return errors.New("--app-demo-mode / APP_DEMO_MODE and --app-dev-mode / APP_DEV_MODE cannot both be enabled")

@@ -22,6 +22,7 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
 const testCookieName = "sid"
@@ -74,7 +75,7 @@ func newTestEnvWithAppConfig(t *testing.T, appConf app.AppConfig) *testEnv {
 	ts := httptest.NewTLSServer(mux)
 	t.Cleanup(ts.Close)
 
-	return &testEnv{t: t, d: d, ts: ts, emailJWTSecret: []byte(appConf.EmailJWTSecret)}
+	return &testEnv{t: t, d: d, ts: ts, emailJWTSecret: utl.Must(utl.DecodeJWTSecret(appConf.EmailJWTSecret))}
 }
 
 // newClient creates a new TLS-aware HTTP client with an empty cookie jar.

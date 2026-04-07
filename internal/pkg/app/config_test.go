@@ -1,17 +1,22 @@
 package app
 
 import (
+	"encoding/base64"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
+
+var testJWTSecret = base64.StdEncoding.EncodeToString([]byte(strings.Repeat("T", utl.JWTSecretMinBytes)))
 
 func validConfig() AppConfig {
 	return AppConfig{
 		InstanceName:            "Test",
 		ExternalBaseURL:         "https://example.com",
-		EmailJWTSecret:          "secret",
+		EmailJWTSecret:          testJWTSecret,
 		EmailVerificationExpiry: 2 * time.Hour,
 	}
 }
@@ -34,4 +39,21 @@ func TestValidate(t *testing.T) {
 		require.ErrorContains(t, c.Validate(), "APP_EMAIL_VERIFICATION_EXPIRY")
 	})
 
+	t.Run("invalid base64 email JWT secret", func(t *testing.T) {
+		c := validConfig()
+		c.EmailJWTSecret = "not-valid-base64!!!"
+		require.ErrorContains(t, c.Validate(), "APP_EMAIL_JWT_SECRET")
+	})
+
+	t.Run("too short email JWT secret", func(t *testing.T) {
+		c := validConfig()
+		c.EmailJWTSecret = base64.StdEncoding.EncodeToString([]byte("short"))
+		require.ErrorContains(t, c.Validate(), "APP_EMAIL_JWT_SECRET")
+	})
+
+	t.Run("empty email JWT secret is allowed", func(t *testing.T) {
+		c := validConfig()
+		c.EmailJWTSecret = ""
+		require.NoError(t, c.Validate())
+	})
 }

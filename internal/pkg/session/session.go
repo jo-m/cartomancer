@@ -15,6 +15,7 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
 // SessionConfig options for a session store.
@@ -26,7 +27,7 @@ type SessionConfig struct {
 	AbsoluteTimeout time.Duration `arg:"--session-abs-timeout,env:SESSION_ABS_TIMEOUT" default:"72h" help:"Session absolute timeout" placeholder:"DUR"`
 
 	// REQUIRED for production deployments.
-	JWTSecret string `arg:"--session-jwt-secret,env:SESSION_JWT_SECRET" help:"Secret to sign JWT, generated on startup if not set" placeholder:"SECRET"`
+	JWTSecret string `arg:"--session-jwt-secret,env:SESSION_JWT_SECRET" help:"Base64-encoded secret (min 512 bits) to sign JWT, generated on startup if not set" placeholder:"SECRET"`
 
 	CookieName   string `arg:"--session-cookie-name,env:SESSION_COOKIE_NAME" default:"sid" help:"Session cookie name" placeholder:"NAME"`
 	CookieDomain string `arg:"--session-cookie-domain,env:SESSION_COOKIE_DOMAIN" default:"" help:"Session cookie domain" placeholder:"HOST"`
@@ -46,6 +47,11 @@ func (c *SessionConfig) Validate() error {
 	}
 	if c.IdleTimeout > c.AbsoluteTimeout {
 		return errors.New("--session-idle-timeout / SESSION_IDLE_TIMEOUT must not exceed --session-abs-timeout / SESSION_ABS_TIMEOUT")
+	}
+	if c.JWTSecret != "" {
+		if _, err := utl.DecodeJWTSecret(c.JWTSecret); err != nil {
+			return fmt.Errorf("--session-jwt-secret / SESSION_JWT_SECRET: %w", err)
+		}
 	}
 	if c.CookieName == "" {
 		return errors.New("--session-cookie-name / SESSION_COOKIE_NAME must not be empty")
@@ -67,9 +73,10 @@ func (c *SessionConfig) GetCleanerArgs() cleanerArgs {
 // Store manages sessions.
 // Use [NewStore] to create an instance.
 type Store struct {
-	d  *db.DB
-	c  SessionConfig
-	ac app.AppConfig
+	d         *db.DB
+	c         SessionConfig
+	ac        app.AppConfig
+	jwtSecret []byte
 }
 
 // NewStore creates a new session store.
@@ -78,17 +85,22 @@ func NewStore(d *db.DB, c SessionConfig, ac app.AppConfig) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid session config: %w", err)
 	}
-	if len(c.JWTSecret) == 0 {
-		c.JWTSecret = string(password.GenRandBytes(jwtSecretLenBytes))
-	}
-	if len(c.JWTSecret) != jwtSecretLenBytes {
-		return nil, fmt.Errorf("JWT secret must be %d bytes but is %d", jwtSecretLenBytes, len(c.JWTSecret))
+
+	var jwtSecret []byte
+	if c.JWTSecret == "" {
+		jwtSecret = password.GenRandBytes(utl.JWTSecretMinBytes)
+	} else {
+		jwtSecret, err = utl.DecodeJWTSecret(c.JWTSecret)
+		if err != nil {
+			return nil, fmt.Errorf("invalid session JWT secret: %w", err)
+		}
 	}
 
 	return &Store{
-		d:  d,
-		c:  c,
-		ac: ac,
+		d:         d,
+		c:         c,
+		ac:        ac,
+		jwtSecret: jwtSecret,
 	}, nil
 }
 
@@ -105,7 +117,7 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 	}
 
 	now := time.Now()
-	claims, err := jwtParseAndVerify(cookie.Value, now, []byte(s.c.JWTSecret), s.ac.InstanceName)
+	claims, err := jwtParseAndVerify(cookie.Value, now, s.jwtSecret, s.ac.InstanceName)
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			return nil, ErrSessionExpiredAbsolute
@@ -186,7 +198,7 @@ func (s *Store) create(w http.ResponseWriter, r *http.Request, tx *db.Queries, u
 	}
 
 	claims := claimsForSession(id.String(), now, s.c.AbsoluteTimeout, s.ac.InstanceName)
-	token, err := jwtSign(claims, []byte(s.c.JWTSecret))
+	token, err := jwtSign(claims, s.jwtSecret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign JWT: %w", err)
 	}

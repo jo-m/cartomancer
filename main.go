@@ -31,6 +31,7 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 	"jo-m.ch/go/cartomancer/internal/pkg/trackgroup"
 	"jo-m.ch/go/cartomancer/internal/pkg/users"
+	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
 // serveCmd starts the web server and job runner.
@@ -45,10 +46,14 @@ type setpassCmd struct {
 // deletealltracksCmd deletes all tracks and associated data from the database.
 type deletealltracksCmd struct{}
 
+// genjwtsecretCmd prints a randomly generated base64-encoded JWT secret to stdout.
+type genjwtsecretCmd struct{}
+
 type config struct {
 	Serve           *serveCmd           `arg:"subcommand:serve" help:"start the web server and background jobs"`
 	Setpass         *setpassCmd         `arg:"subcommand:setpass" help:"set password for a user"`
 	Deletealltracks *deletealltracksCmd `arg:"subcommand:deletealltracks" help:"delete all tracks (dev mode only)"`
+	Genjwtsecret    *genjwtsecretCmd    `arg:"subcommand:genjwtsecret" help:"generate a base64-encoded JWT secret (512-bit)"`
 
 	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8080"`
 	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
@@ -243,6 +248,11 @@ func main() {
 		panic(err)
 	}
 	p.MustParse(os.Args[1:])
+
+	if c.Genjwtsecret != nil {
+		fmt.Println(utl.GenJWTSecret())
+		return
+	}
 
 	if c.Serve == nil && c.Setpass == nil && c.Deletealltracks == nil {
 		p.WriteHelp(os.Stdout)
