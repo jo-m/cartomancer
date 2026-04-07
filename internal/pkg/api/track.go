@@ -533,8 +533,6 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var errForbidden = errors.New("forbidden")
-
 	now := time.Now().UTC()
 	var updated db.Track
 	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
@@ -624,8 +622,6 @@ func (sv *server) handleDeleteTrack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := session.MustGetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
-
-	var errForbidden = errors.New("forbidden")
 
 	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
 		existing, txErr := q.GetTrackByUUID(ctx, trackUUID)

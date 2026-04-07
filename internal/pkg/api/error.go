@@ -3,12 +3,14 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"mime"
 	"net/http"
 	"strings"
 )
 
 var errUnsupportedMediaType = errors.New("Content-Type must be application/json")
+var errForbidden = errors.New("forbidden")
 
 // ErrorJSON is the standard error response body.
 type ErrorJSON struct {
@@ -18,7 +20,10 @@ type ErrorJSON struct {
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set(headerContentType, "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		// No ctx here.
+		log.Printf("failed to encode JSON response: %v", err)
+	}
 }
 
 func writeError(w http.ResponseWriter, status int, msg string) {

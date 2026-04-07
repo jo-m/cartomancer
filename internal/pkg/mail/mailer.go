@@ -124,10 +124,10 @@ func (m *Mailer) Run(ctx context.Context, args Args) error {
 
 	msg := mail.NewMsg()
 	if err := msg.From(m.c.From); err != nil {
-		return fmt.Errorf("failed to set From address: %s", err)
+		return fmt.Errorf("failed to set From address: %w", err)
 	}
 	if err := msg.To(args.To...); err != nil {
-		return fmt.Errorf("failed to set To addresses: %s", err)
+		return fmt.Errorf("failed to set To addresses: %w", err)
 	}
 	msg.Subject(args.Subject)
 	msg.SetBodyString(mail.TypeTextPlain, args.Body)

@@ -154,6 +154,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Download country shapes, and issue a warning if a track includes a border crossing
 - [ ] Map view, showing all tracks and their starting points
 - [ ] Allow to attach images to tracks
+- [ ] Session middleware opens a write transaction on every request
 
 ## Periodic
 
