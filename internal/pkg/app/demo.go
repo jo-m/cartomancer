@@ -75,7 +75,7 @@ var demoTriggers = []string{
 // InstallDemoTriggers creates temporary database triggers that lock down
 // the users and email_verifications tables for demo mode.
 // Temporary triggers live only for the lifetime of the database connection.
-// Must be called on both the RW and RO connections.
+// Only needs to be called on the RW connection, since RO connections cannot write.
 func InstallDemoTriggers(ctx context.Context, conn *sql.DB) error {
 	for _, stmt := range demoTriggers {
 		if _, err := conn.ExecContext(ctx, stmt); err != nil {
