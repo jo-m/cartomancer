@@ -109,6 +109,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Fixup/autosquash
 - [x] Grep for TODO in code
 - [x] SQLite without rowid
+- [ ] Move geonames and maybe forecasts to separate database files?
 - [ ] Go through the periodic TODOs
 
 ## Before enabling public signup
@@ -155,6 +156,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Map view, showing all tracks and their starting points
 - [ ] Allow to attach images to tracks
 - [ ] Session middleware opens a write transaction on every request
+- [ ] Potentially cache track blob -> track.Track{} for performance.
 
 ## Periodic
 

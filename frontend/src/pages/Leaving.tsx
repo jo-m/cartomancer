@@ -10,12 +10,16 @@ export default function Leaving() {
   const target = params.get("url")
   const name = appConfig?.instanceName ?? "this site"
 
-  if (!target) {
+  const isSafeUrl =
+    target !== null &&
+    (target.startsWith("https://") || target.startsWith("http://"))
+
+  if (!target || !isSafeUrl) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <h1 className="text-xl font-semibold text-text">Invalid link</h1>
         <p className="mt-2 text-sm text-text-secondary">
-          No destination URL provided.
+          No valid destination URL provided.
         </p>
         <Link
           to="/"
