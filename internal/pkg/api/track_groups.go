@@ -29,7 +29,7 @@ type trackGroupDetailResponse struct {
 // excluding groups that have only one member.
 func (sv *server) handleListTrackGroups(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
+	user := session.MustGetUser(ctx)
 
 	groups, err := sv.d.QueryRO().ListTrackGroupsWithCountByUser(ctx, user.Uuid)
 	if err != nil {
@@ -53,7 +53,7 @@ func (sv *server) handleListTrackGroups(w http.ResponseWriter, r *http.Request) 
 // handleGetTrackGroup returns the member tracks of a single track group.
 func (sv *server) handleGetTrackGroup(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
+	user := session.MustGetUser(ctx)
 	groupUUID := chi.URLParam(r, "uuid")
 
 	group, err := sv.d.QueryRO().GetTrackGroupByUUID(ctx, groupUUID)

@@ -356,8 +356,8 @@ func (sv *server) handleAdminDeleteUser(w http.ResponseWriter, r *http.Request) 
 
 	userUUID := chi.URLParam(r, "uuid")
 
-	currentUser := session.GetUser(ctx)
-	if currentUser != nil && currentUser.Uuid == userUUID {
+	currentUser := session.MustGetUser(ctx)
+	if currentUser.Uuid == userUUID {
 		writeError(w, http.StatusForbidden, "cannot delete your own account via admin endpoint")
 		return
 	}
@@ -407,8 +407,8 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 
 	userUUID := chi.URLParam(r, "uuid")
 
-	currentUser := session.GetUser(ctx)
-	if currentUser != nil && currentUser.Uuid == userUUID {
+	currentUser := session.MustGetUser(ctx)
+	if currentUser.Uuid == userUUID {
 		writeError(w, http.StatusForbidden, "cannot reset your own password")
 		return
 	}

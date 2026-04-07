@@ -54,7 +54,7 @@ func (sv *server) handleGetUserAvatar(w http.ResponseWriter, r *http.Request) {
 // and returns the updated user response.
 func (sv *server) handleRotateAvatar(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
+	user := session.MustGetUser(ctx)
 
 	newSeed := password.GenRandAlnumString(avatarSeedLen)
 

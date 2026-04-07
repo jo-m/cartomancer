@@ -35,7 +35,7 @@ type updateMeRequest struct {
 
 func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
+	user := session.MustGetUser(ctx)
 
 	var req updateMeRequest
 	if err := decodeJSON(r, &req); err != nil {
@@ -94,7 +94,7 @@ func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 
 func (sv *server) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
+	user := session.MustGetUser(ctx)
 
 	// Admin count check and user deletion must be atomic to prevent a race where two
 	// admins both pass the guard and both delete themselves, leaving no admins.
@@ -133,7 +133,7 @@ type changePasswordRequest struct {
 
 func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
+	user := session.MustGetUser(ctx)
 
 	var req changePasswordRequest
 	if err := decodeJSON(r, &req); err != nil {
@@ -209,7 +209,7 @@ type changeEmailRequest struct {
 
 func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
+	user := session.MustGetUser(ctx)
 
 	var req changeEmailRequest
 	if err := decodeJSON(r, &req); err != nil {
