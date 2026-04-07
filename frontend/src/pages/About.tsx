@@ -43,7 +43,7 @@ export default function About() {
                   </td>
                   <td className="py-2 px-4 font-mono text-text">
                     <a
-                      href={`https://pkg.go.dev/${data.path}`}
+                      href={`https://${data.path}`}
                       target="_blank"
                       rel="noreferrer"
                       className="underline hover:text-text-secondary transition-colors"
