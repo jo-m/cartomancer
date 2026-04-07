@@ -17,11 +17,19 @@ func GenRandBytes(n uint32) []byte {
 
 const alnum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
-// GenRandAlnumString returns an alphanumeric random string.
+// GenRandAlnumString returns a uniformly distributed alphanumeric random string.
+// It uses rejection sampling to avoid modulo bias.
 func GenRandAlnumString(n uint32) string {
-	bytes := GenRandBytes(n)
-	for i, b := range bytes {
-		bytes[i] = alnum[b%byte(len(alnum))]
+	const maxUnbiased = 248 // largest multiple of 62 fitting in a byte (62*4)
+	result := make([]byte, n)
+	for i := range result {
+		for {
+			b := GenRandBytes(1)[0]
+			if b < maxUnbiased {
+				result[i] = alnum[b%byte(len(alnum))]
+				break
+			}
+		}
 	}
-	return string(bytes)
+	return string(result)
 }
