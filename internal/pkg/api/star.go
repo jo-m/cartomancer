@@ -12,6 +12,8 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
+var errTrackNotVisible = errors.New("track not visible")
+
 // handleStarTrack handles POST /tracks/{uuid}/star.
 // Authenticated users may star any track visible to them.
 // Starring a track that is already starred is idempotent.
@@ -20,27 +22,25 @@ func (sv *server) handleStarTrack(w http.ResponseWriter, r *http.Request) {
 	user := session.MustGetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
-	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "track not found")
-			return
+	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+		t, txErr := q.GetTrackByUUID(ctx, trackUUID)
+		if txErr != nil {
+			return txErr
 		}
-		logg.Error(ctx, "failed to get track for star", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	if t.Public == 0 && t.UserID != user.Uuid {
+		if t.Public == 0 && t.UserID != user.Uuid {
+			return errTrackNotVisible
+		}
+		return q.CreateTrackStar(ctx, db.CreateTrackStarParams{
+			TrackID:   trackUUID,
+			UserID:    user.Uuid,
+			CreatedAt: time.Now().UTC(),
+		})
+	})
+	if errors.Is(err, sql.ErrNoRows) || errors.Is(err, errTrackNotVisible) {
 		writeError(w, http.StatusNotFound, "track not found")
 		return
 	}
-
-	if err := sv.d.QueryRW().CreateTrackStar(ctx, db.CreateTrackStarParams{
-		TrackID:   trackUUID,
-		UserID:    user.Uuid,
-		CreatedAt: time.Now().UTC(),
-	}); err != nil {
+	if err != nil {
 		logg.Error(ctx, "failed to create track star", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return

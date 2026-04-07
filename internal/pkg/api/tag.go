@@ -37,43 +37,53 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 
 	user := session.MustGetUser(ctx)
 
-	track, err := sv.d.GetTrackByUUIDForViewer(ctx, trackUUID, user.Uuid)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "track not found")
-			return
+	var errNotOwner = errors.New("not owner")
+
+	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
+		t, txErr := q.GetTrackByUUID(ctx, trackUUID)
+		if txErr != nil {
+			return txErr
 		}
-		logg.Error(ctx, "failed to get track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
+		if t.UserID != user.Uuid {
+			return errNotOwner
+		}
 
-	if track.UserID != user.Uuid {
-		writeStatusError(w, http.StatusForbidden)
-		return
-	}
-
-	err = sv.d.WithTx(ctx, func(q *db.Queries) error {
-		if err := q.DeleteTrackTags(ctx, trackUUID); err != nil {
-			return err
+		if txErr = q.DeleteTrackTags(ctx, trackUUID); txErr != nil {
+			return txErr
 		}
 		for _, tag := range tags {
-			t, err := q.UpsertTag(ctx, db.UpsertTagParams{Tag: tag, UserID: user.Uuid})
-			if err != nil {
-				return err
+			tagRow, txErr := q.UpsertTag(ctx, db.UpsertTagParams{Tag: tag, UserID: user.Uuid})
+			if txErr != nil {
+				return txErr
 			}
-			err = q.CreateTrackTag(ctx, db.CreateTrackTagParams{
+			if txErr = q.CreateTrackTag(ctx, db.CreateTrackTagParams{
 				TrackID: trackUUID,
-				TagID:   t.ID,
-			})
-			if err != nil {
-				return err
+				TagID:   tagRow.ID,
+			}); txErr != nil {
+				return txErr
 			}
 		}
 		return nil
 	})
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "track not found")
+		return
+	}
+	if errors.Is(err, errNotOwner) {
+		writeStatusError(w, http.StatusForbidden)
+		return
+	}
 	if err != nil {
 		logg.Error(ctx, "failed to set track tags", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	// Fetch the full track view for the response. Safe to do outside the tx
+	// because the current user owns the track and cannot have deleted it.
+	track, fetchErr := sv.d.GetTrackByUUIDForViewer(ctx, trackUUID, user.Uuid)
+	if fetchErr != nil {
+		logg.Error(ctx, "failed to fetch track after tag update", "err", fetchErr)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
