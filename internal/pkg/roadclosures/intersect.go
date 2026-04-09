@@ -2,6 +2,7 @@ package roadclosures
 
 import (
 	"encoding/json"
+	"log/slog"
 
 	"github.com/paulmach/orb/geojson"
 	"github.com/uber/h3-go/v4"
@@ -14,6 +15,7 @@ import (
 func Intersects(closureGeometryJSON string, trackLats, trackLons []float64) bool {
 	var geom geojson.Geometry
 	if err := json.Unmarshal([]byte(closureGeometryJSON), &geom); err != nil {
+		slog.Warn("failed to parse closure geometry JSON", "err", err)
 		return false
 	}
 

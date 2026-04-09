@@ -101,7 +101,11 @@ func (d *DB) WithRWTx(ctx context.Context, fn func(tx *sql.Tx) error) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin tx: %w", err)
 	}
-	defer tx.Rollback() //nolint:errcheck
+	defer func() {
+		if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
+			logg.Warn(ctx, "failed to rollback rw transaction", "err", rbErr)
+		}
+	}()
 
 	if err := fn(tx); err != nil {
 		return err
@@ -126,7 +130,11 @@ func (d *DB) WithTx(ctx context.Context, fn func(q *Queries) error) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
+			logg.Warn(ctx, "failed to rollback transaction", "err", rbErr)
+		}
+	}()
 
 	err = fn(tx)
 	if err != nil {
