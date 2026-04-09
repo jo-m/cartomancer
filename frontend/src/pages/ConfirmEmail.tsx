@@ -30,7 +30,7 @@ export default function ConfirmEmail() {
 
   if (!token) {
     return (
-      <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4">
+      <div className="flex min-h-[calc(100vh-var(--nav-height))] items-center justify-center px-4">
         <Card className="w-full max-w-sm p-8 shadow-sm">
           <p role="alert" className="text-sm text-error">
             Missing confirmation token.
@@ -42,7 +42,7 @@ export default function ConfirmEmail() {
 
   if (confirmed) {
     return (
-      <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4">
+      <div className="flex min-h-[calc(100vh-var(--nav-height))] items-center justify-center px-4">
         <Card className="w-full max-w-sm p-8 shadow-sm">
           <h1 className="mb-4 text-xl font-semibold text-text">
             Email confirmed
@@ -59,7 +59,7 @@ export default function ConfirmEmail() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4">
+    <div className="flex min-h-[calc(100vh-var(--nav-height))] items-center justify-center px-4">
       <Card className="w-full max-w-sm p-8 shadow-sm">
         <h1 className="mb-4 text-xl font-semibold text-text">
           Confirm your email

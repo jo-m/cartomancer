@@ -45,6 +45,7 @@
   --color-glow: rgba(200, 160, 32, 0.35);
   --color-card-inner: rgba(107, 58, 42, 0.12);
   --text-sm: 1rem;
+  --nav-height: 57px;
 }
 
 @layer base {
