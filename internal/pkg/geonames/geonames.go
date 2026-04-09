@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
 	"jo-m.ch/go/cartomancer/internal/pkg/client"
@@ -255,6 +256,7 @@ func insertIntoStaging(ctx context.Context, rw *sql.DB, r io.Reader) (int, error
 
 	total := 0
 	batch := make([]geonamesdb.InsertGeonameParams, 0, insertBatchSize)
+	start := time.Now()
 
 	flushBatch := func() error {
 		if len(batch) == 0 {
@@ -287,7 +289,8 @@ func insertIntoStaging(ctx context.Context, rw *sql.DB, r io.Reader) (int, error
 			batch = batch[:0]
 
 			if total%500000 == 0 {
-				logg.Info(ctx, "geonames import progress", "rows", total)
+				elapsed := time.Since(start).Seconds()
+				logg.Info(ctx, "geonames import progress", "rows", total, "rows_per_sec", int(float64(total)/elapsed))
 			}
 		}
 	}
