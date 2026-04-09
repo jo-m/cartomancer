@@ -13,7 +13,7 @@ export default function About() {
       {isLoading && <p className="text-text-muted">Loading...</p>}
       {error && (
         <p role="alert" className="text-error">
-          Failed to load version info: {(error as unknown as Error).message}
+          Failed to load version info: {error.message}
         </p>
       )}
 

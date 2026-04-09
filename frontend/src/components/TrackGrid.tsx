@@ -309,7 +309,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
 
       {error && (
         <p role="alert" className="text-error">
-          {(error as unknown as Error).message}
+          {error.message}
         </p>
       )}
 

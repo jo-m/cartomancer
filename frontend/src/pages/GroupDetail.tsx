@@ -27,7 +27,7 @@ export default function GroupDetail() {
       {isLoading && <p className="mt-6 text-sm text-text-muted">Loading...</p>}
       {error && (
         <p role="alert" className="mt-6 text-sm text-error">
-          {(error as unknown as Error).message}
+          {error.message}
         </p>
       )}
 

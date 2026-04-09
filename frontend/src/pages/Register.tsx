@@ -112,7 +112,7 @@ export default function Register() {
           />
           {mutation.error && (
             <p role="alert" className="text-sm text-error">
-              {(mutation.error as unknown as Error).message}
+              {mutation.error.message}
             </p>
           )}
           <Button

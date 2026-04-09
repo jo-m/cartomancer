@@ -215,7 +215,7 @@ export default function Upload() {
         onError: (e) =>
           setToastError((prev) => ({
             key: (prev?.key ?? 0) + 1,
-            msg: (e as unknown as Error).message,
+            msg: e.message,
           })),
       }
     )
@@ -235,7 +235,7 @@ export default function Upload() {
         onError: (e) =>
           setToastError((prev) => ({
             key: (prev?.key ?? 0) + 1,
-            msg: (e as unknown as Error).message,
+            msg: e.message,
           })),
       }
     )
@@ -260,7 +260,7 @@ export default function Upload() {
         onError: (e) =>
           setToastError((prev) => ({
             key: (prev?.key ?? 0) + 1,
-            msg: (e as unknown as Error).message,
+            msg: e.message,
           })),
       }
     )

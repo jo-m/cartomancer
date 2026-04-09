@@ -168,7 +168,7 @@ export default function Segments() {
       {segLoading && <p className="mt-6 text-sm text-text-muted">Loading...</p>}
       {segError && (
         <p role="alert" className="mt-6 text-sm text-error">
-          {(segError as unknown as Error).message}
+          {segError.message}
         </p>
       )}
 

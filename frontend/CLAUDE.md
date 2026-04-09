@@ -56,8 +56,7 @@ const mutation = $api.useMutation("post", "/some-resource")
 // mutation.isPending, mutation.isSuccess, mutation.error
 ```
 
-Errors from mutations/queries are `Error` instances at runtime (middleware converts API errors).
-The TypeScript-inferred error type may be `{ msg: string }` (from OpenAPI schema) — cast as needed: `(mutation.error as unknown as Error).message`.
+Errors from mutations/queries are `Error` instances (the `Register` interface in `client.ts` sets `defaultError: Error`). Access `.message` directly: `mutation.error.message`. In catch blocks where the error is `unknown`, use `(err as Error).message`.
 
 ### Forms
 

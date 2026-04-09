@@ -126,7 +126,7 @@ export default function Account() {
             </Button>
             {rotateAvatarMutation.error && (
               <p role="alert" className="mt-1 text-sm text-error">
-                {(rotateAvatarMutation.error as unknown as Error).message}
+                {rotateAvatarMutation.error.message}
               </p>
             )}
           </div>
@@ -153,7 +153,7 @@ export default function Account() {
           />
           {updateMeMutation.error && (
             <p role="alert" className="text-sm text-error">
-              {(updateMeMutation.error as unknown as Error).message}
+              {updateMeMutation.error.message}
             </p>
           )}
           {updateMeMutation.isSuccess && (
@@ -191,7 +191,7 @@ export default function Account() {
           />
           {changeEmailMutation.error && (
             <p role="alert" className="text-sm text-error">
-              {(changeEmailMutation.error as unknown as Error).message}
+              {changeEmailMutation.error.message}
             </p>
           )}
           {changeEmailMutation.isSuccess && (
@@ -235,7 +235,7 @@ export default function Account() {
           />
           {changePasswordMutation.error && (
             <p role="alert" className="text-sm text-error">
-              {(changePasswordMutation.error as unknown as Error).message}
+              {changePasswordMutation.error.message}
             </p>
           )}
           {changePasswordMutation.isSuccess && (
@@ -257,7 +257,7 @@ export default function Account() {
         <h2 className="mb-4 text-base font-medium text-error">Danger Zone</h2>
         {deleteMeMutation.error && (
           <p role="alert" className="mb-3 text-sm text-error">
-            {(deleteMeMutation.error as unknown as Error).message}
+            {deleteMeMutation.error.message}
           </p>
         )}
         {confirmDelete ? (
