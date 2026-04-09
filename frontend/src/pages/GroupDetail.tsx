@@ -1,8 +1,7 @@
 import { Link, useParams } from "react-router-dom"
 import { $api } from "../api/client"
-import SvgPreview from "../components/SvgPreview"
+import TrackCard from "../components/TrackCard"
 import PageContainer from "../components/ui/PageContainer"
-import { formatDistance, formatAscent } from "../lib/format"
 
 /** GroupDetail displays all member tracks of a single track group. */
 export default function GroupDetail() {
@@ -42,45 +41,19 @@ export default function GroupDetail() {
               No tracks in this group.
             </p>
           ) : (
-            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {data.tracks.map((track) => (
-                <Link
+            <div className="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
+              {data.tracks.map((track, index) => (
+                <TrackCard
                   key={track.uuid}
-                  to={`/tracks/${track.uuid}`}
-                  className="group relative block rounded-lg border border-border bg-panel hover:border-border-hover transition-colors"
-                >
-                  <div className="aspect-square overflow-hidden rounded-t-lg bg-surface text-track">
-                    <SvgPreview
-                      src={`/api/tracks/${track.uuid}/preview.svg?size=256`}
-                      alt="Track preview"
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                  <div className="p-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <img
-                        src={`/api/users/${track.user.uuid}/avatar`}
-                        alt=""
-                        className="h-4 w-4 shrink-0 rounded-full"
-                      />
-                      <p className="truncate text-sm font-medium text-text">
-                        {track.name}
-                      </p>
-                    </div>
-                    <p className="mt-0.5 text-xs text-text-muted">
-                      {track.user.name} &middot;{" "}
-                      {formatDistance(track.totalDistanceM)} &middot;{" "}
-                      {formatAscent(track.totalAscentM)}
-                    </p>
-                    <div className="mt-1.5 overflow-hidden rounded bg-surface text-track">
-                      <SvgPreview
-                        src={`/api/tracks/${track.uuid}/profile.svg?size=256`}
-                        alt="Elevation profile"
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                </Link>
+                  track={track}
+                  index={index}
+                  isSelected={false}
+                  selectionActive={false}
+                  canSelect={false}
+                  showStar={false}
+                  onToggleStar={() => {}}
+                  onSelect={() => {}}
+                />
               ))}
             </div>
           )}
