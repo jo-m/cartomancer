@@ -1,0 +1,135 @@
+import { useRef } from "react"
+
+export interface DualRangeSliderProps {
+  absoluteMin: number
+  absoluteMax: number
+  valueMin: number
+  valueMax: number
+  step: number
+  formatValue: (v: number) => string
+  onChange: (min: number, max: number) => void
+}
+
+/** A dual-thumb range slider for filtering numeric ranges. */
+export default function DualRangeSlider({
+  absoluteMin,
+  absoluteMax,
+  valueMin,
+  valueMax,
+  step,
+  formatValue,
+  onChange,
+}: DualRangeSliderProps) {
+  const outerRef = useRef<HTMLDivElement>(null)
+  const activeThumb = useRef<"min" | "max" | null>(null)
+
+  const range = absoluteMax - absoluteMin || 1
+
+  function valueFromClientX(clientX: number): number {
+    if (!outerRef.current) return absoluteMin
+    const { left, width } = outerRef.current.getBoundingClientRect()
+    const p = Math.max(0, Math.min(1, (clientX - left - 8) / (width - 16)))
+    return Math.round((absoluteMin + p * range) / step) * step
+  }
+
+  function pickThumb(v: number): "min" | "max" {
+    const dMin = Math.abs(v - valueMin)
+    const dMax = Math.abs(v - valueMax)
+    if (dMin !== dMax) return dMin < dMax ? "min" : "max"
+    return v >= (absoluteMin + absoluteMax) / 2 ? "min" : "max"
+  }
+
+  function applyValue(v: number) {
+    if (activeThumb.current === "min") onChange(Math.min(v, valueMax), valueMax)
+    else if (activeThumb.current === "max")
+      onChange(valueMin, Math.max(v, valueMin))
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const v = valueFromClientX(e.clientX)
+    activeThumb.current = pickThumb(v)
+    applyValue(v)
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
+    applyValue(valueFromClientX(e.clientX))
+  }
+
+  function onPointerUp() {
+    activeThumb.current = null
+  }
+
+  function thumbLeft(v: number): string {
+    const frac = (v - absoluteMin) / range
+    return `calc(${frac * 100}% + ${8 - frac * 16}px)`
+  }
+
+  const minFrac = (valueMin - absoluteMin) / range
+  const maxFrac = (valueMax - absoluteMin) / range
+  const highlightStyle = {
+    left: `calc(${minFrac * 100}% + ${8 - minFrac * 16}px)`,
+    right: `calc(${(1 - maxFrac) * 100}% + ${maxFrac * 16 - 8}px)`,
+  }
+
+  const minActive = valueMin > absoluteMin
+  const maxActive = valueMax < absoluteMax
+
+  return (
+    <div>
+      <div
+        ref={outerRef}
+        className="relative h-5 cursor-grab select-none active:cursor-grabbing"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        role="slider"
+        aria-valuemin={absoluteMin}
+        aria-valuemax={absoluteMax}
+        aria-valuenow={valueMin}
+        tabIndex={0}
+      >
+        <div className="absolute inset-x-2 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slider-track" />
+        <div
+          className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slider-fill"
+          style={highlightStyle}
+        />
+        <div
+          className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-slider-thumb"
+          style={{
+            left: thumbLeft(valueMin),
+            borderColor: minActive
+              ? "var(--color-slider-thumb-active)"
+              : "var(--color-slider-thumb-inactive)",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-slider-thumb"
+          style={{
+            left: thumbLeft(valueMax),
+            borderColor: maxActive
+              ? "var(--color-slider-thumb-active)"
+              : "var(--color-slider-thumb-inactive)",
+          }}
+        />
+      </div>
+      <div className="mt-1 flex justify-between text-xs">
+        <span
+          className={
+            minActive ? "font-medium text-text-secondary" : "text-text-muted"
+          }
+        >
+          {formatValue(valueMin)}
+        </span>
+        <span
+          className={
+            maxActive ? "font-medium text-text-secondary" : "text-text-muted"
+          }
+        >
+          {formatValue(valueMax)}
+        </span>
+      </div>
+    </div>
+  )
+}

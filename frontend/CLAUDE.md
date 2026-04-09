@@ -107,8 +107,33 @@ Reusable themed components live in `src/components/ui/`:
 - `SectionHeading` — uppercase tracking-wide label
 - `Alert` — 4 variants (info, warning, error, success) with `role="alert"`
 - `PageContainer` — page wrapper with size variants (sm, md, lg, xl)
+- `DualRangeSlider` — dual-thumb range slider for numeric range filtering
 
 Always use these components instead of repeating raw Tailwind classes. All interactive elements must have `cursor-pointer` and `transition-colors`.
+
+### Track page components
+
+The track detail page (`pages/Track.tsx`) delegates to focused sub-components:
+- `ForecastControls` — start time / speed selector buttons
+- `TrackDetails` — metadata display (stats, tags, similar tracks, download)
+- `TrackEditForm` — edit form with delete confirmation
+- `FullscreenMapDialog` — fullscreen map modal
+- `MapHoverOverlay` — map hover info overlay (shared by normal and fullscreen map)
+
+### Track grid components
+
+The track grid (`components/TrackGrid.tsx`) delegates to:
+- `TrackFilters` — filter panel (search, toggles, sliders, sport/tag filters, sorting)
+- `TrackCard` — single track card with preview, stats, forecast, selection/star
+- `BulkEditToolbar` — bulk edit/delete toolbar for selected tracks
+- `MiniWindRose` — mini 4-sector wind rose SVG
+
+### Custom hooks
+
+Hooks in `src/hooks/`:
+- `useUrlState` — sync component state with URL search params
+- `useHoverSync` — shared hover index store for coordinated chart/map hover
+- `useForecast` — forecast data fetching and state management for a single track
 
 ### SVG assets
 
