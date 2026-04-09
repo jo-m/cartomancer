@@ -41,7 +41,9 @@ fetchClient.use({
         !request.url.endsWith("/sessions/login")
       ) {
         queryClient?.setQueryData(["get", "/sessions"], { user: null })
-        window.location.assign("/login")
+        queryClient?.removeQueries({
+          predicate: (q) => q.queryKey[1] !== "/sessions",
+        })
         return response
       }
       const body = await response
