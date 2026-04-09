@@ -108,6 +108,9 @@ type TrackWithStarred struct {
 	UserAvatarSeed string
 	GeonameLabel   string
 	Forecast       TrackForecastSummary
+	// Tags holds the comma-separated tag names for this track, populated by
+	// ListTracks via GROUP_CONCAT. Empty string means no tags.
+	Tags string
 }
 
 // ListTracksResult holds a page of tracks and the total count.
@@ -182,6 +185,7 @@ func scanTrackWithStarAndForecast(rows *sql.Rows) (TrackWithStarred, error) {
 	var userName, userAvatarSeed string
 	var geonameLabel sql.NullString
 	var fc TrackForecastSummary
+	var tags string
 	err := rows.Scan(
 		&i.Uuid,
 		&i.CreatedAt,
@@ -226,6 +230,7 @@ func scanTrackWithStarAndForecast(rows *sql.Rows) (TrackWithStarred, error) {
 		&fc.WindRightMs,
 		&fc.WindTailMs,
 		&fc.WindLeftMs,
+		&tags,
 	)
 	return TrackWithStarred{
 		Track:          i,
@@ -234,6 +239,7 @@ func scanTrackWithStarAndForecast(rows *sql.Rows) (TrackWithStarred, error) {
 		UserAvatarSeed: userAvatarSeed,
 		GeonameLabel:   geonameLabel.String,
 		Forecast:       fc,
+		Tags:           tags,
 	}, err
 }
 
@@ -455,11 +461,12 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	}
 
 	const forecastCols = ", tf.forecast_reference_time, tf.start_time, tf.avg_temperature_c, tf.total_precipitation_mm, tf.wind_head_ms, tf.wind_right_ms, tf.wind_tail_ms, tf.wind_left_ms"
+	const tagSubquery = ", COALESCE((SELECT json_group_array(tgs.tag) FROM track_tags ttt JOIN tags tgs ON tgs.id = ttt.tag_id WHERE ttt.track_id = tracks.uuid ORDER BY tgs.tag), '[]') AS tags"
 
 	offset := (p.Page - 1) * p.PageSize
 	dataSQL := fmt.Sprintf(
-		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred%s FROM tracks%s%s ORDER BY %s %s LIMIT ? OFFSET ?",
-		trackAllCols, forecastCols, joins, where, sortCol, sortDir,
+		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred%s%s FROM tracks%s%s ORDER BY %s %s LIMIT ? OFFSET ?",
+		trackAllCols, forecastCols, tagSubquery, joins, where, sortCol, sortDir,
 	)
 	dataArgs := append(append([]any{}, baseArgs...), int64(p.PageSize), int64(offset))
 

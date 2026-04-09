@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -109,6 +110,19 @@ func nullStringVal(ns sql.NullString) string {
 		return ns.String
 	}
 	return ""
+}
+
+// splitTags parses a JSON array of tag strings (from json_group_array) into a slice.
+// Returns an empty (non-nil) slice for empty input or "[]".
+func splitTags(jsonArr string) []string {
+	if jsonArr == "" || jsonArr == "[]" {
+		return []string{}
+	}
+	var tags []string
+	if err := json.Unmarshal([]byte(jsonArr), &tags); err != nil {
+		return []string{}
+	}
+	return tags
 }
 
 func trackResponseFromDB(tw db.TrackWithStarred, tags []string, similar []db.GetSimilarTracksRow, isOwner bool) trackResponse {
@@ -990,24 +1004,9 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch tags for all returned tracks.
-	trackUUIDs := make([]string, len(result.Tracks))
-	for i, t := range result.Tracks {
-		trackUUIDs[i] = t.Uuid
-	}
-	tagsByTrack, err := sv.d.GetTagsForTracks(ctx, trackUUIDs)
-	if err != nil {
-		logg.Error(ctx, "failed to get tags for tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
 	responses := make([]trackResponse, len(result.Tracks))
 	for i, t := range result.Tracks {
-		tags := tagsByTrack[t.Uuid]
-		if tags == nil {
-			tags = []string{}
-		}
+		tags := splitTags(t.Tags)
 		responses[i] = trackResponseFromDB(t, tags, nil, user != nil && user.Uuid == t.UserID)
 	}
 
