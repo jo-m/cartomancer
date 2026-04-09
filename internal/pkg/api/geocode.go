@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
@@ -43,7 +43,7 @@ func (sv *server) handleSearchGeocodeName(w http.ResponseWriter, r *http.Request
 	}
 
 	ftsQuery := fts5PrefixQuery(q)
-	rows, err := sv.d.QueryRO().SearchGeonames(ctx, db.SearchGeonamesParams{
+	rows, err := sv.gd.QueryRO().SearchGeonames(ctx, geonamesdb.SearchGeonamesParams{
 		Query:      ftsQuery,
 		MaxResults: geonameSearchMaxResults,
 	})

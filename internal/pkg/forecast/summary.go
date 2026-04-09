@@ -11,6 +11,7 @@ import (
 
 	"jo-m.ch/go/cartomancer/internal/pkg/blob"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/load"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
@@ -50,12 +51,17 @@ var _ jobs.Args = (*SummarizerArgs)(nil)
 // Summarizer computes forecast summaries for all tracks and stores them in the database.
 // Use [NewSummarizer] to create an instance.
 type Summarizer struct {
-	d *db.DB
+	d  *db.DB
+	fd *forecastdb.DB
 }
 
 // NewSummarizer creates a new [Summarizer] instance.
-func NewSummarizer(d *db.DB) *Summarizer {
-	return &Summarizer{d: d}
+//
+// Parameters:
+//   - d: main database for track, blob, and track_forecasts access.
+//   - fd: forecast database for weather data queries.
+func NewSummarizer(d *db.DB, fd *forecastdb.DB) *Summarizer {
+	return &Summarizer{d: d, fd: fd}
 }
 
 var _ jobs.Job[SummarizerArgs] = (*Summarizer)(nil)
@@ -69,7 +75,7 @@ func (s *Summarizer) Run(ctx context.Context, args SummarizerArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, summarizerTimeout)
 	defer cancel()
 
-	refTime, err := s.d.QueryRO().GetLatestForecastReferenceTime(ctx)
+	refTime, err := s.fd.QueryRO().GetLatestForecastReferenceTime(ctx)
 	if errors.Is(err, sql.ErrNoRows) {
 		logg.Info(ctx, "no forecast data available, skipping summarizer")
 		return nil
@@ -171,7 +177,7 @@ func (s *Summarizer) summarizeTrack(ctx context.Context, uuid string, refTime, s
 
 	bbox := trackBBox(t)
 
-	h, err := Load(ctx, s.d, startTime, endTime, bbox)
+	h, err := Load(ctx, s.fd, startTime, endTime, bbox)
 	if errors.Is(err, ErrNoData) {
 		logg.Debug(ctx, "no forecast data for track", "uuid", uuid)
 		return nil

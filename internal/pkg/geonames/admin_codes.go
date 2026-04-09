@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/geonames/cols"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/utl"
@@ -50,18 +50,18 @@ func DownloadAdminCodes(ctx context.Context) ([]byte, []byte, error) {
 
 // ImportAdmin1Codes reads admin1 code rows from r and replaces the
 // geoname_admin1 table contents.
-func ImportAdmin1Codes(ctx context.Context, d *db.DB, r io.Reader) (int, error) {
+func ImportAdmin1Codes(ctx context.Context, d *geonamesdb.DB, r io.Reader) (int, error) {
 	rows, err := parseAdminCodes(r)
 	if err != nil {
 		return 0, fmt.Errorf("parse admin1 codes: %w", err)
 	}
 
-	err = d.WithTx(ctx, func(tx *db.Queries) error {
+	err = d.WithTx(ctx, func(tx *geonamesdb.Queries) error {
 		if _, txErr := tx.DeleteAllGeonameAdmin1(ctx); txErr != nil {
 			return txErr
 		}
 		for _, row := range rows {
-			if txErr := tx.InsertGeonameAdmin1(ctx, db.InsertGeonameAdmin1Params{
+			if txErr := tx.InsertGeonameAdmin1(ctx, geonamesdb.InsertGeonameAdmin1Params{
 				Code:      row.Code,
 				Name:      row.Name,
 				Geonameid: row.Geonameid,
@@ -81,18 +81,18 @@ func ImportAdmin1Codes(ctx context.Context, d *db.DB, r io.Reader) (int, error) 
 
 // ImportAdmin2Codes reads admin2 code rows from r and replaces the
 // geoname_admin2 table contents.
-func ImportAdmin2Codes(ctx context.Context, d *db.DB, r io.Reader) (int, error) {
+func ImportAdmin2Codes(ctx context.Context, d *geonamesdb.DB, r io.Reader) (int, error) {
 	rows, err := parseAdminCodes(r)
 	if err != nil {
 		return 0, fmt.Errorf("parse admin2 codes: %w", err)
 	}
 
-	err = d.WithTx(ctx, func(tx *db.Queries) error {
+	err = d.WithTx(ctx, func(tx *geonamesdb.Queries) error {
 		if _, txErr := tx.DeleteAllGeonameAdmin2(ctx); txErr != nil {
 			return txErr
 		}
 		for _, row := range rows {
-			if txErr := tx.InsertGeonameAdmin2(ctx, db.InsertGeonameAdmin2Params{
+			if txErr := tx.InsertGeonameAdmin2(ctx, geonamesdb.InsertGeonameAdmin2Params{
 				Code:      row.Code,
 				Name:      row.Name,
 				Geonameid: row.Geonameid,

@@ -12,7 +12,7 @@ Usage: cartomancer serve
 Global options:
   --listen-addr HOST:PORT
                          TCP address to listen at for HTTP requests [default: 127.0.0.1:8080, env: LISTEN_ADDR]
-  --db-path PATH         Path where the SQLite database will be stored [default: data/db.sqlite, env: DB_PATH]
+  --data-dir DIR         Directory for all SQLite database files [default: data, env: DATA_DIR]
   --log-pretty           Log pretty/with colors [default: false, env: LOG_PRETTY]
   --log-level LEVEL      Log level [default: INFO, env: LOG_LEVEL]
   --app-instance-name NAME

@@ -12,7 +12,7 @@ import (
 	"sort"
 	"time"
 
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/grib2"
 )
 
@@ -55,7 +55,7 @@ type Handle struct {
 // It returns [ErrNoData] if no files match at all. If the loaded files do not
 // fully span [start, end], it returns [ErrIncomplete] alongside a usable Handle
 // so callers can work with partial data.
-func Load(ctx context.Context, d *db.DB, start, end time.Time, bbox BBox) (*Handle, error) {
+func Load(ctx context.Context, d *forecastdb.DB, start, end time.Time, bbox BBox) (*Handle, error) {
 	q := d.QueryRO()
 
 	// Load the latest forecast row (contains grid constants).
@@ -73,7 +73,7 @@ func Load(ctx context.Context, d *db.DB, start, end time.Time, bbox BBox) (*Hand
 	}
 
 	// Load forecast files for the time/space window.
-	rows, err := q.ListForecastFilesForWindow(ctx, db.ListForecastFilesForWindowParams{
+	rows, err := q.ListForecastFilesForWindow(ctx, forecastdb.ListForecastFilesForWindowParams{
 		Start:  start,
 		End:    end,
 		MaxLat: sql.NullFloat64{Float64: bbox.MaxLat, Valid: true},

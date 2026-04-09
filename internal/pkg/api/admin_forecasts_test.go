@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
 )
 
 func TestAdminListForecasts_Empty(t *testing.T) {
@@ -29,7 +29,7 @@ func TestAdminListForecasts_WithData(t *testing.T) {
 	e.login(client, "admin@example.com", "adminpass")
 
 	now := time.Now().UTC().Truncate(time.Second)
-	fc, err := e.d.QueryRW().CreateForecast(t.Context(), db.CreateForecastParams{
+	fc, err := e.fd.QueryRW().CreateForecast(t.Context(), forecastdb.CreateForecastParams{
 		CreatedAt:          now,
 		ReferenceTime:      now,
 		HorizontalGridFile: []byte("hgrid"),
@@ -39,7 +39,7 @@ func TestAdminListForecasts_WithData(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = e.d.QueryRW().CreateForecastFile(t.Context(), db.CreateForecastFileParams{
+	_, err = e.fd.QueryRW().CreateForecastFile(t.Context(), forecastdb.CreateForecastFileParams{
 		ValidTime:      now,
 		ValidUntilTime: now.Add(time.Hour),
 		Variable:       "U_10M",

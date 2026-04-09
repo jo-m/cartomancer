@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
@@ -33,11 +33,11 @@ var _ jobs.Args = (*DownloaderArgs)(nil)
 // Downloader downloads the GeoNames allCountries dataset and imports it.
 // Use [NewDownloader] to create an instance.
 type Downloader struct {
-	d *db.DB
+	d *geonamesdb.DB
 }
 
 // NewDownloader creates a new [Downloader] instance.
-func NewDownloader(d *db.DB) *Downloader {
+func NewDownloader(d *geonamesdb.DB) *Downloader {
 	return &Downloader{d: d}
 }
 
@@ -92,7 +92,7 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	}
 
 	// Record the import.
-	_, err = d.d.QueryRW().CreateGeonameImport(ctx, db.CreateGeonameImportParams{
+	_, err = d.d.QueryRW().CreateGeonameImport(ctx, geonamesdb.CreateGeonameImportParams{
 		CreatedAt: time.Now(),
 		RowCount:  int64(rowCount),
 	})

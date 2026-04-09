@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -19,6 +20,8 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/api"
 	"jo-m.ch/go/cartomancer/internal/pkg/app"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/forecast"
 	"jo-m.ch/go/cartomancer/internal/pkg/geonames"
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
@@ -56,7 +59,7 @@ type config struct {
 	Genjwtsecret    *genjwtsecretCmd    `arg:"subcommand:genjwtsecret" help:"generate a base64-encoded JWT secret (512-bit)"`
 
 	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8080"`
-	DBPath         string `arg:"--db-path,env:DB_PATH" help:"Path where the SQLite database will be stored" placeholder:"PATH" default:"data/db.sqlite"`
+	DataDir        string `arg:"--data-dir,env:DATA_DIR" help:"Directory for all SQLite database files" placeholder:"DIR" default:"data"`
 
 	logg.LoggConfig
 	app.AppConfig
@@ -70,8 +73,8 @@ func (c *config) validate() error {
 	if c.HTTPListenAddr == "" {
 		return fmt.Errorf("listen address must not be empty")
 	}
-	if c.DBPath == "" {
-		return fmt.Errorf("database path must not be empty")
+	if c.DataDir == "" {
+		return fmt.Errorf("data directory must not be empty (--data-dir / DATA_DIR)")
 	}
 	for _, err := range []error{
 		c.LoggConfig.Validate(),
@@ -86,7 +89,7 @@ func (c *config) validate() error {
 	return nil
 }
 
-func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter) http.Handler {
+func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter) http.Handler {
 	logger := logg.GetLogger(ctx).With("mod", "svc")
 
 	sess, err := session.NewStore(d, sessConfig, appConfig)
@@ -108,7 +111,7 @@ func newHandler(ctx context.Context, d *db.DB, sessConfig session.SessionConfig,
 	mux.Use(sess.Middleware)
 	mux.Use(middleware.Recoverer)
 
-	apiHandler, err := api.New(d, sess, jobSubmitter, appConfig)
+	apiHandler, err := api.New(d, gd, fd, sess, jobSubmitter, appConfig)
 	if err != nil {
 		logg.Panic(ctx, "Failed to create API handler", "err", err)
 	}
@@ -272,18 +275,37 @@ func main() {
 	}
 	ctx = logg.WithLogger(ctx, logger)
 
-	// In demo mode, use a separate database file to avoid overwriting production data.
+	// In demo mode, use a separate data directory to avoid overwriting production data.
+	dataDir := c.DataDir
 	if c.DemoMode {
-		c.DBPath += ".demo"
-		logg.Warn(ctx, "demo mode: using separate database", "path", c.DBPath)
+		dataDir += ".demo"
+		logg.Warn(ctx, "demo mode: using separate data directory", "dir", dataDir)
 	}
 
-	// Migrations.
-	d, err := db.Open(ctx, c.DBPath)
+	dbPath := filepath.Join(dataDir, "db.sqlite")
+	geonamesDBPath := filepath.Join(dataDir, "geonames.sqlite")
+	forecastDBPath := filepath.Join(dataDir, "forecast.sqlite")
+
+	// Open main database.
+	d, err := db.Open(ctx, dbPath, db.EmbedMigrations, db.MigrationsDir)
 	if err != nil {
 		logg.Panic(ctx, "Failed to open db", "err", err)
 	}
 	defer d.Close()
+
+	// Open geonames database (separate file, excludable from backups).
+	gd, err := geonamesdb.Open(ctx, geonamesDBPath)
+	if err != nil {
+		logg.Panic(ctx, "Failed to open geonames db", "err", err)
+	}
+	defer gd.Close()
+
+	// Open forecast database (separate file, excludable from backups).
+	fd, err := forecastdb.Open(ctx, forecastDBPath)
+	if err != nil {
+		logg.Panic(ctx, "Failed to open forecast db", "err", err)
+	}
+	defer fd.Close()
 
 	// Handle setpass subcommand early, before server-specific setup.
 	if c.Setpass != nil {
@@ -351,17 +373,17 @@ func main() {
 	jobs.MustRegisterJob(w, users.NewEmailVerificationCleaner(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), users.EmailVerificationCleanerArgs(), time.Hour, false)
 
-	jobs.MustRegisterJob(w, meteo.NewDownloader(d))
+	jobs.MustRegisterJob(w, meteo.NewDownloader(fd))
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.DownloaderArgs{}, time.Hour, true)
-	jobs.MustRegisterJob(w, meteo.NewCleaner(d))
+	jobs.MustRegisterJob(w, meteo.NewCleaner(fd))
 	jobs.Periodic(ctxJobs, w.Submitter(), meteo.CleanerArgs(), time.Hour, false)
 
-	jobs.MustRegisterJob(w, forecast.NewSummarizer(d))
+	jobs.MustRegisterJob(w, forecast.NewSummarizer(d, fd))
 	jobs.Periodic(ctxJobs, w.Submitter(), forecast.SummarizerArgs{}, time.Hour, true)
 
-	jobs.MustRegisterJob(w, geonames.NewDownloader(d))
+	jobs.MustRegisterJob(w, geonames.NewDownloader(gd))
 	jobs.Periodic(ctxJobs, w.Submitter(), geonames.DownloaderArgs{}, 7*24*time.Hour, true)
-	jobs.MustRegisterJob(w, geonames.NewLabeler(d))
+	jobs.MustRegisterJob(w, geonames.NewLabeler(d, gd))
 
 	jobs.MustRegisterJob(w, trackgroup.NewGrouper(d))
 
@@ -371,7 +393,7 @@ func main() {
 	jobs.Periodic(ctxJobs, w.Submitter(), roadclosures.DownloaderArgs{}, 24*time.Hour, true)
 
 	if !c.DemoMode {
-		jobs.MustRegisterJob(w, db.NewBackup(d, c.DBPath))
+		jobs.MustRegisterJob(w, db.NewBackup(d, dbPath))
 		jobs.Periodic(ctxJobs, w.Submitter(), db.BackupArgs{}, 24*time.Hour, false)
 	}
 
@@ -390,7 +412,7 @@ func main() {
 
 	s := &http.Server{
 		Addr:              c.HTTPListenAddr,
-		Handler:           newHandler(ctx, d, c.SessionConfig, c.AppConfig, w.Submitter()),
+		Handler:           newHandler(ctx, d, gd, fd, c.SessionConfig, c.AppConfig, w.Submitter()),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       20 * time.Second,
 		WriteTimeout:      20 * time.Second,

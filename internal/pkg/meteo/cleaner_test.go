@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo/vars"
 )
 
 // ensureForecast is a test helper that inserts a forecasts row for the given
 // reference time if one does not already exist, and returns its ID.
-func ensureForecast(t *testing.T, d *db.DB, refTime time.Time) int64 {
+func ensureForecast(t *testing.T, d *forecastdb.DB, refTime time.Time) int64 {
 	t.Helper()
 	ctx := logg.WithTestLogger(t.Context(), t)
 
@@ -25,7 +25,7 @@ func ensureForecast(t *testing.T, d *db.DB, refTime time.Time) int64 {
 		return row.ID
 	}
 
-	row, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+	row, err := d.QueryRW().CreateForecast(ctx, forecastdb.CreateForecastParams{
 		CreatedAt:          time.Now(),
 		ReferenceTime:      refTime,
 		HorizontalGridFile: []byte("grid"),
@@ -37,12 +37,12 @@ func ensureForecast(t *testing.T, d *db.DB, refTime time.Time) int64 {
 
 // insertForecastFileWithValidTime is a test helper that inserts a forecast_files
 // row with the given valid_time, returning the file ID.
-func insertForecastFileWithValidTime(t *testing.T, d *db.DB, validTime time.Time) int64 {
+func insertForecastFileWithValidTime(t *testing.T, d *forecastdb.DB, validTime time.Time) int64 {
 	t.Helper()
 	ctx := logg.WithTestLogger(t.Context(), t)
 	refTime := validTime.Add(-time.Hour)
 	forecastID := ensureForecast(t, d, refTime)
-	f, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+	f, err := d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 		ValidTime:      validTime,
 		ValidUntilTime: validTime.Add(time.Hour),
 		Variable:       vars.VarU10m.Name,
@@ -54,7 +54,7 @@ func insertForecastFileWithValidTime(t *testing.T, d *db.DB, validTime time.Time
 }
 
 func TestCleaner_DeletesPastFiles(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -77,7 +77,7 @@ func TestCleaner_DeletesPastFiles(t *testing.T) {
 }
 
 func TestCleaner_EmptyTable(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -87,7 +87,7 @@ func TestCleaner_EmptyTable(t *testing.T) {
 }
 
 func TestCleaner_AllFutureFiles_NoOp(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -106,7 +106,7 @@ func TestCleaner_AllFutureFiles_NoOp(t *testing.T) {
 }
 
 func TestCleaner_AllPastFiles(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -122,7 +122,7 @@ func TestCleaner_AllPastFiles(t *testing.T) {
 	// All forecast files should be deleted; forecast rows remain but have no files.
 	// Verify by trying to get the latest reference time - it still exists (forecast
 	// rows are not deleted), but a window query should return nothing.
-	rows, err := d.QueryRO().ListForecastFilesForWindow(ctx, db.ListForecastFilesForWindowParams{
+	rows, err := d.QueryRO().ListForecastFilesForWindow(ctx, forecastdb.ListForecastFilesForWindowParams{
 		Start:  now.Add(-24 * time.Hour),
 		End:    now.Add(24 * time.Hour),
 		MaxLat: sql.NullFloat64{},

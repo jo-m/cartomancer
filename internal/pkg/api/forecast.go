@@ -155,7 +155,7 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	h, err := forecast.Load(ctx, sv.d, startTime, endTime, bbox)
+	h, err := forecast.Load(ctx, sv.fd, startTime, endTime, bbox)
 	status := "full"
 	switch {
 	case errors.Is(err, forecast.ErrNoData):

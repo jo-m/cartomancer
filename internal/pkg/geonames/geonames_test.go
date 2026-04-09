@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
@@ -38,7 +38,7 @@ func TestParseLine_tooFewFields(t *testing.T) {
 }
 
 func TestImportFromReader(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := geonamesdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -59,7 +59,7 @@ func TestImportFromReader(t *testing.T) {
 }
 
 func TestImportFromReader_replaceExisting(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := geonamesdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -83,7 +83,7 @@ func TestImportFromReader_replaceExisting(t *testing.T) {
 }
 
 func TestImportFromReader_skipsUndersea(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := geonamesdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -124,7 +124,7 @@ func TestParseSubsampledFile(t *testing.T) {
 }
 
 func TestImportSubsampledFile(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := geonamesdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)

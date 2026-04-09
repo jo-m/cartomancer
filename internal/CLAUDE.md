@@ -4,28 +4,30 @@
 
 ```
 internal/pkg/
-├── api/          # HTTP REST API endpoints and handlers (Chi router)
-├── app/          # Application-level config
-├── attribute/    # Standard TASL attribution struct for CC-licensed data sources
-├── blob/         # Blob storage for GPX/FIT files (zstd-compressed, SQLite)
-├── db/           # SQLite connection, migrations, sqlc-generated queries
-├── forecast/     # Loads GRIB2 weather forecast data, point sampling by variable/time/location
-├── geoadmin/     # Client for Swiss government STAC API (data.geo.admin.ch)
-├── geonames/     # Reverse geocoding via GeoNames geographical database
-├── grib2/        # Minimal parser for GRIB2 binary meteorological data format
-├── jobs/         # Persistent async job queue
-├── load/         # GPX/FIT file parsing → TrackSource
-├── logg/         # Structured logging (slog), middleware, context helpers
-├── mail/         # Email job handler (SMTP via go-mail)
-├── meteo/        # Downloads ICON-CH1-EPS weather forecast data from Swiss STAC API
-├── password/     # Argon2id hashing
-├── roadclosures/ # Fetches bike road closures and detours from geo.admin.ch
-├── segment/      # Extracts shared road segments from tracks using H3 cell clustering
-├── session/      # JWT+cookie session management, middleware
-├── track/        # Track types, enums, metadata calculations
-├── trackgroup/   # Groups similar tracks by comparing H3 cell paths
-├── users/        # OTP (TOTP/HOTP) support
-└── utl/          # General utilities
+├── api/            # HTTP REST API endpoints and handlers (Chi router)
+├── app/            # Application-level config
+├── attribute/      # Standard TASL attribution struct for CC-licensed data sources
+├── blob/           # Blob storage for GPX/FIT files (zstd-compressed, SQLite)
+├── db/             # Main SQLite database: connection, migrations, sqlc-generated queries
+│   ├── forecastdb/ # Separate SQLite database for forecast data (regenerable, excludable from backups)
+│   └── geonamesdb/ # Separate SQLite database for geonames data (regenerable, excludable from backups)
+├── forecast/       # Loads GRIB2 weather forecast data, point sampling by variable/time/location
+├── geoadmin/       # Client for Swiss government STAC API (data.geo.admin.ch)
+├── geonames/       # Reverse geocoding via GeoNames geographical database
+├── grib2/          # Minimal parser for GRIB2 binary meteorological data format
+├── jobs/           # Persistent async job queue
+├── load/           # GPX/FIT file parsing → TrackSource
+├── logg/           # Structured logging (slog), middleware, context helpers
+├── mail/           # Email job handler (SMTP via go-mail)
+├── meteo/          # Downloads ICON-CH1-EPS weather forecast data from Swiss STAC API
+├── password/       # Argon2id hashing
+├── roadclosures/   # Fetches bike road closures and detours from geo.admin.ch
+├── segment/        # Extracts shared road segments from tracks using H3 cell clustering
+├── session/        # JWT+cookie session management, middleware
+├── track/          # Track types, enums, metadata calculations
+├── trackgroup/     # Groups similar tracks by comparing H3 cell paths
+├── users/          # OTP (TOTP/HOTP) support
+└── utl/            # General utilities
 ```
 
 ### REST API
@@ -62,10 +64,21 @@ session.GetUser(ctx)                 // *db.User, nil if anonymous
 
 ## Database
 
+### Split database architecture
+
+There are three separate SQLite databases, all stored in the data directory (`--data-dir`):
+- `db.sqlite` — main database (users, tracks, sessions, jobs). Back this up.
+- `geonamesdb.sqlite` — geonames geographical data. Regenerable, excludable from backups.
+- `forecast.sqlite` — weather forecast data. Regenerable, excludable from backups.
+
+Each database has its own package under `internal/pkg/db/` with independent migrations, sqlc config, and connection pools. This gives independent write locks so bulk-importing geonames or downloading forecasts does not block the main database.
+
+Cross-database references (`track_geonames`, `track_forecasts`) remain in the main database with FK to tracks; they store only the association, not the heavy data.
+
 ### Migrations
 
-github.com/pressly/goose/v3 and are placed in `internal/pkg/db/migrations/*.sql`.
-To create a new one:
+github.com/pressly/goose/v3. Main DB migrations are in `internal/pkg/db/migrations/*.sql`, sub-databases in `internal/pkg/db/{geonamesdb,forecastdb}/migrations/*.sql`.
+To create a new one (main DB):
 ```bash
 go tool goose status
 go tool goose create REPLACEME sql
@@ -85,11 +98,11 @@ IMPORTANT: When adding new columns to the `users` or `email_verifications` table
 
 ### Connection model
 
-Two connections are opened (`internal/pkg/db/open.go`):
+Each database (main, geonamesdb, forecastdb) opens two connections (`internal/pkg/db/open.go`):
 - `rw` — read/write, max 1 connection (SQLite requirement)
 - `ro` — read-only, connection pool
 
-WAL mode, foreign keys enabled, busy timeout 5s.
+WAL mode, foreign keys enabled, busy timeout 5s. Because each database has its own connection pool, write locks are independent.
 
 ### Transactions
 
@@ -125,7 +138,7 @@ Note: `session.Create` and `session.Delete` open their own `WithTx` internally a
 ### Queries
 
 No ORM.
-Written in SQL in `internal/pkg/db/queries/*.sql`.
+Written in SQL in `internal/pkg/db/queries/*.sql` (main DB), `internal/pkg/db/geonamesdb/queries/*.sql`, and `internal/pkg/db/forecastdb/queries/*.sql`.
 Compiled to Go methods via sqlc.
 Run `make gen` after editing queries.
 When querying datetimes, you MUST use the sqlite `datetime()` function on both sides to account for timezones etc.
@@ -165,7 +178,7 @@ For email, run the bundled MailHog: `go tool MailHog` (UI at http://127.0.0.1:80
 
 ## Testing
 
-Use `db.GetTestDB(t)` to get a temp SQLite DB with all migrations applied.
+Use `db.GetTestDB(t)`, `geonamesdb.GetTestDB(t)`, or `forecastdb.GetTestDB(t)` to get a temp SQLite DB with all migrations applied.
 Use `github.com/stretchr/testify/require` for assertions.
 Use `https://github.com/franiglesias/golden` for snapshot tests. Approval mode: `golden.Verify(t, output, golden.WaitApproval())`. Set custom extension for snapshot files: golden.Verify(t, output, golden.Extension(".json")).
 

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/forecast"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
@@ -20,7 +20,7 @@ const (
 
 // seedDB inserts the grid constants and a forecast file into the test database.
 // Returns the reference time used.
-func seedDB(t *testing.T, d *db.DB) time.Time {
+func seedDB(t *testing.T, d *forecastdb.DB) time.Time {
 	t.Helper()
 	ctx := logg.WithTestLogger(t.Context(), t)
 	refTime := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
@@ -29,7 +29,7 @@ func seedDB(t *testing.T, d *db.DB) time.Time {
 	gridContent, err := os.ReadFile(gridTestdata)
 	require.NoError(t, err)
 
-	fc, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+	fc, err := d.QueryRW().CreateForecast(ctx, forecastdb.CreateForecastParams{
 		CreatedAt:          time.Now(),
 		ReferenceTime:      refTime,
 		BoundsMinLat:       sql.NullFloat64{Float64: 43.0, Valid: true},
@@ -45,7 +45,7 @@ func seedDB(t *testing.T, d *db.DB) time.Time {
 	t2mContent, err := os.ReadFile(t2mTestdata)
 	require.NoError(t, err)
 
-	_, err = d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+	_, err = d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 		ValidTime:      refTime,
 		ValidUntilTime: refTime.Add(time.Hour),
 		Variable:       "T_2M",
@@ -58,7 +58,7 @@ func seedDB(t *testing.T, d *db.DB) time.Time {
 }
 
 func TestLoad_NoData(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 	ctx := logg.WithTestLogger(t.Context(), t)
 
@@ -72,7 +72,7 @@ func TestLoad_NoData(t *testing.T) {
 }
 
 func TestLoad_FullCoverage(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 	ctx := logg.WithTestLogger(t.Context(), t)
 
@@ -87,7 +87,7 @@ func TestLoad_FullCoverage(t *testing.T) {
 }
 
 func TestLoad_Incomplete(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 	ctx := logg.WithTestLogger(t.Context(), t)
 
@@ -102,7 +102,7 @@ func TestLoad_Incomplete(t *testing.T) {
 }
 
 func TestSample_KnownCity(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 	ctx := logg.WithTestLogger(t.Context(), t)
 
@@ -120,7 +120,7 @@ func TestSample_KnownCity(t *testing.T) {
 }
 
 func TestSample_UnknownVariable(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 	ctx := logg.WithTestLogger(t.Context(), t)
 
@@ -135,7 +135,7 @@ func TestSample_UnknownVariable(t *testing.T) {
 }
 
 func TestSample_OutsideDomain(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 	ctx := logg.WithTestLogger(t.Context(), t)
 
@@ -151,7 +151,7 @@ func TestSample_OutsideDomain(t *testing.T) {
 }
 
 func TestLoad_FallbackToOlderForecast(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 	ctx := logg.WithTestLogger(t.Context(), t)
 
@@ -164,7 +164,7 @@ func TestLoad_FallbackToOlderForecast(t *testing.T) {
 	refTimeNew := time.Date(2026, 3, 10, 6, 0, 0, 0, time.UTC)
 
 	// Create an older forecast with T_2M at 0h and 1h.
-	fcOld, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+	fcOld, err := d.QueryRW().CreateForecast(ctx, forecastdb.CreateForecastParams{
 		CreatedAt:          time.Now(),
 		ReferenceTime:      refTimeOld,
 		BoundsMinLat:       sql.NullFloat64{Float64: 43.0, Valid: true},
@@ -177,7 +177,7 @@ func TestLoad_FallbackToOlderForecast(t *testing.T) {
 	require.NoError(t, err)
 	for _, h := range []int{0, 1} {
 		vt := refTimeOld.Add(time.Duration(h) * time.Hour)
-		_, err = d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+		_, err = d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 			ValidTime:      vt,
 			ValidUntilTime: vt.Add(time.Hour),
 			Variable:       "T_2M",
@@ -188,7 +188,7 @@ func TestLoad_FallbackToOlderForecast(t *testing.T) {
 	}
 
 	// Create a newer forecast with T_2M only at 1h (missing 0h).
-	fcNew, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+	fcNew, err := d.QueryRW().CreateForecast(ctx, forecastdb.CreateForecastParams{
 		CreatedAt:          time.Now(),
 		ReferenceTime:      refTimeNew,
 		BoundsMinLat:       sql.NullFloat64{Float64: 43.0, Valid: true},
@@ -200,7 +200,7 @@ func TestLoad_FallbackToOlderForecast(t *testing.T) {
 	})
 	require.NoError(t, err)
 	vt := refTimeOld.Add(time.Hour) // valid_time = 01:00, same as old forecast's 1h file
-	_, err = d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+	_, err = d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 		ValidTime:      vt,
 		ValidUntilTime: vt.Add(time.Hour),
 		Variable:       "T_2M",
@@ -227,7 +227,7 @@ func isNaN(v float32) bool {
 }
 
 func TestSample_BeforeFirstMessage(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 	ctx := logg.WithTestLogger(t.Context(), t)
 

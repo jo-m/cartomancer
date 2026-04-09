@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 )
 
 func TestSearchGeonames(t *testing.T) {
@@ -15,43 +15,43 @@ func TestSearchGeonames(t *testing.T) {
 
 	// Seed test data.
 	ctx := t.Context()
-	q := env.d.QueryRW()
+	q := env.gd.QueryRW()
 
-	require.NoError(t, q.InsertGeonameAdmin1(ctx, db.InsertGeonameAdmin1Params{
+	require.NoError(t, q.InsertGeonameAdmin1(ctx, geonamesdb.InsertGeonameAdmin1Params{
 		Code: "CH.BE", Name: "Bern", Geonameid: 1,
 	}))
-	require.NoError(t, q.InsertGeonameAdmin2(ctx, db.InsertGeonameAdmin2Params{
+	require.NoError(t, q.InsertGeonameAdmin2(ctx, geonamesdb.InsertGeonameAdmin2Params{
 		Code: "CH.BE.0246", Name: "Interlaken-Oberhasli", Geonameid: 2,
 	}))
-	require.NoError(t, q.InsertGeoname(ctx, db.InsertGeonameParams{
+	require.NoError(t, q.InsertGeoname(ctx, geonamesdb.InsertGeonameParams{
 		Geonameid: 100, Name: "Bern", Asciiname: "Bern",
 		Latitude: 46.94, Longitude: 7.45,
 		FeatureClass: "P", FeatureCode: "PPLC",
 		CountryCode: "CH", Admin1Code: "BE",
 		Population: 130000,
 	}))
-	require.NoError(t, q.InsertGeoname(ctx, db.InsertGeonameParams{
+	require.NoError(t, q.InsertGeoname(ctx, geonamesdb.InsertGeonameParams{
 		Geonameid: 101, Name: "Berne", Asciiname: "Berne",
 		Latitude: 46.94, Longitude: 7.45,
 		FeatureClass: "P", FeatureCode: "PPL",
 		CountryCode: "CH", Admin1Code: "BE",
 		Population: 1000,
 	}))
-	require.NoError(t, q.InsertGeoname(ctx, db.InsertGeonameParams{
+	require.NoError(t, q.InsertGeoname(ctx, geonamesdb.InsertGeonameParams{
 		Geonameid: 102, Name: "Brig", Asciiname: "Brig",
 		Latitude: 46.31, Longitude: 7.98,
 		FeatureClass: "P", FeatureCode: "PPL",
 		CountryCode: "CH", Admin1Code: "VS",
 		Population: 13000,
 	}))
-	require.NoError(t, q.InsertGeoname(ctx, db.InsertGeonameParams{
+	require.NoError(t, q.InsertGeoname(ctx, geonamesdb.InsertGeonameParams{
 		Geonameid: 103, Name: "Grindelwald", Asciiname: "Grindelwald",
 		Latitude: 46.62, Longitude: 8.04,
 		FeatureClass: "P", FeatureCode: "PPL",
 		CountryCode: "CH", Admin1Code: "BE", Admin2Code: "0246",
 		Population: 4000,
 	}))
-	require.NoError(t, q.InsertGeoname(ctx, db.InsertGeonameParams{
+	require.NoError(t, q.InsertGeoname(ctx, geonamesdb.InsertGeonameParams{
 		Geonameid: 104, Name: "Zürich", Asciiname: "Zurich",
 		Latitude: 47.37, Longitude: 8.55,
 		FeatureClass: "P", FeatureCode: "PPLA",
@@ -59,7 +59,7 @@ func TestSearchGeonames(t *testing.T) {
 		Population: 400000,
 	}))
 	// Non-place feature class (should not appear in results).
-	require.NoError(t, q.InsertGeoname(ctx, db.InsertGeonameParams{
+	require.NoError(t, q.InsertGeoname(ctx, geonamesdb.InsertGeonameParams{
 		Geonameid: 200, Name: "Bernina Pass", Asciiname: "Bernina Pass",
 		Latitude: 46.41, Longitude: 10.03,
 		FeatureClass: "T", FeatureCode: "PASS",
@@ -67,11 +67,11 @@ func TestSearchGeonames(t *testing.T) {
 	}))
 
 	// Rebuild FTS index after seeding data.
-	_, err := env.d.RW().ExecContext(ctx,
+	_, err := env.gd.RW().ExecContext(ctx,
 		`INSERT INTO geonames_fts(geonames_fts) VALUES('rebuild')`)
 	require.NoError(t, err)
 
-	_, err = env.d.QueryRW().CreateGeonameImport(ctx, db.CreateGeonameImportParams{
+	_, err = env.gd.QueryRW().CreateGeonameImport(ctx, geonamesdb.CreateGeonameImportParams{
 		CreatedAt: time.Now().UTC(),
 		RowCount:  6,
 	})

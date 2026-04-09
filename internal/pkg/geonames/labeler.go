@@ -14,6 +14,7 @@ import (
 
 	"jo-m.ch/go/cartomancer/internal/pkg/blob"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/geonames/cols"
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/load"
@@ -87,12 +88,17 @@ var _ jobs.Args = (*LabelerArgs)(nil)
 // and landmarks, scoring them by relevance, and selecting the most notable
 // ones. Use [NewLabeler] to create an instance.
 type Labeler struct {
-	d *db.DB
+	d  *db.DB
+	gd *geonamesdb.DB
 }
 
 // NewLabeler creates a new [Labeler] instance.
-func NewLabeler(d *db.DB) *Labeler {
-	return &Labeler{d: d}
+//
+// Parameters:
+//   - d: main database for track and blob access.
+//   - gd: geonames database for geographic queries.
+func NewLabeler(d *db.DB, gd *geonamesdb.DB) *Labeler {
+	return &Labeler{d: d, gd: gd}
 }
 
 var _ jobs.Job[LabelerArgs] = (*Labeler)(nil)
@@ -168,14 +174,14 @@ func (l *Labeler) Run(ctx context.Context, args LabelerArgs) error {
 // gatherCandidates queries populated places and terrain landmarks within the
 // track corridor and computes their distance and position along the track.
 func (l *Labeler) gatherCandidates(ctx context.Context, bbox [4]float64, polyline track.Points) []candidate {
-	bboxParams := db.FindPlacesInBBoxParams{
+	bboxParams := geonamesdb.FindPlacesInBBoxParams{
 		MinLat: bbox[0], MaxLat: bbox[1],
 		MinLon: bbox[2], MaxLon: bbox[3],
 	}
 
 	var candidates []candidate
 
-	places, err := l.d.QueryRO().FindPlacesInBBox(ctx, bboxParams)
+	places, err := l.gd.QueryRO().FindPlacesInBBox(ctx, bboxParams)
 	if err != nil {
 		logg.Debug(ctx, "find places in bbox failed", "err", err)
 	}
@@ -202,7 +208,7 @@ func (l *Labeler) gatherCandidates(ctx context.Context, bbox [4]float64, polylin
 		})
 	}
 
-	landmarks, err := l.d.QueryRO().FindLandmarksInBBox(ctx, db.FindLandmarksInBBoxParams{
+	landmarks, err := l.gd.QueryRO().FindLandmarksInBBox(ctx, geonamesdb.FindLandmarksInBBoxParams{
 		MinLat: bbox[0], MaxLat: bbox[1],
 		MinLon: bbox[2], MaxLon: bbox[3],
 	})
@@ -253,7 +259,7 @@ func (l *Labeler) resolveAdmin1Names(ctx context.Context, selected []candidate) 
 			continue
 		}
 		code := c.countryCode + "." + c.admin1Code
-		row, err := l.d.QueryRO().GetGeonameAdmin1(ctx, code)
+		row, err := l.gd.QueryRO().GetGeonameAdmin1(ctx, code)
 		if err != nil {
 			continue
 		}

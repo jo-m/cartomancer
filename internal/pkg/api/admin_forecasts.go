@@ -32,7 +32,7 @@ type adminForecastsResponse struct {
 func (sv *server) handleAdminListForecasts(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	rows, err := sv.d.QueryRO().ListForecastsWithFiles(ctx)
+	rows, err := sv.fd.QueryRO().ListForecastsWithFiles(ctx)
 	if err != nil {
 		logg.Error(ctx, "failed to list forecasts", "err", err)
 		writeError(w, http.StatusInternalServerError, "failed to list forecasts")

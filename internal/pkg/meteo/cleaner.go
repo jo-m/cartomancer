@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
@@ -27,11 +27,11 @@ func CleanerArgs() cleanerArgs {
 // reference_time is older than the most recent forecast run in the database.
 // Use [NewCleaner] to create an instance.
 type Cleaner struct {
-	d *db.DB
+	d *forecastdb.DB
 }
 
 // NewCleaner creates a new [Cleaner] instance.
-func NewCleaner(d *db.DB) *Cleaner {
+func NewCleaner(d *forecastdb.DB) *Cleaner {
 	return &Cleaner{d: d}
 }
 

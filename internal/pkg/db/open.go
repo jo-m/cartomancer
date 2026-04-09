@@ -20,13 +20,17 @@ import (
 )
 
 const (
-	driver     = "sqlite"
-	dialect    = "sqlite3"
-	migrations = "migrations"
+	driver  = "sqlite"
+	dialect = "sqlite3"
+
+	// MigrationsDir is the subdirectory name within the embedded FS that holds migration files.
+	MigrationsDir = "migrations"
 )
 
+// EmbedMigrations contains the embedded SQL migration files for the main database.
+//
 //go:embed migrations/*.sql
-var embedMigrations embed.FS
+var EmbedMigrations embed.FS
 
 func buildDSN(path string, readOnly bool, busyTimeout time.Duration) string {
 	query := url.Values{}
@@ -84,6 +88,27 @@ func (d *DB) RW() *sql.DB {
 	return d.rw
 }
 
+// RO returns the underlying read-only [*sql.DB] connection pool.
+func (d *DB) RO() *sql.DB {
+	return d.ro
+}
+
+// WithRWTx runs the given function in a read/write transaction.
+// Unlike [WithTx], this passes a raw [*sql.Tx] so callers can wrap it
+// with any sqlc-generated Queries type (e.g. from sub-packages).
+func (d *DB) WithRWTx(ctx context.Context, fn func(tx *sql.Tx) error) error {
+	tx, err := d.rw.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to begin tx: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	if err := fn(tx); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 // BeginTX returns a Queries object, with a read/write transaction connection.
 // You must call [Commit] or [Rollback] on the returned object when done.
 func (d *DB) BeginTX(ctx context.Context) (*Queries, error) {
@@ -138,12 +163,18 @@ func (d *DB) Close() error {
 	return nil
 }
 
-// Open opens the database.
+// Open opens the database with the given migration files.
 // To deal with concurrency efficiently, we maintain both a read-only connection pool,
 // and a read/write "pool" with only one connection in it.
-// You should maintain only a single [*DB] object per SQlite file at a time in your application.
+// You should maintain only a single [*DB] object per SQLite file at a time in your application.
 // You must call [*DB.Close] when the conn is no longer needed.
-func Open(ctx context.Context, path string) (db *DB, err error) {
+//
+// Parameters:
+//   - ctx: context for logging and migration execution.
+//   - path: filesystem path for the SQLite database file.
+//   - migrationsFS: embedded filesystem containing migration SQL files.
+//   - migrationsDir: subdirectory within migrationsFS that holds the migration files.
+func Open(ctx context.Context, path string, migrationsFS embed.FS, migrationsDir string) (db *DB, err error) {
 	dir := filepath.Dir(path)
 	err = os.MkdirAll(dir, 0750)
 	if err != nil {
@@ -170,7 +201,7 @@ func Open(ctx context.Context, path string) (db *DB, err error) {
 	logg.Info(ctx, "opened database", "path", path, "cwd", cwd)
 
 	// Prepare and run migrations.
-	files, err := fs.Sub(embedMigrations, migrations)
+	files, err := fs.Sub(migrationsFS, migrationsDir)
 	if err != nil {
 		return nil, errors.New("no migrations")
 	}

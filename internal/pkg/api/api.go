@@ -8,6 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"jo-m.ch/go/cartomancer/internal/pkg/app"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
@@ -27,6 +29,8 @@ func (sv *server) requireUser(next http.Handler) http.Handler {
 
 type server struct {
 	d              *db.DB
+	gd             *geonamesdb.DB
+	fd             *forecastdb.DB
 	sessions       *session.Store
 	jobSubmitter   *jobs.Submitter
 	appConfig      app.AppConfig
@@ -34,7 +38,15 @@ type server struct {
 }
 
 // New creates a new API handler.
-func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig app.AppConfig) (http.Handler, error) {
+//
+// Parameters:
+//   - d: main database for tracks, users, sessions, etc.
+//   - gd: geonames database for geographic search queries.
+//   - fd: forecast database for weather data queries.
+//   - sessions: session store for authentication.
+//   - submitter: job queue submitter for background tasks.
+//   - appConfig: application configuration.
+func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig app.AppConfig) (http.Handler, error) {
 	var emailSecret []byte
 	if appConfig.EmailJWTSecret == "" {
 		emailSecret = password.GenRandBytes(utl.JWTSecretMinBytes)
@@ -48,6 +60,8 @@ func New(d *db.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig
 
 	sv := server{
 		d:              d,
+		gd:             gd,
+		fd:             fd,
 		sessions:       sessions,
 		jobSubmitter:   submitter,
 		appConfig:      appConfig,

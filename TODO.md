@@ -109,7 +109,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Fixup/autosquash
 - [x] Grep for TODO in code
 - [x] SQLite without rowid
-- [ ] Move geonames and maybe forecasts to separate database files?
+- [x] Move geonames and maybe forecasts to separate database files?
 - [ ] Go through the periodic TODOs
 
 ## Before enabling public signup

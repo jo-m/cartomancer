@@ -1,4 +1,4 @@
-package db
+package forecastdb
 
 import (
 	"path/filepath"
@@ -8,14 +8,14 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
-// GetTestDB returns a new temporary test database with all main-DB migrations applied.
+// GetTestDB returns a new temporary forecast test database with all migrations applied.
 // You must call [Close] on the returned [DB] when done.
 func GetTestDB(t *testing.T) *DB {
 	t.Helper()
 
 	dir := t.TempDir()
 	ctx := logg.WithTestLogger(t.Context(), t)
-	d, err := Open(ctx, filepath.Join(dir, "db"), EmbedMigrations, MigrationsDir)
+	d, err := Open(ctx, filepath.Join(dir, "forecast.db"))
 	require.NoError(t, err)
 	return d
 }

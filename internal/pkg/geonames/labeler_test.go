@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"jo-m.ch/go/cartomancer/internal/pkg/blob"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/geonames/cols"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/track"
@@ -361,7 +362,7 @@ func setupTestUser(ctx context.Context, t *testing.T, d *db.DB) {
 	require.NoError(t, err)
 }
 
-func importTestGeodata(ctx context.Context, t *testing.T, d *db.DB) {
+func importTestGeodata(ctx context.Context, t *testing.T, d *geonamesdb.DB) {
 	t.Helper()
 
 	geoData := strings.Join([]string{
@@ -389,10 +390,12 @@ func importTestGeodata(ctx context.Context, t *testing.T, d *db.DB) {
 func TestLabelerRun(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
+	gd := geonamesdb.GetTestDB(t)
+	defer gd.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
 
-	importTestGeodata(ctx, t, d)
+	importTestGeodata(ctx, t, gd)
 	setupTestUser(ctx, t, d)
 
 	trackUUID := createTestTrack(ctx, t, d, []struct{ lat, lon float64 }{
@@ -401,7 +404,7 @@ func TestLabelerRun(t *testing.T) {
 		{47.56, 7.57}, // Near Basel.
 	})
 
-	labeler := NewLabeler(d)
+	labeler := NewLabeler(d, gd)
 	err := labeler.Run(ctx, LabelerArgs{TrackID: trackUUID})
 	require.NoError(t, err)
 
@@ -416,10 +419,12 @@ func TestLabelerRun(t *testing.T) {
 func TestLabelerRun_withLandmark(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
+	gd := geonamesdb.GetTestDB(t)
+	defer gd.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
 
-	importTestGeodata(ctx, t, d)
+	importTestGeodata(ctx, t, gd)
 	setupTestUser(ctx, t, d)
 
 	// Track goes from Zurich past Grimselpass to Bern.
@@ -431,7 +436,7 @@ func TestLabelerRun_withLandmark(t *testing.T) {
 		{46.95, 7.45}, // Near Bern.
 	})
 
-	labeler := NewLabeler(d)
+	labeler := NewLabeler(d, gd)
 	err := labeler.Run(ctx, LabelerArgs{TrackID: trackUUID})
 	require.NoError(t, err)
 
@@ -445,10 +450,12 @@ func TestLabelerRun_withLandmark(t *testing.T) {
 func TestLabelerRun_suppressesSuburbs(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
+	gd := geonamesdb.GetTestDB(t)
+	defer gd.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
 
-	importTestGeodata(ctx, t, d)
+	importTestGeodata(ctx, t, gd)
 	setupTestUser(ctx, t, d)
 
 	// Short track near Zurich that passes close to both Zurich and Wiedikon.
@@ -459,7 +466,7 @@ func TestLabelerRun_suppressesSuburbs(t *testing.T) {
 		{46.95, 7.45},  // Bern.
 	})
 
-	labeler := NewLabeler(d)
+	labeler := NewLabeler(d, gd)
 	err := labeler.Run(ctx, LabelerArgs{TrackID: trackUUID})
 	require.NoError(t, err)
 
@@ -475,10 +482,12 @@ func TestLabelerRun_suppressesSuburbs(t *testing.T) {
 func TestLabelerRun_missingTrack(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
+	gd := geonamesdb.GetTestDB(t)
+	defer gd.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
 
-	labeler := NewLabeler(d)
+	labeler := NewLabeler(d, gd)
 	err := labeler.Run(ctx, LabelerArgs{TrackID: "nonexistent"})
 	require.NoError(t, err)
 }
@@ -486,6 +495,8 @@ func TestLabelerRun_missingTrack(t *testing.T) {
 func TestLabelerRun_noGeonameData(t *testing.T) {
 	d := db.GetTestDB(t)
 	defer d.Close()
+	gd := geonamesdb.GetTestDB(t)
+	defer gd.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
 
@@ -496,7 +507,7 @@ func TestLabelerRun_noGeonameData(t *testing.T) {
 		{47.56, 7.57},
 	})
 
-	labeler := NewLabeler(d)
+	labeler := NewLabeler(d, gd)
 	err := labeler.Run(ctx, LabelerArgs{TrackID: trackUUID})
 	require.NoError(t, err)
 }

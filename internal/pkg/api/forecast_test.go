@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
 )
 
 const (
@@ -18,14 +18,14 @@ const (
 )
 
 // seedForecastDB inserts forecast data into the test database.
-func seedForecastDB(t *testing.T, d *db.DB, refTime time.Time) {
+func seedForecastDB(t *testing.T, d *forecastdb.DB, refTime time.Time) {
 	t.Helper()
 	ctx := t.Context()
 
 	gridContent, err := os.ReadFile(gridTestdata)
 	require.NoError(t, err)
 
-	fc, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+	fc, err := d.QueryRW().CreateForecast(ctx, forecastdb.CreateForecastParams{
 		CreatedAt:          time.Now(),
 		ReferenceTime:      refTime,
 		BoundsMinLat:       sql.NullFloat64{Float64: 43.0, Valid: true},
@@ -40,7 +40,7 @@ func seedForecastDB(t *testing.T, d *db.DB, refTime time.Time) {
 	t2mContent, err := os.ReadFile(t2mTestdata)
 	require.NoError(t, err)
 
-	_, err = d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+	_, err = d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 		ValidTime:      refTime,
 		ValidUntilTime: refTime.Add(time.Hour),
 		Variable:       "T_2M",
@@ -140,7 +140,7 @@ func TestGetTrackForecast_Success(t *testing.T) {
 	uuid := resp["uuid"].(string)
 
 	refTime := time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)
-	seedForecastDB(t, e.d, refTime)
+	seedForecastDB(t, e.fd, refTime)
 
 	var result map[string]any
 	status, _ = e.do(client, http.MethodGet, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, &result)

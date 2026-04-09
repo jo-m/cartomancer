@@ -15,7 +15,7 @@ func TestBackup(t *testing.T) {
 	dbPath := filepath.Join(dir, "test.db")
 	ctx := logg.WithTestLogger(t.Context(), t)
 
-	d, err := db.Open(ctx, dbPath)
+	d, err := db.Open(ctx, dbPath, db.EmbedMigrations, db.MigrationsDir)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = d.Close() })
 
@@ -38,7 +38,7 @@ func TestBackup_OverwritesExisting(t *testing.T) {
 	dbPath := filepath.Join(dir, "test.db")
 	ctx := logg.WithTestLogger(t.Context(), t)
 
-	d, err := db.Open(ctx, dbPath)
+	d, err := db.Open(ctx, dbPath, db.EmbedMigrations, db.MigrationsDir)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = d.Close() })
 

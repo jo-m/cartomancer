@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo/vars"
@@ -36,11 +36,11 @@ var _ jobs.Args = (*DownloaderArgs)(nil)
 // Downloader implements the forecast download job.
 // Use [NewDownloader] to create an instance.
 type Downloader struct {
-	d *db.DB
+	d *forecastdb.DB
 }
 
 // NewDownloader creates a new [Downloader] instance.
-func NewDownloader(d *db.DB) *Downloader {
+func NewDownloader(d *forecastdb.DB) *Downloader {
 	return &Downloader{d: d}
 }
 
@@ -133,7 +133,7 @@ func (d *Downloader) storeNewForecast(ctx context.Context, manifest *ForecastMan
 		return err
 	}
 
-	err = d.d.WithTx(ctx, func(tx *db.Queries) error {
+	err = d.d.WithTx(ctx, func(tx *forecastdb.Queries) error {
 		gridPath := filepath.Join(result.Dir, result.GridConstantsPath)
 		gridContent, readErr := os.ReadFile(gridPath)
 		if readErr != nil {
@@ -158,7 +158,7 @@ func (d *Downloader) storeNewForecast(ctx context.Context, manifest *ForecastMan
 			boundsMaxLon = result.Files[0].Meta.BoundsMaxLon
 		}
 
-		forecastRow, dbErr := tx.CreateForecast(ctx, db.CreateForecastParams{
+		forecastRow, dbErr := tx.CreateForecast(ctx, forecastdb.CreateForecastParams{
 			CreatedAt:          time.Now(),
 			ReferenceTime:      result.ReferenceTime,
 			BoundsMinLat:       nullFloat(boundsMinLat),
@@ -237,7 +237,7 @@ func (d *Downloader) augmentForecast(ctx context.Context, manifest *ForecastMani
 		return err
 	}
 
-	err = d.d.WithTx(ctx, func(tx *db.Queries) error {
+	err = d.d.WithTx(ctx, func(tx *forecastdb.Queries) error {
 		return insertFiles(ctx, tx, dir, downloaded, forecastID)
 	})
 	if err != nil {
@@ -270,7 +270,7 @@ func verifyReferenceTime(files []DownloadedFile, expected time.Time) error {
 
 // insertFiles writes downloaded GRIB2 files as forecast_file rows within an
 // existing transaction.
-func insertFiles(ctx context.Context, tx *db.Queries, dir string, files []DownloadedFile, forecastID int64) error {
+func insertFiles(ctx context.Context, tx *forecastdb.Queries, dir string, files []DownloadedFile, forecastID int64) error {
 	for _, f := range files {
 		absPath := filepath.Join(dir, f.Path)
 		content, readErr := os.ReadFile(absPath)
@@ -278,7 +278,7 @@ func insertFiles(ctx context.Context, tx *db.Queries, dir string, files []Downlo
 			return fmt.Errorf("read %s: %w", absPath, readErr)
 		}
 
-		if _, dbErr := tx.CreateForecastFile(ctx, db.CreateForecastFileParams{
+		if _, dbErr := tx.CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 			ValidTime:      f.Meta.ValidTime,
 			ValidUntilTime: f.Meta.ValidTime.Add(fileValidityDuration),
 			Variable:       f.Meta.Variable,

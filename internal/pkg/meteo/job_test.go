@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/geoadmin"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo/vars"
@@ -43,7 +43,7 @@ func TestParseISO8601Duration(t *testing.T) {
 }
 
 func TestGetLatestForecastReferenceTime_empty(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -52,7 +52,7 @@ func TestGetLatestForecastReferenceTime_empty(t *testing.T) {
 }
 
 func TestCreateForecastFile_and_GetLatest(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -60,7 +60,7 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
 	validTime := refTime.Add(10 * time.Hour)
 
-	forecast, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+	forecast, err := d.QueryRW().CreateForecast(ctx, forecastdb.CreateForecastParams{
 		CreatedAt:          time.Now(),
 		ReferenceTime:      refTime,
 		BoundsMinLat:       sql.NullFloat64{Float64: 45.7, Valid: true},
@@ -72,7 +72,7 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	f, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+	f, err := d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 		ValidTime:      validTime,
 		ValidUntilTime: validTime.Add(time.Hour),
 		Variable:       vars.VarTotPr.Name,
@@ -89,14 +89,14 @@ func TestCreateForecastFile_and_GetLatest(t *testing.T) {
 }
 
 func TestCreateForecastFile_uniqueConstraint(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
 
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
 
-	forecast, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+	forecast, err := d.QueryRW().CreateForecast(ctx, forecastdb.CreateForecastParams{
 		CreatedAt:          time.Now(),
 		ReferenceTime:      refTime,
 		HorizontalGridFile: []byte("grid data"),
@@ -105,7 +105,7 @@ func TestCreateForecastFile_uniqueConstraint(t *testing.T) {
 	require.NoError(t, err)
 
 	insert := func() error {
-		_, err := d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+		_, err := d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 			ValidTime:      refTime.Add(time.Hour),
 			ValidUntilTime: refTime.Add(2 * time.Hour),
 			Variable:       vars.VarU10m.Name,
@@ -120,7 +120,7 @@ func TestCreateForecastFile_uniqueConstraint(t *testing.T) {
 }
 
 func TestCountDistinctForecastVariables(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 	ctx := logg.WithTestLogger(t.Context(), t)
 
@@ -132,7 +132,7 @@ func TestCountDistinctForecastVariables(t *testing.T) {
 	require.Equal(t, int64(0), count)
 
 	// Create forecast with files for two variables.
-	fc, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+	fc, err := d.QueryRW().CreateForecast(ctx, forecastdb.CreateForecastParams{
 		CreatedAt:          time.Now(),
 		ReferenceTime:      refTime,
 		HorizontalGridFile: []byte("grid"),
@@ -141,7 +141,7 @@ func TestCountDistinctForecastVariables(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range []string{vars.VarU10m.Name, vars.VarV10m.Name} {
-		_, err = d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+		_, err = d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 			ValidTime:      refTime.Add(time.Hour),
 			ValidUntilTime: refTime.Add(2 * time.Hour),
 			Variable:       v,
@@ -157,14 +157,14 @@ func TestCountDistinctForecastVariables(t *testing.T) {
 }
 
 func TestIsForecastComplete(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 	ctx := logg.WithTestLogger(t.Context(), t)
 
 	dl := NewDownloader(d)
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
 
-	fc, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+	fc, err := d.QueryRW().CreateForecast(ctx, forecastdb.CreateForecastParams{
 		CreatedAt:          time.Now(),
 		ReferenceTime:      refTime,
 		HorizontalGridFile: []byte("grid"),
@@ -174,7 +174,7 @@ func TestIsForecastComplete(t *testing.T) {
 
 	// Only two of four expected variables.
 	for _, v := range []string{vars.VarU10m.Name, vars.VarV10m.Name} {
-		_, err = d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+		_, err = d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 			ValidTime:      refTime.Add(time.Hour),
 			ValidUntilTime: refTime.Add(2 * time.Hour),
 			Variable:       v,
@@ -190,7 +190,7 @@ func TestIsForecastComplete(t *testing.T) {
 
 	// Add remaining variables.
 	for _, v := range []string{vars.VarTotPr.Name, vars.VarT2m.Name} {
-		_, err = d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+		_, err = d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 			ValidTime:      refTime.Add(time.Hour),
 			ValidUntilTime: refTime.Add(2 * time.Hour),
 			Variable:       v,
@@ -206,12 +206,12 @@ func TestIsForecastComplete(t *testing.T) {
 }
 
 func TestListForecastFileKeys(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 	ctx := logg.WithTestLogger(t.Context(), t)
 
 	refTime := time.Date(2026, 3, 10, 18, 0, 0, 0, time.UTC)
-	fc, err := d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+	fc, err := d.QueryRW().CreateForecast(ctx, forecastdb.CreateForecastParams{
 		CreatedAt:          time.Now(),
 		ReferenceTime:      refTime,
 		HorizontalGridFile: []byte("grid"),
@@ -223,7 +223,7 @@ func TestListForecastFileKeys(t *testing.T) {
 	vt2 := refTime.Add(2 * time.Hour)
 	for _, v := range []string{vars.VarU10m.Name, vars.VarV10m.Name} {
 		for _, vt := range []time.Time{vt1, vt2} {
-			_, err = d.QueryRW().CreateForecastFile(ctx, db.CreateForecastFileParams{
+			_, err = d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 				ValidTime:      vt,
 				ValidUntilTime: vt.Add(time.Hour),
 				Variable:       v,
@@ -240,7 +240,7 @@ func TestListForecastFileKeys(t *testing.T) {
 }
 
 func TestForecastExistsForReferenceTime(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := forecastdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -253,7 +253,7 @@ func TestForecastExistsForReferenceTime(t *testing.T) {
 	require.Equal(t, int64(0), exists)
 
 	// Create the forecast row.
-	_, err = d.QueryRW().CreateForecast(ctx, db.CreateForecastParams{
+	_, err = d.QueryRW().CreateForecast(ctx, forecastdb.CreateForecastParams{
 		CreatedAt:          time.Now(),
 		ReferenceTime:      refTime,
 		HorizontalGridFile: []byte("grid data"),

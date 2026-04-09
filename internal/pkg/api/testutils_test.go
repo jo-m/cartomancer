@@ -18,6 +18,8 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/api"
 	"jo-m.ch/go/cartomancer/internal/pkg/app"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
@@ -31,6 +33,8 @@ const testCookieName = "sid"
 type testEnv struct {
 	t              *testing.T
 	d              *db.DB
+	gd             *geonamesdb.DB
+	fd             *forecastdb.DB
 	ts             *httptest.Server
 	emailJWTSecret []byte
 }
@@ -49,6 +53,10 @@ func newTestEnvWithAppConfig(t *testing.T, appConf app.AppConfig) *testEnv {
 
 	d := db.GetTestDB(t)
 	t.Cleanup(func() { _ = d.Close() })
+	gd := geonamesdb.GetTestDB(t)
+	t.Cleanup(func() { _ = gd.Close() })
+	fd := forecastdb.GetTestDB(t)
+	t.Cleanup(func() { _ = fd.Close() })
 
 	logger := slog.New(logg.NewTestHandler(t))
 
@@ -68,14 +76,14 @@ func newTestEnvWithAppConfig(t *testing.T, appConf app.AppConfig) *testEnv {
 	mux.Use(middleware.RequestID)
 	mux.Use(logg.AttachLogger(logger))
 	mux.Use(sess.Middleware)
-	apiHandler, err := api.New(d, sess, workers.Submitter(), appConf)
+	apiHandler, err := api.New(d, gd, fd, sess, workers.Submitter(), appConf)
 	require.NoError(t, err)
 	mux.Mount("/", apiHandler)
 
 	ts := httptest.NewTLSServer(mux)
 	t.Cleanup(ts.Close)
 
-	return &testEnv{t: t, d: d, ts: ts, emailJWTSecret: utl.Must(utl.DecodeJWTSecret(appConf.EmailJWTSecret))}
+	return &testEnv{t: t, d: d, gd: gd, fd: fd, ts: ts, emailJWTSecret: utl.Must(utl.DecodeJWTSecret(appConf.EmailJWTSecret))}
 }
 
 // newClient creates a new TLS-aware HTTP client with an empty cookie jar.

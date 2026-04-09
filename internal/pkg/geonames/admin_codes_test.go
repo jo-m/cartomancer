@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
@@ -33,7 +33,7 @@ func TestParseAdminCodes_skipMalformed(t *testing.T) {
 }
 
 func TestImportAdmin1Codes(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := geonamesdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -58,7 +58,7 @@ func TestImportAdmin1Codes(t *testing.T) {
 }
 
 func TestImportAdmin2Codes(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := geonamesdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -82,7 +82,7 @@ func TestImportAdmin2Codes(t *testing.T) {
 }
 
 func TestImportAdmin1Codes_replaceExisting(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := geonamesdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -103,7 +103,7 @@ func TestImportAdmin1Codes_replaceExisting(t *testing.T) {
 }
 
 func TestImportSubsampledAdmin1(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := geonamesdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)
@@ -122,7 +122,7 @@ func TestImportSubsampledAdmin1(t *testing.T) {
 }
 
 func TestImportSubsampledAdmin2(t *testing.T) {
-	d := db.GetTestDB(t)
+	d := geonamesdb.GetTestDB(t)
 	defer d.Close()
 
 	ctx := logg.WithTestLogger(t.Context(), t)

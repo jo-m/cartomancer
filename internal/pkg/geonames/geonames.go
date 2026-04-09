@@ -16,7 +16,7 @@ import (
 
 	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
 	"jo-m.ch/go/cartomancer/internal/pkg/client"
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/geonames/cols"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
@@ -87,7 +87,7 @@ func DownloadAllCountries(ctx context.Context) (string, error) {
 
 // ImportAllCountries reads the zip file at zipPath, parses all geoname rows,
 // and replaces the geonames table contents atomically.
-func ImportAllCountries(ctx context.Context, d *db.DB, zipPath string) (int, error) {
+func ImportAllCountries(ctx context.Context, d *geonamesdb.DB, zipPath string) (int, error) {
 	zr, err := zip.OpenReader(zipPath)
 	if err != nil {
 		return 0, fmt.Errorf("open zip: %w", err)
@@ -121,7 +121,7 @@ const stagingTable = "geonames_staging"
 // into a staging table, then atomically swaps it with the live geonames table.
 // This approach keeps the old data queryable throughout the import and avoids
 // long-held write locks by deferring index creation until after all inserts.
-func importFromReader(ctx context.Context, d *db.DB, r io.Reader) (int, error) {
+func importFromReader(ctx context.Context, d *geonamesdb.DB, r io.Reader) (int, error) {
 	rw := d.RW()
 
 	// Prepare the staging table (unindexed for fast inserts).
@@ -254,7 +254,7 @@ func insertIntoStaging(ctx context.Context, rw *sql.DB, r io.Reader) (int, error
 	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 
 	total := 0
-	batch := make([]db.InsertGeonameParams, 0, insertBatchSize)
+	batch := make([]geonamesdb.InsertGeonameParams, 0, insertBatchSize)
 
 	flushBatch := func() error {
 		if len(batch) == 0 {
@@ -305,7 +305,7 @@ func insertIntoStaging(ctx context.Context, rw *sql.DB, r io.Reader) (int, error
 
 // flushToStaging inserts a batch of rows into the staging table using multi-row
 // INSERT statements within a single transaction.
-func flushToStaging(ctx context.Context, rw *sql.DB, batch []db.InsertGeonameParams) error {
+func flushToStaging(ctx context.Context, rw *sql.DB, batch []geonamesdb.InsertGeonameParams) error {
 	tx, err := rw.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
@@ -325,7 +325,7 @@ func flushToStaging(ctx context.Context, rw *sql.DB, batch []db.InsertGeonamePar
 }
 
 // insertChunk inserts a chunk of rows using a single multi-row INSERT statement.
-func insertChunk(ctx context.Context, tx *sql.Tx, chunk []db.InsertGeonameParams) error {
+func insertChunk(ctx context.Context, tx *sql.Tx, chunk []geonamesdb.InsertGeonameParams) error {
 	var sb strings.Builder
 	sb.WriteString("INSERT INTO " + stagingTable + " (geonameid, name, asciiname, latitude, longitude, feature_class, feature_code, country_code, cc2, admin1_code, admin2_code, admin3_code, admin4_code, population) VALUES ")
 
@@ -349,41 +349,41 @@ var errSkipped = errors.New("skipped")
 
 // parseLine parses a single tab-delimited geonames line into insert params.
 // Returns [errSkipped] for rows that should be filtered out (e.g. undersea features).
-func parseLine(line string) (db.InsertGeonameParams, error) {
+func parseLine(line string) (geonamesdb.InsertGeonameParams, error) {
 	fields := strings.Split(line, "\t")
 	if len(fields) < cols.NumColumns {
-		return db.InsertGeonameParams{}, fmt.Errorf("expected %d fields, got %d", cols.NumColumns, len(fields))
+		return geonamesdb.InsertGeonameParams{}, fmt.Errorf("expected %d fields, got %d", cols.NumColumns, len(fields))
 	}
 
 	// Skip undersea features (feature class "U") to save space.
 	if fields[cols.IdxFeatureClass] == "U" {
-		return db.InsertGeonameParams{}, errSkipped
+		return geonamesdb.InsertGeonameParams{}, errSkipped
 	}
 
 	geonameid, err := strconv.ParseInt(fields[cols.IdxGeonameid], 10, 64)
 	if err != nil {
-		return db.InsertGeonameParams{}, fmt.Errorf("parse geonameid: %w", err)
+		return geonamesdb.InsertGeonameParams{}, fmt.Errorf("parse geonameid: %w", err)
 	}
 
 	lat, err := strconv.ParseFloat(fields[cols.IdxLatitude], 64)
 	if err != nil {
-		return db.InsertGeonameParams{}, fmt.Errorf("parse latitude: %w", err)
+		return geonamesdb.InsertGeonameParams{}, fmt.Errorf("parse latitude: %w", err)
 	}
 
 	lon, err := strconv.ParseFloat(fields[cols.IdxLongitude], 64)
 	if err != nil {
-		return db.InsertGeonameParams{}, fmt.Errorf("parse longitude: %w", err)
+		return geonamesdb.InsertGeonameParams{}, fmt.Errorf("parse longitude: %w", err)
 	}
 
 	var population int64
 	if fields[cols.IdxPopulation] != "" {
 		population, err = strconv.ParseInt(fields[cols.IdxPopulation], 10, 64)
 		if err != nil {
-			return db.InsertGeonameParams{}, fmt.Errorf("parse population: %w", err)
+			return geonamesdb.InsertGeonameParams{}, fmt.Errorf("parse population: %w", err)
 		}
 	}
 
-	return db.InsertGeonameParams{
+	return geonamesdb.InsertGeonameParams{
 		Geonameid:    geonameid,
 		Name:         fields[cols.IdxName],
 		Asciiname:    fields[cols.IdxAsciiname],
