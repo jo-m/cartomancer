@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Link, Outlet, useNavigate } from "react-router-dom"
 import { ChevronDownIcon } from "@heroicons/react/20/solid"
 import { useSession } from "../context/SessionContext"
@@ -7,14 +7,93 @@ import logoSvg from "../assets/logo.svg?raw"
 import SvgIcon from "../assets/SvgIcon"
 import ornamentDividerSvg from "../assets/ornament-divider.svg?raw"
 
+/** Manages open/close state for a dropdown with both hover and keyboard support. */
+function useDropdown() {
+  const [open, setOpen] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const clearTimer = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current)
+  }, [])
+
+  const delayedClose = useCallback(() => {
+    timer.current = setTimeout(() => setOpen(false), 150)
+  }, [])
+
+  const handleMouseEnter = useCallback(() => {
+    clearTimer()
+    setOpen(true)
+  }, [clearTimer])
+
+  const handleMouseLeave = useCallback(() => {
+    delayedClose()
+  }, [delayedClose])
+
+  const handleFocusCapture = useCallback(() => {
+    clearTimer()
+    setOpen(true)
+  }, [clearTimer])
+
+  const handleBlurCapture = useCallback(() => {
+    delayedClose()
+  }, [delayedClose])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false)
+        const trigger = containerRef.current?.querySelector<HTMLElement>(
+          "[data-dropdown-trigger]"
+        )
+        trigger?.focus()
+        return
+      }
+      if (!open) return
+
+      const items =
+        containerRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]')
+      if (!items?.length) return
+
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault()
+        const focused = document.activeElement as HTMLElement
+        const idx = Array.from(items).indexOf(focused)
+        let next: number
+        if (e.key === "ArrowDown") {
+          next = idx < 0 ? 0 : (idx + 1) % items.length
+        } else {
+          next = idx <= 0 ? items.length - 1 : idx - 1
+        }
+        items[next].focus()
+      }
+    },
+    [open]
+  )
+
+  const close = useCallback(() => setOpen(false), [])
+
+  return {
+    open,
+    close,
+    containerRef,
+    containerProps: {
+      ref: containerRef,
+      onMouseEnter: handleMouseEnter,
+      onMouseLeave: handleMouseLeave,
+      onFocusCapture: handleFocusCapture,
+      onBlurCapture: handleBlurCapture,
+      onKeyDown: handleKeyDown,
+    },
+  }
+}
+
 export default function Layout() {
   const { user, loading, logout } = useSession()
   const { data: appConfig } = useAppConfig()
   const navigate = useNavigate()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [tracksMenuOpen, setTracksMenuOpen] = useState(false)
-  const tracksMenuTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const tracksMenu = useDropdown()
+  const userMenu = useDropdown()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -24,28 +103,10 @@ export default function Layout() {
   }, [appConfig?.instanceName])
 
   async function handleLogout() {
-    setMenuOpen(false)
+    userMenu.close()
     setMobileMenuOpen(false)
     await logout()
     navigate("/login")
-  }
-
-  function handleMouseEnter() {
-    if (menuTimer.current) clearTimeout(menuTimer.current)
-    setMenuOpen(true)
-  }
-
-  function handleMouseLeave() {
-    menuTimer.current = setTimeout(() => setMenuOpen(false), 150)
-  }
-
-  function handleTracksMenuEnter() {
-    if (tracksMenuTimer.current) clearTimeout(tracksMenuTimer.current)
-    setTracksMenuOpen(true)
-  }
-
-  function handleTracksMenuLeave() {
-    tracksMenuTimer.current = setTimeout(() => setTracksMenuOpen(false), 150)
   }
 
   return (
@@ -144,18 +205,20 @@ export default function Layout() {
               (user ? (
                 <>
                   <div
-                    className={`relative -my-3 flex items-center self-stretch px-3 py-3 transition-colors cursor-pointer ${tracksMenuOpen ? "bg-panel" : ""}`}
-                    onMouseEnter={handleTracksMenuEnter}
-                    onMouseLeave={handleTracksMenuLeave}
+                    className={`relative -my-3 flex items-center self-stretch px-3 py-3 transition-colors cursor-pointer ${tracksMenu.open ? "bg-panel" : ""}`}
+                    {...tracksMenu.containerProps}
                   >
                     <Link
                       to="/account/tracks"
-                      className={`flex items-center gap-1 transition-colors ${tracksMenuOpen ? "text-text-secondary" : "text-nav-text/70 hover:text-nav-text"}`}
+                      data-dropdown-trigger
+                      aria-haspopup="true"
+                      aria-expanded={tracksMenu.open}
+                      className={`flex items-center gap-1 transition-colors ${tracksMenu.open ? "text-text-secondary" : "text-nav-text/70 hover:text-nav-text"}`}
                     >
                       My Tracks
                       <ChevronDownIcon className="h-4 w-4" />
                     </Link>
-                    {tracksMenuOpen && (
+                    {tracksMenu.open && (
                       <div
                         className="absolute left-0 top-full z-50 w-40 rounded-b border-x border-b border-border bg-panel py-1 shadow-lg"
                         role="menu"
@@ -163,7 +226,7 @@ export default function Layout() {
                         <Link
                           to="/account/tracks"
                           className="block px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
-                          onClick={() => setTracksMenuOpen(false)}
+                          onClick={tracksMenu.close}
                           role="menuitem"
                         >
                           Tracks
@@ -171,7 +234,7 @@ export default function Layout() {
                         <Link
                           to="/tracks/groups"
                           className="block px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
-                          onClick={() => setTracksMenuOpen(false)}
+                          onClick={tracksMenu.close}
                           role="menuitem"
                         >
                           Groups
@@ -179,7 +242,7 @@ export default function Layout() {
                         <Link
                           to="/upload"
                           className="flex items-center gap-1.5 px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
-                          onClick={() => setTracksMenuOpen(false)}
+                          onClick={tracksMenu.close}
                           role="menuitem"
                         >
                           Upload
@@ -188,12 +251,15 @@ export default function Layout() {
                     )}
                   </div>
                   <div
-                    className={`relative -my-3 flex items-center self-stretch px-3 py-3 transition-colors ${menuOpen ? "bg-panel" : ""}`}
-                    onMouseEnter={handleMouseEnter}
-                    onMouseLeave={handleMouseLeave}
+                    className={`relative -my-3 flex items-center self-stretch px-3 py-3 transition-colors ${userMenu.open ? "bg-panel" : ""}`}
+                    {...userMenu.containerProps}
                   >
-                    <div
-                      className={`flex cursor-pointer items-center gap-2 transition-colors ${menuOpen ? "text-text-secondary" : "text-nav-text/70 hover:text-nav-text"}`}
+                    <button
+                      type="button"
+                      data-dropdown-trigger
+                      aria-haspopup="true"
+                      aria-expanded={userMenu.open}
+                      className={`flex cursor-pointer items-center gap-2 transition-colors ${userMenu.open ? "text-text-secondary" : "text-nav-text/70 hover:text-nav-text"}`}
                     >
                       <img
                         src={`/api/users/${user.uuid}/avatar?v=${user.avatarSeed}`}
@@ -202,8 +268,8 @@ export default function Layout() {
                       />
                       <span className="text-sm">{user.name}</span>
                       <ChevronDownIcon className="h-4 w-4" />
-                    </div>
-                    {menuOpen && (
+                    </button>
+                    {userMenu.open && (
                       <div
                         className="absolute right-0 top-full z-50 w-40 rounded-b border-x border-b border-border bg-panel py-1 shadow-lg"
                         role="menu"
@@ -211,7 +277,7 @@ export default function Layout() {
                         <Link
                           to="/account"
                           className="block px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
-                          onClick={() => setMenuOpen(false)}
+                          onClick={userMenu.close}
                           role="menuitem"
                         >
                           Account
@@ -220,7 +286,7 @@ export default function Layout() {
                           <Link
                             to="/admin/users"
                             className="block px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
-                            onClick={() => setMenuOpen(false)}
+                            onClick={userMenu.close}
                             role="menuitem"
                           >
                             Admin
