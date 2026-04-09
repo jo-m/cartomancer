@@ -8,7 +8,7 @@ COPY internal/pkg/api/openapi.yaml /app/internal/pkg/api/openapi.yaml
 RUN npm run build
 
 # Stage 2: Build backend
-FROM golang:1.26.1-alpine AS backend
+FROM golang:1.26.2-alpine AS backend
 RUN apk add --no-cache gcc musl-dev
 WORKDIR /app
 COPY go.mod go.sum ./
