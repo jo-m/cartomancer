@@ -28,6 +28,7 @@ export default function TagsInput({
   function addTag(raw: string) {
     const tag = raw.trim()
     if (!tag || value.includes(tag)) return
+    if (!/^[\p{L}\p{N}]{2,32}$/u.test(tag)) return
     onChange([...value, tag])
     setInput("")
   }
@@ -61,7 +62,11 @@ export default function TagsInput({
         type="text"
         list={listId}
         value={input}
-        onChange={(e) => setInput(e.target.value)}
+        onChange={(e) => {
+          const v = e.target.value
+          if (v && !/^[\p{L}\p{N}]*$/u.test(v)) return
+          setInput(v)
+        }}
         onKeyDown={handleKeyDown}
         placeholder={value.length === 0 ? placeholder : ""}
         className="min-w-16 flex-1 bg-transparent text-xs text-text placeholder-text-muted outline-none"

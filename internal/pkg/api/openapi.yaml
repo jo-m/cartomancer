@@ -883,6 +883,8 @@ paths:
                 type: string
                 minLength: 2
                 maxLength: 32
+                pattern: "^[\\p{L}\\p{N}]+$"
+                description: Alphanumeric characters only (including unicode letters and digits).
       responses:
         "200":
           description: Tags updated
@@ -2789,7 +2791,8 @@ components:
             type: string
             minLength: 2
             maxLength: 32
-          description: Replaces all tags on every track with this list. Omit to leave tags unchanged.
+            pattern: "^[\\p{L}\\p{N}]+$"
+          description: Replaces all tags on every track with this list. Omit to leave tags unchanged. Alphanumeric characters only (including unicode).
 
     TrackStatisticsResponse:
       type: object

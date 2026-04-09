@@ -542,7 +542,7 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 
 	for _, tag := range req.Tags {
 		if !validateTag(tag) {
-			writeError(w, http.StatusBadRequest, "each tag must be 2-32 characters")
+			writeError(w, http.StatusBadRequest, "each tag must be 2-32 alphanumeric characters")
 			return
 		}
 	}

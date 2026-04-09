@@ -66,6 +66,20 @@ func TestSetTrackTags_InvalidTag(t *testing.T) {
 	// Too long (33 chars)
 	status, _ = e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"abcdefghijklmnopqrstuvwxyz1234567"}, nil)
 	assert.Equal(t, http.StatusBadRequest, status)
+
+	// Non-alphanumeric characters
+	status, _ = e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"with-hyphen"}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
+
+	status, _ = e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"with space"}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
+
+	status, _ = e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"with_underscore"}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
+
+	// Unicode letters and digits are allowed
+	status, _ = e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"velowege"}, nil)
+	assert.Equal(t, http.StatusOK, status)
 }
 
 func TestSetTrackTags_Success(t *testing.T) {
@@ -95,18 +109,18 @@ func TestSetTrackTags_ReplaceTags(t *testing.T) {
 	trackUUID := e.uploadAndGetUUID(client)
 
 	// Set initial tags
-	status, _ := e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"old-tag"}, nil)
+	status, _ := e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"oldtag"}, nil)
 	require.Equal(t, http.StatusOK, status)
 
 	// Replace with new tags
 	var resp map[string]any
-	status, _ = e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"new-tag"}, &resp)
+	status, _ = e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"newtag"}, &resp)
 	assert.Equal(t, http.StatusOK, status)
 
 	tags, ok := resp["tags"].([]any)
 	require.True(t, ok)
 	assert.Len(t, tags, 1)
-	assert.Contains(t, tags, "new-tag")
+	assert.Contains(t, tags, "newtag")
 }
 
 func TestSetTrackTags_EmptyList(t *testing.T) {
@@ -160,7 +174,7 @@ func TestSuggestTags_Success(t *testing.T) {
 	trackUUID := e.uploadAndGetUUID(client)
 
 	// Create some tags
-	status, _ := e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"cycling", "city-ride", "commute"}, nil)
+	status, _ := e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"cycling", "cityride", "commute"}, nil)
 	require.Equal(t, http.StatusOK, status)
 
 	// Suggest with matching prefix

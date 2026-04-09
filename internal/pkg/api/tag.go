@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
@@ -13,9 +14,19 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
+// validateTag checks that a tag is 2-32 characters and contains only
+// unicode letters and digits.
 func validateTag(tag string) bool {
 	n := utf8.RuneCountInString(tag)
-	return n >= 2 && n <= 32
+	if n < 2 || n > 32 {
+		return false
+	}
+	for _, r := range tag {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			return false
+		}
+	}
+	return true
 }
 
 func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +41,7 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 
 	for _, tag := range tags {
 		if !validateTag(tag) {
-			writeError(w, http.StatusBadRequest, "each tag must be 2-32 characters")
+			writeError(w, http.StatusBadRequest, "each tag must be 2-32 alphanumeric characters")
 			return
 		}
 	}
