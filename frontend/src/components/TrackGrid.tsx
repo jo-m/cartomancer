@@ -292,7 +292,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
   }, [selectionActive])
 
   return (
-    <PageContainer className="py-10">
+    <PageContainer>
       <h1 className="mb-4 text-xl font-semibold text-text">
         {mode === "public" ? "Public Tracks" : "My Tracks"}
       </h1>

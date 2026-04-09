@@ -7,7 +7,7 @@ export default function Groups() {
   const { data, isLoading, error } = $api.useQuery("get", "/tracks/groups")
 
   return (
-    <PageContainer className="py-6">
+    <PageContainer>
       <h1 className="text-lg font-semibold text-text">Groups</h1>
       <p className="mt-1 text-sm text-text-muted">
         Tracks grouped by similarity. New uploads may take a few minutes to

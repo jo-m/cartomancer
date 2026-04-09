@@ -105,7 +105,7 @@ Reusable themed components live in `src/components/ui/`:
 - `ToggleGroup` — segmented toggle with `role="radiogroup"`
 - `SectionHeading` — uppercase tracking-wide label
 - `Alert` — 4 variants (info, warning, error, success) with `role="alert"`
-- `PageContainer` — page wrapper with size variants (sm, md, lg, xl)
+- `PageContainer` — page wrapper with size variants (sm, md, lg, xl). Default vertical padding is `py-8`; do not override with per-page `py-*` classes.
 - `DualRangeSlider` — dual-thumb range slider for numeric range filtering
 
 Always use these components instead of repeating raw Tailwind classes. All interactive elements must have `cursor-pointer` and `transition-colors`.

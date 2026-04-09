@@ -88,7 +88,7 @@ export default function Track() {
 
   if (isLoading) {
     return (
-      <PageContainer size="lg" className="py-10">
+      <PageContainer size="lg">
         <p className="text-text-muted">Loading...</p>
       </PageContainer>
     )
@@ -96,7 +96,7 @@ export default function Track() {
 
   if (error || !data) {
     return (
-      <PageContainer size="lg" className="py-10">
+      <PageContainer size="lg">
         <p role="alert" className="text-error">
           {(error as Error | null)?.message ?? "Track not found."}
         </p>
@@ -105,7 +105,7 @@ export default function Track() {
   }
 
   return (
-    <PageContainer size="lg" className="py-10">
+    <PageContainer size="lg">
       {toastMessage && (
         <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
       )}

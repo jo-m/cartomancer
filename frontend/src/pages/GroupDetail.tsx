@@ -16,7 +16,7 @@ export default function GroupDetail() {
   )
 
   return (
-    <PageContainer className="py-6">
+    <PageContainer>
       <Link
         to="/tracks/groups"
         className="text-sm text-text-muted hover:text-text-secondary transition-colors"

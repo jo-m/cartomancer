@@ -158,7 +158,7 @@ export default function Segments() {
     : null
 
   return (
-    <PageContainer size="xl" className="max-w-7xl py-6">
+    <PageContainer size="xl" className="max-w-7xl">
       <h1 className="text-lg font-semibold text-text">Segments</h1>
       <p className="mt-1 text-sm text-text-muted">
         Road/way segments shared by multiple tracks. Click a segment to see

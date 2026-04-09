@@ -17,7 +17,7 @@ export default function SegmentDetail() {
   )
 
   return (
-    <PageContainer className="py-6">
+    <PageContainer>
       <Link
         to="/admin/segments"
         className="text-sm text-text-muted hover:text-text-secondary transition-colors"

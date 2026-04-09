@@ -273,7 +273,7 @@ export default function Upload() {
   const pendingTracks = editingData?.tracks ?? []
 
   return (
-    <PageContainer size="md" className="py-10">
+    <PageContainer size="md">
       <h1 className="mb-6 text-xl font-semibold text-text">Upload Tracks</h1>
 
       <div
