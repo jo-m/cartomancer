@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react"
-import { Link, Navigate, useNavigate } from "react-router-dom"
+import { useState } from "react"
+import { Link, Navigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { useSession } from "../context/SessionContext"
 import { $api } from "../api/client"
 import Card from "../components/ui/Card"
 import Input from "../components/ui/Input"
@@ -24,8 +23,6 @@ const schema = z
 type FormData = z.infer<typeof schema>
 
 export default function Register() {
-  const { user, loading } = useSession()
-  const navigate = useNavigate()
   const [success, setSuccess] = useState(false)
   const { data: appConfig, isLoading: configLoading } = $api.useQuery(
     "get",
@@ -39,10 +36,6 @@ export default function Register() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
-
-  useEffect(() => {
-    if (!loading && user) navigate("/")
-  }, [user, loading, navigate])
 
   async function onSubmit(data: FormData) {
     try {

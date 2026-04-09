@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react"
-import { Link } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { useParams } from "react-router-dom"
 import { ArrowsPointingOutIcon } from "@heroicons/react/24/outline"
@@ -25,6 +25,7 @@ import Alert from "../components/ui/Alert"
 
 export default function Track() {
   const { uuid } = useParams<{ uuid: string }>()
+  const navigate = useNavigate()
   const { user } = useSession()
   const queryClient = useQueryClient()
 
@@ -120,12 +121,13 @@ export default function Track() {
         />
       )}
 
-      <Link
-        to="/"
-        className="text-sm text-text-muted hover:text-text-secondary transition-colors"
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className="text-sm text-text-muted hover:text-text-secondary transition-colors cursor-pointer"
       >
-        &larr; Tracks
-      </Link>
+        &larr; Back
+      </button>
 
       <div className="mt-4 flex items-center gap-2">
         <img
