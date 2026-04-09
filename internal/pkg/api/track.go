@@ -1214,7 +1214,6 @@ const TrackPointsTarget = 1000
 
 const (
 	maxUploadSize         = 5 << 20 // 5 MiB
-	minTrackPoints        = 3
 	maxTrackPoints        = 100_000
 	minTrackDistM         = 10       // 10 m
 	maxTrackDistM         = 10_000e3 // 10 000 km
@@ -1264,11 +1263,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 
 	t, err := track.New(src)
 	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "track must have at least 2 points")
-		return
-	}
-	if t.Len() < minTrackPoints {
-		writeError(w, http.StatusUnprocessableEntity, "track must have at least 3 points")
+		writeError(w, http.StatusUnprocessableEntity, "failed to process track")
 		return
 	}
 	if t.Len() > maxTrackPoints {
