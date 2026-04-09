@@ -289,7 +289,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
     }
     document.addEventListener("click", onDocumentClick)
     return () => document.removeEventListener("click", onDocumentClick)
-  })
+  }, [selectionActive])
 
   return (
     <PageContainer className="py-10">

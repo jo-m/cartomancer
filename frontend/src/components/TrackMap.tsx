@@ -276,7 +276,7 @@ export default memo(function TrackMap({
       closureLayerRef.current = null
       overlayRef.current = null
     }
-  }, [points, color])
+  }, [points, color, markerVisibleStyle])
 
   // Find nearest track point within a pixel threshold of the pointer.
   const findNearest = useCallback((pixel: number[]) => {

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useId, useState } from "react"
 import { $api } from "../api/client"
 import Badge from "./ui/Badge"
 
@@ -15,6 +15,7 @@ export default function TagsInput({
   placeholder = "Add tags...",
 }: TagsInputProps) {
   const [input, setInput] = useState("")
+  const listId = useId()
 
   const prefix = input.trim()
   const { data: suggestionsData } = $api.useQuery(
@@ -51,14 +52,14 @@ export default function TagsInput({
           {tag}
         </Badge>
       ))}
-      <datalist id="tags-input-suggestions">
+      <datalist id={listId}>
         {(suggestionsData?.tags ?? []).map((t) => (
           <option key={t} value={t} />
         ))}
       </datalist>
       <input
         type="text"
-        list="tags-input-suggestions"
+        list={listId}
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
