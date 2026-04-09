@@ -97,22 +97,11 @@ export default function AdminUsers() {
 
   async function handleResetPassword(uuid: string) {
     try {
-      const resp = await fetch(`/api/admin/users/${uuid}/reset-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Requested-With": "cartomancer",
-        },
-        body: "{}",
-      })
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => null)
-        throw new Error(
-          (body as { msg?: string } | null)?.msg ?? resp.statusText
-        )
-      }
-      const result: { password: string } = await resp.json()
-      setResetPassword(result.password)
+      const { data } = await fetchClient.POST(
+        "/admin/users/{uuid}/reset-password",
+        { params: { path: { uuid } }, body: {} }
+      )
+      setResetPassword(data?.password ?? null)
     } catch (err) {
       setToast((err as Error).message)
     }
@@ -120,20 +109,10 @@ export default function AdminUsers() {
 
   async function handleConfirmEmail(uuid: string) {
     try {
-      const resp = await fetch(`/api/admin/users/${uuid}/confirm-email`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Requested-With": "cartomancer",
-        },
-        body: "{}",
+      await fetchClient.POST("/admin/users/{uuid}/confirm-email", {
+        params: { path: { uuid } },
+        body: {},
       })
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => null)
-        throw new Error(
-          (body as { msg?: string } | null)?.msg ?? resp.statusText
-        )
-      }
       await refetch()
     } catch (err) {
       setToast((err as Error).message)
