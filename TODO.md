@@ -83,6 +83,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Avoid any layout shifts with interactive elements
   - [x] Bulk editing and deletion of tracks
   - [x] Automatic dark mode
+  - [ ] Page `<title>` management
 
 ## Before initial push/deploy
 

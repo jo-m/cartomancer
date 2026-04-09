@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useSession } from "../context/SessionContext"
 import { $api } from "../api/client"
+import Toast from "../components/Toast"
 import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
 import Input from "../components/ui/Input"
@@ -32,6 +33,10 @@ export default function Account() {
   const { user, invalidateSession, logout } = useSession()
   const navigate = useNavigate()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [toast, setToast] = useState<{
+    message: string
+    variant: "error" | "success"
+  } | null>(null)
 
   const updateMeMutation = $api.useMutation("patch", "/account")
   const rotateAvatarMutation = $api.useMutation(
@@ -60,8 +65,8 @@ export default function Account() {
     try {
       await rotateAvatarMutation.mutateAsync({})
       await invalidateSession()
-    } catch {
-      // error displayed via rotateAvatarMutation.error
+    } catch (err) {
+      setToast({ message: (err as Error).message, variant: "error" })
     }
   }
 
@@ -69,8 +74,9 @@ export default function Account() {
     try {
       await updateMeMutation.mutateAsync({ body: data })
       await invalidateSession()
-    } catch {
-      // error displayed via updateMeMutation.error
+      setToast({ message: "Profile updated.", variant: "success" })
+    } catch (err) {
+      setToast({ message: (err as Error).message, variant: "error" })
     }
   }
 
@@ -78,8 +84,12 @@ export default function Account() {
     try {
       await changeEmailMutation.mutateAsync({ body: data })
       changeEmailForm.reset()
-    } catch {
-      // error displayed via changeEmailMutation.error
+      setToast({
+        message: "Confirmation email sent. Check your inbox.",
+        variant: "success",
+      })
+    } catch (err) {
+      setToast({ message: (err as Error).message, variant: "error" })
     }
   }
 
@@ -87,8 +97,9 @@ export default function Account() {
     try {
       await changePasswordMutation.mutateAsync({ body: data })
       passwordForm.reset()
-    } catch {
-      // error displayed via changePasswordMutation.error
+      setToast({ message: "Password changed.", variant: "success" })
+    } catch (err) {
+      setToast({ message: (err as Error).message, variant: "error" })
     }
   }
 
@@ -97,8 +108,8 @@ export default function Account() {
       await deleteMeMutation.mutateAsync({})
       await logout()
       navigate("/login")
-    } catch {
-      // error displayed via deleteMeMutation.error
+    } catch (err) {
+      setToast({ message: (err as Error).message, variant: "error" })
     }
   }
 
@@ -124,11 +135,6 @@ export default function Account() {
             >
               {rotateAvatarMutation.isPending ? "Rotating..." : "Rotate avatar"}
             </Button>
-            {rotateAvatarMutation.error && (
-              <p role="alert" className="mt-1 text-sm text-error">
-                {rotateAvatarMutation.error.message}
-              </p>
-            )}
           </div>
         </div>
       </Card>
@@ -151,14 +157,6 @@ export default function Account() {
             error={profileForm.formState.errors.name?.message}
             {...profileForm.register("name")}
           />
-          {updateMeMutation.error && (
-            <p role="alert" className="text-sm text-error">
-              {updateMeMutation.error.message}
-            </p>
-          )}
-          {updateMeMutation.isSuccess && (
-            <p className="text-sm text-success">Profile updated.</p>
-          )}
           <Button
             type="submit"
             variant="primary"
@@ -189,16 +187,6 @@ export default function Account() {
             error={changeEmailForm.formState.errors.password?.message}
             {...changeEmailForm.register("password")}
           />
-          {changeEmailMutation.error && (
-            <p role="alert" className="text-sm text-error">
-              {changeEmailMutation.error.message}
-            </p>
-          )}
-          {changeEmailMutation.isSuccess && (
-            <p className="text-sm text-success">
-              Confirmation email sent. Check your inbox.
-            </p>
-          )}
           <Button
             type="submit"
             variant="primary"
@@ -233,14 +221,6 @@ export default function Account() {
             error={passwordForm.formState.errors.newPassword?.message}
             {...passwordForm.register("newPassword")}
           />
-          {changePasswordMutation.error && (
-            <p role="alert" className="text-sm text-error">
-              {changePasswordMutation.error.message}
-            </p>
-          )}
-          {changePasswordMutation.isSuccess && (
-            <p className="text-sm text-success">Password changed.</p>
-          )}
           <Button
             type="submit"
             variant="primary"
@@ -255,11 +235,6 @@ export default function Account() {
 
       <Card className="border-error-border p-6">
         <h2 className="mb-4 text-base font-medium text-error">Danger Zone</h2>
-        {deleteMeMutation.error && (
-          <p role="alert" className="mb-3 text-sm text-error">
-            {deleteMeMutation.error.message}
-          </p>
-        )}
         {confirmDelete ? (
           <div>
             <p className="mb-3 text-sm text-text-secondary">
@@ -292,6 +267,14 @@ export default function Account() {
           </Button>
         )}
       </Card>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          variant={toast.variant}
+          onDismiss={() => setToast(null)}
+        />
+      )}
     </PageContainer>
   )
 }

@@ -28,7 +28,10 @@ export default function Track() {
   const { user } = useSession()
   const queryClient = useQueryClient()
 
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [toast, setToast] = useState<{
+    message: string
+    variant: "error" | "success"
+  } | null>(null)
   const [mapFullscreen, setMapFullscreen] = useState(false)
   const hoverStore = useHoverStore()
 
@@ -54,7 +57,10 @@ export default function Track() {
 
   const closures = closuresData?.closures as RoadClosure[] | undefined
 
-  const onForecastError = useCallback((msg: string) => setToastMessage(msg), [])
+  const onForecastError = useCallback(
+    (msg: string) => setToast({ message: msg, variant: "error" }),
+    []
+  )
 
   const forecast = useForecast(
     uuid,
@@ -82,7 +88,7 @@ export default function Track() {
         queryKey: ["get", "/tracks/{uuid}"],
       })
     } catch (err) {
-      setToastMessage((err as Error).message)
+      setToast({ message: (err as Error).message, variant: "error" })
     }
   }
 
@@ -106,8 +112,12 @@ export default function Track() {
 
   return (
     <PageContainer size="lg">
-      {toastMessage && (
-        <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
+      {toast && (
+        <Toast
+          message={toast.message}
+          variant={toast.variant}
+          onDismiss={() => setToast(null)}
+        />
       )}
 
       <Link
@@ -263,7 +273,11 @@ export default function Track() {
       <TrackDetails track={data} />
 
       {data.isOwner && (
-        <TrackEditForm track={data} onError={(msg) => setToastMessage(msg)} />
+        <TrackEditForm
+          track={data}
+          onError={(msg) => setToast({ message: msg, variant: "error" })}
+          onSuccess={(msg) => setToast({ message: msg, variant: "success" })}
+        />
       )}
     </PageContainer>
   )

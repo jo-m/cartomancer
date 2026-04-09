@@ -40,7 +40,10 @@ export default function AdminUsers() {
   const [resetPassword, setResetPassword] = useState<string | null>(null)
   const [resetConfirm, setResetConfirm] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{
+    message: string
+    variant: "error" | "success"
+  } | null>(null)
 
   const { data: users, refetch } = $api.useQuery("get", "/admin/users")
 
@@ -68,7 +71,7 @@ export default function AdminUsers() {
       createForm.reset()
       await refetch()
     } catch (err) {
-      setToast((err as Error).message)
+      setToast({ message: (err as Error).message, variant: "error" })
     }
   }
 
@@ -90,8 +93,9 @@ export default function AdminUsers() {
       })
       setEditingUuid(null)
       await refetch()
+      setToast({ message: "User updated.", variant: "success" })
     } catch (err) {
-      setToast((err as Error).message)
+      setToast({ message: (err as Error).message, variant: "error" })
     }
   }
 
@@ -103,7 +107,7 @@ export default function AdminUsers() {
       )
       setResetPassword(data?.password ?? null)
     } catch (err) {
-      setToast((err as Error).message)
+      setToast({ message: (err as Error).message, variant: "error" })
     }
   }
 
@@ -115,7 +119,7 @@ export default function AdminUsers() {
       })
       await refetch()
     } catch (err) {
-      setToast((err as Error).message)
+      setToast({ message: (err as Error).message, variant: "error" })
     }
   }
 
@@ -127,7 +131,7 @@ export default function AdminUsers() {
       setDeleteConfirm(null)
       await refetch()
     } catch (err) {
-      setToast((err as Error).message)
+      setToast({ message: (err as Error).message, variant: "error" })
     }
   }
 
@@ -384,7 +388,13 @@ export default function AdminUsers() {
         </table>
       </Card>
 
-      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          variant={toast.variant}
+          onDismiss={() => setToast(null)}
+        />
+      )}
     </PageContainer>
   )
 }

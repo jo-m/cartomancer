@@ -3,6 +3,8 @@ import { useEffect, useState } from "react"
 interface Props {
   /** The message to display in the toast. */
   message: string
+  /** Visual variant: "error" (default) or "success". */
+  variant?: "error" | "success"
   /** Called when the toast is dismissed (manually or after timeout). */
   onDismiss: () => void
 }
@@ -10,8 +12,17 @@ interface Props {
 const DURATION_MS = 3000
 const FADE_MS = 500
 
-/** Displays a transient error message that auto-dismisses after 3 seconds with a fade-out. */
-export default function Toast({ message, onDismiss }: Props) {
+const variantClasses = {
+  error: "bg-error text-primary-text",
+  success: "bg-success text-primary-text",
+}
+
+/** Displays a transient message that auto-dismisses after 3 seconds with a fade-out. */
+export default function Toast({
+  message,
+  variant = "error",
+  onDismiss,
+}: Props) {
   const [fading, setFading] = useState(false)
 
   useEffect(() => {
@@ -26,7 +37,7 @@ export default function Toast({ message, onDismiss }: Props) {
   return (
     <div
       role="alert"
-      className={`fixed bottom-4 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-lg bg-error px-4 py-3 text-sm text-primary-text shadow-lg transition-opacity duration-500 ${fading ? "opacity-0" : "opacity-100"}`}
+      className={`fixed bottom-4 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-lg ${variantClasses[variant]} px-4 py-3 text-sm shadow-lg transition-opacity duration-500 ${fading ? "opacity-0" : "opacity-100"}`}
     >
       <span>{message}</span>
       <button

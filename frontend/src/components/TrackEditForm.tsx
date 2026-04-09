@@ -39,10 +39,15 @@ interface TrackEditData {
 export interface TrackEditFormProps {
   track: TrackEditData
   onError: (msg: string) => void
+  onSuccess: (msg: string) => void
 }
 
 /** Edit form for track metadata with delete confirmation. */
-export default function TrackEditForm({ track, onError }: TrackEditFormProps) {
+export default function TrackEditForm({
+  track,
+  onError,
+  onSuccess,
+}: TrackEditFormProps) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -86,6 +91,7 @@ export default function TrackEditForm({ track, onError }: TrackEditFormProps) {
       await queryClient.invalidateQueries({
         queryKey: ["get", "/tracks/{uuid}"],
       })
+      onSuccess("Track saved.")
     } catch (err) {
       onError((err as Error).message)
     }
@@ -188,10 +194,6 @@ export default function TrackEditForm({ track, onError }: TrackEditFormProps) {
           >
             {editMutation.isPending ? "Saving..." : "Save"}
           </Button>
-
-          {editMutation.isSuccess && (
-            <span className="text-xs text-text-muted">Saved.</span>
-          )}
 
           <div className="ml-auto flex items-center gap-2">
             {confirmDelete ? (
