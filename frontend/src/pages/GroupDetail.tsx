@@ -2,14 +2,7 @@ import { Link, useParams } from "react-router-dom"
 import { $api } from "../api/client"
 import SvgPreview from "../components/SvgPreview"
 import PageContainer from "../components/ui/PageContainer"
-
-function formatDistance(m: number): string {
-  return `${(m / 1000).toFixed(1)} km`
-}
-
-function formatAscent(m: number): string {
-  return `${Math.round(m)} m`
-}
+import { formatDistance, formatAscent } from "../lib/format"
 
 /** GroupDetail displays all member tracks of a single track group. */
 export default function GroupDetail() {

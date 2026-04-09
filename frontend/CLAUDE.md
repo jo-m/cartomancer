@@ -12,7 +12,7 @@ frontend/
 │   ├── components/        # Reusable UI components (Layout, TrackMap, Toast, etc.)
 │   ├── context/           # React context providers (SessionContext)
 │   ├── hooks/             # Custom React hooks
-│   ├── lib/               # Utility functions (sports, time, externalUrl)
+│   ├── lib/               # Utility functions (sports, time, externalUrl, format, proj)
 │   ├── assets/            # SVG icons and static assets
 │   ├── App.tsx            # Router + layout shell
 │   ├── main.tsx           # Entry point
@@ -134,6 +134,16 @@ Hooks in `src/hooks/`:
 - `useUrlState` — sync component state with URL search params
 - `useHoverSync` — shared hover index store for coordinated chart/map hover
 - `useForecast` — forecast data fetching and state management for a single track
+
+### Shared lib modules
+
+Utility modules in `src/lib/`:
+- `format` — `formatDistance(m)` and `formatAscent(m)` for human-readable track stats. Use these instead of inlining formatting logic.
+- `proj` — registers the Swiss LV95 projection (EPSG:2056) with OpenLayers via proj4. Exports `lv95`. Import this instead of calling `proj4.defs()` / `register()` directly.
+- `sports` — sport/sub-sport label maps
+- `time` — time formatting helpers
+- `externalUrl` — builds `/leaving` interstitial URLs for external links
+- `trackColor` — track color utilities
 
 ### SVG assets
 

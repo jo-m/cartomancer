@@ -6,6 +6,7 @@ import distanceSvg from "../assets/distance.svg?raw"
 import elevationSvg from "../assets/elevation.svg?raw"
 import SectionHeading from "./ui/SectionHeading"
 import Badge from "./ui/Badge"
+import { formatDistance, formatAscent } from "../lib/format"
 
 const TRACK_TYPE_LABELS: Record<number, string> = {
   0: "Unknown",
@@ -16,14 +17,6 @@ const TRACK_TYPE_LABELS: Record<number, string> = {
 const FILE_FORMAT_LABELS: Record<number, string> = {
   0: "GPX",
   1: "FIT",
-}
-
-function formatDistance(m: number): string {
-  return `${(m / 1000).toFixed(1)} km`
-}
-
-function formatAscent(m: number): string {
-  return `${Math.round(m)} m`
 }
 
 function formatDate(iso: string): string {

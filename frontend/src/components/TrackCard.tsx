@@ -8,14 +8,7 @@ import temperatureSvg from "../assets/temperature.svg?raw"
 import rainSvg from "../assets/rain.svg?raw"
 import cardCornerSvg from "../assets/card-corner.svg?raw"
 import MiniWindRose from "./MiniWindRose"
-
-function formatDistance(m: number): string {
-  return `${(m / 1000).toFixed(1)} km`
-}
-
-function formatAscent(m: number): string {
-  return `${Math.round(m)} m`
-}
+import { formatDistance, formatAscent } from "../lib/format"
 
 interface TrackForecast {
   forecastReferenceTime: string

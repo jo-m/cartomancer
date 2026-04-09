@@ -11,6 +11,7 @@ import Card from "../components/ui/Card"
 import Select from "../components/ui/Select"
 import SectionHeading from "../components/ui/SectionHeading"
 import PageContainer from "../components/ui/PageContainer"
+import { formatDistance, formatAscent } from "../lib/format"
 import {
   SPORT_LABELS,
   SUB_SPORT_LABELS,
@@ -74,14 +75,6 @@ async function uploadFile(
   } catch (e) {
     update(item.id, { status: "error", errorMsg: (e as Error).message })
   }
-}
-
-function formatDistance(m: number): string {
-  return `${(m / 1000).toFixed(1)} km`
-}
-
-function formatAscent(m: number): string {
-  return `${Math.round(m)} m`
 }
 
 export default function Upload() {
