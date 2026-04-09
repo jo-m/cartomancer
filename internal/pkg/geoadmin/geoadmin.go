@@ -1,4 +1,4 @@
-// Package geoadmin provides a client for the STAC API at http://data.geo.admin.ch/api/stac/v1/.
+// Package geoadmin provides a client for the STAC API at https://data.geo.admin.ch/api/stac/v1/.
 //   - API docs: https://data.geo.admin.ch/api/stac/static/spec/v1/api.html.
 //   - OpenAPI spec: https://data.geo.admin.ch/api/stac/static/spec/v1/openapi.yaml.
 //   - STAC Browser: https://data.geo.admin.ch/browser/index.html.
@@ -31,7 +31,7 @@ import (
 )
 
 // BaseURL is the default base URL for the Swiss government STAC API.
-const BaseURL = "http://data.geo.admin.ch/api/stac/v1/"
+const BaseURL = "https://data.geo.admin.ch/api/stac/v1/"
 
 // Client is a client for the Swiss government STAC API.
 type Client struct {
