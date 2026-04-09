@@ -24,8 +24,8 @@ import BulkEditToolbar from "./BulkEditToolbar"
 const DEFAULT_PAGE_SIZE = 24
 const PAGE_SIZE_OPTIONS = [12, 24, 48, 96]
 
-type SortBy = "created_at" | "total_distance_m" | "total_ascent_m"
-type SortOrder = "asc" | "desc"
+export type SortBy = "created_at" | "total_distance_m" | "total_ascent_m"
+export type SortOrder = "asc" | "desc"
 
 export interface TrackGridProps {
   mode: "public" | "user"
