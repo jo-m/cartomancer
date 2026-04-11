@@ -15,7 +15,7 @@ export default function Welcome() {
         {appConfig?.instanceName}
       </h1>
       <p className="mb-8 text-text-secondary">
-        Your personal GPX track library.
+        The track library with a touch of magic.
       </p>
       <div className="flex gap-4">
         <Link to="/tracks">

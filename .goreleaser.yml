@@ -1,0 +1,28 @@
+version: 2
+
+release:
+  mode: replace
+  footer: |
+    ## Docker Images
+
+    No standalone binaries are provided. Use the Docker image:
+
+    ```
+    docker pull ghcr.io/jo-m/cartomancer:{{ .Version }}
+    ```
+
+    See all available tags at https://github.com/jo-m/cartomancer/pkgs/container/cartomancer
+
+builds:
+  - skip: true
+
+source:
+  enabled: true
+  name_template: "{{ .ProjectName }}_{{ .Version }}_source"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

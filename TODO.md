@@ -67,7 +67,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Frontend polishing
   - [ ] Unified display of dates/times in frontend (iso and 24h format, "x ago")
   - [x] Shared components
-  - [ ] New tagline (also update repo desc)
+  - [x] New tagline (also update repo desc)
   - [x] Theming
   - [x] Branding
   - [x] Favicon, Logo
@@ -92,11 +92,10 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] Demo mode, locks user table via trigger, insert some initial data, delete data periodically
 - [x] Disable public signup by default
 - [x] 404 page in frontend
-- [ ] Setup and installation instructions
+- [x] Setup and installation instructions
 - [ ] Uncomment all the checks/linters in make check
 - [x] Log message cleanup and unification (case, punctuation)
-- [ ] Add CI setup/Docker build
-  - [ ] In CI also run the online tests, but allow them to fail
+- [x] Add CI setup/Docker build
 - [x] App config
   - [x] Split up/move around config to relevant config/module structs (e.g. separate struct for users, registrations)
   - [x] Sensible defaults for everything
@@ -106,8 +105,8 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Document which config options MUST be set for a prod deployment
 - [x] Improve data sources attribution CC-BY 4.0 for meteo, geonames, map
   - [x] Systematically add online unit tests which ensure the license has not changed.
-- [ ] Update README.md
-- [ ] Fixup/autosquash
+- [x] Update README.md
+- [x] Fixup/autosquash
 - [x] Grep for TODO in code
 - [x] SQLite without rowid
 - [x] Move geonames and maybe forecasts to separate database files?

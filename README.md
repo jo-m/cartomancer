@@ -4,12 +4,12 @@
 
 # Cartomancer
 
-Your personal GPX track library.
+The track library with a touch of magic.
 
 There are a bazillion route planning and activity tracking apps, but none of them is good at managing a library of existing tracks[^1].
 This one tries to be.
 
-**⚠️ Note**: This is a work in progress and not yet ready for deployment. There are also no pre built releases, you need a (recent) Go toolchain.
+**⚠️ Note**: This is a work in progress.
 
 ## Features
 
@@ -21,22 +21,33 @@ This one tries to be.
 
 ## Deployment
 
-You may deploy the binary or the Docker image.
-Configuration is possible via env vars or CLI flags, see [OPTIONS.md](OPTIONS.md).
+Out of pure lazyness, only Docker images are provided for [releases](https://github.com/jo-m/cartomancer/releases).
+To deploy without Docker, you need to build the binary yourself (see below).
+For all configuration options, see [OPTIONS.md](OPTIONS.md).
+On startup, forecast files and the geonames database will be downloaded and indexed, which will keep the CPU busy for a while.
 
 The absolute minimum for a production deployment:
 
 ```bash
+export LOG_PRETTY=false # JSONline logs, for human readable set true.
 export APP_INIT_ADMIN_EMAIL=admin@example.org # Password will be printed to log once.
 export APP_REGISTRATION_ENABLED=true
 # Those should be persisted, otherwise sessions are lost between restarts.
-export SESSION_JWT_SECRET=$(openssl rand -hex 24)
-export APP_EMAIL_JWT_SECRET=$(openssl rand -hex 24)
+export SESSION_JWT_SECRET=$(docker run ghcr.io/jo-m/cartomancer:latest genjwtsecret)
+export APP_EMAIL_JWT_SECRET=$(docker run ghcr.io/jo-m/cartomancer:latest genjwtsecret)
 # You may also want to configure email sending (MAIL_...).
-cartomancer serve --log-pretty
-```
 
-On startup, forecast files and the geonames database will be downloaded and indexed, which hogs the database for a while.
+docker run -it --rm                                               \
+  -p 8080:8080                                                    \
+  --mount type=volume,src=cartomancer-data,dst=/home/nonroot/data \
+  --env LOG_PRETTY                                                \
+  --env APP_INIT_ADMIN_EMAIL                                      \
+  --env APP_REGISTRATION_ENABLED                                  \
+  --env SESSION_JWT_SECRET                                        \
+  --env APP_EMAIL_JWT_SECRET                                      \
+  ghcr.io/jo-m/cartomancer:latest                                 \
+  serve
+```
 
 ## Development
 
@@ -49,7 +60,7 @@ Otherwise, the Go toolchain and Node/npm are required.
 direnv allow
 go tool air
 
-# In a separate shell, start the backend
+# In a separate shell, start the frontend
 cd frontend/
 npm install
 npm run dev
@@ -99,10 +110,13 @@ Thus, the frontend needs to be built before the backend.
 
 ```bash
 docker build -t cartomancer .
-docker run -it --rm \
-  -p 8080:8080 \
-  --mount type=volume,src=cartomancer-data,dst=/home/nonroot/data \
-  cartomancer
 ```
+
+### Creating releases
+
+1. Go to the [GitHub Releases page](https://github.com/jo-m/cartomancer/releases) and click **Draft a new release**.
+2. Create a new tag (e.g. `v1.2.0`).
+3. Fill in the release title and description, then click **Publish release**.
+4. The [Release workflow](.github/workflows/release.yml) will automatically build Docker images and publish a source archive to the release.
 
 [^1]: There is https://wanderer.to/, which is quite nice. But it has many features I don't need, and is missing some I want.

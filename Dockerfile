@@ -26,6 +26,4 @@ COPY --from=backend --chown=nonroot:nonroot /data /home/nonroot/data
 WORKDIR /home/nonroot
 ENTRYPOINT ["/cartomancer"]
 
-ENV LOG_PRETTY=true
 ENV LISTEN_ADDR=0.0.0.0:8080
-ENV APP_INIT_ADMIN_EMAIL=admin@example.com
