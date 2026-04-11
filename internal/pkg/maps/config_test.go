@@ -7,11 +7,11 @@ import (
 )
 
 func TestMapsConfig_Validate_defaults(t *testing.T) {
-	require.NoError(t, (&MapsConfig{MapsMaxZoom: DefaultMaxZoom}).Validate())
+	require.NoError(t, (&MapsConfig{MapsMaxZoom: testMaxZoom}).Validate())
 }
 
 func TestMapsConfig_Validate_withBbox(t *testing.T) {
-	c := MapsConfig{MapsBbox: testBbox, MapsMaxZoom: DefaultMaxZoom}
+	c := MapsConfig{MapsBbox: testBbox, MapsMaxZoom: testMaxZoom}
 	require.NoError(t, c.Validate())
 }
 

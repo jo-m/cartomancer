@@ -8,9 +8,6 @@ import (
 	"strings"
 )
 
-// DefaultMaxZoom is the default maximum zoom level for extracted tiles.
-const DefaultMaxZoom = 8
-
 // Bbox represents a geographic bounding box with four coordinates.
 type Bbox struct {
 	MinLon, MinLat, MaxLon, MaxLat float64
@@ -66,7 +63,7 @@ type MapsConfig struct {
 	// Empty means the entire world.
 	MapsBbox string `arg:"--maps-bbox,env:MAPS_BBOX" default:"5.5,45.5,11.0,48.2" help:"Bounding box for map extract (min_lon,min_lat,max_lon,max_lat; empty for entire world)" placeholder:"BBOX"`
 	// MapsMaxZoom is the maximum zoom level to extract.
-	MapsMaxZoom int `arg:"--maps-maxzoom,env:MAPS_MAXZOOM" default:"8" help:"Maximum zoom level for map extract" placeholder:"Z"`
+	MapsMaxZoom int `arg:"--maps-maxzoom,env:MAPS_MAXZOOM" default:"10" help:"Maximum zoom level for map extract" placeholder:"Z"`
 }
 
 // ParsedBbox returns the parsed bounding box, or nil if empty (entire world).
