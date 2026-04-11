@@ -6,37 +6,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMapsConfig_Enabled(t *testing.T) {
-	require.False(t, (&MapsConfig{}).Enabled())
-	require.True(t, (&MapsConfig{MapsEnabled: true}).Enabled())
-}
-
-func TestMapsConfig_Validate_disabled(t *testing.T) {
-	require.NoError(t, (&MapsConfig{}).Validate())
+func TestMapsConfig_Validate_defaults(t *testing.T) {
+	require.NoError(t, (&MapsConfig{MapsMaxZoom: DefaultMaxZoom}).Validate())
 }
 
 func TestMapsConfig_Validate_withBbox(t *testing.T) {
-	c := MapsConfig{MapsEnabled: true, MapsBbox: testBbox, MapsMaxZoom: DefaultMaxZoom}
+	c := MapsConfig{MapsBbox: testBbox, MapsMaxZoom: DefaultMaxZoom}
 	require.NoError(t, c.Validate())
 }
 
 func TestMapsConfig_Validate_emptyBbox(t *testing.T) {
-	c := MapsConfig{MapsEnabled: true, MapsBbox: "", MapsMaxZoom: 8}
+	c := MapsConfig{MapsBbox: "", MapsMaxZoom: 8}
 	require.NoError(t, c.Validate())
 }
 
 func TestMapsConfig_Validate_badZoom(t *testing.T) {
-	c := MapsConfig{MapsEnabled: true, MapsBbox: testBbox, MapsMaxZoom: 23}
+	c := MapsConfig{MapsBbox: testBbox, MapsMaxZoom: 23}
 	require.Error(t, c.Validate())
 }
 
 func TestMapsConfig_Validate_maxZoom22(t *testing.T) {
-	c := MapsConfig{MapsEnabled: true, MapsBbox: testBbox, MapsMaxZoom: 22}
+	c := MapsConfig{MapsBbox: testBbox, MapsMaxZoom: 22}
 	require.NoError(t, c.Validate())
 }
 
 func TestMapsConfig_Validate_badBbox(t *testing.T) {
-	c := MapsConfig{MapsEnabled: true, MapsBbox: "1,2,3", MapsMaxZoom: 8}
+	c := MapsConfig{MapsBbox: "1,2,3", MapsMaxZoom: 8}
 	require.Error(t, c.Validate())
 }
 

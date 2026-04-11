@@ -65,6 +65,5 @@ Global options:
                          Time to wait after a job has finished to clear it from the database [default: 5m, env: JOBS_AUTO_CLEANUP_MIN_AGE]
   --maps-bbox BBOX       Bounding box for map extract (min_lon,min_lat,max_lon,max_lat; empty for entire world) [default: 5.5,45.5,11.0,48.2, env: MAPS_BBOX]
   --maps-maxzoom Z       Maximum zoom level for map extract [default: 8, env: MAPS_MAXZOOM]
-  --maps-enabled         Enable periodic PMTiles map extraction [default: false, env: MAPS_ENABLED]
   --help, -h             display this help and exit
 ```

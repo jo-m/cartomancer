@@ -67,13 +67,6 @@ type MapsConfig struct {
 	MapsBbox string `arg:"--maps-bbox,env:MAPS_BBOX" default:"5.5,45.5,11.0,48.2" help:"Bounding box for map extract (min_lon,min_lat,max_lon,max_lat; empty for entire world)" placeholder:"BBOX"`
 	// MapsMaxZoom is the maximum zoom level to extract.
 	MapsMaxZoom int `arg:"--maps-maxzoom,env:MAPS_MAXZOOM" default:"8" help:"Maximum zoom level for map extract" placeholder:"Z"`
-	// MapsEnabled enables the maps downloader.
-	MapsEnabled bool `arg:"--maps-enabled,env:MAPS_ENABLED" default:"false" help:"Enable periodic PMTiles map extraction"`
-}
-
-// Enabled returns true if the maps downloader is configured.
-func (c *MapsConfig) Enabled() bool {
-	return c.MapsEnabled
 }
 
 // ParsedBbox returns the parsed bounding box, or nil if empty (entire world).
@@ -90,9 +83,6 @@ func (c *MapsConfig) ParsedBbox() (*Bbox, error) {
 
 // Validate checks for basic configuration errors.
 func (c *MapsConfig) Validate() error {
-	if !c.Enabled() {
-		return nil
-	}
 	if c.MapsMaxZoom < 0 || c.MapsMaxZoom > 22 {
 		return fmt.Errorf("--maps-maxzoom / MAPS_MAXZOOM must be between 0 and 22, got %d", c.MapsMaxZoom)
 	}

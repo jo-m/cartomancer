@@ -152,10 +152,3 @@ func TestListMapBuilds(t *testing.T) {
 	require.Equal(t, "20260411.pmtiles", builds[0].Key)
 	require.Equal(t, "20260101.pmtiles", builds[1].Key)
 }
-
-func TestDownloaderRun_disabled(t *testing.T) {
-	d := db.GetTestDB(t)
-	dl := NewDownloader(d, MapsConfig{}, t.TempDir())
-	err := dl.Run(context.Background(), DownloaderArgs{})
-	require.NoError(t, err)
-}

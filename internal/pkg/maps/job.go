@@ -57,11 +57,6 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, jobTimeout)
 	defer cancel()
 
-	if !dl.cfg.Enabled() {
-		logg.Info(ctx, "maps downloader is disabled")
-		return nil
-	}
-
 	// Check if a recent ready build exists.
 	latest, err := dl.d.QueryRO().GetLatestReadyMapBuild(ctx)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
