@@ -89,7 +89,7 @@ export default function App() {
                 }
               />
               <Route
-                path="/upload"
+                path="/tracks/upload"
                 element={
                   <ProtectedRoute>
                     <Upload />

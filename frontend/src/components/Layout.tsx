@@ -240,7 +240,7 @@ export default function Layout() {
                           Groups
                         </Link>
                         <Link
-                          to="/upload"
+                          to="/tracks/upload"
                           className="flex items-center gap-1.5 px-3 py-2 text-sm text-text-secondary hover:bg-surface transition-colors"
                           onClick={tracksMenu.close}
                           role="menuitem"
@@ -351,7 +351,7 @@ export default function Layout() {
                     Groups
                   </Link>
                   <Link
-                    to="/upload"
+                    to="/tracks/upload"
                     className="block py-2 text-sm text-nav-text/70 hover:text-nav-text"
                     onClick={() => setMobileMenuOpen(false)}
                   >
