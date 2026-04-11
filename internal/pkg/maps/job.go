@@ -36,12 +36,15 @@ type Downloader struct {
 	d       *db.DB
 	cfg     MapsConfig
 	mapsDir string
+	bbox    *Bbox
 }
 
 // NewDownloader creates a new [Downloader] instance.
 // The mapsDir parameter is the directory where extracted PMTiles files are written.
+// The config must have been validated before calling this function.
 func NewDownloader(d *db.DB, cfg MapsConfig, mapsDir string) *Downloader {
-	return &Downloader{d: d, cfg: cfg, mapsDir: mapsDir}
+	bbox, _ := cfg.ParsedBbox()
+	return &Downloader{d: d, cfg: cfg, mapsDir: mapsDir, bbox: bbox}
 }
 
 var _ jobs.Job[DownloaderArgs] = (*Downloader)(nil)
@@ -55,7 +58,7 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	defer cancel()
 
 	if !dl.cfg.Enabled() {
-		logg.Info(ctx, "maps downloader is disabled (no maps dir configured)")
+		logg.Info(ctx, "maps downloader is disabled")
 		return nil
 	}
 
@@ -83,11 +86,17 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	logg.Info(ctx, "latest protomaps build", "key", build.Key, "version", build.Version, "uploaded", build.Uploaded)
 
 	// Check if this exact build+params combination was already extracted.
-	_, err = dl.d.QueryRO().GetMapBuildByKey(ctx, db.GetMapBuildByKeyParams{
+	lookupParams := db.GetMapBuildByKeyParams{
 		Key:     build.Key,
 		Maxzoom: int64(dl.cfg.MapsMaxZoom),
-		Bbox:    dl.cfg.MapsBbox,
-	})
+	}
+	if dl.bbox != nil {
+		lookupParams.BboxMinLon = dl.bbox.NullMinLon()
+		lookupParams.BboxMinLat = dl.bbox.NullMinLat()
+		lookupParams.BboxMaxLon = dl.bbox.NullMaxLon()
+		lookupParams.BboxMaxLat = dl.bbox.NullMaxLat()
+	}
+	_, err = dl.d.QueryRO().GetMapBuildByKey(ctx, lookupParams)
 	if err == nil {
 		logg.Info(ctx, "build already extracted, skipping", "key", build.Key)
 		return nil
@@ -109,7 +118,7 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata)
 	outPath := OutputPath(dl.mapsDir, id.String())
 
 	// Insert the build record before extraction (ready=0).
-	err = dl.d.QueryRW().InsertMapBuild(ctx, db.InsertMapBuildParams{
+	insertParams := db.InsertMapBuildParams{
 		Uuid:      id.String(),
 		CreatedAt: time.Now(),
 		Key:       build.Key,
@@ -118,19 +127,28 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata)
 		Uploaded:  build.Uploaded,
 		Version:   build.Version,
 		Maxzoom:   int64(dl.cfg.MapsMaxZoom),
-		Bbox:      dl.cfg.MapsBbox,
-	})
-	if err != nil {
+	}
+	if dl.bbox != nil {
+		insertParams.BboxMinLon = dl.bbox.NullMinLon()
+		insertParams.BboxMinLat = dl.bbox.NullMinLat()
+		insertParams.BboxMaxLon = dl.bbox.NullMaxLon()
+		insertParams.BboxMaxLat = dl.bbox.NullMaxLat()
+	}
+	if err := dl.d.QueryRW().InsertMapBuild(ctx, insertParams); err != nil {
 		return fmt.Errorf("insert map build: %w", err)
 	}
 
-	logg.Info(ctx, "starting PMTiles extraction", "key", build.Key, "output", outPath, "bbox", dl.cfg.MapsBbox, "maxzoom", dl.cfg.MapsMaxZoom)
+	bboxStr := ""
+	if dl.bbox != nil {
+		bboxStr = dl.bbox.String()
+	}
+	logg.Info(ctx, "starting PMTiles extraction", "key", build.Key, "output", outPath, "bbox", bboxStr, "maxzoom", dl.cfg.MapsMaxZoom)
 
 	err = Extract(ctx, ExtractParams{
 		BucketURL:  SourceBucketURL,
 		Key:        build.Key,
 		MaxZoom:    dl.cfg.MapsMaxZoom,
-		Bbox:       dl.cfg.MapsBbox,
+		Bbox:       bboxStr,
 		OutputPath: outPath,
 	})
 	if err != nil {
