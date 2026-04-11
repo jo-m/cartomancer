@@ -13,7 +13,7 @@ This one tries to be.
 
 ## Features
 
-- Advanced features: live weather forecasts and road closures (Switzerland only), reverse geocoding.
+- Live weather forecasts and road closures (Switzerland only), reverse geocoding.
 - Filtering, search, tagging, mark favorites.
 - Map view: [SwissTopo](https://map.geo.admin.ch/).
 - Except for map, does not need any live APIs. Instead, will download data in the background and query that locally (meteo and geo names).
@@ -52,7 +52,7 @@ docker run -it --rm                                               \
 ## Development
 
 `.envrc` contains the default dev config.
-Use (direnv)[https://direnv.net/] to load it.
+Use [direnv](https://direnv.net/) to load it.
 Otherwise, the Go toolchain and Node/npm are required.
 
 ```bash
