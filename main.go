@@ -28,6 +28,7 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/mail"
+	"jo-m.ch/go/cartomancer/internal/pkg/maps"
 	"jo-m.ch/go/cartomancer/internal/pkg/memstats"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
@@ -71,6 +72,7 @@ type config struct {
 	session.SessionConfig
 	mail.MailerConfig
 	jobs.JobsConfig
+	maps.MapsConfig
 }
 
 // validate checks all embedded configs for basic errors.
@@ -86,6 +88,7 @@ func (c *config) validate() error {
 		c.AppConfig.Validate(),
 		c.SessionConfig.Validate(),
 		c.JobsConfig.Validate(),
+		c.MapsConfig.Validate(),
 	} {
 		if err != nil {
 			return err
@@ -399,6 +402,11 @@ func main() {
 
 	jobs.MustRegisterJob(w, roadclosures.NewDownloader(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), roadclosures.DownloaderArgs{}, 24*time.Hour, true)
+
+	if c.MapsConfig.Enabled() {
+		jobs.MustRegisterJob(w, maps.NewDownloader(d, c.MapsConfig))
+		jobs.Periodic(ctxJobs, w.Submitter(), maps.DownloaderArgs{}, 24*time.Hour, true)
+	}
 
 	if !c.DemoMode {
 		jobs.MustRegisterJob(w, db.NewBackup(d, dbPath))
