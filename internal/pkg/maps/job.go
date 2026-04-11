@@ -20,6 +20,9 @@ const (
 
 	// minRefreshAge is the minimum age of the last successful build before a new one is attempted.
 	minRefreshAge = 23 * time.Hour
+
+	// worldOverviewMaxZoom is the zoom level for the always-downloaded world overview map.
+	worldOverviewMaxZoom = 7
 )
 
 // DownloaderArgs are the arguments for the map downloader job.
@@ -49,10 +52,16 @@ func NewDownloader(d *db.DB, cfg MapsConfig, mapsDir string) *Downloader {
 
 var _ jobs.Job[DownloaderArgs] = (*Downloader)(nil)
 
+// extractSpec describes a single extraction to perform.
+type extractSpec struct {
+	maxZoom int
+	bbox    *Bbox
+}
+
 // Run implements [jobs.Job].
-// It fetches the current builds index, checks whether the latest build has already been
-// extracted with the same parameters, and if not, runs a PMTiles extraction and records
-// the result in the database.
+// It fetches the current builds index and performs up to two extractions per build:
+// a low-zoom world overview (no bbox, zoom 7) and the configured regional extract.
+// Each extraction is independently deduplicated.
 func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, jobTimeout)
 	defer cancel()
@@ -80,31 +89,49 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 
 	logg.Info(ctx, "latest protomaps build", "key", build.Key, "version", build.Version, "uploaded", build.Uploaded)
 
-	// Check if this exact build+params combination was already extracted.
+	// World overview (no bbox, low zoom).
+	worldSpec := extractSpec{maxZoom: worldOverviewMaxZoom, bbox: nil}
+	if err := dl.ensureExtract(ctx, build, worldSpec); err != nil {
+		return fmt.Errorf("world overview: %w", err)
+	}
+
+	// Regional extract from config.
+	regionalSpec := extractSpec{maxZoom: dl.cfg.MapsMaxZoom, bbox: dl.bbox}
+	if err := dl.ensureExtract(ctx, build, regionalSpec); err != nil {
+		return fmt.Errorf("regional extract: %w", err)
+	}
+
+	return nil
+}
+
+// ensureExtract checks whether the given build+spec combination already exists
+// and performs the extraction if not.
+func (dl *Downloader) ensureExtract(ctx context.Context, build BuildMetadata, spec extractSpec) error {
 	lookupParams := db.GetMapBuildByKeyParams{
 		Key:     build.Key,
-		Maxzoom: int64(dl.cfg.MapsMaxZoom),
+		Maxzoom: int64(spec.maxZoom),
 	}
-	if dl.bbox != nil {
-		lookupParams.BboxMinLon = dl.bbox.NullMinLon()
-		lookupParams.BboxMinLat = dl.bbox.NullMinLat()
-		lookupParams.BboxMaxLon = dl.bbox.NullMaxLon()
-		lookupParams.BboxMaxLat = dl.bbox.NullMaxLat()
+	if spec.bbox != nil {
+		lookupParams.BboxMinLon = spec.bbox.NullMinLon()
+		lookupParams.BboxMinLat = spec.bbox.NullMinLat()
+		lookupParams.BboxMaxLon = spec.bbox.NullMaxLon()
+		lookupParams.BboxMaxLat = spec.bbox.NullMaxLat()
 	}
-	_, err = dl.d.QueryRO().GetMapBuildByKey(ctx, lookupParams)
+
+	_, err := dl.d.QueryRO().GetMapBuildByKey(ctx, lookupParams)
 	if err == nil {
-		logg.Info(ctx, "build already extracted, skipping", "key", build.Key)
+		logg.Info(ctx, "build already extracted, skipping", "key", build.Key, "maxzoom", spec.maxZoom)
 		return nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("check existing build: %w", err)
 	}
 
-	return dl.extractAndRecord(ctx, build)
+	return dl.extractAndRecord(ctx, build, spec)
 }
 
 // extractAndRecord performs the PMTiles extraction and records the result in the database.
-func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata) error {
+func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata, spec extractSpec) error {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return fmt.Errorf("generate uuid: %w", err)
@@ -112,7 +139,6 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata)
 
 	outPath := OutputPath(dl.mapsDir, id.String())
 
-	// Insert the build record before extraction (ready=0).
 	insertParams := db.InsertMapBuildParams{
 		Uuid:      id.String(),
 		CreatedAt: time.Now(),
@@ -121,33 +147,32 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata)
 		Md5sum:    build.MD5Sum,
 		Uploaded:  build.Uploaded,
 		Version:   build.Version,
-		Maxzoom:   int64(dl.cfg.MapsMaxZoom),
+		Maxzoom:   int64(spec.maxZoom),
 	}
-	if dl.bbox != nil {
-		insertParams.BboxMinLon = dl.bbox.NullMinLon()
-		insertParams.BboxMinLat = dl.bbox.NullMinLat()
-		insertParams.BboxMaxLon = dl.bbox.NullMaxLon()
-		insertParams.BboxMaxLat = dl.bbox.NullMaxLat()
+	if spec.bbox != nil {
+		insertParams.BboxMinLon = spec.bbox.NullMinLon()
+		insertParams.BboxMinLat = spec.bbox.NullMinLat()
+		insertParams.BboxMaxLon = spec.bbox.NullMaxLon()
+		insertParams.BboxMaxLat = spec.bbox.NullMaxLat()
 	}
 	if err := dl.d.QueryRW().InsertMapBuild(ctx, insertParams); err != nil {
 		return fmt.Errorf("insert map build: %w", err)
 	}
 
 	bboxStr := ""
-	if dl.bbox != nil {
-		bboxStr = dl.bbox.String()
+	if spec.bbox != nil {
+		bboxStr = spec.bbox.String()
 	}
-	logg.Info(ctx, "starting PMTiles extraction", "key", build.Key, "output", outPath, "bbox", bboxStr, "maxzoom", dl.cfg.MapsMaxZoom)
+	logg.Info(ctx, "starting PMTiles extraction", "key", build.Key, "output", outPath, "bbox", bboxStr, "maxzoom", spec.maxZoom)
 
 	err = Extract(ctx, ExtractParams{
 		BucketURL:  SourceBucketURL,
 		Key:        build.Key,
-		MaxZoom:    dl.cfg.MapsMaxZoom,
+		MaxZoom:    spec.maxZoom,
 		Bbox:       bboxStr,
 		OutputPath: outPath,
 	})
 	if err != nil {
-		// Clean up the partial file and DB record on failure.
 		os.Remove(outPath)
 		if _, delErr := dl.d.QueryRW().DeleteMapBuild(ctx, id.String()); delErr != nil {
 			logg.Error(ctx, "failed to clean up map build record after extraction failure", "err", delErr)
