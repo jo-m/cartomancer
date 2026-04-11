@@ -6,6 +6,7 @@ import SvgPreview from "../components/SvgPreview"
 import { useSession } from "../context/SessionContext"
 import TagsInput from "../components/TagsInput"
 import Toast from "../components/Toast"
+import useToast from "../hooks/useToast"
 import Badge from "../components/ui/Badge"
 import Card from "../components/ui/Card"
 import Select from "../components/ui/Select"
@@ -88,10 +89,11 @@ export default function Upload() {
   const [bulkTags, setBulkTags] = useState<string[]>([])
   const [bulkSport, setBulkSport] = useState("")
   const [bulkSubSport, setBulkSubSport] = useState("")
-  const [toastError, setToastError] = useState<{
-    key: number
-    msg: string
-  } | null>(null)
+  const {
+    toast: toastError,
+    showToast: showError,
+    dismissToast: dismissError,
+  } = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { data: editingData, isLoading: editingLoading } = $api.useQuery(
@@ -212,11 +214,7 @@ export default function Upload() {
             queryKey: ["get", "/tracks/editing"],
           })
         },
-        onError: (e) =>
-          setToastError((prev) => ({
-            key: (prev?.key ?? 0) + 1,
-            msg: e.message,
-          })),
+        onError: (e) => showError(e.message),
       }
     )
   }
@@ -232,11 +230,7 @@ export default function Upload() {
             queryKey: ["get", "/tracks/editing"],
           })
         },
-        onError: (e) =>
-          setToastError((prev) => ({
-            key: (prev?.key ?? 0) + 1,
-            msg: e.message,
-          })),
+        onError: (e) => showError(e.message),
       }
     )
   }
@@ -257,11 +251,7 @@ export default function Upload() {
             queryKey: ["get", "/tracks/editing"],
           })
         },
-        onError: (e) =>
-          setToastError((prev) => ({
-            key: (prev?.key ?? 0) + 1,
-            msg: e.message,
-          })),
+        onError: (e) => showError(e.message),
       }
     )
   }
@@ -518,8 +508,9 @@ export default function Upload() {
       {toastError && (
         <Toast
           key={toastError.key}
-          message={toastError.msg}
-          onDismiss={() => setToastError(null)}
+          message={toastError.message}
+          variant={toastError.variant}
+          onDismiss={dismissError}
         />
       )}
     </PageContainer>

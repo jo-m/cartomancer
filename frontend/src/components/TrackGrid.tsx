@@ -12,6 +12,7 @@ import {
 } from "../hooks/useUrlState"
 import { useSession } from "../context/SessionContext"
 import Toast from "./Toast"
+import useToast from "../hooks/useToast"
 import Button from "./ui/Button"
 import Select from "./ui/Select"
 import PageContainer from "./ui/PageContainer"
@@ -191,18 +192,16 @@ export default function TrackGrid({ mode }: TrackGridProps) {
   // Selection mode state.
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null)
-  const [toastError, setToastError] = useState<{
-    key: number
-    msg: string
-  } | null>(null)
+  const {
+    toast: toastError,
+    showToast: showBulkToast,
+    dismissToast: dismissBulkError,
+  } = useToast()
 
   const selectionActive = selected.size > 0
 
   function showBulkError(e: unknown) {
-    setToastError((prev) => ({
-      key: (prev?.key ?? 0) + 1,
-      msg: (e as Error).message,
-    }))
+    showBulkToast((e as Error).message)
   }
 
   function clearSelection() {
@@ -390,8 +389,9 @@ export default function TrackGrid({ mode }: TrackGridProps) {
       {toastError && (
         <Toast
           key={toastError.key}
-          message={toastError.msg}
-          onDismiss={() => setToastError(null)}
+          message={toastError.message}
+          variant={toastError.variant}
+          onDismiss={dismissBulkError}
         />
       )}
     </PageContainer>

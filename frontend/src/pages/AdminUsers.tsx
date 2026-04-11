@@ -7,6 +7,7 @@ import { $api, fetchClient } from "../api/client"
 import { useSession } from "../context/SessionContext"
 import { useUrlState, stringParam } from "../hooks/useUrlState"
 import Toast from "../components/Toast"
+import useToast from "../hooks/useToast"
 import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
 import Button from "../components/ui/Button"
@@ -40,10 +41,7 @@ export default function AdminUsers() {
   const [resetPassword, setResetPassword] = useState<string | null>(null)
   const [resetConfirm, setResetConfirm] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
-  const [toast, setToast] = useState<{
-    message: string
-    variant: "error" | "success"
-  } | null>(null)
+  const { toast, showToast, dismissToast } = useToast()
 
   const { data: users, refetch } = $api.useQuery("get", "/admin/users")
 
@@ -71,7 +69,7 @@ export default function AdminUsers() {
       createForm.reset()
       await refetch()
     } catch (err) {
-      setToast({ message: (err as Error).message, variant: "error" })
+      showToast((err as Error).message)
     }
   }
 
@@ -93,9 +91,9 @@ export default function AdminUsers() {
       })
       setEditingUuid(null)
       await refetch()
-      setToast({ message: "User updated.", variant: "success" })
+      showToast("User updated.", "success")
     } catch (err) {
-      setToast({ message: (err as Error).message, variant: "error" })
+      showToast((err as Error).message)
     }
   }
 
@@ -107,7 +105,7 @@ export default function AdminUsers() {
       )
       setResetPassword(data?.password ?? null)
     } catch (err) {
-      setToast({ message: (err as Error).message, variant: "error" })
+      showToast((err as Error).message)
     }
   }
 
@@ -119,7 +117,7 @@ export default function AdminUsers() {
       })
       await refetch()
     } catch (err) {
-      setToast({ message: (err as Error).message, variant: "error" })
+      showToast((err as Error).message)
     }
   }
 
@@ -131,7 +129,7 @@ export default function AdminUsers() {
       setDeleteConfirm(null)
       await refetch()
     } catch (err) {
-      setToast({ message: (err as Error).message, variant: "error" })
+      showToast((err as Error).message)
     }
   }
 
@@ -390,9 +388,10 @@ export default function AdminUsers() {
 
       {toast && (
         <Toast
+          key={toast.key}
           message={toast.message}
           variant={toast.variant}
-          onDismiss={() => setToast(null)}
+          onDismiss={dismissToast}
         />
       )}
     </PageContainer>

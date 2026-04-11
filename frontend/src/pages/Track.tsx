@@ -11,6 +11,7 @@ import StarIcon from "../assets/StarIcon"
 import ElevationProfile from "../components/ElevationProfile"
 import ForecastChart from "../components/ForecastChart"
 import Toast from "../components/Toast"
+import useToast from "../hooks/useToast"
 import TrackMap from "../components/TrackMap"
 import type { RoadClosure } from "../components/TrackMap"
 import MapHoverOverlay from "../components/MapHoverOverlay"
@@ -29,10 +30,7 @@ export default function Track() {
   const { user } = useSession()
   const queryClient = useQueryClient()
 
-  const [toast, setToast] = useState<{
-    message: string
-    variant: "error" | "success"
-  } | null>(null)
+  const { toast, showToast, dismissToast } = useToast()
   const [mapFullscreen, setMapFullscreen] = useState(false)
   const hoverStore = useHoverStore()
 
@@ -59,8 +57,8 @@ export default function Track() {
   const closures = closuresData?.closures as RoadClosure[] | undefined
 
   const onForecastError = useCallback(
-    (msg: string) => setToast({ message: msg, variant: "error" }),
-    []
+    (msg: string) => showToast(msg),
+    [showToast]
   )
 
   const forecast = useForecast(
@@ -89,7 +87,7 @@ export default function Track() {
         queryKey: ["get", "/tracks/{uuid}"],
       })
     } catch (err) {
-      setToast({ message: (err as Error).message, variant: "error" })
+      showToast((err as Error).message)
     }
   }
 
@@ -115,9 +113,10 @@ export default function Track() {
     <PageContainer size="lg">
       {toast && (
         <Toast
+          key={toast.key}
           message={toast.message}
           variant={toast.variant}
-          onDismiss={() => setToast(null)}
+          onDismiss={dismissToast}
         />
       )}
 
@@ -277,8 +276,8 @@ export default function Track() {
       {data.isOwner && (
         <TrackEditForm
           track={data}
-          onError={(msg) => setToast({ message: msg, variant: "error" })}
-          onSuccess={(msg) => setToast({ message: msg, variant: "success" })}
+          onError={(msg) => showToast(msg)}
+          onSuccess={(msg) => showToast(msg, "success")}
         />
       )}
     </PageContainer>

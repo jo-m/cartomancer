@@ -132,6 +132,7 @@ The track grid (`components/TrackGrid.tsx`) delegates to:
 Hooks in `src/hooks/`:
 - `useUrlState` — sync component state with URL search params
 - `useHoverSync` — shared hover index store for coordinated chart/map hover
+- `useToast` — toast notification state with re-trigger support via incrementing key. Returns `{ toast, showToast, dismissToast }`
 - `useForecast` — forecast data fetching and state management for a single track
 
 ### Shared lib modules
@@ -160,7 +161,7 @@ SVGs in `src/assets/` must use `currentColor` (not hardcoded colors like `#000`)
 - All data views/tables must always be searchable/paginatable/filterable.
 - All links, including nav etc. must be proper `<a>` links such that right click, open in new tab etc. work as expected.
 - URL paths used in the router should generally roughly mirror those from the API. E.g. the tracks upload page (POST /api/tracks) should be at /tracks/uploads.
-- Error/success feedback: Use the `Toast` component (`frontend/src/components/Toast.tsx`) for transient user feedback. Toast supports `variant="error"` (default) and `variant="success"` and auto-dismisses after 3 seconds. Avoid inline success/error `<p>` elements that persist indefinitely.
+- Error/success feedback: Use the `useToast` hook (`src/hooks/useToast.ts`) to manage toast state, paired with the `Toast` component for rendering. Call `showToast(message)` for errors or `showToast(message, "success")` for success. Render with `{toast && <Toast key={toast.key} message={toast.message} variant={toast.variant} onDismiss={dismissToast} />}`. The `key` prop ensures repeated identical messages re-trigger the auto-dismiss timer. Avoid inline success/error `<p>` elements that persist indefinitely.
 - External links: Any `href` sourced from the API or database (e.g. track author links, attribution URLs) must NOT link directly to the external site. Instead, route them through the `/leaving` interstitial page using the `externalUrl()`. Links hardcoded in the backend are exempt.
 - NEVER must any assets in the frontend be loaded from a third party domain. All assets must be included in the build.
 

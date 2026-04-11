@@ -6,6 +6,7 @@ import { z } from "zod"
 import { useSession } from "../context/SessionContext"
 import { $api } from "../api/client"
 import Toast from "../components/Toast"
+import useToast from "../hooks/useToast"
 import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
 import Input from "../components/ui/Input"
@@ -33,10 +34,7 @@ export default function Account() {
   const { user, invalidateSession, logout } = useSession()
   const navigate = useNavigate()
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [toast, setToast] = useState<{
-    message: string
-    variant: "error" | "success"
-  } | null>(null)
+  const { toast, showToast, dismissToast } = useToast()
 
   const updateMeMutation = $api.useMutation("patch", "/account")
   const rotateAvatarMutation = $api.useMutation(
@@ -66,7 +64,7 @@ export default function Account() {
       await rotateAvatarMutation.mutateAsync({})
       await invalidateSession()
     } catch (err) {
-      setToast({ message: (err as Error).message, variant: "error" })
+      showToast((err as Error).message)
     }
   }
 
@@ -74,9 +72,9 @@ export default function Account() {
     try {
       await updateMeMutation.mutateAsync({ body: data })
       await invalidateSession()
-      setToast({ message: "Profile updated.", variant: "success" })
+      showToast("Profile updated.", "success")
     } catch (err) {
-      setToast({ message: (err as Error).message, variant: "error" })
+      showToast((err as Error).message)
     }
   }
 
@@ -84,12 +82,9 @@ export default function Account() {
     try {
       await changeEmailMutation.mutateAsync({ body: data })
       changeEmailForm.reset()
-      setToast({
-        message: "Confirmation email sent. Check your inbox.",
-        variant: "success",
-      })
+      showToast("Confirmation email sent. Check your inbox.", "success")
     } catch (err) {
-      setToast({ message: (err as Error).message, variant: "error" })
+      showToast((err as Error).message)
     }
   }
 
@@ -97,9 +92,9 @@ export default function Account() {
     try {
       await changePasswordMutation.mutateAsync({ body: data })
       passwordForm.reset()
-      setToast({ message: "Password changed.", variant: "success" })
+      showToast("Password changed.", "success")
     } catch (err) {
-      setToast({ message: (err as Error).message, variant: "error" })
+      showToast((err as Error).message)
     }
   }
 
@@ -109,7 +104,7 @@ export default function Account() {
       await logout()
       navigate("/login")
     } catch (err) {
-      setToast({ message: (err as Error).message, variant: "error" })
+      showToast((err as Error).message)
     }
   }
 
@@ -270,9 +265,10 @@ export default function Account() {
 
       {toast && (
         <Toast
+          key={toast.key}
           message={toast.message}
           variant={toast.variant}
-          onDismiss={() => setToast(null)}
+          onDismiss={dismissToast}
         />
       )}
     </PageContainer>
