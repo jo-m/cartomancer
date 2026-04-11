@@ -42,7 +42,7 @@ type AppConfig struct {
 	RegistrationEnabled bool `arg:"--app-registration-enabled,env:APP_REGISTRATION_ENABLED" default:"false" help:"Allow new users to self-register"`
 	// InitAdminEmail, when set, creates an initial admin account with this email
 	// on startup if no user with this email exists yet.
-	// A random password is generated and logged once.
+	// A random password is generated, use the setpass subcommand to reset it.
 	InitAdminEmail string `arg:"--app-init-admin-email,env:APP_INIT_ADMIN_EMAIL" default:"" help:"Email for the initial admin account created on first startup" placeholder:"EMAIL"`
 	// DemoMode enables a read-only demo instance.
 	// Users and email verifications are locked via database triggers (only last_login_at,

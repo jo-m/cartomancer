@@ -350,12 +350,12 @@ func main() {
 
 	// Create initial admin account for production if configured.
 	if c.InitAdminEmail != "" && !c.DevelopmentMode {
-		created, pass, err := ensureInitialAdmin(ctx, d, c.InitAdminEmail, "")
+		created, _, err := ensureInitialAdmin(ctx, d, c.InitAdminEmail, "")
 		if err != nil {
 			logg.Panic(ctx, "Failed to create initial admin", "err", err)
 		} else if created {
-			logg.Warn(ctx, "Created initial admin account -- save the password now, it will not be shown again",
-				"email", c.InitAdminEmail, "password", pass)
+			logg.Warn(ctx, "Created initial admin account -- use the setpass subcommand to reset the password",
+				"email", c.InitAdminEmail)
 		}
 	}
 

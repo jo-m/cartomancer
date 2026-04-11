@@ -30,7 +30,7 @@ The absolute minimum for a production deployment:
 
 ```bash
 export LOG_PRETTY=false # JSONline logs, for human readable set true.
-export APP_INIT_ADMIN_EMAIL=admin@example.org # Password will be printed to log once.
+export APP_INIT_ADMIN_EMAIL=admin@example.com
 export APP_REGISTRATION_ENABLED=true
 # Those should be persisted, otherwise sessions are lost between restarts.
 export SESSION_JWT_SECRET=$(docker run ghcr.io/jo-m/cartomancer:latest genjwtsecret)
@@ -47,6 +47,13 @@ docker run -it --rm                                               \
   --env APP_EMAIL_JWT_SECRET                                      \
   ghcr.io/jo-m/cartomancer:latest                                 \
   serve
+
+# To reset the admin password:
+docker run -it --rm                                               \
+  --mount type=volume,src=cartomancer-data,dst=/home/nonroot/data \
+  ghcr.io/jo-m/cartomancer:latest                                 \
+  --log-pretty                                                    \
+  setpass admin@example.com
 ```
 
 ## Development
