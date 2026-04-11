@@ -104,7 +104,8 @@ const (
 
 // MakeAvatar generates a deterministic 20x20 SVG avatar depicting a cartomancer
 // or wizard character. The same seed always produces the same avatar.
-func MakeAvatar(seed string) string {
+// When aura is true, a subtle glowing gloriole is rendered behind the head.
+func MakeAvatar(seed string, aura bool) string {
 	r := newRNG(seed)
 
 	bg := bgColors[r.next(len(bgColors))]
@@ -127,6 +128,11 @@ func MakeAvatar(seed string) string {
 	// Staff renders behind the character.
 	if gadget == gadgetStaff {
 		writeStaff(&b)
+	}
+
+	// Aura/gloriole renders behind the character.
+	if aura {
+		writeAura(&b)
 	}
 
 	// Body renders behind the head.
@@ -371,6 +377,15 @@ func writeGadget(b *strings.Builder, gadget int, _ string) {
 		fmt.Fprintf(b, `<line x1="10" y1="15.5" x2="10" y2="17.5" stroke="%s" stroke-width="0.3"/>`, gold)
 		fmt.Fprintf(b, `<circle cx="10" cy="18" r="1" fill="%s"/>`, gold)
 	}
+}
+
+// writeAura draws a soft glowing gloriole behind the character's head.
+func writeAura(b *strings.Builder) {
+	b.WriteString(`<defs><radialGradient id="aura">`)
+	b.WriteString(`<stop offset="60%" stop-color="#ffd700" stop-opacity="0.5"/>`)
+	b.WriteString(`<stop offset="100%" stop-color="#FF6600" stop-opacity="0"/>`)
+	b.WriteString(`</radialGradient></defs>`)
+	b.WriteString(`<circle cx="10" cy="8" r="10" fill="url(#aura)"/>`)
 }
 
 // writeGlasses draws round spectacles over the eyes.

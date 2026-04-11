@@ -35,13 +35,15 @@ func (sv *server) handleGetUserAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eTag := fmt.Sprintf(`"%s-v1"`, u.AvatarSeed)
+	isAdmin := u.Admin != 0
+
+	eTag := fmt.Sprintf(`"%s-%t-v1"`, u.AvatarSeed, isAdmin)
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	svg := []byte(avatar.MakeAvatar(u.AvatarSeed))
+	svg := []byte(avatar.MakeAvatar(u.AvatarSeed, isAdmin))
 	w.Header().Set(headerContentType, "image/svg+xml")
 	w.Header().Set(headerCacheControl, "public, max-age=86400")
 	w.Header().Set(headerETag, eTag)
