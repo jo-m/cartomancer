@@ -33,7 +33,7 @@ func TestExtractAndRecord_dbRoundTrip(t *testing.T) {
 		Uploaded:  now,
 		Version:   "4.14.5",
 		Maxzoom:   8,
-		Bbox:      DefaultBbox,
+		Bbox:      testBbox,
 	})
 	require.NoError(t, err)
 
@@ -45,7 +45,7 @@ func TestExtractAndRecord_dbRoundTrip(t *testing.T) {
 	found, err := d.QueryRO().GetMapBuildByKey(ctx, db.GetMapBuildByKeyParams{
 		Key:     "20260411.pmtiles",
 		Maxzoom: 8,
-		Bbox:    DefaultBbox,
+		Bbox:    testBbox,
 	})
 	require.NoError(t, err)
 	require.Equal(t, id.String(), found.Uuid)
@@ -90,7 +90,7 @@ func TestListMapBuilds(t *testing.T) {
 			Uploaded:  now,
 			Version:   "1.0.0",
 			Maxzoom:   8,
-			Bbox:      DefaultBbox,
+			Bbox:      testBbox,
 		})
 		require.NoError(t, err)
 	}
@@ -105,7 +105,7 @@ func TestListMapBuilds(t *testing.T) {
 
 func TestDownloaderRun_disabled(t *testing.T) {
 	d := db.GetTestDB(t)
-	dl := NewDownloader(d, MapsConfig{})
+	dl := NewDownloader(d, MapsConfig{}, t.TempDir())
 	err := dl.Run(context.Background(), DownloaderArgs{})
 	require.NoError(t, err)
 }

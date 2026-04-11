@@ -7,6 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// testBbox is a bounding box covering approximately Switzerland, used in tests.
+const testBbox = "5.5,45.5,11.0,48.2"
+
 func TestLatestBuild_empty(t *testing.T) {
 	_, err := LatestBuild(nil)
 	require.Error(t, err)

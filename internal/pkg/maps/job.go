@@ -33,13 +33,15 @@ var _ jobs.Args = (*DownloaderArgs)(nil)
 // Downloader periodically extracts a regional PMTiles subset from the latest protomaps build.
 // Use [NewDownloader] to create an instance.
 type Downloader struct {
-	d   *db.DB
-	cfg MapsConfig
+	d       *db.DB
+	cfg     MapsConfig
+	mapsDir string
 }
 
 // NewDownloader creates a new [Downloader] instance.
-func NewDownloader(d *db.DB, cfg MapsConfig) *Downloader {
-	return &Downloader{d: d, cfg: cfg}
+// The mapsDir parameter is the directory where extracted PMTiles files are written.
+func NewDownloader(d *db.DB, cfg MapsConfig, mapsDir string) *Downloader {
+	return &Downloader{d: d, cfg: cfg, mapsDir: mapsDir}
 }
 
 var _ jobs.Job[DownloaderArgs] = (*Downloader)(nil)
@@ -104,7 +106,7 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata)
 		return fmt.Errorf("generate uuid: %w", err)
 	}
 
-	outPath := OutputPath(dl.cfg.MapsDir, id.String())
+	outPath := OutputPath(dl.mapsDir, id.String())
 
 	// Insert the build record before extraction (ready=0).
 	err = dl.d.QueryRW().InsertMapBuild(ctx, db.InsertMapBuildParams{

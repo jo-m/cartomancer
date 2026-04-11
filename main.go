@@ -404,7 +404,8 @@ func main() {
 	jobs.Periodic(ctxJobs, w.Submitter(), roadclosures.DownloaderArgs{}, 24*time.Hour, true)
 
 	if c.MapsConfig.Enabled() {
-		jobs.MustRegisterJob(w, maps.NewDownloader(d, c.MapsConfig))
+		mapsDir := filepath.Join(dataDir, "maps")
+		jobs.MustRegisterJob(w, maps.NewDownloader(d, c.MapsConfig, mapsDir))
 		jobs.Periodic(ctxJobs, w.Submitter(), maps.DownloaderArgs{}, 24*time.Hour, true)
 	}
 
