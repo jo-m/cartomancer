@@ -13,7 +13,7 @@ log = "./tmp/air.log"
 include_dir = []
 include_ext = ["go", "sql"]
 include_file = []
-exclude_dir = ["tmp", "data"]
+exclude_dir = ["tmp", "data", "frontend"]
 exclude_file = []
 exclude_regex = ["_test\\.go", "\\.gen\\.go"]
 
