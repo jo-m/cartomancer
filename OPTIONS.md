@@ -17,6 +17,8 @@ Global options:
                          Maximum number of concurrently handled HTTP requests (0 = unlimited) [default: 50, env: MAX_CONCURRENT_REQS]
   --max-concurrent-backlog N
                          Maximum number of requests waiting when at concurrency limit (0 = no backlog) [default: 50, env: MAX_CONCURRENT_BACKLOG]
+  --pprof-addr HOST:PORT
+                         TCP address for the pprof debug server (empty = disabled) [env: PPROF_ADDR]
   --log-pretty           Log pretty/with colors [default: false, env: LOG_PRETTY]
   --log-level LEVEL      Log level [default: INFO, env: LOG_LEVEL]
   --app-instance-name NAME

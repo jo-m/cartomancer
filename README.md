@@ -113,6 +113,28 @@ go tool MailHog
 open http://127.0.0.1:8025/
 ```
 
+### Profiling (pprof)
+
+The server includes a built-in [pprof](https://pkg.go.dev/net/http/pprof) debug server, disabled by default.
+Enable it by setting a listen address:
+
+```bash
+export PPROF_ADDR=localhost:6060
+```
+
+Usage with `go tool pprof`:
+
+```bash
+# Heap profile (current allocations)
+go tool pprof http://localhost:6060/debug/pprof/heap
+# Heap profile (total allocations since start, useful for finding hot paths)
+go tool pprof -alloc_space http://localhost:6060/debug/pprof/heap
+# 30-second CPU profile
+go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30
+```
+
+Inside the `pprof` interactive shell, useful commands are `top`, `list <func>`, and `web` (opens a SVG graph in the browser).
+
 ### Build
 
 The compiled frontend assets are embedded directly into the binary.

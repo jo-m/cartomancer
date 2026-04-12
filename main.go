@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -63,6 +64,7 @@ type config struct {
 	DataDir              string `arg:"--data-dir,env:DATA_DIR" help:"Directory for all SQLite database files" placeholder:"DIR" default:"data"`
 	MaxConcurrentReqs    int    `arg:"--max-concurrent-reqs,env:MAX_CONCURRENT_REQS" help:"Maximum number of concurrently handled HTTP requests (0 = unlimited)" placeholder:"N" default:"50"`
 	MaxConcurrentBacklog int    `arg:"--max-concurrent-backlog,env:MAX_CONCURRENT_BACKLOG" help:"Maximum number of requests waiting when at concurrency limit (0 = no backlog)" placeholder:"N" default:"50"`
+	PprofAddr            string `arg:"--pprof-addr,env:PPROF_ADDR" help:"TCP address for the pprof debug server (empty = disabled)" placeholder:"HOST:PORT"`
 
 	logg.LoggConfig
 	app.AppConfig
@@ -417,6 +419,32 @@ func main() {
 	w.RunInBackground(ctxShutdown)
 
 	go memstats.LogPeriodically(ctxShutdown, time.Minute)
+
+	if c.PprofAddr != "" {
+		pprofMux := http.NewServeMux()
+		pprofMux.HandleFunc("/debug/pprof/", pprof.Index)
+		pprofMux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		pprofMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		pprofMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		pprofMux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+		pprofServer := &http.Server{
+			Addr:              c.PprofAddr,
+			Handler:           pprofMux,
+			ReadHeaderTimeout: 10 * time.Second,
+		}
+		go func() {
+			logg.Info(ctx, "pprof server listening", "addr", c.PprofAddr)
+			if err := pprofServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logg.Error(ctx, "pprof server failed", "err", err)
+			}
+		}()
+		go func() {
+			<-ctxShutdown.Done()
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = pprofServer.Shutdown(shutdownCtx)
+		}()
+	}
 
 	s := &http.Server{
 		Addr:              c.HTTPListenAddr,
