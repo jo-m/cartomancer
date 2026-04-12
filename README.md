@@ -52,8 +52,7 @@ docker run -it --rm                            \
   --env APP_REGISTRATION_ENABLED               \
   --env SESSION_JWT_SECRET                     \
   --env APP_EMAIL_JWT_SECRET                   \
-  ghcr.io/jo-m/cartomancer:test                \
-  serve
+  ghcr.io/jo-m/cartomancer:latest
 
 # To reset the admin password (adapt mount if using bind mount):
 docker run -it --rm                            \

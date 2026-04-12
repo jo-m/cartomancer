@@ -25,5 +25,6 @@ COPY --from=backend /cartomancer /cartomancer
 COPY --from=backend --chown=root:root /data /data
 WORKDIR /
 ENTRYPOINT ["/cartomancer"]
+CMD ["serve"]
 
 ENV LISTEN_ADDR=0.0.0.0:8080
