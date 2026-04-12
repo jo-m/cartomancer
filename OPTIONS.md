@@ -52,7 +52,7 @@ Global options:
                          SMTP auth password [env: MAIL_AUTH_PASSWORD]
   --mail-from EMAIL      Sender email address [env: MAIL_FROM]
   --jobs-max-parallel N
-                         Maximum number of parallel jobs [default: 0, env: JOBS_MAX_PARALLEL]
+                         Maximum number of parallel jobs, max(1, runtime.NumCPU()/2) if zero [default: 0, env: JOBS_MAX_PARALLEL]
   --jobs-auto-cleanup-period DUR
                          Period at which old jobs will be cleared from the database [default: 1m, env: JOBS_AUTO_CLEANUP_PERIOD]
   --jobs-auto-cleanup-min-age DUR

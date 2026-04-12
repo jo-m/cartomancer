@@ -44,8 +44,7 @@ type Job[T Args] interface {
 //revive:disable:exported Naming necessary for struct embedding.
 type JobsConfig struct {
 	// MaxParallel is the maximum number of jobs that can run in parallel.
-	// It defaults to runtime.NumCPU() if zero.
-	MaxParallel uint `arg:"--jobs-max-parallel,env:JOBS_MAX_PARALLEL" default:"0" help:"Maximum number of parallel jobs" placeholder:"N"`
+	MaxParallel uint `arg:"--jobs-max-parallel,env:JOBS_MAX_PARALLEL" default:"0" help:"Maximum number of parallel jobs, max(1, runtime.NumCPU()/2) if zero" placeholder:"N"`
 	// AutoCleanupPeriod is the period at which old jobs will be cleared from the database.
 	// Disabled if set to 0.
 	AutoCleanupPeriod time.Duration `arg:"--jobs-auto-cleanup-period,env:JOBS_AUTO_CLEANUP_PERIOD" default:"1m" help:"Period at which old jobs will be cleared from the database" placeholder:"DUR"`
@@ -286,8 +285,8 @@ func (w *Workers) RunInBackground(ctx context.Context) {
 
 	nParallel := w.c.MaxParallel
 	if nParallel == 0 {
-		// #nosec G115 This is fine..
-		nParallel = uint(runtime.NumCPU())
+		// #nosec G115 This is fine.
+		nParallel = max(1, uint(runtime.NumCPU())/2)
 	}
 
 	logg.Info(ctx, "spinning up workers", "n", nParallel)
