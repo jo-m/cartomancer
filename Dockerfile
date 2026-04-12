@@ -20,10 +20,10 @@ RUN go build -trimpath -ldflags="-s -w -linkmode external -extldflags '-static'"
 RUN mkdir /data
 
 # Stage 3: Final minimal image
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:latest
 COPY --from=backend /cartomancer /cartomancer
-COPY --from=backend --chown=nonroot:nonroot /data /home/nonroot/data
-WORKDIR /home/nonroot
+COPY --from=backend --chown=root:root /data /data
+WORKDIR /
 ENTRYPOINT ["/cartomancer"]
 
 ENV LISTEN_ADDR=0.0.0.0:8080

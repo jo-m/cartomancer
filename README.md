@@ -22,6 +22,7 @@ This one tries to be.
 ## Deployment
 
 Out of pure lazyness, only Docker images are provided for [releases](https://github.com/jo-m/cartomancer/releases).
+The app runs as root inside the container, it is advised to use rootless Podman/Docker.
 To deploy without Docker, you need to build the binary yourself (see below).
 For all configuration options, see [OPTIONS.md](OPTIONS.md).
 On startup, forecast files and the geonames database will be downloaded and indexed, which will keep the CPU busy for a while.
@@ -29,30 +30,36 @@ On startup, forecast files and the geonames database will be downloaded and inde
 The absolute minimum for a production deployment:
 
 ```bash
-export LOG_PRETTY=false # JSONline logs, for human readable set true.
+# JSONline logs, for human readable set true.
+export LOG_PRETTY=false
+# Create an initial admin account.
+# Use setpass subcommand to set the password later.
 export APP_INIT_ADMIN_EMAIL=admin@example.com
-export APP_REGISTRATION_ENABLED=true
+# Set to true to allow users self registration.
+export APP_REGISTRATION_ENABLED=false
 # Those should be persisted, otherwise sessions are lost between restarts.
 export SESSION_JWT_SECRET=$(docker run ghcr.io/jo-m/cartomancer:latest genjwtsecret)
 export APP_EMAIL_JWT_SECRET=$(docker run ghcr.io/jo-m/cartomancer:latest genjwtsecret)
 # You may also want to configure email sending (MAIL_...).
 
-docker run -it --rm                                               \
-  -p 8080:8080                                                    \
-  --mount type=volume,src=cartomancer-data,dst=/home/nonroot/data \
-  --env LOG_PRETTY                                                \
-  --env APP_INIT_ADMIN_EMAIL                                      \
-  --env APP_REGISTRATION_ENABLED                                  \
-  --env SESSION_JWT_SECRET                                        \
-  --env APP_EMAIL_JWT_SECRET                                      \
-  ghcr.io/jo-m/cartomancer:latest                                 \
+# Run with bind mount.
+mkdir -p data
+docker run -it --rm                            \
+  -p 8080:8080                                 \
+  --mount "type=bind,src=$PWD/data,dst=/data"  \
+  --env LOG_PRETTY                             \
+  --env APP_INIT_ADMIN_EMAIL                   \
+  --env APP_REGISTRATION_ENABLED               \
+  --env SESSION_JWT_SECRET                     \
+  --env APP_EMAIL_JWT_SECRET                   \
+  ghcr.io/jo-m/cartomancer:test                \
   serve
 
-# To reset the admin password:
-docker run -it --rm                                               \
-  --mount type=volume,src=cartomancer-data,dst=/home/nonroot/data \
-  ghcr.io/jo-m/cartomancer:latest                                 \
-  --log-pretty                                                    \
+# To reset the admin password (adapt mount if using bind mount):
+docker run -it --rm                            \
+  --mount "type=bind,src=$PWD/data,dst=/data"  \
+  ghcr.io/jo-m/cartomancer:latest              \
+  --log-pretty                                 \
   setpass admin@example.com
 ```
 
@@ -116,7 +123,7 @@ Thus, the frontend needs to be built before the backend.
 ### Docker image
 
 ```bash
-docker build -t cartomancer .
+docker build -t ghcr.io/jo-m/cartomancer:latest .
 ```
 
 ### Creating releases
