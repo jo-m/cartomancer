@@ -27,6 +27,7 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/mail"
+	"jo-m.ch/go/cartomancer/internal/pkg/memstats"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures"
@@ -409,6 +410,8 @@ func main() {
 	defer stop()
 
 	w.RunInBackground(ctxShutdown)
+
+	go memstats.LogPeriodically(ctxShutdown, time.Minute)
 
 	s := &http.Server{
 		Addr:              c.HTTPListenAddr,
