@@ -4,7 +4,7 @@
 
 # Cartomancer
 
-The track library with a touch of magic.
+The gpx track library with a touch of magic.
 
 There are a bazillion route planning and activity tracking apps, but none of them is good at managing a library of existing tracks[^1].
 This one tries to be.
