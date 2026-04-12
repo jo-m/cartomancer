@@ -59,8 +59,10 @@ type config struct {
 	Deletealltracks *deletealltracksCmd `arg:"subcommand:deletealltracks" help:"delete all tracks (dev mode only)"`
 	Genjwtsecret    *genjwtsecretCmd    `arg:"subcommand:genjwtsecret" help:"generate a base64-encoded JWT secret (512-bit)"`
 
-	HTTPListenAddr string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8080"`
-	DataDir        string `arg:"--data-dir,env:DATA_DIR" help:"Directory for all SQLite database files" placeholder:"DIR" default:"data"`
+	HTTPListenAddr       string `arg:"--listen-addr,env:LISTEN_ADDR" help:"TCP address to listen at for HTTP requests" placeholder:"HOST:PORT" default:"127.0.0.1:8080"`
+	DataDir              string `arg:"--data-dir,env:DATA_DIR" help:"Directory for all SQLite database files" placeholder:"DIR" default:"data"`
+	MaxConcurrentReqs    int    `arg:"--max-concurrent-reqs,env:MAX_CONCURRENT_REQS" help:"Maximum number of concurrently handled HTTP requests (0 = unlimited)" placeholder:"N" default:"50"`
+	MaxConcurrentBacklog int    `arg:"--max-concurrent-backlog,env:MAX_CONCURRENT_BACKLOG" help:"Maximum number of requests waiting when at concurrency limit (0 = no backlog)" placeholder:"N" default:"50"`
 
 	logg.LoggConfig
 	app.AppConfig
@@ -90,7 +92,7 @@ func (c *config) validate() error {
 	return nil
 }
 
-func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter) http.Handler {
+func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter, maxConcurrentReqs, maxConcurrentBacklog int) http.Handler {
 	logger := logg.GetLogger(ctx).With("mod", "svc")
 
 	sess, err := session.NewStore(d, sessConfig, appConfig)
@@ -105,6 +107,9 @@ func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb
 
 	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
+	if maxConcurrentReqs > 0 {
+		mux.Use(middleware.ThrottleBacklog(maxConcurrentReqs, maxConcurrentBacklog, 10*time.Second))
+	}
 	mux.Use(logg.AttachLogger(logger))
 	mux.Use(logg.RequestLogger)
 	mux.Use(middleware.RequestSize(5 * 1024 * 1024))
@@ -415,7 +420,7 @@ func main() {
 
 	s := &http.Server{
 		Addr:              c.HTTPListenAddr,
-		Handler:           newHandler(ctx, d, gd, fd, c.SessionConfig, c.AppConfig, w.Submitter()),
+		Handler:           newHandler(ctx, d, gd, fd, c.SessionConfig, c.AppConfig, w.Submitter(), c.MaxConcurrentReqs, c.MaxConcurrentBacklog),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       20 * time.Second,
 		WriteTimeout:      20 * time.Second,

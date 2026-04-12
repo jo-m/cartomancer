@@ -13,6 +13,10 @@ Global options:
   --listen-addr HOST:PORT
                          TCP address to listen at for HTTP requests [default: 127.0.0.1:8080, env: LISTEN_ADDR]
   --data-dir DIR         Directory for all SQLite database files [default: data, env: DATA_DIR]
+  --max-concurrent-reqs N
+                         Maximum number of concurrently handled HTTP requests (0 = unlimited) [default: 50, env: MAX_CONCURRENT_REQS]
+  --max-concurrent-backlog N
+                         Maximum number of requests waiting when at concurrency limit (0 = no backlog) [default: 50, env: MAX_CONCURRENT_BACKLOG]
   --log-pretty           Log pretty/with colors [default: false, env: LOG_PRETTY]
   --log-level LEVEL      Log level [default: INFO, env: LOG_LEVEL]
   --app-instance-name NAME
