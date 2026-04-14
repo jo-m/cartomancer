@@ -74,7 +74,7 @@ func TestComputeDistancesAndBearings(t *testing.T) {
 
 func TestComputeSummary_EmptyHandle(t *testing.T) {
 	h := &Handle{
-		messages: map[string][]timedMessage{},
+		values: map[string][]timedValues{},
 	}
 	pts := track.Points{
 		{Lat: 46.0, Lon: 8.0},

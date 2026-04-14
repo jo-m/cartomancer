@@ -37,6 +37,30 @@ WHERE datetime(mf.valid_until_time) > datetime(sqlc.arg(start))
   )
 ORDER BY mf.variable, mf.valid_time;
 
+-- name: ListForecastFileIDsForWindow :many
+-- Returns only the id, variable, and time metadata of forecast_files for a
+-- time/bbox window, without loading the (large) GRIB2 blob.
+SELECT mf.id, mf.valid_time, mf.valid_until_time, mf.variable FROM forecast_files mf
+WHERE datetime(mf.valid_until_time) > datetime(sqlc.arg(start))
+  AND datetime(mf.valid_time) <= datetime(sqlc.arg(end))
+  AND mf.forecast_id = (
+    SELECT mf2.forecast_id FROM forecast_files mf2
+    JOIN forecasts f2 ON mf2.forecast_id = f2.id
+    WHERE mf2.variable = mf.variable
+      AND mf2.valid_time = mf.valid_time
+      AND (f2.bounds_min_lat IS NULL OR f2.bounds_min_lat <= sqlc.arg(max_lat))
+      AND (f2.bounds_max_lat IS NULL OR f2.bounds_max_lat >= sqlc.arg(min_lat))
+      AND (f2.bounds_min_lon IS NULL OR f2.bounds_min_lon <= sqlc.arg(max_lon))
+      AND (f2.bounds_max_lon IS NULL OR f2.bounds_max_lon >= sqlc.arg(min_lon))
+    ORDER BY f2.reference_time DESC
+    LIMIT 1
+  )
+ORDER BY mf.variable, mf.valid_time;
+
+-- name: GetForecastFileBlob :one
+-- Returns the GRIB2 blob for a single forecast file by ID.
+SELECT file FROM forecast_files WHERE id = ?;
+
 -- name: CreateForecast :one
 -- Inserts a new forecast row for the given reference time.
 INSERT INTO forecasts (

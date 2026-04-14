@@ -18,6 +18,12 @@ const (
 	t2mTestdata  = "../grib2/testdata/t_2m_0h.grib2"
 )
 
+// Sample locations used throughout tests.
+var (
+	bernLat = []float64{46.9480}
+	bernLon = []float64{7.4474}
+)
+
 // seedDB inserts the grid constants and a forecast file into the test database.
 // Returns the reference time used.
 func seedDB(t *testing.T, d *forecastdb.DB) time.Time {
@@ -66,7 +72,7 @@ func TestLoad_NoData(t *testing.T) {
 	end := start.Add(24 * time.Hour)
 	bbox := forecast.BBox{MinLat: 45, MaxLat: 48, MinLon: 6, MaxLon: 10}
 
-	h, err := forecast.Load(ctx, d, start, end, bbox)
+	h, err := forecast.Load(ctx, d, start, end, bbox, bernLat, bernLon)
 	require.ErrorIs(t, err, forecast.ErrNoData)
 	require.Nil(t, h)
 }
@@ -80,7 +86,7 @@ func TestLoad_FullCoverage(t *testing.T) {
 
 	// Query exactly the time of the single file.
 	bbox := forecast.BBox{MinLat: 45, MaxLat: 48, MinLon: 6, MaxLon: 10}
-	h, err := forecast.Load(ctx, d, refTime, refTime, bbox)
+	h, err := forecast.Load(ctx, d, refTime, refTime, bbox, bernLat, bernLon)
 	require.NoError(t, err)
 	require.NotNil(t, h)
 	require.Contains(t, h.Variables(), "T_2M")
@@ -95,7 +101,7 @@ func TestLoad_Incomplete(t *testing.T) {
 
 	// Query a wider window that extends beyond the single file's valid time.
 	bbox := forecast.BBox{MinLat: 45, MaxLat: 48, MinLon: 6, MaxLon: 10}
-	h, err := forecast.Load(ctx, d, refTime, refTime.Add(6*time.Hour), bbox)
+	h, err := forecast.Load(ctx, d, refTime, refTime.Add(6*time.Hour), bbox, bernLat, bernLon)
 	require.ErrorIs(t, err, forecast.ErrIncomplete)
 	require.NotNil(t, h)
 	require.Contains(t, h.Variables(), "T_2M")
@@ -109,11 +115,11 @@ func TestSample_KnownCity(t *testing.T) {
 	refTime := seedDB(t, d)
 
 	bbox := forecast.BBox{MinLat: 45, MaxLat: 48, MinLon: 6, MaxLon: 10}
-	h, err := forecast.Load(ctx, d, refTime, refTime, bbox)
+	h, err := forecast.Load(ctx, d, refTime, refTime, bbox, bernLat, bernLon)
 	require.NoError(t, err)
 
 	// T_2M at Bern in Kelvin: expect a reasonable temperature.
-	v := h.Sample("T_2M", refTime, 46.9480, 7.4474)
+	v := h.Sample("T_2M", refTime, 0)
 	require.False(t, math.IsNaN(float64(v)), "expected a value, got NaN")
 	require.Greater(t, v, float32(200))
 	require.Less(t, v, float32(340))
@@ -127,10 +133,10 @@ func TestSample_UnknownVariable(t *testing.T) {
 	refTime := seedDB(t, d)
 
 	bbox := forecast.BBox{MinLat: 45, MaxLat: 48, MinLon: 6, MaxLon: 10}
-	h, err := forecast.Load(ctx, d, refTime, refTime, bbox)
+	h, err := forecast.Load(ctx, d, refTime, refTime, bbox, bernLat, bernLon)
 	require.NoError(t, err)
 
-	v := h.Sample("NONEXISTENT", refTime, 46.9480, 7.4474)
+	v := h.Sample("NONEXISTENT", refTime, 0)
 	require.True(t, math.IsNaN(float64(v)))
 }
 
@@ -141,12 +147,15 @@ func TestSample_OutsideDomain(t *testing.T) {
 
 	refTime := seedDB(t, d)
 
+	// Use the seeded forecast's bbox so the query matches, but sample a
+	// location far outside the ICON-CH1 grid.
+	farLat := []float64{0}
+	farLon := []float64{0}
 	bbox := forecast.BBox{MinLat: 45, MaxLat: 48, MinLon: 6, MaxLon: 10}
-	h, err := forecast.Load(ctx, d, refTime, refTime, bbox)
+	h, err := forecast.Load(ctx, d, refTime, refTime, bbox, farLat, farLon)
 	require.NoError(t, err)
 
-	// Far outside the ICON-CH1 domain.
-	v := h.Sample("T_2M", refTime, 0, 0)
+	v := h.Sample("T_2M", refTime, 0)
 	require.True(t, math.IsNaN(float64(v)))
 }
 
@@ -211,19 +220,15 @@ func TestLoad_FallbackToOlderForecast(t *testing.T) {
 
 	// Query for [0h, 2h) -- old forecast covers 0h, new covers 1h.
 	bbox := forecast.BBox{MinLat: 45, MaxLat: 48, MinLon: 6, MaxLon: 10}
-	h, err := forecast.Load(ctx, d, refTimeOld, refTimeOld.Add(2*time.Hour), bbox)
+	h, err := forecast.Load(ctx, d, refTimeOld, refTimeOld.Add(2*time.Hour), bbox, bernLat, bernLon)
 	require.NoError(t, err)
 	require.NotNil(t, h)
 
 	// Both time slots should have data (0h from old, 1h from new).
-	v0 := h.Sample("T_2M", refTimeOld, 46.9480, 7.4474)
-	require.False(t, isNaN(v0), "0h slot should be filled by older forecast")
-	v1 := h.Sample("T_2M", refTimeOld.Add(time.Hour), 46.9480, 7.4474)
-	require.False(t, isNaN(v1), "1h slot should be filled by newer forecast")
-}
-
-func isNaN(v float32) bool {
-	return math.IsNaN(float64(v))
+	v0 := h.Sample("T_2M", refTimeOld, 0)
+	require.False(t, math.IsNaN(float64(v0)), "0h slot should be filled by older forecast")
+	v1 := h.Sample("T_2M", refTimeOld.Add(time.Hour), 0)
+	require.False(t, math.IsNaN(float64(v1)), "1h slot should be filled by newer forecast")
 }
 
 func TestSample_BeforeFirstMessage(t *testing.T) {
@@ -234,10 +239,10 @@ func TestSample_BeforeFirstMessage(t *testing.T) {
 	refTime := seedDB(t, d)
 
 	bbox := forecast.BBox{MinLat: 45, MaxLat: 48, MinLon: 6, MaxLon: 10}
-	h, err := forecast.Load(ctx, d, refTime, refTime, bbox)
+	h, err := forecast.Load(ctx, d, refTime, refTime, bbox, bernLat, bernLon)
 	require.NoError(t, err)
 
 	// One hour before the reference time: no message covers this.
-	v := h.Sample("T_2M", refTime.Add(-time.Hour), 46.9480, 7.4474)
+	v := h.Sample("T_2M", refTime.Add(-time.Hour), 0)
 	require.True(t, math.IsNaN(float64(v)))
 }

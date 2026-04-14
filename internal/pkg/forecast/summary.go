@@ -177,7 +177,14 @@ func (s *Summarizer) summarizeTrack(ctx context.Context, uuid string, refTime, s
 
 	bbox := trackBBox(t)
 
-	h, err := Load(ctx, s.fd, startTime, endTime, bbox)
+	lats := make([]float64, len(pts))
+	lons := make([]float64, len(pts))
+	for i, p := range pts {
+		lats[i] = p.Lat
+		lons[i] = p.Lon
+	}
+
+	h, err := Load(ctx, s.fd, startTime, endTime, bbox, lats, lons)
 	if errors.Is(err, ErrNoData) {
 		logg.Debug(ctx, "no forecast data for track", "uuid", uuid)
 		return nil
@@ -221,42 +228,34 @@ func computeSummary(h *Handle, pts track.Points, distances, bearings []float64, 
 
 		totalPrecipMm float64
 
-		// Wind rose: sum of speeds and count per sector.
 		windSum   [4]float64
 		windCount [4]int
 	)
 
-	for i, p := range pts {
+	for i := range pts {
 		pointTime := startTime.Add(time.Duration(distances[i]/speedMs) * time.Second)
 
-		// Temperature.
-		tempK := h.Sample(vars.VarT2m.Name, pointTime, p.Lat, p.Lon)
+		tempK := h.Sample(vars.VarT2m.Name, pointTime, i)
 		if !math.IsNaN(float64(tempK)) {
 			tempSum += float64(tempK) - 273.15
 			tempCount++
 		}
 
-		// Precipitation: integrate rate over the time interval to next point.
-		precipRate := h.Sample(vars.VarTotPr.Name, pointTime, p.Lat, p.Lon)
+		precipRate := h.Sample(vars.VarTotPr.Name, pointTime, i)
 		if !math.IsNaN(float64(precipRate)) && i < len(pts)-1 {
 			nextDist := distances[i+1]
 			segDurationS := (nextDist - distances[i]) / speedMs
-			// precipRate is in kg m-2 s-1 (= mm/s), so multiply by duration in seconds.
 			totalPrecipMm += float64(precipRate) * segDurationS
 		}
 
-		// Wind.
-		uWind := h.Sample(vars.VarU10m.Name, pointTime, p.Lat, p.Lon)
-		vWind := h.Sample(vars.VarV10m.Name, pointTime, p.Lat, p.Lon)
+		uWind := h.Sample(vars.VarU10m.Name, pointTime, i)
+		vWind := h.Sample(vars.VarV10m.Name, pointTime, i)
 		if !math.IsNaN(float64(uWind)) && !math.IsNaN(float64(vWind)) {
 			speed := math.Hypot(float64(uWind), float64(vWind))
-			// Meteorological wind direction (direction wind blows FROM).
 			dir := math.Atan2(float64(uWind), float64(vWind))*180/math.Pi + 180
 			if dir >= 360 {
 				dir -= 360
 			}
-
-			// Relative wind direction: 0 = headwind, 180 = tailwind.
 			rel := math.Mod(dir-bearings[i]+360, 360)
 			sector := relativeWindSector(rel)
 			windSum[sector] += speed

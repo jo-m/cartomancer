@@ -155,7 +155,14 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	h, err := forecast.Load(ctx, sv.fd, startTime, endTime, bbox)
+	lats := make([]float64, len(pts))
+	lons := make([]float64, len(pts))
+	for i, p := range pts {
+		lats[i] = p.Lat
+		lons[i] = p.Lon
+	}
+
+	h, err := forecast.Load(ctx, sv.fd, startTime, endTime, bbox, lats, lons)
 	status := "full"
 	switch {
 	case errors.Is(err, forecast.ErrNoData):
@@ -169,7 +176,7 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	}
 
 	result := make([]forecastPointResponse, len(pts))
-	for i, p := range pts {
+	for i := range pts {
 		pointTime := startTime.Add(time.Duration(distances[i]/speedMs) * time.Second)
 		rp := forecastPointResponse{
 			Index:     i,
@@ -178,19 +185,19 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		}
 
 		if status != "none" {
-			tempK := h.Sample(vars.VarT2m.Name, pointTime, p.Lat, p.Lon)
+			tempK := h.Sample(vars.VarT2m.Name, pointTime, i)
 			if !math.IsNaN(float64(tempK)) {
 				v := float64(tempK) - 273.15
 				rp.TemperatureC = &v
 			}
-			precip := h.Sample(vars.VarTotPr.Name, pointTime, p.Lat, p.Lon)
+			precip := h.Sample(vars.VarTotPr.Name, pointTime, i)
 			if !math.IsNaN(float64(precip)) {
 				// Convert from kg m-2 s-1 to mm/h (1 kg/m2 = 1 mm, so multiply by 3600).
 				v := float64(precip) * 3600
 				rp.PrecipitationRate = &v
 			}
-			uWind := h.Sample(vars.VarU10m.Name, pointTime, p.Lat, p.Lon)
-			vWind := h.Sample(vars.VarV10m.Name, pointTime, p.Lat, p.Lon)
+			uWind := h.Sample(vars.VarU10m.Name, pointTime, i)
+			vWind := h.Sample(vars.VarV10m.Name, pointTime, i)
 			if !math.IsNaN(float64(uWind)) && !math.IsNaN(float64(vWind)) {
 				speed := math.Hypot(float64(uWind), float64(vWind))
 				rp.WindSpeedMs = &speed
