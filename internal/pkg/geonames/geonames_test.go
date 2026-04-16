@@ -49,7 +49,7 @@ func TestImportFromReader(t *testing.T) {
 		"2661552\tBasel\tBasel\t\t47.55839\t7.57327\tP\tPPLA\tCH\t\tBS\t1200\t2701\t\t177654\t245\t279\tEurope/Zurich\t2024-09-08",
 	}, "\n")
 
-	n, err := importFromReader(ctx, d, strings.NewReader(data))
+	n, err := importFromReader(ctx, d, strings.NewReader(data), 0)
 	require.NoError(t, err)
 	require.Equal(t, 3, n)
 
@@ -68,12 +68,12 @@ func TestImportFromReader_replaceExisting(t *testing.T) {
 	line2 := "2660646\tBern\tBern\t\t46.94809\t7.44744\tP\tPPLC\tCH\t\tBE\t246\t2546\t\t133883\t540\t542\tEurope/Zurich\t2024-09-08"
 
 	// First import.
-	n, err := importFromReader(ctx, d, strings.NewReader(line1+"\n"+line2))
+	n, err := importFromReader(ctx, d, strings.NewReader(line1+"\n"+line2), 0)
 	require.NoError(t, err)
 	require.Equal(t, 2, n)
 
 	// Second import replaces data.
-	n, err = importFromReader(ctx, d, strings.NewReader(line1))
+	n, err = importFromReader(ctx, d, strings.NewReader(line1), 0)
 	require.NoError(t, err)
 	require.Equal(t, 1, n)
 
@@ -94,7 +94,7 @@ func TestImportFromReader_skipsUndersea(t *testing.T) {
 		"101\tSomeRidge\tSomeRidge\t\t47.4\t8.5\tU\tRDGU\tCH\t\t\t\t\t\t0\t\t0\t\t2024-01-01",
 	}, "\n")
 
-	n, err := importFromReader(ctx, d, strings.NewReader(data))
+	n, err := importFromReader(ctx, d, strings.NewReader(data), 0)
 	require.NoError(t, err)
 	require.Equal(t, 1, n)
 
@@ -133,7 +133,7 @@ func TestImportSubsampledFile(t *testing.T) {
 	require.NoError(t, err)
 	defer f.Close()
 
-	n, err := importFromReader(ctx, d, f)
+	n, err := importFromReader(ctx, d, f, 0)
 	require.NoError(t, err)
 	require.Greater(t, n, 100, "should import many rows from subsampled file")
 

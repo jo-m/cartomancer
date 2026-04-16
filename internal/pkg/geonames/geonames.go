@@ -112,7 +112,7 @@ func ImportAllCountries(ctx context.Context, d *geonamesdb.DB, zipPath string) (
 	}
 	defer rc.Close()
 
-	return importFromReader(ctx, d, rc)
+	return importFromReader(ctx, d, rc, 0)
 }
 
 // stagingTable is the name of the temporary staging table used during import.
@@ -122,7 +122,8 @@ const stagingTable = "geonames_staging"
 // into a staging table, then atomically swaps it with the live geonames table.
 // This approach keeps the old data queryable throughout the import and avoids
 // long-held write locks by deferring index creation until after all inserts.
-func importFromReader(ctx context.Context, d *geonamesdb.DB, r io.Reader) (int, error) {
+// If maxRows > 0, at most that many rows are imported (for benchmarking).
+func importFromReader(ctx context.Context, d *geonamesdb.DB, r io.Reader, maxRows int) (int, error) {
 	rw := d.RW()
 
 	// Prepare the staging table (unindexed for fast inserts).
@@ -139,7 +140,7 @@ func importFromReader(ctx context.Context, d *geonamesdb.DB, r io.Reader) (int, 
 	}()
 
 	// Parse and insert all rows into the staging table.
-	total, err := insertIntoStaging(ctx, rw, r)
+	total, err := insertIntoStaging(ctx, rw, r, maxRows)
 	if err != nil {
 		return total, err
 	}
@@ -250,7 +251,8 @@ func swapStagingTable(ctx context.Context, rw *sql.DB) error {
 }
 
 // insertIntoStaging parses rows from r and bulk-inserts them into the staging table.
-func insertIntoStaging(ctx context.Context, rw *sql.DB, r io.Reader) (int, error) {
+// If maxRows > 0, parsing stops after that many rows have been collected.
+func insertIntoStaging(ctx context.Context, rw *sql.DB, r io.Reader, maxRows int) (int, error) {
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 
@@ -287,6 +289,10 @@ func insertIntoStaging(ctx context.Context, rw *sql.DB, r io.Reader) (int, error
 			}
 			total += len(batch)
 			batch = batch[:0]
+
+			if maxRows > 0 && total >= maxRows {
+				break
+			}
 
 			if total%500000 == 0 {
 				elapsed := time.Since(start).Seconds()

@@ -374,7 +374,7 @@ func importTestGeodata(ctx context.Context, t *testing.T, d *geonamesdb.DB) {
 		// Small suburb near Zurich for suppression testing.
 		"9999901\tWiedikon\tWiedikon\t\t47.3640\t8.5200\tP\tPPLX\tCH\t\tZH\t112\t261\t\t3000\t410\t410\tEurope/Zurich\t2024-09-08",
 	}, "\n")
-	n, err := importFromReader(ctx, d, strings.NewReader(geoData))
+	n, err := importFromReader(ctx, d, strings.NewReader(geoData), 0)
 	require.NoError(t, err)
 	require.Equal(t, 6, n)
 

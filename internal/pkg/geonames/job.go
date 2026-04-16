@@ -61,34 +61,9 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		return nil
 	}
 
-	logg.Info(ctx, "downloading GeoNames allCountries.zip")
-	zipPath, err := DownloadAllCountries(ctx)
+	rowCount, err := DownloadAndImport(ctx, d.d)
 	if err != nil {
-		return fmt.Errorf("download: %w", err)
-	}
-	defer func() {
-		if removeErr := os.Remove(zipPath); removeErr != nil {
-			logg.Error(ctx, "failed to remove geonames temp file", "path", zipPath, "err", removeErr)
-		}
-	}()
-
-	logg.Info(ctx, "importing GeoNames data")
-	rowCount, err := ImportAllCountries(ctx, d.d, zipPath)
-	if err != nil {
-		return fmt.Errorf("import: %w", err)
-	}
-
-	logg.Info(ctx, "downloading GeoNames admin codes")
-	admin1Data, admin2Data, err := DownloadAdminCodes(ctx)
-	if err != nil {
-		return fmt.Errorf("download admin codes: %w", err)
-	}
-
-	if _, err := ImportAdmin1Codes(ctx, d.d, bytes.NewReader(admin1Data)); err != nil {
-		return fmt.Errorf("import admin1 codes: %w", err)
-	}
-	if _, err := ImportAdmin2Codes(ctx, d.d, bytes.NewReader(admin2Data)); err != nil {
-		return fmt.Errorf("import admin2 codes: %w", err)
+		return err
 	}
 
 	// Record the import.
@@ -105,4 +80,41 @@ func (d *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 
 	logg.Info(ctx, "geonames import complete", "rows", rowCount)
 	return nil
+}
+
+// DownloadAndImport downloads the full GeoNames dataset (allCountries + admin
+// codes) and imports everything into the database. It returns the number of
+// geoname rows imported.
+func DownloadAndImport(ctx context.Context, d *geonamesdb.DB) (int, error) {
+	logg.Info(ctx, "downloading GeoNames allCountries.zip")
+	zipPath, err := DownloadAllCountries(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("download: %w", err)
+	}
+	defer func() {
+		if removeErr := os.Remove(zipPath); removeErr != nil {
+			logg.Error(ctx, "failed to remove geonames temp file", "path", zipPath, "err", removeErr)
+		}
+	}()
+
+	logg.Info(ctx, "importing GeoNames data")
+	rowCount, err := ImportAllCountries(ctx, d, zipPath)
+	if err != nil {
+		return 0, fmt.Errorf("import: %w", err)
+	}
+
+	logg.Info(ctx, "downloading GeoNames admin codes")
+	admin1Data, admin2Data, err := DownloadAdminCodes(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("download admin codes: %w", err)
+	}
+
+	if _, err := ImportAdmin1Codes(ctx, d, bytes.NewReader(admin1Data)); err != nil {
+		return 0, fmt.Errorf("import admin1 codes: %w", err)
+	}
+	if _, err := ImportAdmin2Codes(ctx, d, bytes.NewReader(admin2Data)); err != nil {
+		return 0, fmt.Errorf("import admin2 codes: %w", err)
+	}
+
+	return rowCount, nil
 }

@@ -18,13 +18,23 @@ type DB struct {
 	*db.DB
 }
 
+// geonamesPragmas overrides the default SQLite pragmas for the geonames
+// database. The geonames DB is a bulk-import workload where the full dataset
+// (~12M rows) is re-imported periodically. Conservative limits prevent OOM
+// kills in memory-constrained containers.
+var geonamesPragmas = map[string]string{
+	"cache_size": "-64000",  // 64 MB (negative = KiB)
+	"mmap_size":  "0",       // Disable mmap; import is sequential, not random-read.
+	"temp_store": "DEFAULT", // Let SQLite use temp files for sorting during index/FTS builds.
+}
+
 // Open opens the geonames database at path and runs migrations.
 //
 // Parameters:
 //   - ctx: context for logging and migration execution.
 //   - path: filesystem path for the geonames SQLite database file.
 func Open(ctx context.Context, path string) (*DB, error) {
-	d, err := db.Open(ctx, path, embedMigrations, migrationsDir)
+	d, err := db.Open(ctx, path, embedMigrations, migrationsDir, geonamesPragmas)
 	if err != nil {
 		return nil, err
 	}

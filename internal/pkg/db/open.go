@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"maps"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -32,7 +33,19 @@ const (
 //go:embed migrations/*.sql
 var EmbedMigrations embed.FS
 
-func buildDSN(path string, readOnly bool, busyTimeout time.Duration) string {
+// defaultPragmas are the default SQLite pragmas applied to all databases.
+// See https://phiresky.github.io/blog/2020/sqlite-performance-tuning/
+// and https://kerkour.com/sqlite-for-servers.
+var defaultPragmas = map[string]string{
+	"journal_mode": "WAL",
+	"synchronous":  "NORMAL",
+	"temp_store":   "MEMORY",
+	"cache_size":   "1000000000",
+	"foreign_keys": "true",
+	"mmap_size":    "2147483648", // 2 GiB
+}
+
+func buildDSN(path string, readOnly bool, busyTimeout time.Duration, pragmaOverrides map[string]string) string {
 	query := url.Values{}
 	if readOnly {
 		query.Add("_txlock", "deferred")
@@ -47,16 +60,9 @@ func buildDSN(path string, readOnly bool, busyTimeout time.Duration) string {
 		query.Add("mode", "rwc")
 	}
 
-	// See https://phiresky.github.io/blog/2020/sqlite-performance-tuning/
-	// and https://kerkour.com/sqlite-for-servers.
-	pragmas := map[string]string{
-		"journal_mode": "WAL",
-		"synchronous":  "NORMAL",
-		"temp_store":   "MEMORY",
-		"cache_size":   "1000000000",
-		"foreign_keys": "true",
-		"mmap_size":    "2147483648", // 2 GiB
-	}
+	pragmas := make(map[string]string, len(defaultPragmas))
+	maps.Copy(pragmas, defaultPragmas)
+	maps.Copy(pragmas, pragmaOverrides)
 	for k, v := range pragmas {
 		query.Add("_pragma", k+"="+v)
 	}
@@ -176,13 +182,15 @@ func (d *DB) Close() error {
 // and a read/write "pool" with only one connection in it.
 // You should maintain only a single [*DB] object per SQLite file at a time in your application.
 // You must call [*DB.Close] when the conn is no longer needed.
+// Optional pragmaOverrides replace matching keys in the default pragma set.
 //
 // Parameters:
 //   - ctx: context for logging and migration execution.
 //   - path: filesystem path for the SQLite database file.
 //   - migrationsFS: embedded filesystem containing migration SQL files.
 //   - migrationsDir: subdirectory within migrationsFS that holds the migration files.
-func Open(ctx context.Context, path string, migrationsFS embed.FS, migrationsDir string) (db *DB, err error) {
+//   - pragmaOverrides: optional map of SQLite pragma overrides (at most one).
+func Open(ctx context.Context, path string, migrationsFS embed.FS, migrationsDir string, pragmaOverrides ...map[string]string) (db *DB, err error) {
 	dir := filepath.Dir(path)
 	err = os.MkdirAll(dir, 0750)
 	if err != nil {
@@ -191,15 +199,20 @@ func Open(ctx context.Context, path string, migrationsFS embed.FS, migrationsDir
 		}
 	}
 
+	var overrides map[string]string
+	if len(pragmaOverrides) > 0 {
+		overrides = pragmaOverrides[0]
+	}
+
 	// Open read/write conn.
-	rw, err := sql.Open(driver, buildDSN(path, false, time.Second*5))
+	rw, err := sql.Open(driver, buildDSN(path, false, time.Second*5, overrides))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db (rw): %w", err)
 	}
 	rw.SetMaxOpenConns(1)
 
 	// Open read only conn.
-	ro, err := sql.Open(driver, buildDSN(path, true, time.Second*5))
+	ro, err := sql.Open(driver, buildDSN(path, true, time.Second*5, overrides))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db (ro): %w", err)
 	}
