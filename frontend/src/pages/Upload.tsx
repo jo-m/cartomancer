@@ -136,9 +136,11 @@ export default function Upload() {
       status: "pending",
     }))
     setUploads((prev) => [...newItems, ...prev])
-    newItems.forEach(
-      (item) => void uploadFile(item, updateUpload, handleSuccess)
-    )
+    void (async () => {
+      for (const item of newItems) {
+        await uploadFile(item, updateUpload, handleSuccess)
+      }
+    })()
   }
 
   function dismiss(id: string) {
