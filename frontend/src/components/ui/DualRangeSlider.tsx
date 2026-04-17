@@ -1,4 +1,4 @@
-import { useRef } from "react"
+import { useCallback, useRef } from "react"
 
 export interface DualRangeSliderProps {
   absoluteMin: number
@@ -8,6 +8,8 @@ export interface DualRangeSliderProps {
   step: number
   formatValue: (v: number) => string
   onChange: (min: number, max: number) => void
+  labelMin?: string
+  labelMax?: string
 }
 
 /** A dual-thumb range slider for filtering numeric ranges. */
@@ -19,6 +21,8 @@ export default function DualRangeSlider({
   step,
   formatValue,
   onChange,
+  labelMin = "Range minimum",
+  labelMax = "Range maximum",
 }: DualRangeSliderProps) {
   const outerRef = useRef<HTMLDivElement>(null)
   const activeThumb = useRef<"min" | "max" | null>(null)
@@ -61,6 +65,39 @@ export default function DualRangeSlider({
     activeThumb.current = null
   }
 
+  const handleKeyDown = useCallback(
+    (thumb: "min" | "max", e: React.KeyboardEvent) => {
+      let delta = 0
+      if (e.key === "ArrowRight" || e.key === "ArrowUp") delta = step
+      else if (e.key === "ArrowLeft" || e.key === "ArrowDown") delta = -step
+      else if (e.key === "Home") delta = -Infinity
+      else if (e.key === "End") delta = Infinity
+      else return
+
+      e.preventDefault()
+      if (thumb === "min") {
+        let next =
+          delta === -Infinity
+            ? absoluteMin
+            : delta === Infinity
+              ? valueMax
+              : valueMin + delta
+        next = Math.max(absoluteMin, Math.min(next, valueMax))
+        onChange(next, valueMax)
+      } else {
+        let next =
+          delta === -Infinity
+            ? valueMin
+            : delta === Infinity
+              ? absoluteMax
+              : valueMax + delta
+        next = Math.max(valueMin, Math.min(next, absoluteMax))
+        onChange(valueMin, next)
+      }
+    },
+    [absoluteMin, absoluteMax, valueMin, valueMax, step, onChange]
+  )
+
   function thumbLeft(v: number): string {
     const frac = (v - absoluteMin) / range
     return `calc(${frac * 100}% + ${8 - frac * 16}px)`
@@ -84,11 +121,7 @@ export default function DualRangeSlider({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        role="slider"
-        aria-valuemin={absoluteMin}
-        aria-valuemax={absoluteMax}
-        aria-valuenow={valueMin}
-        tabIndex={0}
+        role="group"
       >
         <div className="absolute inset-x-2 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slider-track" />
         <div
@@ -96,7 +129,15 @@ export default function DualRangeSlider({
           style={highlightStyle}
         />
         <div
-          className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-slider-thumb"
+          role="slider"
+          tabIndex={0}
+          aria-label={labelMin}
+          aria-valuemin={absoluteMin}
+          aria-valuemax={valueMax}
+          aria-valuenow={valueMin}
+          aria-valuetext={formatValue(valueMin)}
+          onKeyDown={(e) => handleKeyDown("min", e)}
+          className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-slider-thumb focus:outline-2 focus:outline-offset-2 focus:outline-primary"
           style={{
             left: thumbLeft(valueMin),
             borderColor: minActive
@@ -105,7 +146,15 @@ export default function DualRangeSlider({
           }}
         />
         <div
-          className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-slider-thumb"
+          role="slider"
+          tabIndex={0}
+          aria-label={labelMax}
+          aria-valuemin={valueMin}
+          aria-valuemax={absoluteMax}
+          aria-valuenow={valueMax}
+          aria-valuetext={formatValue(valueMax)}
+          onKeyDown={(e) => handleKeyDown("max", e)}
+          className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-slider-thumb focus:outline-2 focus:outline-offset-2 focus:outline-primary"
           style={{
             left: thumbLeft(valueMax),
             borderColor: maxActive
