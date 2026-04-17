@@ -62,6 +62,9 @@ docker run -it --rm                            \
   setpass admin@example.com
 ```
 
+To terminate TLS, run behind a reverse proxy.
+It is a good idea to ratelimit the `/api/sessions/login` endpoint.
+
 ## Development
 
 `.envrc` contains the default dev config.

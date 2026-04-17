@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useSession } from "../context/SessionContext"
-import { useAppConfig } from "../api/client"
+import { useAppConfig, ApiError } from "../api/client"
 import Card from "../components/ui/Card"
 import Input from "../components/ui/Input"
 import Button from "../components/ui/Button"
@@ -32,9 +32,13 @@ export default function Login() {
       await login(data.email, data.password)
       navigate("/")
     } catch (err) {
-      setError("root", {
-        message: err instanceof Error ? err.message : "Login failed",
-      })
+      const message =
+        err instanceof ApiError && err.status === 429
+          ? "Too many login attempts. Please try again later."
+          : err instanceof Error
+            ? err.message
+            : "Login failed"
+      setError("root", { message })
     }
   }
 
