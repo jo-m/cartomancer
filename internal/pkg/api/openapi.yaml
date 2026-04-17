@@ -2143,6 +2143,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /account/export:
+    get:
+      summary: Export all personal data as a ZIP archive
+      operationId: exportData
+      tags: [Account]
+      description: |
+        GDPR-style data export. Streams a ZIP file containing all of the
+        authenticated user's track files and a metadata.json with user
+        profile and track metadata. Excludes generated data (forecasts,
+        location summaries).
+      responses:
+        "200":
+          description: ZIP archive containing tracks and metadata
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /tags:
     get:
       summary: Suggest tags by prefix

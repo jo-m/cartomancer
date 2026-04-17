@@ -120,7 +120,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Improve email messages sent to users, include instance name and base URL
 - [ ] Self serve password reset flow for users
 - [ ] Rate limiting for sensitive endpoints (login etc), or hint for deployment
-- [ ] Self-serve full data export for users
+- [x] Self-serve full data export for users
 - [ ] TOTP login for users
 - [ ] Decide on what can be seen by anon/non logged in users.
 - [ ] Hints in the frontend:

@@ -123,6 +123,7 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 		r.Post("/account/change-password", sv.handleChangePassword)
 		r.Post("/account/change-email", sv.handleChangeEmail)
 		r.Post("/account/rotate-avatar", sv.handleRotateAvatar)
+		r.Get("/account/export", sv.handleExportData)
 	})
 
 	mux.Group(func(r chi.Router) {

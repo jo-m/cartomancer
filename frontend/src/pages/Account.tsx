@@ -228,6 +228,21 @@ export default function Account() {
         </form>
       </Card>
 
+      <Card className="mb-6 p-6">
+        <h2 className="mb-4 text-base font-medium text-text">Data Export</h2>
+        <p className="mb-3 text-sm text-text-secondary">
+          Download a ZIP archive containing all your tracks and metadata.
+        </p>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            window.location.href = "/api/account/export"
+          }}
+        >
+          Export my data
+        </Button>
+      </Card>
+
       <Card className="border-error-border p-6">
         <h2 className="mb-4 text-base font-medium text-error">Danger Zone</h2>
         {confirmDelete ? (
