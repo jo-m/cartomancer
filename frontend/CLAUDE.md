@@ -164,6 +164,7 @@ SVGs in `src/assets/` must use `currentColor` (not hardcoded colors like `#000`)
 - Error/success feedback: Use the `useToast` hook (`src/hooks/useToast.ts`) to manage toast state, paired with the `Toast` component for rendering. Call `showToast(message)` for errors or `showToast(message, "success")` for success. Render with `{toast && <Toast key={toast.key} message={toast.message} variant={toast.variant} onDismiss={dismissToast} />}`. The `key` prop ensures repeated identical messages re-trigger the auto-dismiss timer. Avoid inline success/error `<p>` elements that persist indefinitely.
 - External links: Any `href` sourced from the API or database (e.g. track author links, attribution URLs) must NOT link directly to the external site. Instead, route them through the `/leaving` interstitial page using the `externalUrl()`. Links hardcoded in the backend are exempt.
 - NEVER must any assets in the frontend be loaded from a third party domain. All assets must be included in the build.
+- A Content-Security-Policy meta tag is injected at build time by the `cspPlugin` in `vite.config.ts`. If a new external origin is added (e.g. a tile server, API, or font CDN), the `cspContent` directives in that plugin must be updated to allow it.
 
 ## Linting
 
