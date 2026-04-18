@@ -31,6 +31,7 @@ import NotFound from "./pages/NotFound"
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      staleTime: 2 * 60 * 1000,
       retry: (failureCount, error) => {
         if (
           error instanceof ApiError &&
