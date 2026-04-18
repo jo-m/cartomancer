@@ -18,7 +18,6 @@ import MapHoverOverlay from "../components/MapHoverOverlay"
 import FullscreenMapDialog from "../components/FullscreenMapDialog"
 import ForecastControls from "../components/ForecastControls"
 import TrackDetails from "../components/TrackDetails"
-import TrackEditForm from "../components/TrackEditForm"
 import { useHoverStore } from "../hooks/useHoverSync"
 import { useForecast } from "../hooks/useForecast"
 import useDocumentTitle from "../hooks/useDocumentTitle"
@@ -33,6 +32,8 @@ export default function Track() {
 
   const { toast, showToast, dismissToast } = useToast()
   const [mapFullscreen, setMapFullscreen] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameValue, setNameValue] = useState("")
   const hoverStore = useHoverStore()
 
   const trackColor = getTrackColor()
@@ -71,8 +72,36 @@ export default function Track() {
     onForecastError
   )
 
+  const editMutation = $api.useMutation("patch", "/tracks/{uuid}")
   const starMutation = $api.useMutation("post", "/tracks/{uuid}/star")
   const unstarMutation = $api.useMutation("delete", "/tracks/{uuid}/star")
+
+  async function saveName() {
+    if (!data || !nameValue.trim() || nameValue.trim() === data.name) {
+      setEditingName(false)
+      return
+    }
+    try {
+      await editMutation.mutateAsync({
+        params: { path: { uuid: data.uuid } },
+        body: {
+          name: nameValue.trim(),
+          public: data.public ?? false,
+          trackType: data.trackType,
+          sport: data.sport,
+          subSport: data.subSport,
+          tags: data.tags,
+        },
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ["get", "/tracks/{uuid}"],
+      })
+      setEditingName(false)
+      showToast("Track saved.", "success")
+    } catch (err) {
+      showToast((err as Error).message)
+    }
+  }
 
   async function toggleStar() {
     if (!data) return
@@ -141,7 +170,31 @@ export default function Track() {
       </div>
 
       <div className="mt-2 flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-bold text-text">{data.name}</h1>
+        {editingName ? (
+          <input
+            autoFocus
+            value={nameValue}
+            onChange={(e) => setNameValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveName()
+              if (e.key === "Escape") setEditingName(false)
+            }}
+            onBlur={saveName}
+            className="flex-1 rounded border border-border bg-panel px-2 py-1 text-2xl font-bold text-text transition-colors focus:border-primary focus:outline-none"
+          />
+        ) : (
+          <h1
+            className={`text-2xl font-bold text-text ${data.isOwner ? "cursor-pointer hover:text-primary transition-colors" : ""}`}
+            onClick={() => {
+              if (data.isOwner) {
+                setNameValue(data.name)
+                setEditingName(true)
+              }
+            }}
+          >
+            {data.name}
+          </h1>
+        )}
         {user && (
           <button
             onClick={toggleStar}
@@ -274,15 +327,11 @@ export default function Track() {
         />
       )}
 
-      <TrackDetails track={data} />
-
-      {data.isOwner && (
-        <TrackEditForm
-          track={data}
-          onError={(msg) => showToast(msg)}
-          onSuccess={(msg) => showToast(msg, "success")}
-        />
-      )}
+      <TrackDetails
+        track={data}
+        onError={(msg) => showToast(msg)}
+        onSuccess={(msg) => showToast(msg, "success")}
+      />
     </PageContainer>
   )
 }

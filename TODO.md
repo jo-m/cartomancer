@@ -76,7 +76,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Mobile friendly and responsive
   - [x] Use full width on desktop
   - [x] Use https://github.com/simonw/rodney to let Claude inspect the frontend and CSS, or https://github.com/ChromeDevTools/chrome-devtools-mcp/tree/main
-  - [ ] Nicer UI for track editing
+  - [x] Nicer UI for track editing
   - [x] In `App.tsx` let `QueryClient` use `staleTime`.
   - [x] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
   - [x] Frontend aria/accessibility
@@ -84,6 +84,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Bulk editing and deletion of tracks
   - [x] Automatic dark mode
   - [x] Page `<title>` management
+- [ ] Add "Notes" property to tracks, editable by user.
 
 ## Before initial push/deploy
 
@@ -122,7 +123,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Rate limiting for sensitive endpoints (login etc), or hint for deployment
 - [x] Self-serve full data export for users
 - [ ] TOTP login for users
-- [ ] Decide on what can be seen by anon/non logged in users.
+- [x] Decide on what can be seen by anon/non logged in users.
 - [ ] Hints in the frontend:
   - [ ] Email will always stay private, name is shown
   - [ ] Advanced email normalization (e.g. Gmail dots, +tags)
@@ -131,7 +132,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 ## Later (maybe)
 
 - [ ] Check in the generated files
-- [ ] Update to Vite 8
+- [x] Update to Vite 8
 - [ ] https://brandur.org/two-phase-render
 - [ ] Skills/subagents
 - [ ] Load/show GPX wpts, see `internal/pkg/load/testdata/COURSE_436298480.gpx`
