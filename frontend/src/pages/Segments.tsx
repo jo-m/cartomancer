@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { $api } from "../api/client"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import OlMap from "ol/Map"
 import OlView from "ol/View"
 import TileLayer from "ol/layer/Tile"
@@ -36,6 +37,7 @@ const junctionStyle = new Style({
 
 /** Segments displays all extracted segments and junctions on a single map. */
 export default function Segments() {
+  useDocumentTitle("Segments")
   const navigate = useNavigate()
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<OlMap | null>(null)

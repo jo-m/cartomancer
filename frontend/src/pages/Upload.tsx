@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Link } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { fetchClient, $api } from "../api/client"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import SvgPreview from "../components/SvgPreview"
 import { useSession } from "../context/SessionContext"
 import TagsInput from "../components/TagsInput"
@@ -79,6 +80,7 @@ async function uploadFile(
 }
 
 export default function Upload() {
+  useDocumentTitle("Upload")
   const queryClient = useQueryClient()
   const { user } = useSession()
   const userUuid = user!.uuid

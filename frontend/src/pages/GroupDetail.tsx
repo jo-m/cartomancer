@@ -1,10 +1,12 @@
 import { Link, useParams } from "react-router-dom"
 import { $api } from "../api/client"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import TrackCard from "../components/TrackCard"
 import PageContainer from "../components/ui/PageContainer"
 
 /** GroupDetail displays all member tracks of a single track group. */
 export default function GroupDetail() {
+  useDocumentTitle("Group")
   const { uuid } = useParams<{ uuid: string }>()
   const { data, isLoading, error } = $api.useQuery(
     "get",

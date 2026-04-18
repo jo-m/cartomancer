@@ -1,9 +1,11 @@
 import { $api } from "../api/client"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
 
 /** About page showing build version and dependency information. */
 export default function About() {
+  useDocumentTitle("About")
   const { data, isLoading, error } = $api.useQuery("get", "/version")
 
   return (

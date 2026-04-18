@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom"
 import { $api } from "../api/client"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import PageContainer from "../components/ui/PageContainer"
 
 /** Groups lists all track groups for the current user. */
 export default function Groups() {
+  useDocumentTitle("Groups")
   const { data, isLoading, error } = $api.useQuery("get", "/tracks/groups")
 
   return (

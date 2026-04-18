@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { $api } from "../api/client"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import { useUrlState, stringParam } from "../hooks/useUrlState"
 import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
@@ -14,6 +15,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function AdminForecasts() {
+  useDocumentTitle("Forecasts")
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const searchSchema = useMemo(() => ({ q: stringParam() }), [])
   const [urlState, setUrlState] = useUrlState(searchSchema)

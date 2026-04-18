@@ -21,6 +21,7 @@ import TrackDetails from "../components/TrackDetails"
 import TrackEditForm from "../components/TrackEditForm"
 import { useHoverStore } from "../hooks/useHoverSync"
 import { useForecast } from "../hooks/useForecast"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import PageContainer from "../components/ui/PageContainer"
 import Alert from "../components/ui/Alert"
 
@@ -39,6 +40,8 @@ export default function Track() {
   const { data, isLoading, error } = $api.useQuery("get", "/tracks/{uuid}", {
     params: { path: { uuid: uuid! } },
   })
+
+  useDocumentTitle(data?.name)
 
   const { data: pointsData } = $api.useQuery("get", "/tracks/{uuid}/points", {
     params: { path: { uuid: uuid! } },

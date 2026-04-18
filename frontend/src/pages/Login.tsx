@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useSession } from "../context/SessionContext"
 import { useAppConfig, ApiError } from "../api/client"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import Card from "../components/ui/Card"
 import Input from "../components/ui/Input"
 import Button from "../components/ui/Button"
@@ -17,6 +18,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 export default function Login() {
+  useDocumentTitle("Login")
   const { login } = useSession()
   const { data: appConfig } = useAppConfig()
   const navigate = useNavigate()

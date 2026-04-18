@@ -2,10 +2,12 @@ import { useState } from "react"
 import { useSearchParams, Link } from "react-router-dom"
 import { useSession } from "../context/SessionContext"
 import { fetchClient } from "../api/client"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import Card from "../components/ui/Card"
 import Button from "../components/ui/Button"
 
 export default function ConfirmEmail() {
+  useDocumentTitle("Confirm Email")
   const [searchParams] = useSearchParams()
   const token = searchParams.get("token")
   const { invalidateSession } = useSession()

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useSession } from "../context/SessionContext"
 import { $api } from "../api/client"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import Toast from "../components/Toast"
 import useToast from "../hooks/useToast"
 import PageContainer from "../components/ui/PageContainer"
@@ -31,6 +32,7 @@ type ChangeEmailData = z.infer<typeof changeEmailSchema>
 type PasswordData = z.infer<typeof passwordSchema>
 
 export default function Account() {
+  useDocumentTitle("Account")
   const { user, invalidateSession, logout } = useSession()
   const navigate = useNavigate()
   const [confirmDelete, setConfirmDelete] = useState(false)

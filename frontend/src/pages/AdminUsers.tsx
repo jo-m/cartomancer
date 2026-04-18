@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { $api, fetchClient } from "../api/client"
 import { useSession } from "../context/SessionContext"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import { useUrlState, stringParam } from "../hooks/useUrlState"
 import Toast from "../components/Toast"
 import useToast from "../hooks/useToast"
@@ -30,6 +31,7 @@ const userSchema = z.object({
 type UserFormData = z.infer<typeof userSchema>
 
 export default function AdminUsers() {
+  useDocumentTitle("Users")
   const { user: currentUser } = useSession()
   const searchSchema = useMemo(() => ({ q: stringParam() }), [])
   const [urlState, setUrlState] = useUrlState(searchSchema)

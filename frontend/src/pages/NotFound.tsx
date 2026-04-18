@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import Button from "../components/ui/Button"
 
 export default function NotFound() {
+  useDocumentTitle("Not Found")
   return (
     <div className="flex min-h-[calc(100vh-var(--nav-height))] items-center justify-center">
       <div className="text-center">

@@ -1,11 +1,13 @@
 import { Link, useParams } from "react-router-dom"
 import { $api } from "../api/client"
+import useDocumentTitle from "../hooks/useDocumentTitle"
 import SegmentMap from "../components/SegmentMap"
 import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
 
 /** SegmentDetail shows details for a single segment. */
 export default function SegmentDetail() {
+  useDocumentTitle("Segment")
   const { uuid } = useParams<{ uuid: string }>()
 
   const { data, isLoading, error } = $api.useQuery(

@@ -132,6 +132,7 @@ The track grid (`components/TrackGrid.tsx`) delegates to:
 Hooks in `src/hooks/`:
 - `useUrlState` — sync component state with URL search params
 - `useHoverSync` — shared hover index store for coordinated chart/map hover
+- `useDocumentTitle` — sets `document.title` to `"Title | Cartomancer"`. Call with no argument for the base title alone. Every page component must call this hook. For pages with dynamic data (e.g. Track), pass the data field (e.g. `data?.name`) so the title updates when data loads.
 - `useToast` — toast notification state with re-trigger support via incrementing key. Returns `{ toast, showToast, dismissToast }`
 - `useForecast` — forecast data fetching and state management for a single track
 

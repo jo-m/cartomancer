@@ -54,7 +54,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Maybe do import in a temp table which is then renamed
   - [x] `geocode` -> `geonames` in api
   - [ ] Track filtering by location
-  - [ ] Maybe use simple index for search (faster, but can do only prefix)
+  - [ ] ~~Maybe use simple index for search (faster, but can do only prefix)~~
 - [ ] Extract segments to allow for "remixing" of tracks
   - [ ] Ensure deleting tracks also correctly deletes segments
   - [ ] Ensure the segments job also cleans the database before inserting
@@ -83,7 +83,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Avoid any layout shifts with interactive elements
   - [x] Bulk editing and deletion of tracks
   - [x] Automatic dark mode
-  - [ ] Page `<title>` management
+  - [x] Page `<title>` management
 
 ## Before initial push/deploy
 
