@@ -133,9 +133,7 @@ export default function TrackDetails({
     }
   }
 
-  const editableClass = isOwner
-    ? "cursor-pointer hover:text-primary transition-colors"
-    : ""
+  const editableClass = isOwner ? "editable-field" : ""
 
   const selectClass =
     "rounded border border-border bg-panel px-2 py-1 text-sm text-text focus:border-primary focus:outline-none cursor-pointer transition-colors"
@@ -314,7 +312,7 @@ export default function TrackDetails({
               Visibility
             </dt>
             <dd className="mt-0.5 text-sm text-text">
-              <label className="inline-flex items-center gap-1.5 cursor-pointer">
+              <label className="editable-field inline-flex items-center gap-1.5">
                 <input
                   type="checkbox"
                   checked={track.public ?? false}
@@ -387,7 +385,7 @@ export default function TrackDetails({
             </div>
           ) : (
             <div
-              className={`flex flex-wrap items-center gap-1.5 ${isOwner ? "cursor-pointer" : ""}`}
+              className={`flex flex-wrap items-center gap-1.5 ${isOwner ? "editable-field pb-0.5" : ""}`}
               onClick={() => {
                 if (isOwner) {
                   setEditTags([...track.tags])

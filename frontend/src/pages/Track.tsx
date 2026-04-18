@@ -185,7 +185,7 @@ export default function Track() {
           />
         ) : (
           <h1
-            className={`text-2xl font-bold text-text ${data.isOwner ? "cursor-pointer hover:text-primary transition-colors" : ""}`}
+            className={`text-2xl font-bold text-text ${data.isOwner ? "editable-field" : ""}`}
             onClick={() => {
               if (data.isOwner) {
                 setNameValue(data.name)
