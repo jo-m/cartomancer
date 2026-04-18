@@ -43,6 +43,8 @@ tags:
     description: Current user account management
   - name: Stars
     description: Track starring
+  - name: Comments
+    description: Track comments
   - name: Admin
     description: Administrative user management
   - name: Geocode
@@ -208,6 +210,197 @@ paths:
                 $ref: "#/components/schemas/Error"
         "404":
           description: Star not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tracks/{uuid}/comments:
+    get:
+      summary: List comments on a track
+      operationId: listTrackComments
+      tags: [Comments]
+      security: []
+      description: >
+        Returns all comments on the given track. Anonymous callers can only
+        see comments on public tracks. Deleted comments have an empty body
+        and deleted=true.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Comments list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentsListResponse"
+        "404":
+          description: Track not found or not accessible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      summary: Create a comment on a track
+      operationId: createTrackComment
+      tags: [Comments]
+      description: >
+        Adds a comment to the given track. The caller must be authenticated
+        and the track must be visible (own track or public).
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommentRequest"
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Track not found or not accessible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tracks/{uuid}/comments/{commentUUID}:
+    patch:
+      summary: Edit a comment
+      operationId: editTrackComment
+      tags: [Comments]
+      description: >
+        Edits the body of a comment. Only the comment author can edit.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentUUID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditCommentRequest"
+      responses:
+        "204":
+          description: Comment updated
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not allowed to edit this comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      summary: Delete a comment
+      operationId: deleteTrackComment
+      tags: [Comments]
+      description: >
+        Soft-deletes a comment (body is cleared, marked as deleted).
+        The comment author or the track owner can delete a comment.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: commentUUID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Comment deleted
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Not allowed to delete this comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Comment not found
           content:
             application/json:
               schema:
@@ -3185,3 +3378,72 @@ components:
         admin2Name:
           type: string
           description: Second-level administrative division name (e.g. county, district)
+
+    CommentResponse:
+      type: object
+      required:
+        - uuid
+        - trackId
+        - user
+        - body
+        - bodyHtml
+        - deleted
+        - createdAt
+        - updatedAt
+        - canEdit
+        - canDelete
+      properties:
+        uuid:
+          type: string
+        trackId:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserRef"
+        body:
+          type: string
+          description: Raw markdown source text.
+        bodyHtml:
+          type: string
+          description: Server-rendered and sanitized HTML from the markdown body.
+        deleted:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        canEdit:
+          type: boolean
+        canDelete:
+          type: boolean
+
+    CommentsListResponse:
+      type: object
+      required:
+        - comments
+      properties:
+        comments:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommentResponse"
+
+    CreateCommentRequest:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 10000
+
+    EditCommentRequest:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 10000

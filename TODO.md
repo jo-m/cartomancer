@@ -64,7 +64,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [ ] Re-enable the segmenting job
   - [ ] New approach for finding junctions: Iterate through all tracks, with cells, and for each cell keep the (interpolated) GPX track points. Then do negative filtering based on that.
 - [ ] Track grouping: treat recorded vs. planned tracks differently
-- [ ] Frontend polishing
+- [x] Frontend polishing
   - [ ] Unified display of dates/times in frontend (iso and 24h format, "x ago")
   - [x] Shared components
   - [x] New tagline (also update repo desc)
@@ -84,7 +84,8 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Bulk editing and deletion of tracks
   - [x] Automatic dark mode
   - [x] Page `<title>` management
-- [ ] Add "Notes" property to tracks, editable by user.
+  - [ ] Inline editing - show the editable properties with a subtle underline.
+- [x] Add "Notes" property to tracks, editable by user.
 
 ## Before initial push/deploy
 

@@ -98,6 +98,7 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 	mux.Get("/tracks/{uuid}/points", sv.handleGetTrackPoints)
 	mux.Get("/tracks/{uuid}/road-closures", sv.handleGetTrackRoadClosures)
 	mux.Get("/tracks/{uuid}/forecast", sv.handleGetTrackForecast)
+	mux.Get("/tracks/{uuid}/comments", sv.handleListTrackComments)
 	mux.Get("/tags", sv.handleSuggestTags)
 	mux.Get("/geocode/search/name", sv.handleSearchGeocodeName)
 
@@ -110,6 +111,9 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 		r.Post("/tracks", sv.handleUploadTrack)
 		r.Post("/tracks/{uuid}/star", sv.handleStarTrack)
 		r.Delete("/tracks/{uuid}/star", sv.handleUnstarTrack)
+		r.Post("/tracks/{uuid}/comments", sv.handleCreateTrackComment)
+		r.Patch("/tracks/{uuid}/comments/{commentUUID}", sv.handleEditTrackComment)
+		r.Delete("/tracks/{uuid}/comments/{commentUUID}", sv.handleDeleteTrackComment)
 		r.Patch("/tracks", sv.handleBulkEditTracks)
 		r.Get("/tracks/editing", sv.handleListTracksForEditing)
 		r.Patch("/tracks/{uuid}", sv.handleEditTrack)

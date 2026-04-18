@@ -18,6 +18,7 @@ import MapHoverOverlay from "../components/MapHoverOverlay"
 import FullscreenMapDialog from "../components/FullscreenMapDialog"
 import ForecastControls from "../components/ForecastControls"
 import TrackDetails from "../components/TrackDetails"
+import CommentSection from "../components/CommentSection"
 import { useHoverStore } from "../hooks/useHoverSync"
 import { useForecast } from "../hooks/useForecast"
 import useDocumentTitle from "../hooks/useDocumentTitle"
@@ -332,6 +333,12 @@ export default function Track() {
           sunEvents={forecast.sunEvents}
         />
       )}
+
+      <CommentSection
+        trackUUID={data.uuid}
+        isPublicOrOwner={data.public || data.isOwner}
+        onError={(msg) => showToast(msg)}
+      />
     </PageContainer>
   )
 }

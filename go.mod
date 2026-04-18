@@ -21,10 +21,12 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/lmittmann/tint v1.1.3
+	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/muktihari/fit v0.27.2
 	github.com/paulmach/orb v0.12.0
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.27.0
+	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/sixdouglas/suncalc v0.0.0-20250114185126-291b1938b70c
 	github.com/stretchr/testify v1.11.1
 	github.com/twpayne/go-kml/v3 v3.6.0
@@ -54,6 +56,7 @@ require (
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
+	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bep/godartsass v1.2.0 // indirect
 	github.com/bep/godartsass/v2 v2.1.0 // indirect
 	github.com/bep/golibsass v1.2.0 // indirect
@@ -93,6 +96,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.14.1 // indirect
 	github.com/gookit/color v1.5.4 // indirect
 	github.com/gorilla/context v1.1.2 // indirect
+	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/pat v1.0.2 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
