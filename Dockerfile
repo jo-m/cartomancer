@@ -10,13 +10,14 @@ RUN npm run build
 # Stage 2: Build backend
 FROM golang:1.26.2-alpine AS backend
 RUN apk add --no-cache gcc musl-dev
+ARG VERSION="(devel)"
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=frontend /app/static ./static
 RUN go generate ./...
-RUN go build -trimpath -ldflags="-s -w -linkmode external -extldflags '-static'" -o /cartomancer .
+RUN go build -trimpath -ldflags="-s -w -linkmode external -extldflags '-static' -X jo-m.ch/go/cartomancer/internal/pkg/api.buildVersion=${VERSION}" -o /cartomancer .
 RUN mkdir /data
 
 # Stage 3: Final minimal image

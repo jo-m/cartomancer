@@ -10,6 +10,11 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures"
 )
 
+// buildVersion overrides the version reported by the /version endpoint.
+// Set at build time via -ldflags "-X jo-m.ch/go/cartomancer/internal/pkg/api.buildVersion=v1.2.3".
+// When empty, falls back to the module version from debug.ReadBuildInfo.
+var buildVersion string
+
 type buildInfoModule struct {
 	Path    string `json:"path"`
 	Version string `json:"version"`
@@ -31,10 +36,15 @@ func (sv *server) handleGetVersion(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 
+	version := buildVersion
+	if version == "" {
+		version = info.Main.Version
+	}
+
 	resp := versionResponse{
 		GoVersion: info.GoVersion,
 		Path:      info.Main.Path,
-		Version:   info.Main.Version,
+		Version:   version,
 		Deps:      make([]buildInfoModule, 0, len(info.Deps)),
 		Attributions: []attribute.Attribution{
 			meteo.DataAttribution,
