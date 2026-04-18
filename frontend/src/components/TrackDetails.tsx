@@ -146,34 +146,13 @@ export default function TrackDetails({
 
   return (
     <>
-      {isOwner && (
-        <div className="mt-6 flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="track-public-toggle"
-            checked={track.public ?? false}
-            onChange={(e) => saveField({ public: e.target.checked })}
-            className="rounded border-border accent-primary cursor-pointer"
-            disabled={editMutation.isPending}
-          />
-          <label
-            htmlFor="track-public-toggle"
-            className="text-sm text-text-secondary cursor-pointer"
-          >
-            Public
-          </label>
-        </div>
-      )}
-
-      <dl
-        className={`${isOwner ? "mt-4" : "mt-6"} grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3`}
-      >
+      <dl className="mt-4 grid grid-cols-3 gap-x-6 gap-y-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
         <div>
           <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-text-muted">
             <SvgIcon svg={distanceSvg} className="h-3.5 w-3.5" />
             Distance
           </dt>
-          <dd className="mt-1 text-sm text-text">
+          <dd className="mt-0.5 text-sm text-text">
             {formatDistance(track.totalDistanceM)}
           </dd>
         </div>
@@ -183,7 +162,7 @@ export default function TrackDetails({
             <SvgIcon svg={elevationSvg} className="h-3.5 w-3.5" />
             Ascent
           </dt>
-          <dd className="mt-1 text-sm text-text">
+          <dd className="mt-0.5 text-sm text-text">
             {formatAscent(track.totalAscentM)}
           </dd>
         </div>
@@ -192,28 +171,26 @@ export default function TrackDetails({
           <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
             Sport
           </dt>
-          <dd className="mt-1 text-sm text-text">
+          <dd className="mt-0.5 text-sm text-text">
             {editingField === "sport" ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  autoFocus
-                  value={track.sport}
-                  onChange={(e) =>
-                    handleSelectChange("sport", Number(e.target.value))
-                  }
-                  onBlur={() => setEditingField(null)}
-                  className={selectClass}
-                  aria-label="Sport"
-                >
-                  {Object.entries(SPORT_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                autoFocus
+                value={track.sport}
+                onChange={(e) =>
+                  handleSelectChange("sport", Number(e.target.value))
+                }
+                onBlur={() => setEditingField(null)}
+                className={selectClass}
+                aria-label="Sport"
+              >
+                {Object.entries(SPORT_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </select>
             ) : editingField === "subSport" ? (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1">
                 <span>{SPORT_LABELS[track.sport] ?? track.sport}</span>
                 <select
                   autoFocus
@@ -270,7 +247,7 @@ export default function TrackDetails({
           <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
             Type
           </dt>
-          <dd className="mt-1 text-sm text-text">
+          <dd className="mt-0.5 text-sm text-text">
             {editingField === "trackType" ? (
               <select
                 autoFocus
@@ -306,7 +283,7 @@ export default function TrackDetails({
           <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
             Format
           </dt>
-          <dd className="mt-1 text-sm text-text">
+          <dd className="mt-0.5 text-sm text-text">
             {FILE_FORMAT_LABELS[track.fileFormat] ?? track.fileFormat}
           </dd>
         </div>
@@ -316,7 +293,7 @@ export default function TrackDetails({
             <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
               Activity date
             </dt>
-            <dd className="mt-1 text-sm text-text">
+            <dd className="mt-0.5 text-sm text-text">
               {formatDate(track.originalCreatedAt)}
             </dd>
           </div>
@@ -326,17 +303,39 @@ export default function TrackDetails({
           <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
             Uploaded
           </dt>
-          <dd className="mt-1 text-sm text-text">
+          <dd className="mt-0.5 text-sm text-text">
             {formatDate(track.createdAt)}
           </dd>
         </div>
 
+        {isOwner && (
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
+              Visibility
+            </dt>
+            <dd className="mt-0.5 text-sm text-text">
+              <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={track.public ?? false}
+                  onChange={(e) => saveField({ public: e.target.checked })}
+                  className="rounded border-border accent-primary cursor-pointer"
+                  disabled={editMutation.isPending}
+                />
+                <span className="text-text-secondary">
+                  {track.public ? "Public" : "Private"}
+                </span>
+              </label>
+            </dd>
+          </div>
+        )}
+
         {track.author && (
-          <div className="col-span-2 sm:col-span-3">
+          <div className="col-span-2">
             <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
               Author
             </dt>
-            <dd className="mt-1 text-sm text-text">
+            <dd className="mt-0.5 text-sm text-text">
               {track.authorLinkUrl ? (
                 <a
                   href={externalUrl(track.authorLinkUrl)}
@@ -352,11 +351,11 @@ export default function TrackDetails({
         )}
 
         {track.linkUrl && (
-          <div className="col-span-2 sm:col-span-3">
+          <div className="col-span-2">
             <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
               Link
             </dt>
-            <dd className="mt-1 text-sm truncate">
+            <dd className="mt-0.5 text-sm truncate">
               <a
                 href={externalUrl(track.linkUrl)}
                 className="text-text-secondary hover:text-text underline text-sm transition-colors"
@@ -369,10 +368,9 @@ export default function TrackDetails({
       </dl>
 
       {(track.tags.length > 0 || isOwner) && (
-        <div className="mt-6">
-          <SectionHeading>Tags</SectionHeading>
+        <div className="mt-3">
           {editingField === "tags" ? (
-            <div className="mt-2">
+            <div>
               <TagsInput value={editTags} onChange={setEditTags} />
               <div className="mt-2 flex gap-2">
                 <Button
@@ -389,7 +387,7 @@ export default function TrackDetails({
             </div>
           ) : (
             <div
-              className={`mt-2 flex flex-wrap gap-1.5 ${isOwner ? "cursor-pointer" : ""}`}
+              className={`flex flex-wrap items-center gap-1.5 ${isOwner ? "cursor-pointer" : ""}`}
               onClick={() => {
                 if (isOwner) {
                   setEditTags([...track.tags])
@@ -419,9 +417,9 @@ export default function TrackDetails({
       )}
 
       {track.similarTracks.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-3">
           <SectionHeading>Similar tracks</SectionHeading>
-          <ul className="mt-2 space-y-1">
+          <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
             {track.similarTracks.map((st) => (
               <li key={st.uuid}>
                 <Link
@@ -429,7 +427,7 @@ export default function TrackDetails({
                   className="text-sm text-text-secondary hover:text-text transition-colors"
                 >
                   {st.name}
-                  <span className="ml-1.5 text-text-muted">
+                  <span className="ml-1 text-text-muted">
                     {formatDistance(st.totalDistanceM)}
                   </span>
                 </Link>
@@ -439,7 +437,7 @@ export default function TrackDetails({
         </div>
       )}
 
-      <div className="mt-6 flex items-center justify-between">
+      <div className="mt-3 flex items-center justify-between">
         <a
           href={`/api/tracks/${track.uuid}/download`}
           className="text-sm text-text-muted hover:text-text-secondary transition-colors"

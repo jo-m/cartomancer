@@ -231,6 +231,12 @@ export default function Track() {
         <p className="mt-2 text-sm text-text-secondary">{data.description}</p>
       )}
 
+      <TrackDetails
+        track={data}
+        onError={(msg) => showToast(msg)}
+        onSuccess={(msg) => showToast(msg, "success")}
+      />
+
       <div className="mt-6">
         {trackPoints && trackPoints.length > 0 ? (
           <div className="relative">
@@ -326,12 +332,6 @@ export default function Track() {
           sunEvents={forecast.sunEvents}
         />
       )}
-
-      <TrackDetails
-        track={data}
-        onError={(msg) => showToast(msg)}
-        onSuccess={(msg) => showToast(msg, "success")}
-      />
     </PageContainer>
   )
 }
