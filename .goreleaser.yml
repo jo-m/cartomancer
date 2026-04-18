@@ -2,6 +2,11 @@ version: 2
 
 release:
   mode: replace
+  header: |
+    ## Release Notes
+
+    **TODO**
+
   footer: |
     ## Docker Images
 
