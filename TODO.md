@@ -78,7 +78,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Use https://github.com/simonw/rodney to let Claude inspect the frontend and CSS, or https://github.com/ChromeDevTools/chrome-devtools-mcp/tree/main
   - [ ] Nicer UI for track editing
   - [x] In `App.tsx` let `QueryClient` use `staleTime`.
-  - [ ] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
+  - [x] Add `<ErrorBoundary>` somewhere, especially considering `client.ts` will throw
   - [x] Frontend aria/accessibility
   - [x] Avoid any layout shifts with interactive elements
   - [x] Bulk editing and deletion of tracks
