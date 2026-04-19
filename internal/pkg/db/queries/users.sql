@@ -67,6 +67,11 @@ UPDATE users
 SET email = ?, email_confirmed = 1, updated_at = ?
 WHERE uuid = ?;
 
+-- name: UpdateUserLocation :execrows
+UPDATE users
+SET updated_at = ?, location_name = ?, location_lat = ?, location_lon = ?
+WHERE uuid = ?;
+
 -- name: DeleteUser :execrows
 DELETE FROM users
 WHERE uuid = ?;

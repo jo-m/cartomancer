@@ -78,11 +78,5 @@ func (sv *server) handleRotateAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, userResponse{
-		UUID:       u.Uuid,
-		Email:      u.Email,
-		Name:       u.Name,
-		Admin:      u.Admin != 0,
-		AvatarSeed: u.AvatarSeed,
-	})
+	writeJSON(w, http.StatusOK, makeUserResponse(&u))
 }

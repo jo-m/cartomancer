@@ -45,8 +45,11 @@ var demoTriggers = []string{
 	  OR OLD.password_hash   IS NOT NEW.password_hash
 	  OR OLD.otp_secret      IS NOT NEW.otp_secret
 	  OR OLD.admin           IS NOT NEW.admin
-	  OR OLD.email_confirmed IS NOT NEW.email_confirmed
-	  OR OLD.avatar_seed     IS NOT NEW.avatar_seed
+	  OR OLD.email_confirmed    IS NOT NEW.email_confirmed
+	  OR OLD.avatar_seed        IS NOT NEW.avatar_seed
+	  OR OLD.location_name IS NOT NEW.location_name
+	  OR OLD.location_lat  IS NOT NEW.location_lat
+	  OR OLD.location_lon  IS NOT NEW.location_lon
 	 )
 	 BEGIN
 	     SELECT RAISE(ABORT, 'demo mode: user modification is disabled');

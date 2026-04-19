@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
@@ -21,11 +22,31 @@ type sessionResponse struct {
 }
 
 type userResponse struct {
-	UUID       string `json:"uuid"`
-	Email      string `json:"email"`
-	Name       string `json:"name"`
-	Admin      bool   `json:"admin"`
-	AvatarSeed string `json:"avatarSeed"`
+	UUID         string   `json:"uuid"`
+	Email        string   `json:"email"`
+	Name         string   `json:"name"`
+	Admin        bool     `json:"admin"`
+	AvatarSeed   string   `json:"avatarSeed"`
+	LocationName *string  `json:"locationName"`
+	LocationLat  *float64 `json:"locationLat"`
+	LocationLon  *float64 `json:"locationLon"`
+}
+
+// makeUserResponse builds a userResponse from a database user.
+func makeUserResponse(u *db.User) userResponse {
+	resp := userResponse{
+		UUID:       u.Uuid,
+		Email:      u.Email,
+		Name:       u.Name,
+		Admin:      u.Admin != 0,
+		AvatarSeed: u.AvatarSeed,
+	}
+	if u.LocationName.Valid {
+		resp.LocationName = &u.LocationName.String
+		resp.LocationLat = &u.LocationLat.Float64
+		resp.LocationLon = &u.LocationLon.Float64
+	}
+	return resp
 }
 
 func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -76,15 +97,10 @@ func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	logg.Debug(ctx, "created new session", "id", sess.Uuid)
 
+	ur := makeUserResponse(&user)
 	writeJSON(w, http.StatusOK, sessionResponse{
 		SessionUUID: sess.Uuid,
-		User: &userResponse{
-			UUID:       user.Uuid,
-			Email:      user.Email,
-			Name:       user.Name,
-			Admin:      user.Admin != 0,
-			AvatarSeed: user.AvatarSeed,
-		},
+		User:        &ur,
 	})
 }
 
@@ -116,13 +132,8 @@ func (sv *server) handleGetSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user := session.GetUser(ctx); user != nil {
-		resp.User = &userResponse{
-			UUID:       user.Uuid,
-			Email:      user.Email,
-			Name:       user.Name,
-			Admin:      user.Admin != 0,
-			AvatarSeed: user.AvatarSeed,
-		}
+		ur := makeUserResponse(user)
+		resp.User = &ur
 	}
 
 	writeJSON(w, http.StatusOK, resp)

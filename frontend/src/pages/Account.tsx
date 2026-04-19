@@ -1,10 +1,10 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useSession } from "../context/SessionContext"
-import { $api } from "../api/client"
+import { $api, fetchClient } from "../api/client"
 import useDocumentTitle from "../hooks/useDocumentTitle"
 import Toast from "../components/Toast"
 import useToast from "../hooks/useToast"
@@ -12,6 +12,133 @@ import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
 import Input from "../components/ui/Input"
 import Button from "../components/ui/Button"
+
+interface LocationValue {
+  name: string
+  lat: number
+  lon: number
+}
+
+interface LocationSearchProps {
+  value: string
+  onSelect: (loc: LocationValue) => void
+  onClear: () => void
+}
+
+type GeonameResult = {
+  id: number
+  name: string
+  latitude: number
+  longitude: number
+  admin1Name: string
+  countryCode: string
+}
+
+function formatGeonameLabel(r: GeonameResult): string {
+  if (r.admin1Name) return `${r.name}, ${r.admin1Name}, ${r.countryCode}`
+  return `${r.name}, ${r.countryCode}`
+}
+
+function LocationSearch({ value, onSelect, onClear }: LocationSearchProps) {
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<GeonameResult[]>([])
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null)
+
+  function handleQueryChange(newQuery: string) {
+    setQuery(newQuery)
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    if (newQuery.length < 2) {
+      setResults([])
+      setOpen(false)
+      return
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      const { data } = await fetchClient.GET("/geocode/search/name", {
+        params: { query: { q: newQuery } },
+      })
+      if (data?.results) {
+        setResults(data.results as GeonameResult[])
+        setOpen(true)
+      }
+    }, 250)
+  }
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
+  if (value && !query) {
+    return (
+      <div>
+        <label className="mb-1 block text-sm font-medium text-text-secondary">
+          Location
+        </label>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-text">{value}</span>
+          <button
+            type="button"
+            onClick={onClear}
+            className="cursor-pointer text-sm text-text-muted transition-colors hover:text-text"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <label className="mb-1 block text-sm font-medium text-text-secondary">
+        Location
+      </label>
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => handleQueryChange(e.target.value)}
+        placeholder="Search for a city..."
+        className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text-muted focus:border-primary focus:outline-none"
+      />
+      {open && results.length > 0 && (
+        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border border-border bg-panel shadow-lg">
+          {results.map((r) => (
+            <li key={r.id}>
+              <button
+                type="button"
+                className="w-full cursor-pointer px-3 py-2 text-left text-sm text-text transition-colors hover:bg-surface"
+                onClick={() => {
+                  onSelect({
+                    name: formatGeonameLabel(r),
+                    lat: r.latitude,
+                    lon: r.longitude,
+                  })
+                  setQuery("")
+                  setOpen(false)
+                }}
+              >
+                {formatGeonameLabel(r)}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 
 const profileSchema = z.object({
   name: z.string().min(1, "Required"),
@@ -37,6 +164,23 @@ export default function Account() {
   const navigate = useNavigate()
   const [confirmDelete, setConfirmDelete] = useState(false)
   const { toast, showToast, dismissToast } = useToast()
+
+  const [localLocation, setLocalLocation] = useState<
+    LocationValue | null | "cleared"
+  >(null)
+
+  const location: LocationValue | null =
+    localLocation === "cleared"
+      ? null
+      : localLocation !== null
+        ? localLocation
+        : user?.locationName
+          ? {
+              name: user.locationName,
+              lat: user.locationLat!,
+              lon: user.locationLon!,
+            }
+          : null
 
   const updateMeMutation = $api.useMutation("patch", "/account")
   const rotateAvatarMutation = $api.useMutation(
@@ -72,7 +216,10 @@ export default function Account() {
 
   async function onUpdateProfile(data: ProfileData) {
     try {
-      await updateMeMutation.mutateAsync({ body: data })
+      await updateMeMutation.mutateAsync({
+        body: { ...data, location: location },
+      })
+      setLocalLocation(null)
       await invalidateSession()
       showToast("Profile updated.", "success")
     } catch (err) {
@@ -153,6 +300,11 @@ export default function Account() {
             type="text"
             error={profileForm.formState.errors.name?.message}
             {...profileForm.register("name")}
+          />
+          <LocationSearch
+            value={location?.name ?? ""}
+            onSelect={(loc) => setLocalLocation(loc)}
+            onClear={() => setLocalLocation("cleared")}
           />
           <Button
             type="submit"

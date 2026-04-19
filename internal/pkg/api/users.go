@@ -29,8 +29,15 @@ func validateName(name string) bool {
 	return nameRe.MatchString(name) && !consecutiveSpecialRe.MatchString(name)
 }
 
+type updateMeLocation struct {
+	Name string  `json:"name"`
+	Lat  float64 `json:"lat"`
+	Lon  float64 `json:"lon"`
+}
+
 type updateMeRequest struct {
-	Name string `json:"name"`
+	Name     string            `json:"name"`
+	Location *updateMeLocation `json:"location"`
 }
 
 func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
@@ -51,6 +58,21 @@ func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Location != nil && req.Location.Name == "" {
+		writeError(w, http.StatusBadRequest, "location name is required when setting a location")
+		return
+	}
+
+	now := time.Now().UTC()
+	locName := sql.NullString{}
+	locLat := sql.NullFloat64{}
+	locLon := sql.NullFloat64{}
+	if req.Location != nil {
+		locName = sql.NullString{Valid: true, String: req.Location.Name}
+		locLat = sql.NullFloat64{Valid: true, Float64: req.Location.Lat}
+		locLon = sql.NullFloat64{Valid: true, Float64: req.Location.Lon}
+	}
+
 	err := sv.d.WithTx(ctx, func(q *db.Queries) error {
 		existing, txErr := q.GetUserByName(ctx, req.Name)
 		if txErr == nil && existing.Uuid != user.Uuid {
@@ -59,10 +81,19 @@ func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 		if txErr != nil && !errors.Is(txErr, sql.ErrNoRows) {
 			return txErr
 		}
-		_, txErr = q.UpdateUserName(ctx, db.UpdateUserNameParams{
-			UpdatedAt: time.Now().UTC(),
+		if _, txErr = q.UpdateUserName(ctx, db.UpdateUserNameParams{
+			UpdatedAt: now,
 			Name:      req.Name,
 			Uuid:      user.Uuid,
+		}); txErr != nil {
+			return txErr
+		}
+		_, txErr = q.UpdateUserLocation(ctx, db.UpdateUserLocationParams{
+			UpdatedAt:    now,
+			LocationName: locName,
+			LocationLat:  locLat,
+			LocationLon:  locLon,
+			Uuid:         user.Uuid,
 		})
 		return txErr
 	})
@@ -71,7 +102,7 @@ func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to update user name", "err", err)
+		logg.Error(ctx, "failed to update account", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
@@ -83,13 +114,7 @@ func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, userResponse{
-		UUID:       u.Uuid,
-		Email:      u.Email,
-		Name:       u.Name,
-		Admin:      u.Admin != 0,
-		AvatarSeed: u.AvatarSeed,
-	})
+	writeJSON(w, http.StatusOK, makeUserResponse(&u))
 }
 
 func (sv *server) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {

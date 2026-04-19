@@ -2652,6 +2652,17 @@ components:
           type: boolean
         avatarSeed:
           type: string
+        locationName:
+          type: string
+          nullable: true
+        locationLat:
+          type: number
+          format: double
+          nullable: true
+        locationLon:
+          type: number
+          format: double
+          nullable: true
 
     AdminUser:
       type: object
@@ -2699,6 +2710,23 @@ components:
           maxLength: 32
           pattern: '^[a-zA-Z_-]{3,32}$'
           description: 3-32 chars, letters/underscores/hyphens only, no consecutive underscores or hyphens
+        location:
+          nullable: true
+          description: User's location, or null to clear
+          type: object
+          required:
+            - name
+            - lat
+            - lon
+          properties:
+            name:
+              type: string
+            lat:
+              type: number
+              format: double
+            lon:
+              type: number
+              format: double
 
     ChangePasswordRequest:
       type: object

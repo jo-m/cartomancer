@@ -20,13 +20,29 @@ export default function Welcome() {
         The gpx track library with a touch of magic.
       </p>
       <div className="flex gap-4">
-        <Link to="/tracks">
-          <Button variant="primary">Browse tracks</Button>
-        </Link>
-        {!user && appConfig?.registrationEnabled && (
-          <Link to="/register">
-            <Button variant="secondary">Create account</Button>
-          </Link>
+        {user ? (
+          <>
+            <Link to="/tracks">
+              <Button variant="primary">Public tracks</Button>
+            </Link>
+            <Link to="/account/tracks">
+              <Button variant="secondary">My tracks</Button>
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link to="/tracks">
+              <Button variant="primary">Browse tracks</Button>
+            </Link>
+            <Link to="/login">
+              <Button variant="secondary">Log in</Button>
+            </Link>
+            {appConfig?.registrationEnabled && (
+              <Link to="/register">
+                <Button variant="secondary">Create account</Button>
+              </Link>
+            )}
+          </>
         )}
       </div>
     </PageContainer>
