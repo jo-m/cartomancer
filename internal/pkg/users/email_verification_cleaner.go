@@ -37,13 +37,36 @@ func NewEmailVerificationCleaner(d *db.DB) *EmailVerificationCleaner {
 var _ jobs.Job[emailVerificationCleanerArgs] = (*EmailVerificationCleaner)(nil)
 
 // Run implements [jobs.Job].
+// It deletes expired email verification records, then removes user accounts
+// that never confirmed their email and no longer have a pending verification.
+// For users who changed their email but did not confirm the new one, the expired
+// verification is simply removed; they remain on their previously confirmed email.
+// Both steps run in a single transaction to avoid a window where an unconfirmed
+// user exists without a verification but has not yet been deleted.
 func (c *EmailVerificationCleaner) Run(ctx context.Context, _ emailVerificationCleanerArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
-	n, err := c.d.QueryRW().DeleteExpiredEmailVerifications(ctx, time.Now())
+	var n, m int64
+	err := c.d.WithTx(ctx, func(q *db.Queries) error {
+		var txErr error
+		n, txErr = q.DeleteExpiredEmailVerifications(ctx, time.Now())
+		if txErr != nil {
+			return txErr
+		}
+		m, txErr = q.DeleteUnconfirmedUsersWithoutVerification(ctx)
+		return txErr
+	})
+	if err != nil {
+		return err
+	}
+
 	if n > 0 {
 		logg.Info(ctx, "cleaned up expired email verifications", "count", n)
 	}
-	return err
+	if m > 0 {
+		logg.Info(ctx, "deleted unconfirmed user accounts", "count", m)
+	}
+
+	return nil
 }

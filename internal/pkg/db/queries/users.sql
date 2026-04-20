@@ -72,6 +72,11 @@ UPDATE users
 SET updated_at = ?, location_name = ?, location_lat = ?, location_lon = ?
 WHERE uuid = ?;
 
+-- name: DeleteUnconfirmedUsersWithoutVerification :execrows
+DELETE FROM users
+WHERE email_confirmed = 0
+  AND uuid NOT IN (SELECT user_id FROM email_verifications);
+
 -- name: DeleteUser :execrows
 DELETE FROM users
 WHERE uuid = ?;

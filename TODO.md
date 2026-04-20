@@ -84,7 +84,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Bulk editing and deletion of tracks
   - [x] Automatic dark mode
   - [x] Page `<title>` management
-  - [ ] Inline editing - show the editable properties with a subtle underline.
+  - [x] Inline editing - show the editable properties with a subtle underline.
 - [x] Add "Notes" property to tracks, editable by user.
 
 ## Before initial push/deploy
@@ -118,7 +118,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 
 - [ ] Find a solution for segments extraction privacy
 - [ ] Add privacy policy, imprint, admin contact (https://notermsnoconditions.com/)
-- [ ] Periodically delete user accounts which have never had their email confirmed
+- [x] Periodically delete user accounts which have never had their email confirmed
 - [ ] Improve email messages sent to users, include instance name and base URL
 - [ ] Self serve password reset flow for users
 - [ ] Rate limiting for sensitive endpoints (login etc), or hint for deployment
