@@ -70,9 +70,9 @@ func TestAdminListForecasts_WithData(t *testing.T) {
 
 func TestAdminListForecasts_Forbidden(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodGet, "/admin/forecasts", nil, nil)
 	assert.Equal(t, http.StatusForbidden, status)

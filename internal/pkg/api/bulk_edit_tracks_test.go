@@ -20,9 +20,9 @@ func TestBulkEditTracks_Unauthenticated(t *testing.T) {
 
 func TestBulkEditTracks_EmptyUUIDs(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPatch, "/tracks", map[string]any{
 		"uuids": []string{},
@@ -32,9 +32,9 @@ func TestBulkEditTracks_EmptyUUIDs(t *testing.T) {
 
 func TestBulkEditTracks_NotFound(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPatch, "/tracks", map[string]any{
 		"uuids":  []string{"nonexistent-uuid"},
@@ -45,18 +45,18 @@ func TestBulkEditTracks_NotFound(t *testing.T) {
 
 func TestBulkEditTracks_OtherUserTrack(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
 	trackUUID := uploaded["uuid"].(string)
 
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 
 	status, _ = e.do(bob, http.MethodPatch, "/tracks", map[string]any{
 		"uuids":  []string{trackUUID},
@@ -67,9 +67,9 @@ func TestBulkEditTracks_OtherUserTrack(t *testing.T) {
 
 func TestBulkEditTracks_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	// Upload two distinct tracks.
 	status, u1 := e.doUpload(client, testGPXFile)
@@ -108,9 +108,9 @@ func TestBulkEditTracks_Success(t *testing.T) {
 
 func TestBulkEditTracks_PartialFields(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(client, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -134,9 +134,9 @@ func TestBulkEditTracks_PartialFields(t *testing.T) {
 
 func TestBulkEditTracks_Tags(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	// Upload two distinct tracks.
 	status, u1 := e.doUpload(client, testGPXFile)
@@ -191,9 +191,9 @@ func TestBulkEditTracks_Tags(t *testing.T) {
 
 func TestBulkEditTracks_NoFieldsProvided(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(client, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)

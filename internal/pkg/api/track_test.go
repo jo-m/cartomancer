@@ -78,9 +78,9 @@ func TestUploadTrack_Unauthenticated(t *testing.T) {
 
 func TestUploadTrack_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, resp := e.doUpload(client, testGPXFile)
 	assert.Equal(t, http.StatusCreated, status)
@@ -91,9 +91,9 @@ func TestUploadTrack_Success(t *testing.T) {
 
 func TestUploadTrack_AppearsInList(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, resp := e.doUpload(client, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -112,9 +112,9 @@ func TestUploadTrack_AppearsInList(t *testing.T) {
 
 func TestUploadTrack_GetByUUID(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(client, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -130,18 +130,18 @@ func TestUploadTrack_GetByUUID(t *testing.T) {
 
 func TestUploadTrack_OtherUserCannotSee(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
 	trackUUID := uploaded["uuid"].(string)
 
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 
 	status, _ = e.do(bob, http.MethodGet, "/tracks/"+trackUUID, nil, nil)
 	assert.Equal(t, http.StatusNotFound, status)
@@ -149,9 +149,9 @@ func TestUploadTrack_OtherUserCannotSee(t *testing.T) {
 
 func TestUploadTrack_DuplicateRejected(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.doUpload(client, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -163,17 +163,17 @@ func TestUploadTrack_DuplicateRejected(t *testing.T) {
 
 func TestUploadTrack_DuplicateAllowedForDifferentUser(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	status, aliceResp := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
 
 	// Same file uploaded by a different user must succeed.
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 	status, bobResp := e.doUpload(bob, testGPXFile)
 	assert.Equal(t, http.StatusCreated, status)
 
@@ -198,10 +198,10 @@ func (e *testEnv) makeTrackPublic(client *http.Client, trackUUID string, trackNa
 
 func TestListTracks_Unauthenticated_OnlyPublic(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	// Alice uploads two tracks; makes one public.
 	status, uploaded1 := e.doUpload(alice, testGPXFile)
@@ -223,17 +223,17 @@ func TestListTracks_Unauthenticated_OnlyPublic(t *testing.T) {
 
 func TestListTracks_OnlyMine(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	status, aliceTrack := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
 	e.makeTrackPublic(alice, aliceTrack["uuid"].(string), aliceTrack["name"].(string))
 
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 	status, _ = e.doUpload(bob, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
 
@@ -249,10 +249,10 @@ func TestListTracks_OnlyMine(t *testing.T) {
 
 func TestGetTrack_Unauthenticated_PublicTrack(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -269,10 +269,10 @@ func TestGetTrack_Unauthenticated_PublicTrack(t *testing.T) {
 
 func TestGetTrack_Unauthenticated_PrivateTrack(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -286,10 +286,10 @@ func TestGetTrack_Unauthenticated_PrivateTrack(t *testing.T) {
 
 func TestGetTrackSVG_Unauthenticated_PublicTrack(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -319,9 +319,9 @@ func (e *testEnv) setTags(client *http.Client, trackUUID string, trackName strin
 
 func TestListTracks_FilterBySport(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, track1 := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -338,9 +338,9 @@ func TestListTracks_FilterBySport(t *testing.T) {
 
 func TestListTracks_FilterByTagOR(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, track1 := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -367,9 +367,9 @@ func TestListTracks_FilterByTagOR(t *testing.T) {
 
 func TestListTracks_FilterByTagAND(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, track1 := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -397,9 +397,9 @@ func TestListTracks_FilterByTagAND(t *testing.T) {
 
 func TestListTracks_SearchByGeoname(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, track1 := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -430,9 +430,9 @@ func TestListTracks_SearchByGeoname(t *testing.T) {
 
 func TestDeleteTrack_Unauthenticated(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -445,26 +445,26 @@ func TestDeleteTrack_Unauthenticated(t *testing.T) {
 
 func TestDeleteTrack_Forbidden(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
 	trackUUID := uploaded["uuid"].(string)
 
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 	status, _ = e.do(bob, http.MethodDelete, "/tracks/"+trackUUID, nil, nil)
 	assert.Equal(t, http.StatusForbidden, status)
 }
 
 func TestDeleteTrack_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -480,9 +480,9 @@ func TestDeleteTrack_Success(t *testing.T) {
 
 func TestDeleteTrack_NotFound(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, _ := e.do(alice, http.MethodDelete, "/tracks/nonexistent-uuid", nil, nil)
 	assert.Equal(t, http.StatusNotFound, status)
@@ -490,10 +490,10 @@ func TestDeleteTrack_NotFound(t *testing.T) {
 
 func TestGetTrackPoints_PublicTrack(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -520,10 +520,10 @@ func TestGetTrackPoints_PublicTrack(t *testing.T) {
 
 func TestGetTrackPoints_PrivateTrack_Forbidden(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -536,10 +536,10 @@ func TestGetTrackPoints_PrivateTrack_Forbidden(t *testing.T) {
 
 func TestGetTrackPoints_ETag(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -567,11 +567,11 @@ func TestGetTrackPoints_ETag(t *testing.T) {
 
 func TestGetTrack_IsOwner(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
 	trackUUID := uploaded["uuid"].(string)
@@ -585,7 +585,7 @@ func TestGetTrack_IsOwner(t *testing.T) {
 
 	// Bob is not the owner.
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 	status, _ = e.do(bob, http.MethodGet, "/tracks/"+trackUUID, nil, &track)
 	assert.Equal(t, http.StatusOK, status)
 	assert.Equal(t, false, track["isOwner"])
@@ -607,9 +607,9 @@ func makeGPXWithName(name string) []byte {
 
 func TestUploadTrack_NameFromMetadata(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, resp := e.doUploadRaw(client, makeGPXWithName("  My Track  "), "whatever.gpx")
 	require.Equal(t, http.StatusCreated, status)
@@ -618,9 +618,9 @@ func TestUploadTrack_NameFromMetadata(t *testing.T) {
 
 func TestUploadTrack_NameFallsBackToFilename(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, resp := e.doUploadRaw(client, makeGPXWithName("   "), "my-ride.gpx")
 	require.Equal(t, http.StatusCreated, status)
@@ -629,9 +629,9 @@ func TestUploadTrack_NameFallsBackToFilename(t *testing.T) {
 
 func TestUploadTrack_NameFallsBackToTimestamp(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, resp := e.doUploadRaw(client, makeGPXWithName(""), "  .gpx")
 	require.Equal(t, http.StatusCreated, status)

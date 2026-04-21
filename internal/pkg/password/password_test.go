@@ -7,11 +7,11 @@ import (
 )
 
 func TestHashCheck(t *testing.T) {
-	hashed, err := Hash("asdf")
+	hashed, err := Hash("password123")
 	assert.NoError(t, err)
-	assert.True(t, Check("asdf", hashed))
-	assert.False(t, Check("asdff", hashed))
-	assert.False(t, Check("asdf", "a"+hashed))
+	assert.True(t, Check("password123", hashed))
+	assert.False(t, Check("password1234", hashed))
+	assert.False(t, Check("password123", "a"+hashed))
 }
 
 func TestHashTooLong(t *testing.T) {
@@ -20,9 +20,14 @@ func TestHashTooLong(t *testing.T) {
 	assert.ErrorIs(t, err, ErrTooLong)
 }
 
+func TestHashTooShort(t *testing.T) {
+	_, err := Hash("short")
+	assert.ErrorIs(t, err, ErrTooShort)
+}
+
 func BenchmarkHashCheck(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		h, _ := Hash("asdf")
-		Check("asdf", h)
+		h, _ := Hash("password123")
+		Check("password123", h)
 	}
 }

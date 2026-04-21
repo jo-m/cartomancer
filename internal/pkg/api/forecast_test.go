@@ -60,9 +60,9 @@ func TestGetTrackForecast_Unauthenticated_NotFound(t *testing.T) {
 
 func TestGetTrackForecast_Unauthenticated_PrivateTrack(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	owner := e.newClient()
-	e.login(owner, "alice@example.com", "secret")
+	e.login(owner, "alice@example.com", "secret11")
 
 	status, resp := e.doUpload(owner, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -76,9 +76,9 @@ func TestGetTrackForecast_Unauthenticated_PrivateTrack(t *testing.T) {
 
 func TestGetTrackForecast_NotFound(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodGet, "/tracks/nonexistent/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, nil)
 	assert.Equal(t, http.StatusNotFound, status)
@@ -86,9 +86,9 @@ func TestGetTrackForecast_NotFound(t *testing.T) {
 
 func TestGetTrackForecast_MissingParams(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, resp := e.doUpload(client, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -105,9 +105,9 @@ func TestGetTrackForecast_MissingParams(t *testing.T) {
 
 func TestGetTrackForecast_NoForecastData(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, resp := e.doUpload(client, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -131,9 +131,9 @@ func TestGetTrackForecast_NoForecastData(t *testing.T) {
 
 func TestGetTrackForecast_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, resp := e.doUpload(client, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)

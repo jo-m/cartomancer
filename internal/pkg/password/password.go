@@ -15,8 +15,14 @@ import (
 // MaxPasswordLen to avoid DOS via Argon2.
 const MaxPasswordLen = 512
 
+// MinPasswordLen is the minimum required password length in bytes.
+const MinPasswordLen = 8
+
 // ErrTooLong is returned when a password exceeds [MaxPasswordLen] bytes.
 var ErrTooLong = errors.New("password exceeds maximum length")
+
+// ErrTooShort is returned when a password is shorter than [MinPasswordLen] bytes.
+var ErrTooShort = errors.New("password is too short")
 
 type argon2idparams struct {
 	Time    uint32 `json:"t"`
@@ -50,6 +56,9 @@ type argonHash struct {
 func Hash(password string) (string, error) {
 	if len(password) > MaxPasswordLen {
 		return "", ErrTooLong
+	}
+	if len(password) < MinPasswordLen {
+		return "", ErrTooShort
 	}
 
 	params := defaultparams

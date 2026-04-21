@@ -37,7 +37,7 @@ func TestContext(t *testing.T) {
 const (
 	userID     = "testid"
 	userEmail  = "test@example.org"
-	userPass   = "test"
+	userPass   = "test1234"
 	cookieName = "sid"
 )
 

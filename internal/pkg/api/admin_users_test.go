@@ -13,7 +13,7 @@ import (
 func TestAdminListUsers_Success(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
 	e.login(client, "admin@example.com", "adminpass")
 
@@ -25,9 +25,9 @@ func TestAdminListUsers_Success(t *testing.T) {
 
 func TestAdminListUsers_Forbidden(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodGet, "/admin/users", nil, nil)
 	assert.Equal(t, http.StatusForbidden, status)
@@ -85,7 +85,7 @@ func TestAdminCreateUser_MissingName(t *testing.T) {
 func TestAdminGetUser_Success(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
+	uuid := e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
 	e.login(client, "admin@example.com", "adminpass")
 
@@ -108,7 +108,7 @@ func TestAdminGetUser_NotFound(t *testing.T) {
 func TestAdminUpdateUser_Success(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
+	uuid := e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
 	e.login(client, "admin@example.com", "adminpass")
 
@@ -140,7 +140,7 @@ func TestAdminUpdateUser_NotFound(t *testing.T) {
 func TestAdminDeleteUser_Success(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
+	uuid := e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
 	e.login(client, "admin@example.com", "adminpass")
 
@@ -165,7 +165,7 @@ func TestAdminDeleteUser_NotFound(t *testing.T) {
 func TestAdminResetPassword_Success(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
+	uuid := e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
 	e.login(client, "admin@example.com", "adminpass")
 
@@ -182,7 +182,7 @@ func TestAdminResetPassword_Success(t *testing.T) {
 	client2 := e.newClient()
 	status2, _ := e.do(client2, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "alice@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusUnauthorized, status2)
 
@@ -198,7 +198,7 @@ func TestAdminResetPassword_Success(t *testing.T) {
 func TestAdminResetPassword_InvalidatesSessions(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
+	uuid := e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	// Use isolated transports to avoid HTTP/2 cookie leaking between clients.
 	newIsolatedClient := func() *http.Client {
@@ -214,7 +214,7 @@ func TestAdminResetPassword_InvalidatesSessions(t *testing.T) {
 
 	// Alice logs in.
 	aliceClient := newIsolatedClient()
-	e.login(aliceClient, "alice@example.com", "secret")
+	e.login(aliceClient, "alice@example.com", "secret11")
 
 	// Verify Alice's session works.
 	status, _ := e.do(aliceClient, http.MethodGet, "/tracks/editing", nil, nil)
@@ -260,7 +260,7 @@ func TestAdminResetPassword_Self(t *testing.T) {
 func TestAdminCreateUser_DuplicateEmail(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	e.createUser("existing@example.com", "Existing", "secret", false)
+	e.createUser("existing@example.com", "Existing", "secret11", false)
 	client := e.newClient()
 	e.login(client, "admin@example.com", "adminpass")
 
@@ -275,7 +275,7 @@ func TestAdminCreateUser_DuplicateEmail(t *testing.T) {
 func TestAdminCreateUser_DuplicateName(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	e.createUser("existing@example.com", "Existing", "secret", false)
+	e.createUser("existing@example.com", "Existing", "secret11", false)
 	client := e.newClient()
 	e.login(client, "admin@example.com", "adminpass")
 
@@ -320,8 +320,8 @@ func TestAdminCreateUser_InvalidName(t *testing.T) {
 func TestAdminUpdateUser_EmailTaken(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret", false)
+	uuid := e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret11", false)
 	client := e.newClient()
 	e.login(client, "admin@example.com", "adminpass")
 
@@ -336,8 +336,8 @@ func TestAdminUpdateUser_EmailTaken(t *testing.T) {
 func TestAdminUpdateUser_NameTaken(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret", false)
+	uuid := e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret11", false)
 	client := e.newClient()
 	e.login(client, "admin@example.com", "adminpass")
 
@@ -352,7 +352,7 @@ func TestAdminUpdateUser_NameTaken(t *testing.T) {
 func TestAdminUpdateUser_ToggleAdmin(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
+	uuid := e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
 	e.login(client, "admin@example.com", "adminpass")
 
@@ -436,7 +436,7 @@ func TestAdminUpdateUser_DemoteWithMultipleAdmins(t *testing.T) {
 func TestAdminUpdateUser_EmailChange_OldEmailInvalidated(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	uuid := e.createUser("alice@example.com", "Alice", "secret", false)
+	uuid := e.createUser("alice@example.com", "Alice", "secret11", false)
 	adminClient := e.newClient()
 	e.login(adminClient, "admin@example.com", "adminpass")
 
@@ -451,14 +451,14 @@ func TestAdminUpdateUser_EmailChange_OldEmailInvalidated(t *testing.T) {
 	loginClient := e.newClient()
 	status, _ = e.do(loginClient, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "alice@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusUnauthorized, status)
 
 	// New email works for login.
 	status, _ = e.do(loginClient, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "alice-new@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusOK, status)
 }

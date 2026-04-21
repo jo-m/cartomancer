@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -172,8 +173,7 @@ func (sv *server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) 
 
 	hash, err := password.Hash(initialPassword)
 	if err != nil {
-		logg.Error(ctx, "failed to hash password", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid password: %s", err))
 		return
 	}
 

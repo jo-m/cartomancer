@@ -14,9 +14,9 @@ import (
 
 func TestUpdateAccount_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	var resp map[string]any
 	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": "Alice-Updated"}, &resp)
@@ -26,9 +26,9 @@ func TestUpdateAccount_Success(t *testing.T) {
 
 func TestUpdateAccount_MissingName(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": ""}, nil)
 	assert.Equal(t, http.StatusBadRequest, status)
@@ -44,13 +44,13 @@ func TestUpdateAccount_Unauthenticated(t *testing.T) {
 
 func TestChangePassword_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "oldpass", false)
+	e.createUser("alice@example.com", "Alice", "oldpass1", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "oldpass")
+	e.login(client, "alice@example.com", "oldpass1")
 
 	status, _ := e.do(client, http.MethodPost, "/account/change-password", map[string]string{
-		"oldPassword": "oldpass",
-		"newPassword": "newpass",
+		"oldPassword": "oldpass1",
+		"newPassword": "newpass1",
 	}, nil)
 	assert.Equal(t, http.StatusNoContent, status)
 
@@ -58,7 +58,7 @@ func TestChangePassword_Success(t *testing.T) {
 	client2 := e.newClient()
 	status2, _ := e.do(client2, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "alice@example.com",
-		"password": "oldpass",
+		"password": "oldpass1",
 	}, nil)
 	assert.Equal(t, http.StatusUnauthorized, status2)
 
@@ -66,20 +66,20 @@ func TestChangePassword_Success(t *testing.T) {
 	client3 := e.newClient()
 	status3, _ := e.do(client3, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "alice@example.com",
-		"password": "newpass",
+		"password": "newpass1",
 	}, nil)
 	assert.Equal(t, http.StatusOK, status3)
 }
 
 func TestChangePassword_WrongOld(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "oldpass", false)
+	e.createUser("alice@example.com", "Alice", "oldpass1", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "oldpass")
+	e.login(client, "alice@example.com", "oldpass1")
 
 	status, _ := e.do(client, http.MethodPost, "/account/change-password", map[string]string{
-		"oldPassword": "wrong",
-		"newPassword": "newpass",
+		"oldPassword": "wrongpass123",
+		"newPassword": "newpass1",
 	}, nil)
 	assert.Equal(t, http.StatusForbidden, status)
 }
@@ -97,7 +97,7 @@ func TestChangePassword_Unauthenticated(t *testing.T) {
 
 func TestChangePassword_InvalidatesOtherSessions(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "oldpass", false)
+	e.createUser("alice@example.com", "Alice", "oldpass1", false)
 
 	// Use isolated transports to avoid HTTP/2 cookie leaking between clients.
 	newIsolatedClient := func() *http.Client {
@@ -113,10 +113,10 @@ func TestChangePassword_InvalidatesOtherSessions(t *testing.T) {
 
 	// Log in from two separate clients (two sessions).
 	client1 := newIsolatedClient()
-	e.login(client1, "alice@example.com", "oldpass")
+	e.login(client1, "alice@example.com", "oldpass1")
 
 	client2 := newIsolatedClient()
-	e.login(client2, "alice@example.com", "oldpass")
+	e.login(client2, "alice@example.com", "oldpass1")
 
 	// Both sessions work.
 	status, _ := e.do(client1, http.MethodGet, "/tracks/editing", nil, nil)
@@ -126,8 +126,8 @@ func TestChangePassword_InvalidatesOtherSessions(t *testing.T) {
 
 	// Change password from client1.
 	status, _ = e.do(client1, http.MethodPost, "/account/change-password", map[string]string{
-		"oldPassword": "oldpass",
-		"newPassword": "newpass",
+		"oldPassword": "oldpass1",
+		"newPassword": "newpass1",
 	}, nil)
 	require.Equal(t, http.StatusNoContent, status)
 
@@ -143,10 +143,10 @@ func TestChangePassword_InvalidatesOtherSessions(t *testing.T) {
 
 func TestUpdateAccount_NameTaken(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": "Bob"}, nil)
 	assert.Equal(t, http.StatusConflict, status)
@@ -165,9 +165,9 @@ func TestUpdateAccount_InvalidName(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
 			e := newTestEnv(t)
-			e.createUser("alice@example.com", "Alice", "secret", false)
+			e.createUser("alice@example.com", "Alice", "secret11", false)
 			client := e.newClient()
-			e.login(client, "alice@example.com", "secret")
+			e.login(client, "alice@example.com", "secret11")
 
 			status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": tc.name}, nil)
 			assert.Equal(t, http.StatusBadRequest, status)
@@ -177,9 +177,9 @@ func TestUpdateAccount_InvalidName(t *testing.T) {
 
 func TestUpdateAccount_SameName(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	var resp map[string]any
 	status, _ := e.do(client, http.MethodPatch, "/account", map[string]string{"name": "Alice"}, &resp)
@@ -189,12 +189,12 @@ func TestUpdateAccount_SameName(t *testing.T) {
 
 func TestChangePassword_NewPasswordTooLong(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "oldpass", false)
+	e.createUser("alice@example.com", "Alice", "oldpass1", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "oldpass")
+	e.login(client, "alice@example.com", "oldpass1")
 
 	status, _ := e.do(client, http.MethodPost, "/account/change-password", map[string]string{
-		"oldPassword": "oldpass",
+		"oldPassword": "oldpass1",
 		"newPassword": strings.Repeat("x", password.MaxPasswordLen+1),
 	}, nil)
 	assert.Equal(t, http.StatusBadRequest, status)
@@ -205,15 +205,15 @@ func TestChangePassword_EmptyFields(t *testing.T) {
 		desc string
 		body map[string]string
 	}{
-		{"empty oldPassword", map[string]string{"oldPassword": "", "newPassword": "newpass"}},
-		{"empty newPassword", map[string]string{"oldPassword": "oldpass", "newPassword": ""}},
+		{"empty oldPassword", map[string]string{"oldPassword": "", "newPassword": "newpass1"}},
+		{"empty newPassword", map[string]string{"oldPassword": "oldpass1", "newPassword": ""}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
 			e := newTestEnv(t)
-			e.createUser("alice@example.com", "Alice", "oldpass", false)
+			e.createUser("alice@example.com", "Alice", "oldpass1", false)
 			client := e.newClient()
-			e.login(client, "alice@example.com", "oldpass")
+			e.login(client, "alice@example.com", "oldpass1")
 
 			status, _ := e.do(client, http.MethodPost, "/account/change-password", tc.body, nil)
 			assert.Equal(t, http.StatusBadRequest, status)
@@ -223,9 +223,9 @@ func TestChangePassword_EmptyFields(t *testing.T) {
 
 func TestDeleteAccount_RegularUser(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodDelete, "/account", nil, nil)
 	assert.Equal(t, http.StatusNoContent, status)
@@ -251,10 +251,10 @@ func TestDeleteAccount_Unauthenticated(t *testing.T) {
 
 func TestDeleteAccount_AdminWithSecondAdmin(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("admin1@example.com", "Admin1", "pass1", true)
-	e.createUser("admin2@example.com", "Admin2", "pass2", true)
+	e.createUser("admin1@example.com", "Admin1", "pass1234", true)
+	e.createUser("admin2@example.com", "Admin2", "pass2234", true)
 	client := e.newClient()
-	e.login(client, "admin1@example.com", "pass1")
+	e.login(client, "admin1@example.com", "pass1234")
 
 	// Should succeed because there is still another admin.
 	status, _ := e.do(client, http.MethodDelete, "/account", nil, nil)
@@ -265,7 +265,7 @@ func TestDeleteAccount_AdminWithSecondAdmin(t *testing.T) {
 	var resp map[string]any
 	status2, _ := e.do(client2, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "admin2@example.com",
-		"password": "pass2",
+		"password": "pass2234",
 	}, &resp)
 	require.Equal(t, http.StatusOK, status2)
 }

@@ -13,7 +13,7 @@ import (
 // the pre-created admin account in development and demo mode.
 const (
 	DevInitialAdminEmail    = "admin@example.com"
-	DevInitialAdminPassword = "admin"
+	DevInitialAdminPassword = "admin123"
 )
 
 // AppConfig contains application-wide configuration.

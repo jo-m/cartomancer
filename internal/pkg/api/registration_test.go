@@ -24,7 +24,7 @@ func TestRegister_Disabled(t *testing.T) {
 	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "newuser@example.com",
 		"name":     "New-User",
-		"password": "secret123",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusForbidden, status)
 }
@@ -37,7 +37,7 @@ func TestRegister_Success(t *testing.T) {
 	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "newuser@example.com",
 		"name":     "New-User",
-		"password": "secret123",
+		"password": "secret11",
 	}, &resp)
 	assert.Equal(t, http.StatusCreated, status)
 	assert.Equal(t, "check your email", resp["msg"])
@@ -45,14 +45,14 @@ func TestRegister_Success(t *testing.T) {
 
 func TestRegister_DuplicateEmail(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
 
 	// Returns 201 even for duplicate email to prevent email enumeration.
 	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "alice@example.com",
 		"name":     "Another-Alice",
-		"password": "secret123",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusCreated, status)
 }
@@ -65,14 +65,14 @@ func TestRegister_Confirm_Login(t *testing.T) {
 	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "bob@example.com",
 		"name":     "Bob",
-		"password": "secret123",
+		"password": "secret11",
 	}, nil)
 	require.Equal(t, http.StatusCreated, status)
 
 	// Login should fail (unconfirmed).
 	status, _ = e.do(client, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "bob@example.com",
-		"password": "secret123",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusForbidden, status)
 
@@ -91,7 +91,7 @@ func TestRegister_Confirm_Login(t *testing.T) {
 	client2 := e.newClient()
 	status, _ = e.do(client2, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "bob@example.com",
-		"password": "secret123",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusOK, status)
 }
@@ -108,14 +108,14 @@ func TestRegister_Confirm_InvalidToken(t *testing.T) {
 
 func TestChangeEmail_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	// Request email change.
 	status, _ := e.do(client, http.MethodPost, "/account/change-email", map[string]string{
 		"newEmail": "alice-new@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusOK, status)
 
@@ -132,16 +132,16 @@ func TestChangeEmail_Success(t *testing.T) {
 	client2 := e.newClient()
 	status, _ = e.do(client2, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "alice-new@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusOK, status)
 }
 
 func TestChangeEmail_WrongPassword(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPost, "/account/change-email", map[string]string{
 		"newEmail": "alice-new@example.com",
@@ -152,28 +152,28 @@ func TestChangeEmail_WrongPassword(t *testing.T) {
 
 func TestChangeEmail_EmailTaken(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPost, "/account/change-email", map[string]string{
 		"newEmail": "bob@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusConflict, status)
 }
 
 func TestAdminConfirmEmail_Registration(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("admin@example.com", "Admin", "secret", true)
+	e.createUser("admin@example.com", "Admin", "secret11", true)
 
 	// Register a new user (unconfirmed) first, before creating the admin client.
 	client := e.newClient()
 	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "pending@example.com",
 		"name":     "Pending",
-		"password": "secret123",
+		"password": "secret11",
 	}, nil)
 	require.Equal(t, http.StatusCreated, status)
 
@@ -183,7 +183,7 @@ func TestAdminConfirmEmail_Registration(t *testing.T) {
 
 	// Now log in as admin (reuses the same underlying client, new jar).
 	adminClient := e.newClient()
-	e.login(adminClient, "admin@example.com", "secret")
+	e.login(adminClient, "admin@example.com", "secret11")
 
 	// Admin confirms the email.
 	var resp map[string]any
@@ -195,17 +195,17 @@ func TestAdminConfirmEmail_Registration(t *testing.T) {
 	loginClient := e.newClient()
 	status, _ = e.do(loginClient, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "pending@example.com",
-		"password": "secret123",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusOK, status)
 }
 
 func TestAdminConfirmEmail_NoPending(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("admin@example.com", "Admin", "secret", true)
-	userUUID := e.createUser("user@example.com", "User", "secret", false)
+	e.createUser("admin@example.com", "Admin", "secret11", true)
+	userUUID := e.createUser("user@example.com", "User", "secret11", false)
 	adminClient := e.newClient()
-	e.login(adminClient, "admin@example.com", "secret")
+	e.login(adminClient, "admin@example.com", "secret11")
 
 	status, _ := e.do(adminClient, http.MethodPost, "/admin/users/"+userUUID+"/confirm-email", nil, nil)
 	assert.Equal(t, http.StatusNotFound, status)
@@ -213,13 +213,13 @@ func TestAdminConfirmEmail_NoPending(t *testing.T) {
 
 func TestRegister_DuplicateName(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
 
 	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "other@example.com",
 		"name":     "Alice",
-		"password": "secret123",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusConflict, status)
 }
@@ -242,7 +242,7 @@ func TestRegister_InvalidName(t *testing.T) {
 			status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 				"email":    "user@example.com",
 				"name":     tc.name,
-				"password": "secret123",
+				"password": "secret11",
 			}, nil)
 			assert.Equal(t, http.StatusBadRequest, status)
 		})
@@ -254,8 +254,8 @@ func TestRegister_EmptyFields(t *testing.T) {
 		desc string
 		body map[string]string
 	}{
-		{"empty email", map[string]string{"email": "", "name": "Alice", "password": "secret123"}},
-		{"empty name", map[string]string{"email": "user@example.com", "name": "", "password": "secret123"}},
+		{"empty email", map[string]string{"email": "", "name": "Alice", "password": "secret11"}},
+		{"empty name", map[string]string{"email": "user@example.com", "name": "", "password": "secret11"}},
 		{"empty password", map[string]string{"email": "user@example.com", "name": "Alice", "password": ""}},
 	}
 	for _, tc := range tests {
@@ -287,7 +287,7 @@ func TestRegister_ReregisterBeforeConfirm(t *testing.T) {
 	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "user@example.com",
 		"name":     "Alice",
-		"password": "secret123",
+		"password": "secret11",
 	}, nil)
 	require.Equal(t, http.StatusCreated, status)
 
@@ -296,7 +296,7 @@ func TestRegister_ReregisterBeforeConfirm(t *testing.T) {
 	status, _ = e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "user@example.com",
 		"name":     "Other-Alice",
-		"password": "secret123",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusCreated, status)
 }
@@ -308,7 +308,7 @@ func TestConfirmEmail_ExpiredToken(t *testing.T) {
 	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "user@example.com",
 		"name":     "Alice",
-		"password": "secret123",
+		"password": "secret11",
 	}, nil)
 	require.Equal(t, http.StatusCreated, status)
 
@@ -332,7 +332,7 @@ func TestConfirmEmail_TokenReplay(t *testing.T) {
 	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
 		"email":    "user@example.com",
 		"name":     "Alice",
-		"password": "secret123",
+		"password": "secret11",
 	}, nil)
 	require.Equal(t, http.StatusCreated, status)
 
@@ -348,20 +348,20 @@ func TestConfirmEmail_TokenReplay(t *testing.T) {
 
 func TestConfirmEmail_EmailChangeTaken(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPost, "/account/change-email", map[string]string{
 		"newEmail": "wanted@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	require.Equal(t, http.StatusOK, status)
 
 	token := e.getVerificationJWT(t, "alice@example.com")
 
 	// Another user registers with the target email before Alice confirms.
-	e.createUser("wanted@example.com", "Bob", "secret", false)
+	e.createUser("wanted@example.com", "Bob", "secret11", false)
 
 	status, _ = e.do(client, http.MethodPost, "/confirm-email", map[string]string{"token": token}, nil)
 	assert.Equal(t, http.StatusConflict, status)
@@ -373,20 +373,20 @@ func TestChangeEmail_Unauthenticated(t *testing.T) {
 
 	status, _ := e.do(client, http.MethodPost, "/account/change-email", map[string]string{
 		"newEmail": "new@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusUnauthorized, status)
 }
 
 func TestChangeEmail_SameEmail(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPost, "/account/change-email", map[string]string{
 		"newEmail": "alice@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusBadRequest, status)
 }
@@ -394,15 +394,15 @@ func TestChangeEmail_SameEmail(t *testing.T) {
 func TestAdminConfirmEmail_EmailChange(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	aliceClient := e.newClient()
-	e.login(aliceClient, "alice@example.com", "secret")
+	e.login(aliceClient, "alice@example.com", "secret11")
 
 	// Alice requests an email change.
 	status, _ := e.do(aliceClient, http.MethodPost, "/account/change-email", map[string]string{
 		"newEmail": "alice-new@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	require.Equal(t, http.StatusOK, status)
 
@@ -422,7 +422,7 @@ func TestAdminConfirmEmail_EmailChange(t *testing.T) {
 	loginClient := e.newClient()
 	status, _ = e.do(loginClient, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "alice-new@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusOK, status)
 }
@@ -455,20 +455,20 @@ func TestAdminConfirmEmail_AdminTarget(t *testing.T) {
 func TestAdminConfirmEmail_EmailTaken(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	aliceClient := e.newClient()
-	e.login(aliceClient, "alice@example.com", "secret")
+	e.login(aliceClient, "alice@example.com", "secret11")
 
 	// Alice requests an email change.
 	status, _ := e.do(aliceClient, http.MethodPost, "/account/change-email", map[string]string{
 		"newEmail": "wanted@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	require.Equal(t, http.StatusOK, status)
 
 	// Another user takes the target email before admin confirms.
-	e.createUser("wanted@example.com", "Bob", "secret", false)
+	e.createUser("wanted@example.com", "Bob", "secret11", false)
 
 	aliceUser, err := e.d.QueryRO().GetUserByEmail(t.Context(), "alice@example.com")
 	require.NoError(t, err)
@@ -482,9 +482,9 @@ func TestAdminConfirmEmail_EmailTaken(t *testing.T) {
 
 func TestAdminConfirmEmail_NonAdmin(t *testing.T) {
 	e := newTestEnv(t)
-	userUUID := e.createUser("alice@example.com", "Alice", "secret", false)
+	userUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPost, "/admin/users/"+userUUID+"/confirm-email", map[string]any{}, nil)
 	assert.Equal(t, http.StatusForbidden, status)
@@ -492,14 +492,14 @@ func TestAdminConfirmEmail_NonAdmin(t *testing.T) {
 
 func TestChangeEmail_SecondRequestSupersedes(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	// First email change request.
 	status, _ := e.do(client, http.MethodPost, "/account/change-email", map[string]string{
 		"newEmail": "new1@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	require.Equal(t, http.StatusOK, status)
 
@@ -509,7 +509,7 @@ func TestChangeEmail_SecondRequestSupersedes(t *testing.T) {
 	// Second email change request supersedes the first.
 	status, _ = e.do(client, http.MethodPost, "/account/change-email", map[string]string{
 		"newEmail": "new2@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	require.Equal(t, http.StatusOK, status)
 

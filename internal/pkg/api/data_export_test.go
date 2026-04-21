@@ -73,9 +73,9 @@ func TestExportData_Unauthenticated(t *testing.T) {
 
 func TestExportData_EmptyAccount(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	zr := doExport(t, e, client)
 
@@ -102,9 +102,9 @@ func TestExportData_EmptyAccount(t *testing.T) {
 
 func TestExportData_WithTracks(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("bob@example.com", "Bob", "secret", false)
+	e.createUser("bob@example.com", "Bob", "secret11", false)
 	client := e.newClient()
-	e.login(client, "bob@example.com", "secret")
+	e.login(client, "bob@example.com", "secret11")
 
 	status, result := e.doUpload(client, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
@@ -138,17 +138,17 @@ func TestExportData_WithTracks(t *testing.T) {
 
 func TestExportData_OnlyOwnTracks(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, _ := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
 
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 
 	zr := doExport(t, e, bob)
 

@@ -21,13 +21,13 @@ func TestGetSession_Anonymous(t *testing.T) {
 
 func TestLogin_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
 
 	var resp map[string]any
 	status, _ := e.do(client, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "alice@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, &resp)
 	assert.Equal(t, http.StatusOK, status)
 	assert.NotEmpty(t, resp["sessionUuid"])
@@ -39,7 +39,7 @@ func TestLogin_Success(t *testing.T) {
 
 func TestLogin_WrongPassword(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
 
 	status, _ := e.do(client, http.MethodPost, "/sessions/login", map[string]string{
@@ -62,34 +62,34 @@ func TestLogin_UnknownEmail(t *testing.T) {
 
 func TestLogin_EmailNotConfirmed(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUnconfirmedUser("alice@example.com", "Alice", "secret")
+	e.createUnconfirmedUser("alice@example.com", "Alice", "secret11")
 	client := e.newClient()
 
 	status, _ := e.do(client, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "alice@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusForbidden, status)
 }
 
 func TestLogin_AlreadyLoggedIn(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "alice@example.com",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusConflict, status)
 }
 
 func TestGetSession_AfterLogin(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	var resp map[string]any
 	status, _ := e.do(client, http.MethodGet, "/sessions", nil, &resp)
@@ -101,9 +101,9 @@ func TestGetSession_AfterLogin(t *testing.T) {
 
 func TestLogout_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPost, "/sessions/logout", nil, nil)
 	assert.Equal(t, http.StatusNoContent, status)
@@ -117,12 +117,12 @@ func TestLogout_Success(t *testing.T) {
 
 func TestLogin_MixedCaseEmail(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
 
 	status, _ := e.do(client, http.MethodPost, "/sessions/login", map[string]string{
 		"email":    "ALICE@EXAMPLE.COM",
-		"password": "secret",
+		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusOK, status)
 }
@@ -132,13 +132,13 @@ func TestLogin_EmptyFields(t *testing.T) {
 		desc string
 		body map[string]string
 	}{
-		{"empty email", map[string]string{"email": "", "password": "secret"}},
+		{"empty email", map[string]string{"email": "", "password": "secret11"}},
 		{"empty password", map[string]string{"email": "alice@example.com", "password": ""}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
 			e := newTestEnv(t)
-			e.createUser("alice@example.com", "Alice", "secret", false)
+			e.createUser("alice@example.com", "Alice", "secret11", false)
 			client := e.newClient()
 			status, _ := e.do(client, http.MethodPost, "/sessions/login", tc.body, nil)
 			assert.Equal(t, http.StatusUnauthorized, status)

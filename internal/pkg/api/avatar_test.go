@@ -11,7 +11,7 @@ import (
 
 func TestGetUserAvatar_Success(t *testing.T) {
 	e := newTestEnv(t)
-	uuid := e.createUser("avatar@example.com", "AvatarUser", "secret", false)
+	uuid := e.createUser("avatar@example.com", "AvatarUser", "secret11", false)
 
 	client := e.newClient()
 	status, body := e.do(client, http.MethodGet, "/users/"+uuid+"/avatar", nil, nil)
@@ -30,7 +30,7 @@ func TestGetUserAvatar_NotFound(t *testing.T) {
 
 func TestGetUserAvatar_NoAuthRequired(t *testing.T) {
 	e := newTestEnv(t)
-	uuid := e.createUser("pub@example.com", "PubUser", "secret", false)
+	uuid := e.createUser("pub@example.com", "PubUser", "secret11", false)
 
 	// Unauthenticated client (fresh, no login).
 	client := e.newClient()
@@ -42,9 +42,9 @@ func TestGetUserAvatar_NoAuthRequired(t *testing.T) {
 
 func TestRotateAvatar_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("rotate@example.com", "RotateUser", "secret", false)
+	e.createUser("rotate@example.com", "RotateUser", "secret11", false)
 	client := e.newClient()
-	e.login(client, "rotate@example.com", "secret")
+	e.login(client, "rotate@example.com", "secret11")
 
 	// Get initial seed.
 	var before map[string]any

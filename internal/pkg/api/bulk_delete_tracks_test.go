@@ -20,9 +20,9 @@ func TestBulkDeleteTracks_Unauthenticated(t *testing.T) {
 
 func TestBulkDeleteTracks_EmptyUUIDs(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPost, "/tracks/bulk-delete", map[string]any{
 		"uuids": []string{},
@@ -32,9 +32,9 @@ func TestBulkDeleteTracks_EmptyUUIDs(t *testing.T) {
 
 func TestBulkDeleteTracks_NonexistentUUID(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPost, "/tracks/bulk-delete", map[string]any{
 		"uuids": []string{"nonexistent-uuid"},
@@ -44,18 +44,18 @@ func TestBulkDeleteTracks_NonexistentUUID(t *testing.T) {
 
 func TestBulkDeleteTracks_OtherUserTrack(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	status, uploaded := e.doUpload(alice, testGPXFile)
 	require.Equal(t, http.StatusCreated, status)
 	trackUUID := uploaded["uuid"].(string)
 
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 
 	status, _ = e.do(bob, http.MethodPost, "/tracks/bulk-delete", map[string]any{
 		"uuids": []string{trackUUID},
@@ -65,9 +65,9 @@ func TestBulkDeleteTracks_OtherUserTrack(t *testing.T) {
 
 func TestBulkDeleteTracks_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	// Upload two distinct tracks.
 	status, u1 := e.doUpload(client, testGPXFile)

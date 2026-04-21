@@ -192,13 +192,8 @@ func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hash, err := password.Hash(req.NewPassword)
-	if errors.Is(err, password.ErrTooLong) {
-		writeError(w, http.StatusBadRequest, "password too long")
-		return
-	}
 	if err != nil {
-		logg.Error(ctx, "failed to hash password", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid password: %s", err))
 		return
 	}
 

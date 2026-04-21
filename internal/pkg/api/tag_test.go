@@ -28,9 +28,9 @@ func TestSetTrackTags_Unauthenticated(t *testing.T) {
 
 func TestSetTrackTags_TrackNotFound(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodPut, "/tracks/nonexistent/tags", []string{"tag1"}, nil)
 	assert.Equal(t, http.StatusNotFound, status)
@@ -38,15 +38,15 @@ func TestSetTrackTags_TrackNotFound(t *testing.T) {
 
 func TestSetTrackTags_Forbidden(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadAndGetUUID(alice)
 
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 
 	status, _ := e.do(bob, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"tag1"}, nil)
 	assert.Equal(t, http.StatusForbidden, status)
@@ -54,9 +54,9 @@ func TestSetTrackTags_Forbidden(t *testing.T) {
 
 func TestSetTrackTags_InvalidTag(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 	trackUUID := e.uploadAndGetUUID(client)
 
 	// Too short (1 char)
@@ -84,9 +84,9 @@ func TestSetTrackTags_InvalidTag(t *testing.T) {
 
 func TestSetTrackTags_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 	trackUUID := e.uploadAndGetUUID(client)
 
 	var resp map[string]any
@@ -103,9 +103,9 @@ func TestSetTrackTags_Success(t *testing.T) {
 
 func TestSetTrackTags_ReplaceTags(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 	trackUUID := e.uploadAndGetUUID(client)
 
 	// Set initial tags
@@ -125,9 +125,9 @@ func TestSetTrackTags_ReplaceTags(t *testing.T) {
 
 func TestSetTrackTags_EmptyList(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 	trackUUID := e.uploadAndGetUUID(client)
 
 	// Set some tags first
@@ -158,9 +158,9 @@ func TestSuggestTags_Unauthenticated(t *testing.T) {
 
 func TestSuggestTags_PrefixTooShort(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 
 	status, _ := e.do(client, http.MethodGet, "/tags?prefix=c", nil, nil)
 	assert.Equal(t, http.StatusBadRequest, status)
@@ -168,9 +168,9 @@ func TestSuggestTags_PrefixTooShort(t *testing.T) {
 
 func TestSuggestTags_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 	trackUUID := e.uploadAndGetUUID(client)
 
 	// Create some tags
@@ -190,9 +190,9 @@ func TestSuggestTags_Success(t *testing.T) {
 
 func TestSuggestTags_NoMatch(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
-	e.login(client, "alice@example.com", "secret")
+	e.login(client, "alice@example.com", "secret11")
 	trackUUID := e.uploadAndGetUUID(client)
 
 	status, _ := e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"cycling"}, nil)
@@ -209,18 +209,18 @@ func TestSuggestTags_NoMatch(t *testing.T) {
 
 func TestSuggestTags_OtherUserTagsNotVisible(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadAndGetUUID(alice)
 
 	status, _ := e.do(alice, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"cycling"}, nil)
 	require.Equal(t, http.StatusOK, status)
 
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 
 	var resp map[string]any
 	status, _ = e.do(bob, http.MethodGet, "/tags?prefix=cy", nil, &resp)

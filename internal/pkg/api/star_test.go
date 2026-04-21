@@ -33,10 +33,10 @@ func (e *testEnv) uploadPrivateTrack(client *http.Client) string {
 
 func TestStarTrack_Unauthenticated(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadPublicTrack(alice)
 
 	anon := e.newClient()
@@ -46,15 +46,15 @@ func TestStarTrack_Unauthenticated(t *testing.T) {
 
 func TestStarTrack_PublicTrack(t *testing.T) {
 	e := newTestEnv(t)
-	aliceUUID := e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadPublicTrack(alice)
 
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 
 	// Bob stars alice's public track.
 	status, _ := e.do(bob, http.MethodPost, "/tracks/"+trackUUID+"/star", nil, nil)
@@ -76,10 +76,10 @@ func TestStarTrack_PublicTrack(t *testing.T) {
 
 func TestStarTrack_OwnPrivateTrack(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadPrivateTrack(alice)
 
 	status, _ := e.do(alice, http.MethodPost, "/tracks/"+trackUUID+"/star", nil, nil)
@@ -88,15 +88,15 @@ func TestStarTrack_OwnPrivateTrack(t *testing.T) {
 
 func TestStarTrack_OtherUserPrivateTrack(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadPrivateTrack(alice)
 
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 
 	// Bob cannot star alice's private track.
 	status, _ := e.do(bob, http.MethodPost, "/tracks/"+trackUUID+"/star", nil, nil)
@@ -105,15 +105,15 @@ func TestStarTrack_OtherUserPrivateTrack(t *testing.T) {
 
 func TestStarTrack_Idempotent(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadPublicTrack(alice)
 
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 
 	// Starring twice should both succeed.
 	status, _ := e.do(bob, http.MethodPost, "/tracks/"+trackUUID+"/star", nil, nil)
@@ -124,10 +124,10 @@ func TestStarTrack_Idempotent(t *testing.T) {
 
 func TestUnstarTrack_Success(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadPublicTrack(alice)
 
 	status, _ := e.do(alice, http.MethodPost, "/tracks/"+trackUUID+"/star", nil, nil)
@@ -139,10 +139,10 @@ func TestUnstarTrack_Success(t *testing.T) {
 
 func TestUnstarTrack_NotFound(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadPublicTrack(alice)
 
 	// Alice never starred this track, so unstarring returns 404.
@@ -152,10 +152,10 @@ func TestUnstarTrack_NotFound(t *testing.T) {
 
 func TestGetUserStars_OwnerSeesPrivateStars(t *testing.T) {
 	e := newTestEnv(t)
-	aliceUUID := e.createUser("alice@example.com", "Alice", "secret", false)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	publicTrack := e.uploadPublicTrack(alice)
 	privateTrack := e.uploadPrivateTrack(alice)
@@ -174,11 +174,11 @@ func TestGetUserStars_OwnerSeesPrivateStars(t *testing.T) {
 
 func TestGetUserStars_OtherUserSeesOnlyPublicStars(t *testing.T) {
 	e := newTestEnv(t)
-	aliceUUID := e.createUser("alice@example.com", "Alice", "secret", false)
-	e.createUser("bob@example.com", "Bob", "secret2", false)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	publicTrack := e.uploadPublicTrack(alice)
 	privateTrack := e.uploadPrivateTrack(alice)
@@ -189,7 +189,7 @@ func TestGetUserStars_OtherUserSeesOnlyPublicStars(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, status)
 
 	bob := e.newClient()
-	e.login(bob, "bob@example.com", "secret2")
+	e.login(bob, "bob@example.com", "secret22")
 
 	var stars []any
 	status, _ = e.do(bob, http.MethodGet, "/users/"+aliceUUID+"/stars", nil, &stars)
@@ -199,10 +199,10 @@ func TestGetUserStars_OtherUserSeesOnlyPublicStars(t *testing.T) {
 
 func TestGetUserStars_AnonymousSeesOnlyPublicStars(t *testing.T) {
 	e := newTestEnv(t)
-	aliceUUID := e.createUser("alice@example.com", "Alice", "secret", false)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 
 	publicTrack := e.uploadPublicTrack(alice)
 	privateTrack := e.uploadPrivateTrack(alice)
@@ -222,7 +222,7 @@ func TestGetUserStars_AnonymousSeesOnlyPublicStars(t *testing.T) {
 
 func TestGetUserStars_Empty(t *testing.T) {
 	e := newTestEnv(t)
-	aliceUUID := e.createUser("alice@example.com", "Alice", "secret", false)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	anon := e.newClient()
 
@@ -234,10 +234,10 @@ func TestGetUserStars_Empty(t *testing.T) {
 
 func TestStarred_ReturnedOnGetTrack(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadPublicTrack(alice)
 
 	// Before starring: starred should be false.
@@ -257,10 +257,10 @@ func TestStarred_ReturnedOnGetTrack(t *testing.T) {
 
 func TestStarred_ReturnedOnListTracks(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadPublicTrack(alice)
 
 	status, _ := e.do(alice, http.MethodPost, "/tracks/"+trackUUID+"/star", nil, nil)
@@ -278,10 +278,10 @@ func TestStarred_ReturnedOnListTracks(t *testing.T) {
 
 func TestStarred_FalseForAnonymousOnGetTrack(t *testing.T) {
 	e := newTestEnv(t)
-	e.createUser("alice@example.com", "Alice", "secret", false)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadPublicTrack(alice)
 
 	// Alice stars the track.
@@ -298,10 +298,10 @@ func TestStarred_FalseForAnonymousOnGetTrack(t *testing.T) {
 
 func TestStarred_TrueOnUserStarsList(t *testing.T) {
 	e := newTestEnv(t)
-	aliceUUID := e.createUser("alice@example.com", "Alice", "secret", false)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
 
 	alice := e.newClient()
-	e.login(alice, "alice@example.com", "secret")
+	e.login(alice, "alice@example.com", "secret11")
 	trackUUID := e.uploadPublicTrack(alice)
 
 	status, _ := e.do(alice, http.MethodPost, "/tracks/"+trackUUID+"/star", nil, nil)
