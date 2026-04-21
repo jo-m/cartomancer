@@ -58,6 +58,12 @@ type exportTrackGroup struct {
 	TrackIDs []string `json:"trackIds"`
 }
 
+// exportBlobError records a track blob that could not be included in the export.
+type exportBlobError struct {
+	TrackUUID string `json:"trackUuid"`
+	Error     string `json:"error"`
+}
+
 func fileFormatLabel(f int64) string {
 	switch track.FileFormat(f) {
 	case track.FileFormatGPX:
@@ -275,10 +281,12 @@ func (sv *server) handleExportData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var blobErrors []exportBlobError
 	for _, t := range tracks {
 		b, blobErr := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
 		if blobErr != nil {
 			logg.Error(ctx, "export: failed to get blob", "err", blobErr, "track", t.Uuid)
+			blobErrors = append(blobErrors, exportBlobError{TrackUUID: t.Uuid, Error: blobErr.Error()})
 			continue
 		}
 
@@ -292,11 +300,18 @@ func (sv *server) handleExportData(w http.ResponseWriter, r *http.Request) {
 		})
 		if fwErr != nil {
 			logg.Error(ctx, "export: failed to create zip entry", "err", fwErr, "track", t.Uuid)
+			blobErrors = append(blobErrors, exportBlobError{TrackUUID: t.Uuid, Error: fwErr.Error()})
 			continue
 		}
 		if _, fwErr = fw.Write(b.Content); fwErr != nil {
 			logg.Error(ctx, "export: failed to write track file", "err", fwErr, "track", t.Uuid)
 			return
+		}
+	}
+
+	if len(blobErrors) > 0 {
+		if err := writeZipJSON(zw, "errors.json", now, blobErrors); err != nil {
+			logg.Error(ctx, "export: failed to write errors.json", "err", err)
 		}
 	}
 }

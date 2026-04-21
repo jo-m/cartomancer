@@ -18,18 +18,29 @@ func ParseISO8601Duration(s string) (time.Duration, error) {
 		return 0, fmt.Errorf("unsupported ISO 8601 duration format: %q", s)
 	}
 
-	parseInt := func(v string) int64 {
+	parseInt := func(v string) (int64, error) {
 		if v == "" {
-			return 0
+			return 0, nil
 		}
-		n, _ := strconv.ParseInt(v, 10, 64)
-		return n
+		return strconv.ParseInt(v, 10, 64)
 	}
 
-	days := parseInt(m[1])
-	hours := parseInt(m[2])
-	minutes := parseInt(m[3])
-	seconds := parseInt(m[4])
+	days, err := parseInt(m[1])
+	if err != nil {
+		return 0, fmt.Errorf("invalid days in ISO 8601 duration %q: %w", s, err)
+	}
+	hours, err := parseInt(m[2])
+	if err != nil {
+		return 0, fmt.Errorf("invalid hours in ISO 8601 duration %q: %w", s, err)
+	}
+	minutes, err := parseInt(m[3])
+	if err != nil {
+		return 0, fmt.Errorf("invalid minutes in ISO 8601 duration %q: %w", s, err)
+	}
+	seconds, err := parseInt(m[4])
+	if err != nil {
+		return 0, fmt.Errorf("invalid seconds in ISO 8601 duration %q: %w", s, err)
+	}
 
 	return time.Duration(days)*24*time.Hour +
 		time.Duration(hours)*time.Hour +
