@@ -99,33 +99,29 @@ func (d *DB) BulkUpdateTracks(ctx context.Context, p BulkUpdateTracksParams) err
 		strings.Join(placeholders, ", "),
 	)
 
-	tx, err := d.rw.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
-	}
-	defer tx.Rollback() //nolint:errcheck
-
-	res, err := tx.ExecContext(ctx, query, args...)
-	if err != nil {
-		return fmt.Errorf("bulk update tracks: %w", err)
-	}
-
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-
-	if int(affected) != len(p.UUIDs) {
-		return ErrBulkUpdateMismatch
-	}
-
-	if p.Tags != nil {
-		if err = bulkReplaceTags(ctx, tx, p.UUIDs, p.UserID, *p.Tags); err != nil {
-			return err
+	return d.WithRWTx(ctx, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(ctx, query, args...)
+		if err != nil {
+			return fmt.Errorf("bulk update tracks: %w", err)
 		}
-	}
 
-	return tx.Commit()
+		affected, err := res.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("rows affected: %w", err)
+		}
+
+		if int(affected) != len(p.UUIDs) {
+			return ErrBulkUpdateMismatch
+		}
+
+		if p.Tags != nil {
+			if err = bulkReplaceTags(ctx, tx, p.UUIDs, p.UserID, *p.Tags); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 // bulkReplaceTags removes all existing tags from the given tracks and sets the new ones.

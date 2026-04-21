@@ -28,25 +28,21 @@ func (d *DB) CompleteEditing(ctx context.Context, userID string, uuids []string)
 		strings.Join(placeholders, ", "),
 	)
 
-	tx, err := d.rw.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
-	}
-	defer tx.Rollback() //nolint:errcheck
+	return d.WithRWTx(ctx, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(ctx, query, args...)
+		if err != nil {
+			return fmt.Errorf("complete editing: %w", err)
+		}
 
-	res, err := tx.ExecContext(ctx, query, args...)
-	if err != nil {
-		return fmt.Errorf("complete editing: %w", err)
-	}
+		affected, err := res.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("rows affected: %w", err)
+		}
 
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
+		if int(affected) != len(uuids) {
+			return ErrBulkUpdateMismatch
+		}
 
-	if int(affected) != len(uuids) {
-		return ErrBulkUpdateMismatch
-	}
-
-	return tx.Commit()
+		return nil
+	})
 }
