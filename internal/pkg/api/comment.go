@@ -26,9 +26,11 @@ const maxCommentBodyBytes = 10000
 var commentSanitizer = func() *bluemonday.Policy {
 	p := bluemonday.NewPolicy()
 	p.AllowElements("p", "br", "em", "strong", "del", "ul", "ol", "li")
-	p.AllowAttrs("href", "rel", "target").OnElements("a")
-	p.AllowStandardURLs()
+	p.AllowAttrs("href").OnElements("a")
+	p.AddTargetBlankToFullyQualifiedLinks(true)
 	p.RequireNoFollowOnLinks(true)
+	p.AllowStandardURLs()
+	p.RequireParseableURLs(true)
 	return p
 }()
 
@@ -43,7 +45,7 @@ func rewriteLinks(html string) string {
 		if len(parts) != 3 {
 			return match
 		}
-		return parts[1] + `href="/leaving?url=` + url.QueryEscape(parts[2]) + `" target="_blank"`
+		return parts[1] + `href="/leaving?url=` + url.QueryEscape(parts[2])
 	})
 }
 
