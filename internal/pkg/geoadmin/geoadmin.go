@@ -66,6 +66,11 @@ func getJSON[T any](ctx context.Context, url string) (*T, error) {
 		return nil, fmt.Errorf("unexpected status %d for %s", resp.StatusCode, url)
 	}
 
+	ct := resp.Header.Get("Content-Type")
+	if !strings.Contains(ct, "application/json") {
+		return nil, fmt.Errorf("unexpected content-type %q for %s", ct, url)
+	}
+
 	var result T
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("decoding response: %w", err)
@@ -95,6 +100,11 @@ func postJSON[T any](ctx context.Context, url string, body any) (*T, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status %d for %s", resp.StatusCode, url)
+	}
+
+	ct := resp.Header.Get("Content-Type")
+	if !strings.Contains(ct, "application/json") {
+		return nil, fmt.Errorf("unexpected content-type %q for %s", ct, url)
 	}
 
 	var result T
