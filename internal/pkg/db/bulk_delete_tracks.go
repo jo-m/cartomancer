@@ -29,7 +29,8 @@ func (d *DB) BulkDeleteTracks(ctx context.Context, uuids []string, userID string
 	}
 	args = append(args, userID)
 
-	query := fmt.Sprintf(
+	// Only static "?" placeholders are interpolated; all user values go through args.
+	query := fmt.Sprintf( // #nosec G201
 		"DELETE FROM tracks WHERE uuid IN (%s) AND user_id = ?",
 		strings.Join(placeholders, ", "),
 	)

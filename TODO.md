@@ -95,7 +95,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] Disable public signup by default
 - [x] 404 page in frontend
 - [x] Setup and installation instructions
-- [ ] Uncomment all the checks/linters in make check
+- [x] Uncomment all the checks/linters in make check
 - [x] Log message cleanup and unification (case, punctuation)
 - [x] Add CI setup/Docker build
 - [x] App config
@@ -112,6 +112,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] Grep for TODO in code
 - [x] SQLite without rowid
 - [x] Move geonames and maybe forecasts to separate database files?
+- [ ] Nix flake setup for devshell, incl. direnv, and for building the binary and frontend and docker image
 - [ ] Go through the periodic TODOs
 
 ## Before enabling public signup

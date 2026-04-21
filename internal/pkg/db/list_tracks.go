@@ -475,7 +475,8 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	const tagSubquery = ", COALESCE((SELECT json_group_array(tgs.tag) FROM track_tags ttt JOIN tags tgs ON tgs.id = ttt.tag_id WHERE ttt.track_id = tracks.uuid ORDER BY tgs.tag), '[]') AS tags"
 
 	offset := (p.Page - 1) * p.PageSize
-	dataSQL := fmt.Sprintf(
+	// All interpolated pieces are static strings or allowlisted identifiers (sortCol, sortDir).
+	dataSQL := fmt.Sprintf( // #nosec G201
 		"SELECT %s, CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred%s%s FROM tracks%s%s ORDER BY %s %s LIMIT ? OFFSET ?",
 		trackAllCols, forecastCols, tagSubquery, joins, where, sortCol, sortDir,
 	)
@@ -516,7 +517,8 @@ func (d *DB) GetTagsForTracks(ctx context.Context, trackUUIDs []string) (map[str
 		args[i] = id
 	}
 
-	query := fmt.Sprintf(
+	// Only static "?" placeholders are interpolated; all user values go through args.
+	query := fmt.Sprintf( // #nosec G201
 		"SELECT tt.track_id, t.tag FROM tags t JOIN track_tags tt ON tt.tag_id = t.id WHERE tt.track_id IN (%s) ORDER BY t.tag",
 		strings.Join(placeholders, ", "),
 	)

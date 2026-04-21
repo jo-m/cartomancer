@@ -93,7 +93,8 @@ func (d *DB) BulkUpdateTracks(ctx context.Context, p BulkUpdateTracksParams) err
 	}
 	args = append(args, p.UserID)
 
-	query := fmt.Sprintf(
+	// setClauses are static column assignments built above; placeholders are only "?".
+	query := fmt.Sprintf( // #nosec G201
 		"UPDATE tracks SET %s WHERE uuid IN (%s) AND user_id = ?",
 		strings.Join(setClauses, ", "),
 		strings.Join(placeholders, ", "),

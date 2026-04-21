@@ -74,12 +74,12 @@ func DownloadAllCountries(ctx context.Context) (string, error) {
 	}
 
 	if _, err := io.Copy(tmp, resp.Body); err != nil {
-		tmp.Close()
-		os.Remove(tmp.Name())
+		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
 		return "", fmt.Errorf("write temp file: %w", err)
 	}
 	if err := tmp.Close(); err != nil {
-		os.Remove(tmp.Name())
+		_ = os.Remove(tmp.Name())
 		return "", fmt.Errorf("close temp file: %w", err)
 	}
 

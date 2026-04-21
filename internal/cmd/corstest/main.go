@@ -15,6 +15,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"time"
 )
 
 var (
@@ -124,5 +125,12 @@ func main() {
 	})
 
 	fmt.Printf("CSRF test page at http://%s (targeting %s)\n", *listen, *target)
-	log.Fatal(http.ListenAndServe(*listen, nil))
+	srv := &http.Server{
+		Addr:              *listen,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	log.Fatal(srv.ListenAndServe())
 }

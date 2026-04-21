@@ -30,7 +30,7 @@ func spaHandler(fsys fs.FS) http.Handler {
 			f, err := fsys.Open(path)
 			if err == nil {
 				stat, statErr := f.Stat()
-				f.Close()
+				_ = f.Close()
 				if statErr == nil && !stat.IsDir() {
 					fileServer.ServeHTTP(w, r)
 					return

@@ -214,7 +214,7 @@ func Open(ctx context.Context, path string, migrationsFS embed.FS, migrationsDir
 	// Open read only conn.
 	ro, err := sql.Open(driver, buildDSN(path, true, time.Second*5, overrides))
 	if err != nil {
-		rw.Close()
+		_ = rw.Close()
 		return nil, fmt.Errorf("failed to open db (ro): %w", err)
 	}
 	ro.SetMaxOpenConns(max(4, runtime.NumCPU()))
@@ -222,8 +222,8 @@ func Open(ctx context.Context, path string, migrationsFS embed.FS, migrationsDir
 	// Close both connections if any subsequent step fails.
 	defer func() {
 		if err != nil {
-			rw.Close()
-			ro.Close()
+			_ = rw.Close()
+			_ = ro.Close()
 		}
 	}()
 

@@ -81,5 +81,8 @@ func main() {
 	for i := range lats {
 		fmt.Fprintf(w, "%d\t%.6f\t%.6f\t%.2f\n", i, lats[i], lons[i], alts[i])
 	}
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		fmt.Fprintf(os.Stderr, "flush output: %v\n", err)
+		os.Exit(1)
+	}
 }

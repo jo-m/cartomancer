@@ -21,7 +21,8 @@ func (d *DB) GetActiveRoadClosuresByCells(ctx context.Context, cells []int64) ([
 		args[i] = c
 	}
 
-	query := fmt.Sprintf(
+	// Only static "?" placeholders are interpolated; all user values go through args.
+	query := fmt.Sprintf( // #nosec G201
 		"SELECT DISTINCT rc.uuid, rc.source_id, rc.inserted_by, rc.created_at,"+
 			" rc.type, rc.starts_at, rc.ends_at, rc.title, rc.reason,"+
 			" rc.description, rc.content_provider, rc.geometry,"+

@@ -23,7 +23,8 @@ func (d *DB) CompleteEditing(ctx context.Context, userID string, uuids []string)
 	}
 	args = append(args, userID)
 
-	query := fmt.Sprintf(
+	// Only static "?" placeholders are interpolated; all user values go through args.
+	query := fmt.Sprintf( // #nosec G201
 		"UPDATE tracks SET initial_editing_completed = 1 WHERE uuid IN (%s) AND user_id = ?",
 		strings.Join(placeholders, ", "),
 	)

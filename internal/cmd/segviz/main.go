@@ -50,7 +50,7 @@ func run() error {
 	}
 	logg.Info(ctx, "found track files", "count", len(files))
 
-	if err := os.MkdirAll(args.out, 0o755); err != nil {
+	if err := os.MkdirAll(args.out, 0o750); err != nil {
 		return fmt.Errorf("creating output directory: %w", err)
 	}
 
@@ -700,5 +700,5 @@ func writeStats(args cliArgs, trackCells []segment.TrackCells, segments []segmen
 		}
 	}
 
-	return os.WriteFile(filepath.Join(args.out, "06_stats.txt"), []byte(b.String()), 0o644)
+	return os.WriteFile(filepath.Join(args.out, "06_stats.txt"), []byte(b.String()), 0o600)
 }

@@ -245,7 +245,7 @@ func DownloadAsset(ctx context.Context, asset Asset) (body io.ReadCloser, conten
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, "", fmt.Errorf("unexpected status %d for %s", resp.StatusCode, *asset.Href)
 	}
 
