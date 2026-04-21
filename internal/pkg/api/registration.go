@@ -157,8 +157,8 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		// Return the same response to prevent email enumeration.
 		err = jobs.Submit(ctx, sv.jobSubmitter, mail.Args{
 			To:      []string{req.Email},
-			Subject: "Registration attempt",
-			Body:    "Someone tried to create an account with your email address. If this was you, you can log in with your existing credentials. If not, you can safely ignore this message.\n",
+			Subject: "Registration attempt on " + sv.appConfig.InstanceName,
+			Body:    fmt.Sprintf("Someone tried to register a new account on %s using your email address.\n\nIf this was you, you already have an account and can sign in with your existing credentials — no new account was created.\n\nIf you did not attempt to register, you can safely ignore this message. Your account and data remain unaffected.\n", sv.appConfig.InstanceName),
 		}, jobs.Params{MaxRetries: 3})
 		if err != nil {
 			logg.Error(ctx, "failed to submit registration-attempt email job", "err", err)
@@ -177,8 +177,8 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	confirmURL := fmt.Sprintf("%s/confirm-email?token=%s", sv.appConfig.ExternalBaseURL, token)
 	err = jobs.Submit(ctx, sv.jobSubmitter, mail.Args{
 		To:      []string{req.Email},
-		Subject: "Confirm your email",
-		Body:    fmt.Sprintf("Please confirm your email by visiting:\n\n%s\n", confirmURL),
+		Subject: "Confirm your email address for " + sv.appConfig.InstanceName,
+		Body:    fmt.Sprintf("Welcome to %s!\n\nTo finish setting up your account, please confirm your email address by visiting the link below:\n\n%s\n\nIf you did not create an account, you can safely ignore this message.\n", sv.appConfig.InstanceName, confirmURL),
 	}, jobs.Params{MaxRetries: 3})
 	if err != nil {
 		logg.Error(ctx, "failed to submit confirmation email job", "err", err)

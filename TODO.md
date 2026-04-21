@@ -120,7 +120,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Find a solution for segments extraction privacy
 - [ ] Add privacy policy, imprint, admin contact (https://notermsnoconditions.com/)
 - [x] Periodically delete user accounts which have never had their email confirmed
-- [ ] Improve email messages sent to users, include instance name and base URL
+- [x] Improve email messages sent to users
 - [ ] Self serve password reset flow for users
 - [ ] Rate limiting for sensitive endpoints (login etc), or hint for deployment
 - [x] Self-serve full data export for users
