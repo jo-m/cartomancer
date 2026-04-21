@@ -11,6 +11,9 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
+// ListTracksMaxPageSize is the upper bound for the PageSize parameter in ListTracksParams.
+const ListTracksMaxPageSize = 200
+
 // ListTracksParams defines the filter and pagination parameters for listing tracks.
 type ListTracksParams struct {
 	// UserID is the current user's UUID. If empty, only public tracks are returned.
@@ -296,6 +299,9 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 	}
 	if p.PageSize < 1 {
 		p.PageSize = 25
+	}
+	if p.PageSize > ListTracksMaxPageSize {
+		p.PageSize = ListTracksMaxPageSize
 	}
 
 	// Validate and default sort parameters.
