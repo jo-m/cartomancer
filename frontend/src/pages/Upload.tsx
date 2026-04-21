@@ -12,6 +12,7 @@ import Badge from "../components/ui/Badge"
 import Card from "../components/ui/Card"
 import Select from "../components/ui/Select"
 import SectionHeading from "../components/ui/SectionHeading"
+import Alert from "../components/ui/Alert"
 import PageContainer from "../components/ui/PageContainer"
 import { formatDistance, formatAscent } from "../lib/format"
 import {
@@ -301,6 +302,11 @@ export default function Upload() {
           here, or click to select
         </p>
       </div>
+
+      <Alert variant="warning" className="mt-4">
+        For public tracks the original file will be publicly accessible,
+        including start/end points and any other data embedded in it.
+      </Alert>
 
       {activeUploads.length > 0 && (
         <Card className="mt-4">

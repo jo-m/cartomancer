@@ -126,10 +126,10 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] Self-serve full data export for users
 - [ ] TOTP login for users
 - [x] Decide on what can be seen by anon/non logged in users.
-- [ ] Hints in the frontend:
-  - [ ] Email will always stay private, name is shown
-  - [ ] Advanced email normalization (e.g. Gmail dots, +tags)
-  - [ ] Warning that for public tracks original file will be public, incl. start points and potential other data in it
+- [ ] ~~Advanced email normalization (e.g. Gmail dots, +tags)~~
+- [x] Hints in the frontend:
+  - [x] Registering: Email will always stay private, name is public.
+  - [x] Upload: Warning that for public tracks original file will be public, incl. start points and potential other data in it
 
 ## Later (maybe)
 

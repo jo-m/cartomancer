@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { $api } from "../api/client"
 import useDocumentTitle from "../hooks/useDocumentTitle"
+import Alert from "../components/ui/Alert"
 import Card from "../components/ui/Card"
 import Input from "../components/ui/Input"
 import Button from "../components/ui/Button"
@@ -105,6 +106,10 @@ export default function Register() {
             error={errors.confirmPassword?.message}
             {...register("confirmPassword")}
           />
+          <Alert variant="info">
+            Your email address will always stay private. Your name will be
+            visible publicly.
+          </Alert>
           {mutation.error && (
             <p role="alert" className="text-sm text-error">
               {mutation.error.message}
