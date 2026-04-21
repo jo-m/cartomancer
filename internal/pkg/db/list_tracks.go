@@ -11,8 +11,13 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
-// ListTracksMaxPageSize is the upper bound for the PageSize parameter in ListTracksParams.
-const ListTracksMaxPageSize = 200
+const (
+	// ListTracksMaxPageSize is the upper bound for the PageSize parameter in ListTracksParams.
+	ListTracksMaxPageSize = 200
+
+	// metersPerDegreeLat is the approximate number of meters per degree of latitude.
+	metersPerDegreeLat = 111320.0
+)
 
 // ListTracksParams defines the filter and pagination parameters for listing tracks.
 type ListTracksParams struct {
@@ -278,7 +283,7 @@ func (b *queryBuilder) whereClause() string {
 
 // latDeltaDeg converts a radius in meters to a latitude delta in degrees.
 func latDeltaDeg(radiusM float64) float64 {
-	return radiusM / 111320.0
+	return radiusM / metersPerDegreeLat
 }
 
 // lonDeltaDeg converts a radius in meters to a longitude delta in degrees at the given latitude.
@@ -287,7 +292,7 @@ func lonDeltaDeg(radiusM, lat float64) float64 {
 	if math.Abs(cosLat) < 1e-10 {
 		return 180.0
 	}
-	return radiusM / (111320.0 * math.Abs(cosLat))
+	return radiusM / (metersPerDegreeLat * math.Abs(cosLat))
 }
 
 // ListTracks returns a paginated list of tracks matching the given filters.

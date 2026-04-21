@@ -46,6 +46,24 @@ const (
 
 	// maxWaypoints is the absolute cap on selected waypoints in a label.
 	maxWaypoints = 7
+
+	// labelBudgetBase is the minimum number of waypoints allocated for any track.
+	labelBudgetBase = 2
+
+	// labelBudgetKmPerWaypoint is the track distance in km that earns one additional
+	// waypoint slot beyond the base budget.
+	labelBudgetKmPerWaypoint = 30
+
+	// scoreProximityWeight scales the proximity component of the candidate score.
+	// Proximity ranges [0, 1], so this sets the maximum proximity contribution.
+	scoreProximityWeight = 2.0
+
+	// scorePassBoost is added to the score of mountain-pass candidates (PASS).
+	// Passes are highly distinctive landmarks for a cycling/running track.
+	scorePassBoost = 3.0
+
+	// scorePeakBoost is added to the score of peak/mountain candidates (PK, MT).
+	scorePeakBoost = 2.0
 )
 
 type candidateKind int
@@ -270,7 +288,7 @@ func (l *Labeler) resolveAdmin1Names(ctx context.Context, selected []candidate) 
 // labelBudget returns the maximum number of waypoints for a given track
 // distance in kilometers.
 func labelBudget(trackDistKm float64) int {
-	budget := 2 + int(trackDistKm/30)
+	budget := labelBudgetBase + int(trackDistKm/labelBudgetKmPerWaypoint)
 	return min(budget, maxWaypoints)
 }
 
@@ -287,13 +305,13 @@ func scoreCandidate(c *candidate) float64 {
 		maxDist = float64(maxLandmarkDistM)
 	}
 	proximity := 1.0 - (c.trackDist / maxDist)
-	score += proximity * 2.0
+	score += proximity * scoreProximityWeight
 
 	switch c.featureCode {
 	case cols.FeatureCodePASS:
-		score += 3.0
+		score += scorePassBoost
 	case cols.FeatureCodePK, cols.FeatureCodeMT:
-		score += 2.0
+		score += scorePeakBoost
 	}
 
 	return score
