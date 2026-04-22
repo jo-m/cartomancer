@@ -2,7 +2,7 @@
   description = "Cartomancer: the GPX track library with a touch of magic";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
   };
 
   outputs =
@@ -78,9 +78,8 @@
         pkgs:
         let
           frontend = mkFrontend pkgs;
-          buildGoModule = pkgs.buildGoModule.override { go = pkgs.go_1_26; };
         in
-        buildGoModule {
+        pkgs.buildGoModule {
           pname = "cartomancer";
           inherit version;
 
@@ -88,7 +87,7 @@
 
           # To update: replace with pkgs.lib.fakeHash, run `nix build`, copy
           # the expected hash from the error message.
-          vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+          vendorHash = "sha256-NGtUTC5hzZnxKElQG1t0g1ZH/b0ijPU52Ww0TiXJRJM=";
 
           # proxyVendor is required because `go generate` uses `go tool sqlc`
           # which needs access to the full module graph, not just imported
@@ -176,7 +175,7 @@
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
           packages = with pkgs; [
-            go_1_26
+            go
             nodejs_22
             gcc
             git
