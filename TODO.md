@@ -120,6 +120,12 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] SQLite without rowid
 - [x] Move geonames and maybe forecasts to separate database files?
 - [x] Nix flake setup for devshell, incl. direnv, and for building the binary and frontend and docker image
+  - [ ] Create a separate nix/ directory and move the package definitions there.
+  - [ ] Formatting via Nix treefmt.
+  - [ ] Scripts file, allow doing all the stuff the Makefile does via scripts
+  - [ ] Nixpkgs stable, but use Go from unstable.
+  - [ ] Cache go modules and node modules by having them as a separate derivation
+  - [ ] Enable cross build from x86 to arm
 - [ ] Go through the periodic TODOs
 
 ## Before enabling public signup
