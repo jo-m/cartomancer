@@ -67,13 +67,25 @@ It is a good idea to ratelimit the `/api/sessions/login` endpoint.
 
 ## Development
 
-`.envrc` contains the default dev config.
-Use [direnv](https://direnv.net/) to load it.
-Otherwise, the Go toolchain and Node/npm are required.
+All build and dev tools are provided via a [Nix](https://nixos.org/) flake.
+Install Nix (with flakes enabled), then either enter the devshell explicitly:
+
+```bash
+nix develop
+```
+
+or, preferred, combine with [direnv](https://direnv.net/) +
+[nix-direnv](https://github.com/nix-community/nix-direnv) so entering the
+repo automatically loads the shell and `.envrc` dev config:
+
+```bash
+direnv allow
+```
+
+The devshell provides Go, Node/npm, gcc, make, sqlite and goreleaser.
 
 ```bash
 # Starts the backend, with auto reload
-direnv allow
 go tool air
 
 # In a separate shell, start the frontend
@@ -144,10 +156,33 @@ The compiled frontend assets are embedded directly into the binary.
 Thus, the frontend needs to be built before the backend.
 `make build` will do all of that.
 
+Reproducible builds via Nix are also provided:
+
+```bash
+# Build the binary (result/bin/cartomancer)
+nix build
+
+# Build just the frontend static assets
+nix build .#frontend
+
+# Build a minimal OCI container image as a tar.gz
+nix build .#dockerImage
+docker load < result
+```
+
 ### Docker image
+
+Traditional Dockerfile build:
 
 ```bash
 docker build -t ghcr.io/jo-m/cartomancer:latest .
+```
+
+Or, the minimal Nix-built image (no shell, no package manager):
+
+```bash
+nix build .#dockerImage
+docker load < result
 ```
 
 ### Creating releases

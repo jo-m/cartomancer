@@ -119,7 +119,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] Grep for TODO in code
 - [x] SQLite without rowid
 - [x] Move geonames and maybe forecasts to separate database files?
-- [ ] Nix flake setup for devshell, incl. direnv, and for building the binary and frontend and docker image
+- [x] Nix flake setup for devshell, incl. direnv, and for building the binary and frontend and docker image
 - [ ] Go through the periodic TODOs
 
 ## Before enabling public signup
