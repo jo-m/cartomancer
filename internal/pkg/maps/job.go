@@ -173,7 +173,9 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata,
 		OutputPath: outPath,
 	})
 	if err != nil {
-		os.Remove(outPath)
+		if rmErr := os.Remove(outPath); rmErr != nil && !os.IsNotExist(rmErr) {
+			logg.Error(ctx, "failed to remove output file after extraction failure", "err", rmErr)
+		}
 		if _, delErr := dl.d.QueryRW().DeleteMapBuild(ctx, id.String()); delErr != nil {
 			logg.Error(ctx, "failed to clean up map build record after extraction failure", "err", delErr)
 		}
