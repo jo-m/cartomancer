@@ -165,24 +165,9 @@ nix build
 # Build just the frontend static assets
 nix build .#frontend
 
-# Build a minimal OCI container image as a tar.gz
+# Build a minimal Docker/OCI container image as a tar.gz
 nix build .#dockerImage
-docker load < result
-```
-
-### Docker image
-
-Traditional Dockerfile build:
-
-```bash
-docker build -t ghcr.io/jo-m/cartomancer:latest .
-```
-
-Or, the minimal Nix-built image (no shell, no package manager):
-
-```bash
-nix build .#dockerImage
-docker load < result
+docker load < image.tar.gz
 ```
 
 ### Creating releases
