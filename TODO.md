@@ -86,6 +86,13 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Page `<title>` management
   - [x] Inline editing - show the editable properties with a subtle underline.
 - [x] Add "Notes" property to tracks, editable by user.
+- [x] Tags
+  - [x] Make count vs. name distinguishable on button
+  - [ ] Also enable tag search/suggestions for anon users
+- [ ] Maps
+  - [ ] Self hosted alternative
+  - [ ] Track overview on map
+  - [ ] Track previews with map background
 
 ## Before initial push/deploy
 

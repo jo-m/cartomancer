@@ -55,7 +55,7 @@ export default function TagsInput({
       ))}
       <datalist id={listId}>
         {(suggestionsData?.tags ?? []).map((t) => (
-          <option key={t} value={t} />
+          <option key={t.tag} value={t.tag} />
         ))}
       </datalist>
       <input

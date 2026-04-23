@@ -1,3 +1,4 @@
+import { $api } from "../api/client"
 import { useSession } from "../context/SessionContext"
 import {
   SPORT_LABELS,
@@ -103,6 +104,22 @@ export default function TrackFilters({
             )
           ),
         ]
+
+  const { data: allTagsData } = $api.useQuery(
+    "get",
+    "/tags",
+    {},
+    { enabled: !!user }
+  )
+  const availableTags = (allTagsData?.tags ?? []).filter(
+    (t) => !live.tags.includes(t.tag)
+  )
+
+  function addTag(tag: string) {
+    setLive((prev) =>
+      prev.tags.includes(tag) ? prev : { ...prev, tags: [...prev.tags, tag] }
+    )
+  }
 
   return (
     <div className="mb-6 rounded-lg border border-border bg-panel px-4 pb-4 pt-3">
@@ -285,6 +302,24 @@ export default function TrackFilters({
             onChange={(tags) => setLive((prev) => ({ ...prev, tags }))}
             placeholder="Filter by tag..."
           />
+          {availableTags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {availableTags.map(({ tag, nTracks }) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => addTag(tag)}
+                  className="cursor-pointer inline-flex items-center gap-1.5 rounded border border-border py-0.5 pl-2 pr-1 text-xs text-text-secondary hover:border-border-hover hover:bg-surface transition-colors"
+                  aria-label={`Add tag ${tag} to filter`}
+                >
+                  <span className="font-medium text-text">{tag}</span>
+                  <span className="rounded bg-surface px-1 text-[10px] tabular-nums text-text-muted">
+                    {nTracks}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
