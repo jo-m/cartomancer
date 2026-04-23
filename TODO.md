@@ -93,6 +93,9 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [ ] Self hosted alternative
   - [ ] Track overview on map
   - [ ] Track previews with map background
+- [ ] Filtering
+  - [ ] Unknown sport or subsport
+  - [ ] By start location (1km radius?)
 
 ## Before initial push/deploy
 
