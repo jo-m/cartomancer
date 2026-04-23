@@ -1,6 +1,4 @@
 {
-  description = "Cartomancer: the GPX track library with a touch of magic";
-
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
   };
@@ -109,8 +107,7 @@
           "-X=jo-m.ch/go/cartomancer/internal/pkg/api.buildVersion=${version}"
         ];
 
-        # TODO:
-        # Tests require a populated data directory and network for some fixtures, so they are skipped here. Use `make test` for tests.
+        # We run tests separately in CI.
         doCheck = false;
 
         meta = {
