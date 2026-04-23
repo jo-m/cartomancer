@@ -80,6 +80,30 @@ func TestSetTrackTags_InvalidTag(t *testing.T) {
 	// Unicode letters and digits are allowed
 	status, _ = e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"velowege"}, nil)
 	assert.Equal(t, http.StatusOK, status)
+
+	// Umlauts and other unicode letters are allowed.
+	status, _ = e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"straße", "café", "ツーリング"}, nil)
+	assert.Equal(t, http.StatusOK, status)
+}
+
+func TestSetTrackTags_UnicodeNFCNormalization(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret11")
+	trackUUID := e.uploadAndGetUUID(client)
+
+	// "a" + U+0308 (combining diaeresis) -- 4 codepoints, not all letters --
+	// becomes a single "ä" after NFC normalization and must validate.
+	decomposed := "ka\u0308se"
+	var resp map[string]any
+	status, _ := e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{decomposed}, &resp)
+	assert.Equal(t, http.StatusOK, status)
+
+	tags, ok := resp["tags"].([]any)
+	require.True(t, ok)
+	require.Len(t, tags, 1)
+	assert.Equal(t, "käse", tags[0])
 }
 
 func TestSetTrackTags_Success(t *testing.T) {

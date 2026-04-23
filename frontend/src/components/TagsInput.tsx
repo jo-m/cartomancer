@@ -41,7 +41,7 @@ export default function TagsInput({
     source === "public" ? publicQuery.data : userQuery.data
 
   function addTag(raw: string) {
-    const tag = raw.trim()
+    const tag = raw.trim().normalize("NFC")
     if (!tag || value.includes(tag)) return
     if (!/^[\p{L}\p{N}]{2,32}$/u.test(tag)) return
     onChange([...value, tag])
@@ -77,11 +77,7 @@ export default function TagsInput({
         type="text"
         list={listId}
         value={input}
-        onChange={(e) => {
-          const v = e.target.value
-          if (v && !/^[\p{L}\p{N}]*$/u.test(v)) return
-          setInput(v)
-        }}
+        onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={value.length === 0 ? placeholder : ""}
         className="min-w-16 flex-1 bg-transparent text-xs text-text placeholder-text-muted outline-none"

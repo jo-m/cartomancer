@@ -9,13 +9,21 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
+	"golang.org/x/text/unicode/norm"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
-// validateTag checks that a tag is 2-32 characters and contains only
-// unicode letters and digits.
+// normalizeTag returns the NFC-normalized form of the tag so that differently
+// encoded but semantically equal inputs (for example "a"+U+0308 vs. the single
+// "ä" codepoint) compare and store as the same tag.
+func normalizeTag(tag string) string {
+	return norm.NFC.String(tag)
+}
+
+// validateTag checks that a tag is 2-32 codepoints long and contains only
+// unicode letters and digits. The tag is expected to be NFC-normalized.
 func validateTag(tag string) bool {
 	n := utf8.RuneCountInString(tag)
 	if n < 2 || n > 32 {
@@ -39,8 +47,9 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, tag := range tags {
-		if !validateTag(tag) {
+	for i, tag := range tags {
+		tags[i] = normalizeTag(tag)
+		if !validateTag(tags[i]) {
 			writeError(w, http.StatusBadRequest, "each tag must be 2-32 alphanumeric characters")
 			return
 		}
