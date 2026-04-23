@@ -12,10 +12,10 @@ release:
 
     Linux binaries:
 
-    - `cartomancer_{{ .Version }}_linux_amd64.tar.gz`
-    - `cartomancer_{{ .Version }}_linux_arm64.tar.gz`
+    - `cartomancer_{{ .Version }}_linux_x86_64.tar.gz`
+    - `cartomancer_{{ .Version }}_linux_aarch64.tar.gz`
 
-    Multi-arch Docker image (linux/amd64 + linux/arm64):
+    Multi-arch Docker image (linux/x86_64 + linux/aarch64):
 
     ```
     docker pull ghcr.io/jo-m/cartomancer:{{ .Version }}

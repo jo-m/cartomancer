@@ -50,13 +50,13 @@ jobs:
       - uses: cachix/install-nix-action@v31
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build amd64 binary
+      - name: Build x86_64 binary
         run: nix build .#cartomancer
-      - name: Build arm64 binary (cross)
+      - name: Build aarch64 binary (cross)
         run: nix build .#cartomancer-aarch64-linux
-      - name: Build amd64 Docker image
+      - name: Build x86_64 Docker image
         run: nix build .#dockerImage
-      - name: Build arm64 Docker image (cross)
+      - name: Build aarch64 Docker image (cross)
         run: nix build .#dockerImage-aarch64-linux
 
   docker-push:
@@ -76,10 +76,10 @@ jobs:
       - name: Compute image tag
         id: tag
         run: echo "value=$(echo '${{ github.ref_name }}' | tr '/' '_')" >> "$GITHUB_OUTPUT"
-      - name: Build amd64 image
-        run: nix build .#dockerImage -o image-amd64.tar.gz
-      - name: Build arm64 image
-        run: nix build .#dockerImage-aarch64-linux -o image-arm64.tar.gz
+      - name: Build x86_64 image
+        run: nix build .#dockerImage -o image-x86_64.tar.gz
+      - name: Build aarch64 image
+        run: nix build .#dockerImage-aarch64-linux -o image-aarch64.tar.gz
       - name: Push per-arch images and multi-arch manifest
         env:
           TAG: ${{ steps.tag.outputs.value }}
@@ -87,14 +87,14 @@ jobs:
           set -euo pipefail
           repo="ghcr.io/jo-m/cartomancer"
 
-          amd64_src=$(docker load < image-amd64.tar.gz | sed -n 's/^Loaded image: //p')
-          docker tag "$amd64_src" "$repo:${TAG}-amd64"
-          docker push "$repo:${TAG}-amd64"
+          x86_64_src=$(docker load < image-x86_64.tar.gz | sed -n 's/^Loaded image: //p')
+          docker tag "$x86_64_src" "$repo:${TAG}-x86_64"
+          docker push "$repo:${TAG}-x86_64"
 
-          arm64_src=$(docker load < image-arm64.tar.gz | sed -n 's/^Loaded image: //p')
-          docker tag "$arm64_src" "$repo:${TAG}-arm64"
-          docker push "$repo:${TAG}-arm64"
+          aarch64_src=$(docker load < image-aarch64.tar.gz | sed -n 's/^Loaded image: //p')
+          docker tag "$aarch64_src" "$repo:${TAG}-aarch64"
+          docker push "$repo:${TAG}-aarch64"
 
           docker buildx imagetools create -t "$repo:$TAG" \
-            "$repo:${TAG}-amd64" \
-            "$repo:${TAG}-arm64"
+            "$repo:${TAG}-x86_64" \
+            "$repo:${TAG}-aarch64"
