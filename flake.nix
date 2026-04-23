@@ -68,8 +68,12 @@
     # Backend: Go binary with embedded frontend assets. Takes a (potentially cross-compiled) package set
     # and produces a binary for that set's host platform.
     mkCartomancer = crossPkgs: let
+      # Use crossPkgs.go_1_26 (not buildPkgs.go_1_26): its `GOARCH` attr matches
+      # the cross target, so buildGoModule sets `GOARCH` correctly and cgo
+      # does not pass `-m64` to the aarch64 cross-gcc. The binary itself is
+      # still native (runs on the build host); only GOOS/GOARCH differ.
       buildGoModule = crossPkgs.buildGoModule.override {
-        go = buildPkgs.go_1_26;
+        go = crossPkgs.go_1_26;
       };
     in
       buildGoModule {
