@@ -82,7 +82,7 @@
     }: let
       frontend = mkFrontend pkgs.buildPackages;
       buildGoModule = pkgs.buildGoModule.override {
-        go = pkgsUnstable.buildPackages.go_1_26;
+        go = pkgs.go_1_26;
       };
     in
       buildGoModule {
@@ -209,7 +209,7 @@
       }: {
         default = pkgs.mkShell {
           packages = [
-            pkgsUnstable.go_1_26
+            pkgs.go_1_26
             pkgs.nodejs_22
             pkgs.gcc
             pkgs.git
