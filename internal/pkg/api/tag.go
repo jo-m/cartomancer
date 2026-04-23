@@ -111,6 +111,12 @@ type tagSuggestionResponse struct {
 	Tags []tagSuggestion `json:"tags"`
 }
 
+// likePrefix escapes % and _ so they are treated as literals and appends the
+// LIKE wildcard so the returned pattern matches "starts with prefix".
+func likePrefix(prefix string) string {
+	return strings.NewReplacer("%", `\%`, "_", `\_`).Replace(prefix) + "%"
+}
+
 // handleSuggestTags returns the authenticated user's tags, optionally filtered
 // by a prefix (matched case-sensitively with LIKE). Tags are ordered by the
 // number of the user's tracks that carry them, descending, then alphabetically.
@@ -124,14 +130,34 @@ func (sv *server) handleSuggestTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prefix := r.URL.Query().Get("prefix")
-	escaped := strings.NewReplacer("%", `\%`, "_", `\_`).Replace(prefix)
 	rows, err := sv.d.QueryRO().SuggestTags(ctx, db.SuggestTagsParams{
 		UserID: user.Uuid,
-		Tag:    escaped + "%",
+		Tag:    likePrefix(r.URL.Query().Get("prefix")),
 	})
 	if err != nil {
 		logg.Error(ctx, "failed to suggest tags", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	out := make([]tagSuggestion, len(rows))
+	for i, r := range rows {
+		out[i] = tagSuggestion{Tag: r.Tag, NTracks: r.NTracks}
+	}
+
+	writeJSON(w, http.StatusOK, tagSuggestionResponse{Tags: out})
+}
+
+// handleSuggestPublicTags returns tags that appear on public tracks, optionally
+// filtered by a prefix. Tags are ordered by the number of distinct public
+// tracks carrying them, descending, then alphabetically. This endpoint does
+// not require authentication.
+func (sv *server) handleSuggestPublicTags(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	rows, err := sv.d.QueryRO().SuggestPublicTags(ctx, likePrefix(r.URL.Query().Get("prefix")))
+	if err != nil {
+		logg.Error(ctx, "failed to suggest public tags", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}

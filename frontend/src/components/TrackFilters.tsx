@@ -105,12 +105,21 @@ export default function TrackFilters({
           ),
         ]
 
-  const { data: allTagsData } = $api.useQuery(
+  const tagSource = mode === "public" ? "public" : "user"
+  const userTagsQuery = $api.useQuery(
     "get",
     "/tags",
     {},
-    { enabled: !!user }
+    { enabled: tagSource === "user" && !!user }
   )
+  const publicTagsQuery = $api.useQuery(
+    "get",
+    "/tags/public",
+    {},
+    { enabled: tagSource === "public" }
+  )
+  const allTagsData =
+    tagSource === "public" ? publicTagsQuery.data : userTagsQuery.data
   const availableTags = (allTagsData?.tags ?? []).filter(
     (t) => !live.tags.includes(t.tag)
   )
@@ -301,6 +310,7 @@ export default function TrackFilters({
             value={live.tags}
             onChange={(tags) => setLive((prev) => ({ ...prev, tags }))}
             placeholder="Filter by tag..."
+            source={tagSource}
           />
           {availableTags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">

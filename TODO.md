@@ -88,7 +88,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] Add "Notes" property to tracks, editable by user.
 - [x] Tags
   - [x] Make count vs. name distinguishable on button
-  - [ ] Also enable tag search/suggestions for anon users
+  - [x] Also enable tag search/suggestions for anon users
 - [ ] Maps
   - [ ] Self hosted alternative
   - [ ] Track overview on map

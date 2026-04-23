@@ -100,6 +100,7 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 	mux.Get("/tracks/{uuid}/forecast", sv.handleGetTrackForecast)
 	mux.Get("/tracks/{uuid}/comments", sv.handleListTrackComments)
 	mux.Get("/tags", sv.handleSuggestTags)
+	mux.Get("/tags/public", sv.handleSuggestPublicTags)
 	mux.Get("/geocode/search/name", sv.handleSearchGeocodeName)
 
 	mux.Group(func(r chi.Router) {

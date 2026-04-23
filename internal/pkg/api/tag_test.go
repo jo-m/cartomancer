@@ -263,6 +263,97 @@ func TestSuggestTags_NoMatch(t *testing.T) {
 	assert.Empty(t, tags)
 }
 
+func TestSuggestPublicTags_Anonymous(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret11")
+
+	// Alice uploads two tracks, one public, one private.
+	status, pub := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	pubUUID := pub["uuid"].(string)
+	status, priv := e.doUpload(alice, testGPXFile2)
+	require.Equal(t, http.StatusCreated, status)
+	privUUID := priv["uuid"].(string)
+
+	e.makeTrackPublic(alice, pubUUID, pub["name"].(string))
+
+	// Both tracks are tagged, but "secret" only on the private one.
+	status, _ = e.do(alice, http.MethodPut, "/tracks/"+pubUUID+"/tags", []string{"shared"}, nil)
+	require.Equal(t, http.StatusOK, status)
+	status, _ = e.do(alice, http.MethodPut, "/tracks/"+privUUID+"/tags", []string{"shared", "secret"}, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	anon := e.newClient()
+	var resp map[string]any
+	status, _ = e.do(anon, http.MethodGet, "/tags/public", nil, &resp)
+	assert.Equal(t, http.StatusOK, status)
+
+	names := extractTagNames(t, resp)
+	assert.Equal(t, []string{"shared"}, names)
+}
+
+func TestSuggestPublicTags_AggregatesAcrossUsers(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret11")
+	status, a1 := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	aliceUUID := a1["uuid"].(string)
+	e.makeTrackPublic(alice, aliceUUID, a1["name"].(string))
+	status, _ = e.do(alice, http.MethodPut, "/tracks/"+aliceUUID+"/tags", []string{"gravel", "alpine"}, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	bob := e.newClient()
+	e.login(bob, "bob@example.com", "secret22")
+	status, b1 := e.doUpload(bob, testGPXFile2)
+	require.Equal(t, http.StatusCreated, status)
+	bobUUID := b1["uuid"].(string)
+	e.makeTrackPublic(bob, bobUUID, b1["name"].(string))
+	status, _ = e.do(bob, http.MethodPut, "/tracks/"+bobUUID+"/tags", []string{"gravel"}, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	var resp map[string]any
+	status, _ = e.do(e.newClient(), http.MethodGet, "/tags/public", nil, &resp)
+	assert.Equal(t, http.StatusOK, status)
+
+	raw, ok := resp["tags"].([]any)
+	require.True(t, ok)
+	require.Len(t, raw, 2)
+	first := raw[0].(map[string]any)
+	second := raw[1].(map[string]any)
+	assert.Equal(t, "gravel", first["tag"])
+	assert.EqualValues(t, 2, first["nTracks"])
+	assert.Equal(t, "alpine", second["tag"])
+	assert.EqualValues(t, 1, second["nTracks"])
+}
+
+func TestSuggestPublicTags_PrefixFilter(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret11")
+	status, uploaded := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	trackUUID := uploaded["uuid"].(string)
+	e.makeTrackPublic(alice, trackUUID, uploaded["name"].(string))
+	status, _ = e.do(alice, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"cycling", "cityride", "hiking"}, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	var resp map[string]any
+	status, _ = e.do(e.newClient(), http.MethodGet, "/tags/public?prefix=c", nil, &resp)
+	assert.Equal(t, http.StatusOK, status)
+
+	names := extractTagNames(t, resp)
+	assert.ElementsMatch(t, []string{"cycling", "cityride"}, names)
+}
+
 func TestSuggestTags_OtherUserTagsNotVisible(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("alice@example.com", "Alice", "secret11", false)

@@ -6,6 +6,12 @@ interface TagsInputProps {
   value: string[]
   onChange: (tags: string[]) => void
   placeholder?: string
+  /**
+   * Which tag suggestion pool to query for typeahead.
+   * "user" (default) — the current user's own tags (requires auth).
+   * "public" — tags that appear on any public track (open to anon callers).
+   */
+  source?: "user" | "public"
 }
 
 /** Controlled tag input that renders selected tags as chips. */
@@ -13,17 +19,26 @@ export default function TagsInput({
   value,
   onChange,
   placeholder = "Add tags...",
+  source = "user",
 }: TagsInputProps) {
   const [input, setInput] = useState("")
   const listId = useId()
 
   const prefix = input.trim()
-  const { data: suggestionsData } = $api.useQuery(
+  const userQuery = $api.useQuery(
     "get",
     "/tags",
     { params: { query: { prefix } } },
-    { enabled: prefix.length >= 2 }
+    { enabled: source === "user" && prefix.length >= 2 }
   )
+  const publicQuery = $api.useQuery(
+    "get",
+    "/tags/public",
+    { params: { query: { prefix } } },
+    { enabled: source === "public" && prefix.length >= 2 }
+  )
+  const suggestionsData =
+    source === "public" ? publicQuery.data : userQuery.data
 
   function addTag(raw: string) {
     const tag = raw.trim()

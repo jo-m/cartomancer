@@ -2397,6 +2397,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tags/public:
+    get:
+      summary: List tags used on public tracks, optionally filtered by prefix
+      operationId: suggestPublicTags
+      tags: [Tags]
+      security: []
+      description: |
+        Returns tag names that appear on public tracks (grouped by tag string
+        across all users), together with the number of distinct public tracks
+        carrying each tag. Ordered by count descending, then tag alphabetically.
+        Accessible without authentication.
+      parameters:
+        - name: prefix
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tag suggestions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagSuggestionResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /geocode/search/name:
     get:
       summary: Search populated places by name

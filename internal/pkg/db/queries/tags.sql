@@ -28,3 +28,15 @@ LEFT JOIN tracks tr ON tr.uuid = tt.track_id AND tr.user_id = t.user_id
 WHERE t.user_id = ? AND t.tag LIKE ?
 GROUP BY t.id, t.tag
 ORDER BY n_tracks DESC, t.tag ASC;
+
+-- name: SuggestPublicTags :many
+-- Returns tag names that appear on public tracks (grouped by tag string across
+-- all users), together with the count of distinct public tracks carrying each
+-- tag. Filtered by the given LIKE pattern. Ordered by count desc, then tag asc.
+SELECT t.tag, COUNT(DISTINCT tt.track_id) AS n_tracks
+FROM tags t
+JOIN track_tags tt ON tt.tag_id = t.id
+JOIN tracks tr ON tr.uuid = tt.track_id
+WHERE tr.public = 1 AND t.tag LIKE ?
+GROUP BY t.tag
+ORDER BY n_tracks DESC, t.tag ASC;
