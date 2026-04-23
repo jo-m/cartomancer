@@ -153,10 +153,7 @@ Inside the `pprof` interactive shell, useful commands are `top`, `list <func>`, 
 ### Build
 
 The compiled frontend assets are embedded directly into the binary.
-Thus, the frontend needs to be built before the backend.
-`make build` will do all of that.
-
-Reproducible builds via Nix are also provided:
+Reproducible builds are provided by the Nix flake:
 
 ```bash
 # Build the binary (result/bin/cartomancer)
@@ -168,6 +165,10 @@ nix build .#frontend
 # Build a minimal Docker/OCI container image as a tar.gz
 nix build .#dockerImage
 docker load < image.tar.gz
+
+# Cross-compile to aarch64-linux from x86_64-linux
+nix build .#cartomancer-aarch64-linux
+nix build .#dockerImage-aarch64-linux
 ```
 
 ### Creating releases
