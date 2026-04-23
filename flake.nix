@@ -106,6 +106,7 @@
           "-X=jo-m.ch/go/cartomancer/internal/pkg/api.buildVersion=${version}"
         ];
 
+        # TODO:
         # Tests require a populated data directory and network for some fixtures, so they are skipped here. Use `make test` for tests.
         doCheck = false;
 
