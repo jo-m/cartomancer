@@ -93,7 +93,14 @@
         preBuild = ''
           mkdir -p static
           cp -r ${frontend}/. static/
-          go generate ./...
+          # `go generate` runs build-host tools (e.g. `go tool sqlc`), so it
+          # must use the native toolchain even during a cross build.
+          (
+            unset GOOS GOARCH
+            export CC="${buildPkgs.stdenv.cc}/bin/cc"
+            export CXX="${buildPkgs.stdenv.cc}/bin/c++"
+            go generate ./...
+          )
         '';
 
         ldflags = [
