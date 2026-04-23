@@ -102,27 +102,31 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, trackResponseFromDB(track, tags, nil, true))
 }
 
-type tagSuggestionResponse struct {
-	Tags []string `json:"tags"`
+type tagSuggestion struct {
+	Tag     string `json:"tag"`
+	NTracks int64  `json:"nTracks"`
 }
 
+type tagSuggestionResponse struct {
+	Tags []tagSuggestion `json:"tags"`
+}
+
+// handleSuggestTags returns the authenticated user's tags, optionally filtered
+// by a prefix (matched case-sensitively with LIKE). Tags are ordered by the
+// number of the user's tracks that carry them, descending, then alphabetically.
+// Anonymous callers receive an empty list.
 func (sv *server) handleSuggestTags(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	prefix := r.URL.Query().Get("prefix")
-	if utf8.RuneCountInString(prefix) < 2 {
-		writeError(w, http.StatusBadRequest, "prefix must be at least 2 characters")
-		return
-	}
-
 	user := session.GetUser(ctx)
 	if user == nil {
-		writeJSON(w, http.StatusOK, tagSuggestionResponse{Tags: []string{}})
+		writeJSON(w, http.StatusOK, tagSuggestionResponse{Tags: []tagSuggestion{}})
 		return
 	}
 
+	prefix := r.URL.Query().Get("prefix")
 	escaped := strings.NewReplacer("%", `\%`, "_", `\_`).Replace(prefix)
-	tags, err := sv.d.QueryRO().SuggestTags(ctx, db.SuggestTagsParams{
+	rows, err := sv.d.QueryRO().SuggestTags(ctx, db.SuggestTagsParams{
 		UserID: user.Uuid,
 		Tag:    escaped + "%",
 	})
@@ -132,9 +136,10 @@ func (sv *server) handleSuggestTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if tags == nil {
-		tags = []string{}
+	out := make([]tagSuggestion, len(rows))
+	for i, r := range rows {
+		out[i] = tagSuggestion{Tag: r.Tag, NTracks: r.NTracks}
 	}
 
-	writeJSON(w, http.StatusOK, tagSuggestionResponse{Tags: tags})
+	writeJSON(w, http.StatusOK, tagSuggestionResponse{Tags: out})
 }

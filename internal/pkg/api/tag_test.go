@@ -156,14 +156,74 @@ func TestSuggestTags_Unauthenticated(t *testing.T) {
 	assert.Empty(t, tags)
 }
 
-func TestSuggestTags_PrefixTooShort(t *testing.T) {
+// extractTagNames pulls the tag names out of a suggestTags response body.
+func extractTagNames(t *testing.T, resp map[string]any) []string {
+	t.Helper()
+	raw, ok := resp["tags"].([]any)
+	require.True(t, ok)
+	out := make([]string, len(raw))
+	for i, item := range raw {
+		m, ok := item.(map[string]any)
+		require.True(t, ok)
+		tag, ok := m["tag"].(string)
+		require.True(t, ok)
+		out[i] = tag
+	}
+	return out
+}
+
+func TestSuggestTags_NoPrefixReturnsAll(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret11")
+	trackUUID := e.uploadAndGetUUID(client)
+
+	status, _ := e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"cycling", "cityride", "commute"}, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	var resp map[string]any
+	status, _ = e.do(client, http.MethodGet, "/tags", nil, &resp)
+	assert.Equal(t, http.StatusOK, status)
+
+	names := extractTagNames(t, resp)
+	assert.ElementsMatch(t, []string{"cycling", "cityride", "commute"}, names)
+}
+
+func TestSuggestTags_OrderedByTrackCount(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("alice@example.com", "Alice", "secret11", false)
 	client := e.newClient()
 	e.login(client, "alice@example.com", "secret11")
 
-	status, _ := e.do(client, http.MethodGet, "/tags?prefix=c", nil, nil)
-	assert.Equal(t, http.StatusBadRequest, status)
+	status, r1 := e.doUpload(client, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	track1 := r1["uuid"].(string)
+	status, r2 := e.doUpload(client, testGPXFile2)
+	require.Equal(t, http.StatusCreated, status)
+	track2 := r2["uuid"].(string)
+
+	// "popular" on both tracks (count 2), "rare" on one (count 1).
+	status, _ = e.do(client, http.MethodPut, "/tracks/"+track1+"/tags", []string{"popular", "rare"}, nil)
+	require.Equal(t, http.StatusOK, status)
+	status, _ = e.do(client, http.MethodPut, "/tracks/"+track2+"/tags", []string{"popular"}, nil)
+	require.Equal(t, http.StatusOK, status)
+
+	var resp map[string]any
+	status, _ = e.do(client, http.MethodGet, "/tags", nil, &resp)
+	assert.Equal(t, http.StatusOK, status)
+
+	raw, ok := resp["tags"].([]any)
+	require.True(t, ok)
+	require.Len(t, raw, 2)
+
+	first := raw[0].(map[string]any)
+	second := raw[1].(map[string]any)
+
+	assert.Equal(t, "popular", first["tag"])
+	assert.EqualValues(t, 2, first["nTracks"])
+	assert.Equal(t, "rare", second["tag"])
+	assert.EqualValues(t, 1, second["nTracks"])
 }
 
 func TestSuggestTags_Success(t *testing.T) {
@@ -173,19 +233,15 @@ func TestSuggestTags_Success(t *testing.T) {
 	e.login(client, "alice@example.com", "secret11")
 	trackUUID := e.uploadAndGetUUID(client)
 
-	// Create some tags
 	status, _ := e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", []string{"cycling", "cityride", "commute"}, nil)
 	require.Equal(t, http.StatusOK, status)
 
-	// Suggest with matching prefix
 	var resp map[string]any
 	status, _ = e.do(client, http.MethodGet, "/tags?prefix=cy", nil, &resp)
 	assert.Equal(t, http.StatusOK, status)
 
-	tags, ok := resp["tags"].([]any)
-	require.True(t, ok)
-	assert.Len(t, tags, 1)
-	assert.Equal(t, "cycling", tags[0])
+	names := extractTagNames(t, resp)
+	assert.Equal(t, []string{"cycling"}, names)
 }
 
 func TestSuggestTags_NoMatch(t *testing.T) {

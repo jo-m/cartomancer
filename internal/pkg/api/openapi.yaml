@@ -2369,16 +2369,20 @@ paths:
 
   /tags:
     get:
-      summary: Suggest tags by prefix
+      summary: List the current user's tags, optionally filtered by prefix
       operationId: suggestTags
       tags: [Tags]
+      description: |
+        Returns the authenticated user's tags together with the number of their
+        own tracks carrying each tag, ordered by count descending then tag
+        alphabetically. If `prefix` is supplied, only tags starting with it
+        are returned. Anonymous callers get an empty list.
       parameters:
         - name: prefix
           in: query
-          required: true
+          required: false
           schema:
             type: string
-            minLength: 2
       responses:
         "200":
           description: Tag suggestions
@@ -2386,12 +2390,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TagSuggestionResponse"
-        "400":
-          description: Prefix too short
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
         "500":
           description: Internal server error
           content:
@@ -3086,7 +3084,20 @@ components:
         tags:
           type: array
           items:
-            type: string
+            $ref: "#/components/schemas/TagSuggestion"
+
+    TagSuggestion:
+      type: object
+      required:
+        - tag
+        - nTracks
+      properties:
+        tag:
+          type: string
+        nTracks:
+          type: integer
+          format: int64
+          description: Number of the user's tracks carrying this tag.
 
     Error:
       type: object
