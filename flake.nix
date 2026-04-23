@@ -3,13 +3,11 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-    unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
   outputs = {
     self,
     nixpkgs,
-    unstable,
     ...
   } @ inputs: let
     inherit (nixpkgs) lib;
@@ -25,7 +23,6 @@
 
     # Package sets for the build platform. Used for tools that run during the build (e.g. Go compiler, npm) regardless of target architecture.
     buildPkgs = import nixpkgs {localSystem = buildSystem;};
-    buildPkgsUnstable = import unstable {localSystem = buildSystem;};
 
     version = self.shortRev or self.dirtyShortRev or "devel";
 
@@ -72,10 +69,9 @@
 
     # Backend: Go binary with embedded frontend assets. Takes a (potentially cross-compiled) package set
     # and produces a binary for that set's host platform.
-    # The Go toolchain itself is always pulled from the build-platform unstable set.
     mkCartomancer = crossPkgs: let
       buildGoModule = crossPkgs.buildGoModule.override {
-        go = buildPkgsUnstable.go_1_26;
+        go = buildPkgs.go_1_26;
       };
     in
       buildGoModule {
@@ -174,7 +170,7 @@
 
     devShells.${buildSystem}.default = buildPkgs.mkShell {
       packages = [
-        buildPkgsUnstable.go_1_26
+        buildPkgs.go_1_26
         buildPkgs.nodejs_22
         buildPkgs.gcc
         buildPkgs.git
