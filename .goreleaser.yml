@@ -8,9 +8,14 @@ release:
     **TODO**
 
   footer: |
-    ## Docker Images
+    ## Downloads
 
-    No standalone binaries are provided. Use the Docker image:
+    Linux binaries:
+
+    - `cartomancer_{{ .Version }}_linux_amd64.tar.gz`
+    - `cartomancer_{{ .Version }}_linux_arm64.tar.gz`
+
+    Multi-arch Docker image (linux/amd64 + linux/arm64):
 
     ```
     docker pull ghcr.io/jo-m/cartomancer:{{ .Version }}

@@ -50,10 +50,14 @@ jobs:
       - uses: cachix/install-nix-action@v31
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build binary
+      - name: Build amd64 binary
         run: nix build .#cartomancer
-      - name: Build Docker image
+      - name: Build arm64 binary (cross)
+        run: nix build .#cartomancer-aarch64-linux
+      - name: Build amd64 Docker image
         run: nix build .#dockerImage
+      - name: Build arm64 Docker image (cross)
+        run: nix build .#dockerImage-aarch64-linux
 
   docker-push:
     if: github.event_name == 'push'
@@ -72,16 +76,25 @@ jobs:
       - name: Compute image tag
         id: tag
         run: echo "value=$(echo '${{ github.ref_name }}' | tr '/' '_')" >> "$GITHUB_OUTPUT"
-      - name: Build Docker image with Nix
-        run: nix build .#dockerImage -o image.tar.gz
-      - name: Load image
-        id: load
+      - name: Build amd64 image
+        run: nix build .#dockerImage -o image-amd64.tar.gz
+      - name: Build arm64 image
+        run: nix build .#dockerImage-aarch64-linux -o image-arm64.tar.gz
+      - name: Push per-arch images and multi-arch manifest
+        env:
+          TAG: ${{ steps.tag.outputs.value }}
         run: |
-          loaded=$(docker load < image.tar.gz)
-          echo "$loaded"
-          src=$(echo "$loaded" | sed -n 's/^Loaded image: //p')
-          echo "src=$src" >> "$GITHUB_OUTPUT"
-      - name: Tag and push
-        run: |
-          docker tag "${{ steps.load.outputs.src }}" "ghcr.io/jo-m/cartomancer:${{ steps.tag.outputs.value }}"
-          docker push "ghcr.io/jo-m/cartomancer:${{ steps.tag.outputs.value }}"
+          set -euo pipefail
+          repo="ghcr.io/jo-m/cartomancer"
+
+          amd64_src=$(docker load < image-amd64.tar.gz | sed -n 's/^Loaded image: //p')
+          docker tag "$amd64_src" "$repo:${TAG}-amd64"
+          docker push "$repo:${TAG}-amd64"
+
+          arm64_src=$(docker load < image-arm64.tar.gz | sed -n 's/^Loaded image: //p')
+          docker tag "$arm64_src" "$repo:${TAG}-arm64"
+          docker push "$repo:${TAG}-arm64"
+
+          docker buildx imagetools create -t "$repo:$TAG" \
+            "$repo:${TAG}-amd64" \
+            "$repo:${TAG}-arm64"
