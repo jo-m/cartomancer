@@ -51,13 +51,13 @@ jobs:
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build x86_64 binary
-        run: nix build .#cartomancer
+        run: nix build .#packages.x86_64-linux.cartomancer
       - name: Build aarch64 binary (cross)
-        run: nix build .#cartomancer-aarch64-linux
+        run: nix build .#packages.aarch64-linux.cartomancer
       - name: Build x86_64 Docker image
-        run: nix build .#dockerImage
+        run: nix build .#packages.x86_64-linux.dockerImage
       - name: Build aarch64 Docker image (cross)
-        run: nix build .#dockerImage-aarch64-linux
+        run: nix build .#packages.aarch64-linux.dockerImage
 
   docker-push:
     if: github.event_name == 'push'
@@ -77,9 +77,9 @@ jobs:
         id: tag
         run: echo "value=$(echo '${{ github.ref_name }}' | tr '/' '_')" >> "$GITHUB_OUTPUT"
       - name: Build x86_64 image
-        run: nix build .#dockerImage -o image-x86_64.tar.gz
+        run: nix build .#packages.x86_64-linux.dockerImage -o image-x86_64.tar.gz
       - name: Build aarch64 image
-        run: nix build .#dockerImage-aarch64-linux -o image-aarch64.tar.gz
+        run: nix build .#packages.aarch64-linux.dockerImage -o image-aarch64.tar.gz
       - name: Push per-arch images and multi-arch manifest
         env:
           TAG: ${{ steps.tag.outputs.value }}

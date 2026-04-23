@@ -154,8 +154,8 @@ nix build .#dockerImage
 docker load < image.tar.gz
 
 # Cross-compile to aarch64-linux from x86_64-linux
-nix build .#cartomancer-aarch64-linux
-nix build .#dockerImage-aarch64-linux
+nix build .#packages.aarch64-linux.cartomancer
+nix build .#packages.aarch64-linux.dockerImage
 ```
 
 ### Creating releases

@@ -29,9 +29,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - target: cartomancer
+          - target: packages.x86_64-linux.cartomancer
             arch: x86_64
-          - target: cartomancer-aarch64-linux
+          - target: packages.aarch64-linux.cartomancer
             arch: aarch64
     steps:
       - uses: actions/checkout@v5
@@ -68,9 +68,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build x86_64 image
-        run: nix build .#dockerImage -o image-x86_64.tar.gz
+        run: nix build .#packages.x86_64-linux.dockerImage -o image-x86_64.tar.gz
       - name: Build aarch64 image
-        run: nix build .#dockerImage-aarch64-linux -o image-aarch64.tar.gz
+        run: nix build .#packages.aarch64-linux.dockerImage -o image-aarch64.tar.gz
       - name: Push per-arch images and multi-arch manifest
         env:
           VERSION: ${{ github.event.release.tag_name }}
