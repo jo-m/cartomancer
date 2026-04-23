@@ -55,19 +55,27 @@ jobs:
       - name: Build aarch64 binary (cross)
         run: nix build .#packages.aarch64-linux.cartomancer
       - name: Build x86_64 Docker image
-        run: nix build .#packages.x86_64-linux.dockerImage
+        run: nix build .#packages.x86_64-linux.dockerImage -o image-x86_64.tar.gz
       - name: Build aarch64 Docker image (cross)
-        run: nix build .#packages.aarch64-linux.dockerImage
+        run: nix build .#packages.aarch64-linux.dockerImage -o image-aarch64.tar.gz
+      - name: Upload Docker images
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-images
+          path: |
+            image-x86_64.tar.gz
+            image-aarch64.tar.gz
+          retention-days: 1
 
   docker-push:
     if: github.event_name == 'push'
     needs: nix-build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: cachix/install-nix-action@v31
+      - uses: actions/download-artifact@v4
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          name: docker-images
       - uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -76,10 +84,6 @@ jobs:
       - name: Compute image tag
         id: tag
         run: echo "value=$(echo '${{ github.ref_name }}' | tr '/' '_')" >> "$GITHUB_OUTPUT"
-      - name: Build x86_64 image
-        run: nix build .#packages.x86_64-linux.dockerImage -o image-x86_64.tar.gz
-      - name: Build aarch64 image
-        run: nix build .#packages.aarch64-linux.dockerImage -o image-aarch64.tar.gz
       - name: Push per-arch images and multi-arch manifest
         env:
           TAG: ${{ steps.tag.outputs.value }}
