@@ -67,22 +67,9 @@ It is a good idea to ratelimit the `/api/sessions/login` endpoint.
 
 ## Development
 
-All build and dev tools are provided via a [Nix](https://nixos.org/) flake.
-Install Nix (with flakes enabled), then either enter the devshell explicitly:
-
-```bash
-nix develop
-```
-
-or, preferred, combine with [direnv](https://direnv.net/) +
-[nix-direnv](https://github.com/nix-community/nix-direnv) so entering the
-repo automatically loads the shell and `.envrc` dev config:
-
-```bash
-direnv allow
-```
-
-The devshell provides Go, Node/npm, gcc, make, sqlite and goreleaser.
+All build and dev tools are provided via a Nix flake.
+Install Nix, [direnv](https://direnv.net/) and [nix-direnv](https://github.com/nix-community/nix-direnv)
+so entering the repo automatically loads the shell and `.envrc` dev config.
 
 ```bash
 # Starts the backend, with auto reload
