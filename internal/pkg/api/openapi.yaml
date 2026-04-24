@@ -49,6 +49,8 @@ tags:
     description: Administrative user management
   - name: Geocode
     description: Geocoding API
+  - name: Maps
+    description: PMTiles map file access
 
 paths:
   /app_config:
@@ -2450,6 +2452,71 @@ paths:
                 $ref: "#/components/schemas/GeocodeSearchResponse"
         "400":
           description: Query too short
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /maps:
+    get:
+      summary: List ready PMTiles map builds
+      operationId: listMapBuilds
+      tags: [Maps]
+      security: []
+      responses:
+        "200":
+          description: List of ready map builds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MapBuildResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /maps/{uuid}:
+    get:
+      summary: Download a PMTiles map file
+      description: >
+        Serves the PMTiles file for the given build UUID. Supports HTTP range
+        requests for efficient partial reads (as required by the PMTiles spec).
+      operationId: getMapFile
+      tags: [Maps]
+      security: []
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Full PMTiles file content
+          content:
+            application/vnd.pmtiles:
+              schema:
+                type: string
+                format: binary
+        "206":
+          description: Partial PMTiles file content (range request)
+          content:
+            application/vnd.pmtiles:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Map build not found
           content:
             application/json:
               schema:

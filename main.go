@@ -97,7 +97,7 @@ func (c *config) validate() error {
 	return nil
 }
 
-func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter, maxConcurrentReqs, maxConcurrentBacklog int) http.Handler {
+func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter, maxConcurrentReqs, maxConcurrentBacklog int, mapsDir string) http.Handler {
 	logger := logg.GetLogger(ctx).With("mod", "svc")
 
 	sess, err := session.NewStore(d, sessConfig, appConfig)
@@ -122,7 +122,7 @@ func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb
 	mux.Use(sess.Middleware)
 	mux.Use(middleware.Recoverer)
 
-	apiHandler, err := api.New(d, gd, fd, sess, jobSubmitter, appConfig)
+	apiHandler, err := api.New(d, gd, fd, sess, jobSubmitter, appConfig, mapsDir)
 	if err != nil {
 		logg.Panic(ctx, "Failed to create API handler", "err", err)
 	}
@@ -455,7 +455,7 @@ func main() {
 
 	s := &http.Server{
 		Addr:              c.HTTPListenAddr,
-		Handler:           newHandler(ctx, d, gd, fd, c.SessionConfig, c.AppConfig, w.Submitter(), c.MaxConcurrentReqs, c.MaxConcurrentBacklog),
+		Handler:           newHandler(ctx, d, gd, fd, c.SessionConfig, c.AppConfig, w.Submitter(), c.MaxConcurrentReqs, c.MaxConcurrentBacklog, mapsDir),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       20 * time.Second,
 		WriteTimeout:      20 * time.Second,

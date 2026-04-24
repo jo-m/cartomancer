@@ -26,3 +26,9 @@ DELETE FROM map_builds WHERE uuid = ?;
 
 -- name: ListMapBuilds :many
 SELECT * FROM map_builds ORDER BY uploaded DESC;
+
+-- name: ListReadyMapBuilds :many
+SELECT * FROM map_builds WHERE ready = 1 ORDER BY uploaded DESC;
+
+-- name: GetReadyMapBuildByUUID :one
+SELECT * FROM map_builds WHERE uuid = ? AND ready = 1 LIMIT 1;

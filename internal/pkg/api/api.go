@@ -35,6 +35,7 @@ type server struct {
 	jobSubmitter   *jobs.Submitter
 	appConfig      app.AppConfig
 	emailJWTSecret []byte
+	mapsDir        string
 }
 
 // New creates a new API handler.
@@ -46,7 +47,8 @@ type server struct {
 //   - sessions: session store for authentication.
 //   - submitter: job queue submitter for background tasks.
 //   - appConfig: application configuration.
-func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig app.AppConfig) (http.Handler, error) {
+//   - mapsDir: directory where downloaded PMTiles files are stored.
+func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store, submitter *jobs.Submitter, appConfig app.AppConfig, mapsDir string) (http.Handler, error) {
 	var emailSecret []byte
 	if appConfig.EmailJWTSecret == "" {
 		emailSecret = password.GenRandBytes(utl.JWTSecretMinBytes)
@@ -66,6 +68,7 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 		jobSubmitter:   submitter,
 		appConfig:      appConfig,
 		emailJWTSecret: emailSecret,
+		mapsDir:        mapsDir,
 	}
 
 	mux := chi.NewRouter()
@@ -102,6 +105,9 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 	mux.Get("/tags", sv.handleSuggestTags)
 	mux.Get("/tags/public", sv.handleSuggestPublicTags)
 	mux.Get("/geocode/search/name", sv.handleSearchGeocodeName)
+
+	mux.Get("/maps", sv.handleListMapBuilds)
+	mux.Get("/maps/{uuid}", sv.handleGetMapFile)
 
 	mux.Group(func(r chi.Router) {
 		r.Use(sv.requireUser)

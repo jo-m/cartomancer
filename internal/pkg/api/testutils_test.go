@@ -37,6 +37,7 @@ type testEnv struct {
 	fd             *forecastdb.DB
 	ts             *httptest.Server
 	emailJWTSecret []byte
+	mapsDir        string
 }
 
 func newTestEnv(t *testing.T) *testEnv {
@@ -76,14 +77,15 @@ func newTestEnvWithAppConfig(t *testing.T, appConf app.AppConfig) *testEnv {
 	mux.Use(middleware.RequestID)
 	mux.Use(logg.AttachLogger(logger))
 	mux.Use(sess.Middleware)
-	apiHandler, err := api.New(d, gd, fd, sess, workers.Submitter(), appConf)
+	mapsDir := t.TempDir()
+	apiHandler, err := api.New(d, gd, fd, sess, workers.Submitter(), appConf, mapsDir)
 	require.NoError(t, err)
 	mux.Mount("/", apiHandler)
 
 	ts := httptest.NewTLSServer(mux)
 	t.Cleanup(ts.Close)
 
-	return &testEnv{t: t, d: d, gd: gd, fd: fd, ts: ts, emailJWTSecret: utl.Must(utl.DecodeJWTSecret(appConf.EmailJWTSecret))}
+	return &testEnv{t: t, d: d, gd: gd, fd: fd, ts: ts, emailJWTSecret: utl.Must(utl.DecodeJWTSecret(appConf.EmailJWTSecret)), mapsDir: mapsDir}
 }
 
 // newClient creates a new TLS-aware HTTP client with an empty cookie jar.
