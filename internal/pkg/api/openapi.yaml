@@ -3584,3 +3584,42 @@ components:
           type: string
           minLength: 1
           maxLength: 10000
+
+    MapBuildResponse:
+      type: object
+      required:
+        - uuid
+        - key
+        - version
+        - uploaded
+        - size
+        - maxZoom
+      properties:
+        uuid:
+          type: string
+        key:
+          type: string
+          description: Protomaps build filename (e.g. "20260424.pmtiles")
+        version:
+          type: string
+        uploaded:
+          type: string
+          format: date-time
+        size:
+          type: integer
+          format: int64
+          description: Size of the source archive in bytes
+        maxZoom:
+          type: integer
+        bboxMinLon:
+          type: number
+          format: double
+        bboxMinLat:
+          type: number
+          format: double
+        bboxMaxLon:
+          type: number
+          format: double
+        bboxMaxLat:
+          type: number
+          format: double
