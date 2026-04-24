@@ -13,65 +13,69 @@ jobs:
   frontend-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-      - run: cd frontend && npm ci && npm run gen && npm run lint
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nix develop --command bash -c 'cd frontend && npm ci && npm run gen && npm run lint'
 
   go-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
         with:
-          go-version-file: go.mod
-          cache-dependency-path: go.mod
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Gen
-        run: make gen
+        run: nix develop --command make gen
       - name: Lint
-        run: make lint
+        run: nix develop --command make lint
 
   go-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
         with:
-          go-version-file: go.mod
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Gen
-        run: make gen
+        run: nix develop --command make gen
       - name: Test
-        run: make test
+        run: nix develop --command make test
 
-  go-build:
+  nix-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
         with:
-          go-version-file: go.mod
-          cache-dependency-path: go.mod
-      - uses: actions/setup-node@v4
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build x86_64 binary
+        run: nix build .#packages.x86_64-linux.cartomancer
+      - name: Build aarch64 binary (cross)
+        run: nix build .#packages.aarch64-linux.cartomancer
+      - name: Build x86_64 Docker image
+        run: nix build .#packages.x86_64-linux.dockerImage -o image-x86_64.tar.gz
+      - name: Build aarch64 Docker image (cross)
+        run: nix build .#packages.aarch64-linux.dockerImage -o image-aarch64.tar.gz
+      - name: Upload Docker images
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-      - name: Build frontend
-        run: make build_frontend
-      - name: Generate
-        run: make gen
-      - name: Build
-        run: go build ./...
+          name: docker-images
+          path: |
+            image-x86_64.tar.gz
+            image-aarch64.tar.gz
+          retention-days: 1
 
   docker-push:
     if: github.event_name == 'push'
+    needs: nix-build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: docker-images
       - uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -80,9 +84,21 @@ jobs:
       - name: Compute image tag
         id: tag
         run: echo "value=$(echo '${{ github.ref_name }}' | tr '/' '_')" >> "$GITHUB_OUTPUT"
-      - uses: docker/build-push-action@v7
-        with:
-          push: true
-          tags: ghcr.io/jo-m/cartomancer:${{ steps.tag.outputs.value }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Push per-arch images and multi-arch manifest
+        env:
+          TAG: ${{ steps.tag.outputs.value }}
+        run: |
+          set -euo pipefail
+          repo="ghcr.io/jo-m/cartomancer"
+
+          x86_64_src=$(docker load < image-x86_64.tar.gz | sed -n 's/^Loaded image: //p')
+          docker tag "$x86_64_src" "$repo:${TAG}-x86_64"
+          docker push "$repo:${TAG}-x86_64"
+
+          aarch64_src=$(docker load < image-aarch64.tar.gz | sed -n 's/^Loaded image: //p')
+          docker tag "$aarch64_src" "$repo:${TAG}-aarch64"
+          docker push "$repo:${TAG}-aarch64"
+
+          docker buildx imagetools create -t "$repo:$TAG" \
+            "$repo:${TAG}-x86_64" \
+            "$repo:${TAG}-aarch64"

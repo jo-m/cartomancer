@@ -9,14 +9,6 @@ gen: clean
 dev:
 	go tool air
 
-.PHONY: build_frontend
-build_frontend:
-	cd frontend && npm ci && npm run build
-
-.PHONY: build
-build: gen build_frontend
-	go build ./
-
 .PHONY: format
 format:
 	gofmt -w .

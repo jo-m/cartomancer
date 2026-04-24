@@ -19,9 +19,9 @@ This one tries to be.
 - Except for map, does not need any live APIs. Instead, will download data in the background and query that locally (meteo and geo names).
 - Easy to self host, single binary, SQLite only.
 
-## Deployment
+## Deployment (Docker)
 
-Out of pure lazyness, only Docker images are provided for [releases](https://github.com/jo-m/cartomancer/releases).
+See [releases](https://github.com/jo-m/cartomancer/releases).
 The app runs as root inside the container, it is advised to use rootless Podman/Docker.
 To deploy without Docker, you need to build the binary yourself (see below).
 For all configuration options, see [OPTIONS.md](OPTIONS.md).
@@ -67,13 +67,12 @@ It is a good idea to ratelimit the `/api/sessions/login` endpoint.
 
 ## Development
 
-`.envrc` contains the default dev config.
-Use [direnv](https://direnv.net/) to load it.
-Otherwise, the Go toolchain and Node/npm are required.
+All build and dev tools are provided via a Nix flake.
+Install Nix, [direnv](https://direnv.net/) and [nix-direnv](https://github.com/nix-community/nix-direnv)
+so entering the repo automatically loads the shell and `.envrc` dev config.
 
 ```bash
 # Starts the backend, with auto reload
-direnv allow
 go tool air
 
 # In a separate shell, start the frontend
@@ -141,13 +140,22 @@ Inside the `pprof` interactive shell, useful commands are `top`, `list <func>`, 
 ### Build
 
 The compiled frontend assets are embedded directly into the binary.
-Thus, the frontend needs to be built before the backend.
-`make build` will do all of that.
-
-### Docker image
+Reproducible builds are provided by the Nix flake:
 
 ```bash
-docker build -t ghcr.io/jo-m/cartomancer:latest .
+# Build the binary (result/bin/cartomancer)
+nix build
+
+# Build just the frontend static assets
+nix build .#frontend
+
+# Build a minimal Docker/OCI container image as a tar.gz
+nix build .#dockerImage
+docker load < image.tar.gz
+
+# Cross-compile to aarch64-linux from x86_64-linux
+nix build .#packages.aarch64-linux.cartomancer
+nix build .#packages.aarch64-linux.dockerImage
 ```
 
 ### Creating releases

@@ -9,43 +9,87 @@ permissions:
   packages: write
 
 jobs:
-  release:
+  goreleaser:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-
-      - uses: goreleaser/goreleaser-action@v7
+      - uses: cachix/install-nix-action@v31
         with:
-          version: "v2.14.3"
-          args: release --clean
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish source archive and release notes
+        run: nix develop --command goreleaser release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  binaries:
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: packages.x86_64-linux.cartomancer
+            arch: x86_64
+          - target: packages.aarch64-linux.cartomancer
+            arch: aarch64
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build binary
+        run: nix build .#${{ matrix.target }} -o result-${{ matrix.arch }}
+      - name: Package
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          stripped="${VERSION#v}"
+          install -m 0755 result-${{ matrix.arch }}/bin/cartomancer cartomancer
+          tar czf "cartomancer_${stripped}_linux_${{ matrix.arch }}.tar.gz" cartomancer
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          stripped="${VERSION#v}"
+          gh release upload "$VERSION" "cartomancer_${stripped}_linux_${{ matrix.arch }}.tar.gz" --clobber
 
   docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v4
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@v6
-        id: meta
-        with:
-          images: ghcr.io/jo-m/cartomancer
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
-      - uses: docker/build-push-action@v7
-        with:
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: VERSION=${{ github.event.release.tag_name }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Build x86_64 image
+        run: nix build .#packages.x86_64-linux.dockerImage -o image-x86_64.tar.gz
+      - name: Build aarch64 image
+        run: nix build .#packages.aarch64-linux.dockerImage -o image-aarch64.tar.gz
+      - name: Push per-arch images and multi-arch manifest
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          stripped="${VERSION#v}"
+          minor=$(echo "$stripped" | cut -d. -f1,2)
+          repo="ghcr.io/jo-m/cartomancer"
+
+          x86_64_src=$(docker load < image-x86_64.tar.gz | sed -n 's/^Loaded image: //p')
+          docker tag "$x86_64_src" "$repo:${stripped}-x86_64"
+          docker push "$repo:${stripped}-x86_64"
+
+          aarch64_src=$(docker load < image-aarch64.tar.gz | sed -n 's/^Loaded image: //p')
+          docker tag "$aarch64_src" "$repo:${stripped}-aarch64"
+          docker push "$repo:${stripped}-aarch64"
+
+          for tag in "$stripped" "$minor" latest; do
+            docker buildx imagetools create -t "$repo:$tag" \
+              "$repo:${stripped}-x86_64" \
+              "$repo:${stripped}-aarch64"
+          done

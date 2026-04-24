@@ -10,3 +10,8 @@
 
 # Backend build
 /cartomancer
+
+# Nix
+/.direnv
+/image.tar.gz
+/result

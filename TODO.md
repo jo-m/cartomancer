@@ -93,6 +93,9 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [ ] Self hosted alternative
   - [ ] Track overview on map
   - [ ] Track previews with map background
+- [ ] Filtering
+  - [ ] Unknown sport or subsport
+  - [ ] By start location (1km radius?)
 
 ## Before initial push/deploy
 
@@ -119,7 +122,12 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] Grep for TODO in code
 - [x] SQLite without rowid
 - [x] Move geonames and maybe forecasts to separate database files?
-- [ ] Nix flake setup for devshell, incl. direnv, and for building the binary and frontend and docker image
+- [x] Nix flake setup for devshell, incl. direnv, and for building the binary and frontend and docker image
+  - [ ] Create a separate nix/ directory and move the package definitions there. Same for scripts.
+  - [ ] Formatting via Nix treefmt.
+  - [ ] What are some options to move the stuff currently in the makefile (lint, format, check, gen... ) also to nix? Also don't forget to run the tests.
+  - [ ] Cache go modules and node modules by having them as a separate derivation
+  - [x] Enable cross build from x86 to arm
 - [ ] Go through the periodic TODOs
 
 ## Before enabling public signup
