@@ -88,7 +88,9 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 }
 
 // ensureExtract checks whether the given build+spec combination already exists
-// and performs the extraction if not.
+// and performs the extraction if not. The existence check and the initial DB
+// record insertion are wrapped in a single transaction to prevent TOCTOU races
+// when jobs run concurrently.
 func (dl *Downloader) ensureExtract(ctx context.Context, build BuildMetadata, spec MapSpec) error {
 	lookupParams := db.GetMapBuildByKeyParams{
 		Key:     build.Key,
@@ -101,26 +103,10 @@ func (dl *Downloader) ensureExtract(ctx context.Context, build BuildMetadata, sp
 		lookupParams.BboxMaxLat = spec.Bbox.NullMaxLat()
 	}
 
-	_, err := dl.d.QueryRO().GetMapBuildByKey(ctx, lookupParams)
-	if err == nil {
-		logg.Info(ctx, "build already extracted, skipping", "key", build.Key, "maxzoom", spec.MaxZoom)
-		return nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("check existing build: %w", err)
-	}
-
-	return dl.extractAndRecord(ctx, build, spec)
-}
-
-// extractAndRecord performs the PMTiles extraction and records the result in the database.
-func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata, spec MapSpec) error {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return fmt.Errorf("generate uuid: %w", err)
 	}
-
-	outPath := OutputPath(dl.mapsDir, id.String())
 
 	insertParams := db.InsertMapBuildParams{
 		Uuid:      id.String(),
@@ -138,9 +124,33 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata,
 		insertParams.BboxMaxLon = spec.Bbox.NullMaxLon()
 		insertParams.BboxMaxLat = spec.Bbox.NullMaxLat()
 	}
-	if err := dl.d.QueryRW().InsertMapBuild(ctx, insertParams); err != nil {
-		return fmt.Errorf("insert map build: %w", err)
+
+	var alreadyExists bool
+	err = dl.d.WithTx(ctx, func(tx *db.Queries) error {
+		_, txErr := tx.GetMapBuildByKey(ctx, lookupParams)
+		if txErr == nil {
+			alreadyExists = true
+			return nil
+		}
+		if !errors.Is(txErr, sql.ErrNoRows) {
+			return fmt.Errorf("check existing build: %w", txErr)
+		}
+		return tx.InsertMapBuild(ctx, insertParams)
+	})
+	if err != nil {
+		return err
 	}
+	if alreadyExists {
+		logg.Info(ctx, "build already extracted, skipping", "key", build.Key, "maxzoom", spec.MaxZoom)
+		return nil
+	}
+
+	return dl.extractAndRecord(ctx, id, OutputPath(dl.mapsDir, id.String()), build, spec)
+}
+
+// extractAndRecord performs the PMTiles extraction for a build record that has
+// already been inserted into the database with the given id.
+func (dl *Downloader) extractAndRecord(ctx context.Context, id uuid.UUID, outPath string, build BuildMetadata, spec MapSpec) error {
 
 	bboxStr := ""
 	if spec.Bbox != nil {
@@ -148,7 +158,7 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata,
 	}
 	logg.Info(ctx, "starting PMTiles extraction", "key", build.Key, "output", outPath, "bbox", bboxStr, "maxzoom", spec.MaxZoom)
 
-	err = Extract(ctx, ExtractParams{
+	err := Extract(ctx, ExtractParams{
 		BucketURL:  SourceBucketURL,
 		Key:        build.Key,
 		MaxZoom:    spec.MaxZoom,

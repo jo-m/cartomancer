@@ -121,10 +121,20 @@ func (sv *server) handleAdminMarkMapForDeletion(w http.ResponseWriter, r *http.R
 	ctx := r.Context()
 	uuid := chi.URLParam(r, "uuid")
 
-	_, err := sv.d.QueryRW().SetMapBuildMarkedForDeletion(ctx, uuid)
+	result, err := sv.d.QueryRW().SetMapBuildMarkedForDeletion(ctx, uuid)
 	if err != nil {
 		logg.Error(ctx, "failed to mark map build for deletion", "err", err, "uuid", uuid)
 		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		logg.Error(ctx, "failed to check rows affected for mark deletion", "err", err, "uuid", uuid)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+	if n == 0 {
+		writeStatusError(w, http.StatusNotFound)
 		return
 	}
 

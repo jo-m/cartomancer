@@ -19,6 +19,7 @@ internal/pkg/
 ├── load/           # GPX/FIT file parsing → TrackSource
 ├── logg/           # Structured logging (slog), middleware, context helpers
 ├── mail/           # Email job handler (SMTP via go-mail)
+├── maps/           # PMTiles map tile extraction: config, downloader job, cleaner job, protomaps API client
 ├── meteo/          # Downloads ICON-CH1-EPS weather forecast data from Swiss STAC API
 ├── password/       # Argon2id hashing
 ├── roadclosures/   # Fetches bike road closures and detours from geo.admin.ch
