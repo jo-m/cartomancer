@@ -24,7 +24,7 @@ import { useForecast } from "../hooks/useForecast"
 import useDocumentTitle from "../hooks/useDocumentTitle"
 import PageContainer from "../components/ui/PageContainer"
 import Alert from "../components/ui/Alert"
-import { computeTrackBbox, selectMapLayer } from "../lib/mapLayer"
+import { selectMapLayer } from "../lib/mapLayer"
 
 export default function Track() {
   const { uuid } = useParams<{ uuid: string }>()
@@ -65,10 +65,18 @@ export default function Track() {
   const { data: mapsData } = $api.useQuery("get", "/maps")
 
   const mapLayer = useMemo(() => {
-    const bbox = computeTrackBbox(trackPoints ?? [])
-    if (!bbox) return { type: "none" as const }
-    return selectMapLayer(bbox, mapsData ?? [])
-  }, [trackPoints, mapsData])
+    const b = data?.bounds
+    if (!b) return { type: "none" as const }
+    return selectMapLayer(
+      {
+        minLat: b.min.lat,
+        maxLat: b.max.lat,
+        minLon: b.min.lon,
+        maxLon: b.max.lon,
+      },
+      mapsData ?? []
+    )
+  }, [data?.bounds, mapsData])
 
   const onForecastError = useCallback(
     (msg: string) => showToast(msg),
