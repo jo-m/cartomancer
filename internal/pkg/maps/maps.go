@@ -12,11 +12,22 @@ import (
 	"time"
 
 	"github.com/protomaps/go-pmtiles/pmtiles"
+	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
 	"jo-m.ch/go/cartomancer/internal/pkg/client"
 )
 
 // BuildsURL is the URL for the protomaps build metadata index.
 const BuildsURL = "https://build-metadata.protomaps.dev/builds.json"
+
+// DataAttribution is the TASL attribution for OpenStreetMap map tile data served via Protomaps.
+var DataAttribution = attribute.Attribution{
+	What:       "Protomaps",
+	Title:      "OpenStreetMap",
+	Author:     "OpenStreetMap contributors",
+	Source:     "https://www.openstreetmap.org/copyright",
+	License:    "ODbL",
+	LicenseURL: "https://opendatacommons.org/licenses/odbl/",
+}
 
 // BuildMetadata represents a single entry in the protomaps builds.json file.
 type BuildMetadata struct {

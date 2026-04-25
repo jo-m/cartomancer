@@ -6,6 +6,7 @@ import (
 
 	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
 	"jo-m.ch/go/cartomancer/internal/pkg/geonames"
+	"jo-m.ch/go/cartomancer/internal/pkg/maps"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo"
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures"
 )
@@ -50,6 +51,7 @@ func (sv *server) handleGetVersion(w http.ResponseWriter, _ *http.Request) {
 			meteo.DataAttribution,
 			geonames.DataAttribution,
 			roadclosures.DataAttribution,
+			maps.DataAttribution,
 		},
 	}
 	for _, dep := range info.Deps {

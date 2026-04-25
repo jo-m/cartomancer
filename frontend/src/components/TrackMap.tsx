@@ -568,21 +568,21 @@ export default memo(function TrackMap({
           <>
             Map data:&nbsp;
             <a
-              href="https://openstreetmap.org/copyright"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pointer-events-auto hover:underline"
-            >
-              OpenStreetMap contributors
-            </a>
-            ,&nbsp;
-            <a
-              href="https://maps.protomaps.com/builds/"
+              href="https://protomaps.com"
               target="_blank"
               rel="noopener noreferrer"
               className="pointer-events-auto hover:underline"
             >
               Protomaps
+            </a>
+            {" © "}
+            <a
+              href="https://openstreetmap.org/copyright"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pointer-events-auto hover:underline"
+            >
+              OpenStreetMap
             </a>
           </>
         ) : null}
