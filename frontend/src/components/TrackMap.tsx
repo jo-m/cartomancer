@@ -8,7 +8,6 @@ import VectorLayer from "ol/layer/Vector"
 import VectorSource from "ol/source/Vector"
 import WMTS from "ol/source/WMTS"
 import Feature from "ol/Feature"
-import type { FeatureLike } from "ol/Feature"
 import GeoJSON from "ol/format/GeoJSON"
 import { fromLonLat } from "ol/proj"
 import { LineString, Point } from "ol/geom"
@@ -18,6 +17,7 @@ import { lv95, proj4 } from "../lib/proj"
 import { PMTilesVectorSource } from "ol-pmtiles"
 
 import type { MapLayer } from "../lib/mapLayer"
+import { createPmtilesStyleFn } from "../lib/pmtilesStyle"
 import type { HoverStore } from "../hooks/useHoverSync"
 
 import "ol/ol.css"
@@ -147,60 +147,6 @@ const closureStyleHover = [
   }),
 ]
 
-// Pre-built style instances for Protomaps Basemap v4 layers.
-const earthStyle = new Style({ fill: new Fill({ color: "#f0ece4" }) })
-const waterStyle = new Style({ fill: new Fill({ color: "#ccdded" }) })
-const parkStyle = new Style({ fill: new Fill({ color: "#d8e8d8" }) })
-const buildingStyle = new Style({ fill: new Fill({ color: "#e6e2d8" }) })
-const highwayOutlineStyle = new Style({
-  stroke: new Stroke({ color: "#ffffff", width: 4 }),
-})
-const highwayFillStyle = new Style({
-  stroke: new Stroke({ color: "#c8c0b0", width: 2.5 }),
-})
-const majorRoadOutlineStyle = new Style({
-  stroke: new Stroke({ color: "#ffffff", width: 3 }),
-})
-const majorRoadFillStyle = new Style({
-  stroke: new Stroke({ color: "#d0cab8", width: 1.8 }),
-})
-const mediumRoadStyle = new Style({
-  stroke: new Stroke({ color: "#d8d4c8", width: 1.2 }),
-})
-const minorRoadStyle = new Style({
-  stroke: new Stroke({ color: "#e0dcd4", width: 0.7 }),
-})
-
-/** Style function for Protomaps Basemap v4 vector tiles. */
-function pmtilesStyleFn(feature: FeatureLike): Style | Style[] | void {
-  const layer = feature.get("layer") as string
-  const kind = feature.get("kind") as string
-  switch (layer) {
-    case "earth":
-      return earthStyle
-    case "natural":
-      if (kind === "water") return waterStyle
-      return
-    case "landuse":
-      if (["park", "urban_green", "forest", "scrub", "grass"].includes(kind)) {
-        return parkStyle
-      }
-      return
-    case "water":
-      return waterStyle
-    case "roads":
-      if (kind === "highway") return [highwayOutlineStyle, highwayFillStyle]
-      if (kind === "major_road")
-        return [majorRoadOutlineStyle, majorRoadFillStyle]
-      if (kind === "medium_road") return mediumRoadStyle
-      return minorRoadStyle
-    case "buildings":
-      return buildingStyle
-    default:
-      return
-  }
-}
-
 /** Projects a WGS84 lon/lat point into the map projection for the given layer type. */
 function projectPoint(
   lon: number,
@@ -255,6 +201,16 @@ export default memo(function TrackMap({
     new GeoJSON({ dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" })
   )
   const [tooltip, setTooltip] = useState<RoadClosure | null>(null)
+  const [darkMode, setDarkMode] = useState(
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches
+  )
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
+    const handler = (e: MediaQueryListEvent) => setDarkMode(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
 
   const markerVisibleStyle = useMemo(
     () =>
@@ -326,7 +282,7 @@ export default memo(function TrackMap({
       mapLayers.push(
         new VectorTileLayer({
           source: new PMTilesVectorSource({ url: layer.url }),
-          style: pmtilesStyleFn,
+          style: createPmtilesStyleFn(darkMode),
         })
       )
     }
@@ -376,7 +332,7 @@ export default memo(function TrackMap({
       closureLayerRef.current = null
       overlayRef.current = null
     }
-  }, [points, color, markerVisibleStyle, layer])
+  }, [points, color, markerVisibleStyle, layer, darkMode])
 
   // Find nearest track point within a pixel threshold of the pointer.
   const findNearest = useCallback((pixel: number[]) => {
@@ -552,7 +508,12 @@ export default memo(function TrackMap({
         className ?? "relative h-[400px] w-full rounded-lg border border-border"
       }
     >
-      {isNone && <div className="absolute inset-0 rounded-lg bg-[#f0ece4]" />}
+      {isNone && (
+        <div
+          className="absolute inset-0 rounded-lg"
+          style={{ background: darkMode ? "#24201a" : "#f0ece4" }}
+        />
+      )}
       <div ref={mapRef} className="h-full w-full" />
       <div
         ref={tooltipRef}
