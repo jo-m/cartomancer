@@ -37,6 +37,12 @@ export default function AdminMaps() {
   )
 
   async function handleMarkForDeletion(uuid: string, key: string) {
+    if (
+      !window.confirm(
+        `Mark ${key} for deletion? The file will be removed on the next cleanup run.`
+      )
+    )
+      return
     try {
       await markMutation.mutateAsync({ params: { path: { uuid } } })
       showToast(`Marked ${key} for deletion`, "success")
