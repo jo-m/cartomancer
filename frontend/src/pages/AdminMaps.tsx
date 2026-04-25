@@ -99,7 +99,10 @@ export default function AdminMaps() {
                 key={b.uuid}
                 className={`border-b border-border last:border-0 ${b.markedForDeletion ? "opacity-50" : ""}`}
               >
-                <td className="px-4 py-3 font-mono text-xs text-text">
+                <td
+                  className="px-4 py-3 font-mono text-xs text-text"
+                  title={b.uuid}
+                >
                   {b.key}
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{b.version}</td>
