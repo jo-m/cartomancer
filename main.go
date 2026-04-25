@@ -28,6 +28,7 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/mail"
+	"jo-m.ch/go/cartomancer/internal/pkg/maps"
 	"jo-m.ch/go/cartomancer/internal/pkg/memstats"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
@@ -71,6 +72,7 @@ type config struct {
 	session.SessionConfig
 	mail.MailerConfig
 	jobs.JobsConfig
+	maps.MapsConfig
 }
 
 // validate checks all embedded configs for basic errors.
@@ -86,6 +88,7 @@ func (c *config) validate() error {
 		c.AppConfig.Validate(),
 		c.SessionConfig.Validate(),
 		c.JobsConfig.Validate(),
+		c.MapsConfig.Validate(),
 	} {
 		if err != nil {
 			return err
@@ -94,7 +97,7 @@ func (c *config) validate() error {
 	return nil
 }
 
-func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter, maxConcurrentReqs, maxConcurrentBacklog int) http.Handler {
+func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter, maxConcurrentReqs, maxConcurrentBacklog int, mapsDir string) http.Handler {
 	logger := logg.GetLogger(ctx).With("mod", "svc")
 
 	sess, err := session.NewStore(d, sessConfig, appConfig)
@@ -119,7 +122,7 @@ func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb
 	mux.Use(sess.Middleware)
 	mux.Use(middleware.Recoverer)
 
-	apiHandler, err := api.New(d, gd, fd, sess, jobSubmitter, appConfig)
+	apiHandler, err := api.New(d, gd, fd, sess, jobSubmitter, appConfig, mapsDir)
 	if err != nil {
 		logg.Panic(ctx, "Failed to create API handler", "err", err)
 	}
@@ -400,6 +403,12 @@ func main() {
 	jobs.MustRegisterJob(w, roadclosures.NewDownloader(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), roadclosures.DownloaderArgs{}, 24*time.Hour, true)
 
+	mapsDir := filepath.Join(dataDir, "maps")
+	jobs.MustRegisterJob(w, maps.NewDownloader(d, c.MapsConfig, mapsDir))
+	jobs.Periodic(ctxJobs, w.Submitter(), maps.DownloaderArgs{}, 72*time.Hour, true)
+	jobs.MustRegisterJob(w, maps.NewCleaner(d, mapsDir))
+	jobs.Periodic(ctxJobs, w.Submitter(), maps.CleanerArgs{}, 2*time.Hour, true)
+
 	if !c.DemoMode {
 		jobs.MustRegisterJob(w, db.NewBackup(d, dbPath))
 		jobs.Periodic(ctxJobs, w.Submitter(), db.BackupArgs{}, 24*time.Hour, false)
@@ -448,7 +457,7 @@ func main() {
 
 	s := &http.Server{
 		Addr:              c.HTTPListenAddr,
-		Handler:           newHandler(ctx, d, gd, fd, c.SessionConfig, c.AppConfig, w.Submitter(), c.MaxConcurrentReqs, c.MaxConcurrentBacklog),
+		Handler:           newHandler(ctx, d, gd, fd, c.SessionConfig, c.AppConfig, w.Submitter(), c.MaxConcurrentReqs, c.MaxConcurrentBacklog, mapsDir),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       20 * time.Second,
 		WriteTimeout:      20 * time.Second,

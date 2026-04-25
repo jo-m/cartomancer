@@ -90,12 +90,18 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Make count vs. name distinguishable on button
   - [x] Also enable tag search/suggestions for anon users
 - [ ] Maps
-  - [ ] Self hosted alternative
+  - [x] Self hosted alternative
   - [ ] Track overview on map
   - [ ] Track previews with map background
+  - [x] Map files cleanup
+  - [x] Allow configuring multiple map bboxes for download
+  - [x] Show all maps in the Admin section, incl. size of the map file, and add a new endpoint where admins can manually set the deletion flag on a map.
+  - [x] Review all the map related code
+  - [x] Update CLAUDE.md
 - [ ] Filtering
   - [ ] Unknown sport or subsport
   - [ ] By start location (1km radius?)
+- [ ] Make minRefreshAge for maps etc. a public const and use it also for job scheduling
 
 ## Before initial push/deploy
 

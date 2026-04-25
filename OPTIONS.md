@@ -63,5 +63,6 @@ Global options:
                          Period at which old jobs will be cleared from the database [default: 1m, env: JOBS_AUTO_CLEANUP_PERIOD]
   --jobs-auto-cleanup-min-age DUR
                          Time to wait after a job has finished to clear it from the database [default: 5m, env: JOBS_AUTO_CLEANUP_MIN_AGE]
+  --maps-specs SPECS     Semicolon-separated list of map extract specs (bbox@maxzoom); empty bbox means entire world [default: @7;-16.9,27.8,-13.4,29.2@10, env: MAPS_SPECS]
   --help, -h             display this help and exit
 ```
