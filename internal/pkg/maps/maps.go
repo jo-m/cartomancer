@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -87,7 +88,7 @@ const SourceBucketURL = "https://build.protomaps.com"
 
 // Extract downloads a regional extract from a remote PMTiles archive.
 func Extract(ctx context.Context, params ExtractParams) error {
-	logger := log.New(os.Stderr, "pmtiles: ", log.LstdFlags)
+	logger := log.New(io.Discard, "", 0)
 
 	dir := filepath.Dir(params.OutputPath)
 	if err := os.MkdirAll(dir, 0750); err != nil {

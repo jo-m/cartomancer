@@ -14,9 +14,6 @@ UPDATE map_builds SET marked_for_deletion = 1 WHERE uuid = ?;
 -- name: GetLatestReadyMapBuild :one
 SELECT * FROM map_builds WHERE ready = 1 ORDER BY uploaded DESC LIMIT 1;
 
--- name: GetLatestMapBuild :one
-SELECT * FROM map_builds ORDER BY uploaded DESC LIMIT 1;
-
 -- name: GetMapBuildByKey :one
 SELECT * FROM map_builds
 WHERE key = ?
