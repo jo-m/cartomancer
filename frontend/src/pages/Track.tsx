@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { useParams } from "react-router-dom"
@@ -24,6 +24,7 @@ import { useForecast } from "../hooks/useForecast"
 import useDocumentTitle from "../hooks/useDocumentTitle"
 import PageContainer from "../components/ui/PageContainer"
 import Alert from "../components/ui/Alert"
+import { computeTrackBbox, selectMapLayer } from "../lib/mapLayer"
 
 export default function Track() {
   const { uuid } = useParams<{ uuid: string }>()
@@ -63,14 +64,11 @@ export default function Track() {
 
   const { data: mapsData } = $api.useQuery("get", "/maps")
 
-  // Select the highest-zoom ready map build (regional extract preferred over world overview).
-  const pmtilesUrl = (() => {
-    if (!mapsData || mapsData.length === 0) return undefined
-    const best = [...mapsData].sort(
-      (a, b) => (b.maxZoom ?? 0) - (a.maxZoom ?? 0)
-    )[0]
-    return `/api/maps/${best.uuid}`
-  })()
+  const mapLayer = useMemo(() => {
+    const bbox = computeTrackBbox(trackPoints ?? [])
+    if (!bbox) return { type: "none" as const }
+    return selectMapLayer(bbox, mapsData ?? [])
+  }, [trackPoints, mapsData])
 
   const onForecastError = useCallback(
     (msg: string) => showToast(msg),
@@ -257,7 +255,7 @@ export default function Track() {
               hoverStore={hoverStore}
               color={trackColor}
               closures={closures}
-              pmtilesUrl={pmtilesUrl}
+              layer={mapLayer}
             />
             <MapHoverOverlay
               hoverStore={hoverStore}
@@ -281,7 +279,7 @@ export default function Track() {
               color={trackColor}
               closures={closures}
               forecastTimes={forecast.forecastTimes}
-              pmtilesUrl={pmtilesUrl}
+              layer={mapLayer}
             />
           </div>
         ) : (
