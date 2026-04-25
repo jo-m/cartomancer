@@ -55,13 +55,31 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, jobTimeout)
 	defer cancel()
 
-	// Check if a recent ready build exists.
-	latest, err := dl.d.QueryRO().GetLatestReadyMapBuild(ctx)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("check latest build: %w", err)
+	// Skip the download only when every configured spec already has a recent ready build.
+	// Checking per-spec ensures a newly added spec is not starved until the global
+	// freshness window expires.
+	allFresh := true
+	for _, spec := range dl.specs {
+		params := db.GetLatestReadyMapBuildBySpecParams{
+			Maxzoom: int64(spec.MaxZoom),
+		}
+		if spec.Bbox != nil {
+			params.BboxMinLon = spec.Bbox.NullMinLon()
+			params.BboxMinLat = spec.Bbox.NullMinLat()
+			params.BboxMaxLon = spec.Bbox.NullMaxLon()
+			params.BboxMaxLat = spec.Bbox.NullMaxLat()
+		}
+		latest, specErr := dl.d.QueryRO().GetLatestReadyMapBuildBySpec(ctx, params)
+		if specErr != nil && !errors.Is(specErr, sql.ErrNoRows) {
+			return fmt.Errorf("check latest build for spec: %w", specErr)
+		}
+		if errors.Is(specErr, sql.ErrNoRows) || time.Since(latest.CreatedAt) >= minRefreshAge {
+			allFresh = false
+			break
+		}
 	}
-	if err == nil && time.Since(latest.CreatedAt) < minRefreshAge {
-		logg.Info(ctx, "map data is recent, skipping download", "lastBuild", latest.CreatedAt)
+	if allFresh {
+		logg.Info(ctx, "all map specs are recent, skipping download")
 		return nil
 	}
 
@@ -166,11 +184,14 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, id uuid.UUID, outPat
 		OutputPath: outPath,
 	})
 	if err != nil {
-		if rmErr := os.Remove(outPath); rmErr != nil && !os.IsNotExist(rmErr) {
-			logg.Error(ctx, "failed to remove output file after extraction failure", "err", rmErr)
-		}
+		// Delete the DB record first so a future run is not blocked by an orphaned
+		// incomplete record (ready=0 records are now invisible to GetMapBuildByKey,
+		// but deleting eagerly avoids accumulating stale rows).
 		if _, delErr := dl.d.QueryRW().DeleteMapBuild(ctx, id.String()); delErr != nil {
 			logg.Error(ctx, "failed to clean up map build record after extraction failure", "err", delErr)
+		}
+		if rmErr := os.Remove(outPath); rmErr != nil && !os.IsNotExist(rmErr) {
+			logg.Error(ctx, "failed to remove output file after extraction failure", "err", rmErr)
 		}
 		return fmt.Errorf("extract PMTiles: %w", err)
 	}

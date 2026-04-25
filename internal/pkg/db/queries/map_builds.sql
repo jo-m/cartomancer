@@ -22,6 +22,18 @@ WHERE key = ?
   AND bbox_min_lat IS ?
   AND bbox_max_lon IS ?
   AND bbox_max_lat IS ?
+  AND ready = 1
+LIMIT 1;
+
+-- name: GetLatestReadyMapBuildBySpec :one
+SELECT * FROM map_builds
+WHERE ready = 1
+  AND maxzoom = ?
+  AND bbox_min_lon IS ?
+  AND bbox_min_lat IS ?
+  AND bbox_max_lon IS ?
+  AND bbox_max_lat IS ?
+ORDER BY uploaded DESC
 LIMIT 1;
 
 -- name: DeleteMapBuild :execresult

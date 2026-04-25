@@ -45,7 +45,27 @@ func TestDbRoundTrip_withBbox(t *testing.T) {
 	_, err = d.QueryRO().GetLatestReadyMapBuild(ctx)
 	require.ErrorIs(t, err, sql.ErrNoRows)
 
-	// Look up by key with matching bbox.
+	// Not ready yet: GetMapBuildByKey must not match incomplete records.
+	_, err = d.QueryRO().GetMapBuildByKey(ctx, db.GetMapBuildByKeyParams{
+		Key:        "20260411.pmtiles",
+		Maxzoom:    8,
+		BboxMinLon: testBboxParsed.NullMinLon(),
+		BboxMinLat: testBboxParsed.NullMinLat(),
+		BboxMaxLon: testBboxParsed.NullMaxLon(),
+		BboxMaxLat: testBboxParsed.NullMaxLat(),
+	})
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	// Mark ready.
+	_, err = d.QueryRW().SetMapBuildReady(ctx, id.String())
+	require.NoError(t, err)
+
+	ready, err := d.QueryRO().GetLatestReadyMapBuild(ctx)
+	require.NoError(t, err)
+	require.Equal(t, id.String(), ready.Uuid)
+	require.Equal(t, int64(1), ready.Ready)
+
+	// Now GetMapBuildByKey should find the ready record.
 	found, err := d.QueryRO().GetMapBuildByKey(ctx, db.GetMapBuildByKeyParams{
 		Key:        "20260411.pmtiles",
 		Maxzoom:    8,
@@ -56,18 +76,9 @@ func TestDbRoundTrip_withBbox(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, id.String(), found.Uuid)
-	require.Equal(t, int64(0), found.Ready)
+	require.Equal(t, int64(1), found.Ready)
 	require.True(t, found.BboxMinLon.Valid)
 	require.InDelta(t, 5.5, found.BboxMinLon.Float64, 0.001)
-
-	// Mark ready.
-	_, err = d.QueryRW().SetMapBuildReady(ctx, id.String())
-	require.NoError(t, err)
-
-	ready, err := d.QueryRO().GetLatestReadyMapBuild(ctx)
-	require.NoError(t, err)
-	require.Equal(t, id.String(), ready.Uuid)
-	require.Equal(t, int64(1), ready.Ready)
 
 	// Delete.
 	_, err = d.QueryRW().DeleteMapBuild(ctx, id.String())
@@ -97,7 +108,17 @@ func TestDbRoundTrip_nullBbox(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Look up with null bbox.
+	// Not ready yet: incomplete record must not be returned.
+	_, err = d.QueryRO().GetMapBuildByKey(ctx, db.GetMapBuildByKeyParams{
+		Key:     "20260411.pmtiles",
+		Maxzoom: 8,
+	})
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	// Mark ready, then verify the record is found.
+	_, err = d.QueryRW().SetMapBuildReady(ctx, id.String())
+	require.NoError(t, err)
+
 	found, err := d.QueryRO().GetMapBuildByKey(ctx, db.GetMapBuildByKeyParams{
 		Key:     "20260411.pmtiles",
 		Maxzoom: 8,
