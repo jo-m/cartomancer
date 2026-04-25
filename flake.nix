@@ -65,9 +65,12 @@
       };
     };
 
-    # Backend: Go binary with embedded frontend assets. Takes a (potentially cross-compiled) package set
+    # Stub static assets for dev builds: a single index.html so the Go embed compiles.
+    devStatic = buildPkgs.writeTextDir "index.html" "hello world";
+
+    # Backend: Go binary with embedded staticSrc assets. Takes a (potentially cross-compiled) package set
     # and produces a binary for that set's host platform.
-    mkCartomancer = crossPkgs: let
+    mkCartomancerWith = crossPkgs: staticSrc: let
       # Use crossPkgs.go_1_26 (not buildPkgs.go_1_26): its `GOARCH` attr matches
       # the cross target, so buildGoModule sets `GOARCH` correctly and cgo
       # does not pass `-m64` to the aarch64 cross-gcc. The binary itself is
@@ -94,7 +97,7 @@
 
         preBuild = ''
           mkdir -p static
-          cp -r ${frontend}/. static/
+          cp -r ${staticSrc}/. static/
           # `go generate` runs build-host tools (e.g. `go tool sqlc`), so it
           # must use the native toolchain even during a cross build.
           (
@@ -121,6 +124,9 @@
           mainProgram = "cartomancer";
         };
       };
+
+    mkCartomancer = crossPkgs: mkCartomancerWith crossPkgs frontend;
+    mkCartomancerDev = crossPkgs: mkCartomancerWith crossPkgs devStatic;
 
     # Minimal container image with only the binary and CA certificates.
     mkDockerImage = crossPkgs: let
@@ -172,6 +178,7 @@
     in {
       default = mkCartomancer crossPkgs;
       cartomancer = mkCartomancer crossPkgs;
+      cartomancerDev = mkCartomancerDev crossPkgs;
       inherit frontend;
       dockerImage = mkDockerImage crossPkgs;
     });
