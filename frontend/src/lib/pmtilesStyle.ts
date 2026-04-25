@@ -6,9 +6,10 @@ type StyleFn = (feature: FeatureLike) => Style | Style[] | void
 /**
  * Creates an OpenLayers style function for Protomaps Basemap v4 vector tiles.
  *
- * Static styles are pre-allocated per call and reused across all tile renders.
- * Place labels create a new Style per feature (text varies), but OL caches
- * these per tile.
+ * All constant styles are pre-allocated once per call and reused across all
+ * tile renders. Place label styles are cached by font+name key so each unique
+ * label is only constructed once per style-function lifetime (one lifetime per
+ * dark/light mode value).
  *
  * @param dark - When true, returns styles suited for a dark colour scheme.
  */
@@ -25,6 +26,9 @@ export function createPmtilesStyleFn(dark: boolean): StyleFn {
   })
   const buildingStyle = new Style({
     fill: new Fill({ color: dark ? "#2e2820" : "#e6e2d8" }),
+  })
+  const glacierStyle = new Style({
+    fill: new Fill({ color: dark ? "#2a3840" : "#e8f4f8" }),
   })
 
   // --- roads ---
@@ -81,6 +85,10 @@ export function createPmtilesStyleFn(dark: boolean): StyleFn {
     width: 3,
   })
 
+  // Cache place label styles by font+name — one Style object per unique label
+  // per dark/light lifetime, avoiding repeated allocation on tile re-renders.
+  const labelCache = new Map<string, Style>()
+
   return (feature: FeatureLike): Style | Style[] | void => {
     const layer = feature.get("layer") as string
     const kind = feature.get("kind") as string
@@ -96,10 +104,7 @@ export function createPmtilesStyleFn(dark: boolean): StyleFn {
       case "landcover":
         if (kind === "forest" || kind === "scrub" || kind === "grassland")
           return parkStyle
-        if (kind === "glacier")
-          return new Style({
-            fill: new Fill({ color: dark ? "#2a3840" : "#e8f4f8" }),
-          })
+        if (kind === "glacier") return glacierStyle
         return
 
       // landuse: mapped human/natural areas (parks, farmland…)
@@ -130,15 +135,21 @@ export function createPmtilesStyleFn(dark: boolean): StyleFn {
         const rank = (feature.get("population_rank") as number) ?? 0
         const fontSize = rank >= 13 ? 14 : rank >= 9 ? 12 : rank >= 5 ? 11 : 10
         const fontWeight = rank >= 9 ? "bold" : "normal"
-        return new Style({
-          text: new Text({
-            text: name,
-            font: `${fontWeight} ${fontSize}px sans-serif`,
-            fill: labelFill,
-            stroke: labelHalo,
-            overflow: true,
-          }),
-        })
+        const key = `${fontWeight}:${fontSize}:${name}`
+        let style = labelCache.get(key)
+        if (!style) {
+          style = new Style({
+            text: new Text({
+              text: name,
+              font: `${fontWeight} ${fontSize}px sans-serif`,
+              fill: labelFill,
+              stroke: labelHalo,
+              overflow: true,
+            }),
+          })
+          labelCache.set(key, style)
+        }
+        return style
       }
 
       default:
