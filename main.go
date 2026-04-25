@@ -405,7 +405,9 @@ func main() {
 
 	mapsDir := filepath.Join(dataDir, "maps")
 	jobs.MustRegisterJob(w, maps.NewDownloader(d, c.MapsConfig, mapsDir))
-	jobs.Periodic(ctxJobs, w.Submitter(), maps.DownloaderArgs{}, 24*time.Hour, true)
+	jobs.Periodic(ctxJobs, w.Submitter(), maps.DownloaderArgs{}, 72*time.Hour, true)
+	jobs.MustRegisterJob(w, maps.NewCleaner(d, mapsDir))
+	jobs.Periodic(ctxJobs, w.Submitter(), maps.CleanerArgs{}, 2*time.Hour, false)
 
 	if !c.DemoMode {
 		jobs.MustRegisterJob(w, db.NewBackup(d, dbPath))

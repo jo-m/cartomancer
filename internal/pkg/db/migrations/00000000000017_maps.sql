@@ -22,6 +22,10 @@ CREATE TABLE map_builds (
     -- This column records whether the extraction completed successfully.
     ready INTEGER NOT NULL DEFAULT 0,
 
+    -- Set by the downloader when a newer extract with identical parameters has fully completed.
+    -- The cleaner job deletes the file and record for any row where this is true.
+    marked_for_deletion INTEGER NOT NULL DEFAULT 0,
+
     CHECK (
         (bbox_min_lon IS NULL AND bbox_min_lat IS NULL AND bbox_max_lon IS NULL AND bbox_max_lat IS NULL)
         OR

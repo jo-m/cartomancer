@@ -90,10 +90,10 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Make count vs. name distinguishable on button
   - [x] Also enable tag search/suggestions for anon users
 - [ ] Maps
-  - [ ] Self hosted alternative
+  - [x] Self hosted alternative
   - [ ] Track overview on map
   - [ ] Track previews with map background
-  - [ ] Map files cleanup
+  - [x] Map files cleanup
   - [ ] Allow configuring multiple map bboxes for download
 - [ ] Filtering
   - [ ] Unknown sport or subsport

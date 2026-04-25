@@ -186,6 +186,20 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata,
 		return fmt.Errorf("mark build ready: %w", err)
 	}
 
+	markParams := db.MarkOlderMapBuildsForDeletionParams{
+		Uuid:    id.String(),
+		Maxzoom: int64(spec.maxZoom),
+	}
+	if spec.bbox != nil {
+		markParams.BboxMinLon = spec.bbox.NullMinLon()
+		markParams.BboxMinLat = spec.bbox.NullMinLat()
+		markParams.BboxMaxLon = spec.bbox.NullMaxLon()
+		markParams.BboxMaxLat = spec.bbox.NullMaxLat()
+	}
+	if _, err := dl.d.QueryRW().MarkOlderMapBuildsForDeletion(ctx, markParams); err != nil {
+		logg.Error(ctx, "failed to mark older map builds for deletion", "err", err)
+	}
+
 	logg.Info(ctx, "PMTiles extraction complete", "key", build.Key, "uuid", id.String())
 	return nil
 }
