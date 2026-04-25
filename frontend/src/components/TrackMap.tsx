@@ -198,6 +198,8 @@ export default memo(function TrackMap({
   const closureLayerRef = useRef<VectorLayer | null>(null)
   const overlayRef = useRef<Overlay | null>(null)
   const [tooltip, setTooltip] = useState<RoadClosure | null>(null)
+  const [tileErrorUrl, setTileErrorUrl] = useState<string | null>(null)
+  const tileError = layer.type === "pmtiles" && tileErrorUrl === layer.url
   const [darkMode, setDarkMode] = useState(
     () => window.matchMedia("(prefers-color-scheme: dark)").matches
   )
@@ -271,9 +273,14 @@ export default memo(function TrackMap({
         })
       )
     } else if (layer.type === "pmtiles") {
+      const pmtilesSource = new PMTilesVectorSource({ url: layer.url })
+      pmtilesSource.on("error", (event) => {
+        console.error("PMTiles source error:", event)
+        setTileErrorUrl(layer.url)
+      })
       mapLayers.push(
         new VectorTileLayer({
-          source: new PMTilesVectorSource({ url: layer.url }),
+          source: pmtilesSource,
           style: createPmtilesStyleFn(darkMode),
         })
       )
@@ -416,8 +423,8 @@ export default memo(function TrackMap({
         feature.set("closure", c, true)
         feature.setStyle(c.type === "detour" ? detourStyle : closureStyle)
         source.addFeature(feature)
-      } catch {
-        // Skip closures with unparseable geometry.
+      } catch (err) {
+        console.error(`Failed to parse closure geometry (${c.uuid}):`, err)
       }
     }
   }, [closures, layer])
@@ -511,6 +518,13 @@ export default memo(function TrackMap({
         />
       )}
       <div ref={mapRef} className="h-full w-full" />
+      {tileError && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="rounded bg-panel/90 px-3 py-1.5 text-sm text-error ring-1 ring-border">
+            Map tiles unavailable
+          </span>
+        </div>
+      )}
       <div
         ref={tooltipRef}
         className={tooltip ? "pointer-events-none" : "hidden"}
