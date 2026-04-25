@@ -567,7 +567,7 @@ export default memo(function TrackMap({
             </a>
             ,&nbsp;
             <a
-              href="https://protomaps.com"
+              href="https://maps.protomaps.com/builds/"
               target="_blank"
               rel="noopener noreferrer"
               className="pointer-events-auto hover:underline"
