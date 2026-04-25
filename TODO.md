@@ -95,6 +95,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [ ] Track previews with map background
   - [x] Map files cleanup
   - [ ] Allow configuring multiple map bboxes for download
+  - [x] Show all maps in the Admin section, incl. size of the map file, and add a new endpoint where admins can manually set the deletion flag on a map.
 - [ ] Filtering
   - [ ] Unknown sport or subsport
   - [ ] By start location (1km radius?)

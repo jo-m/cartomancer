@@ -186,6 +186,15 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata,
 		return fmt.Errorf("mark build ready: %w", err)
 	}
 
+	if info, statErr := os.Stat(outPath); statErr == nil {
+		if err := dl.d.QueryRW().SetMapBuildLocalSize(ctx, db.SetMapBuildLocalSizeParams{
+			LocalSize: sql.NullInt64{Valid: true, Int64: info.Size()},
+			Uuid:      id.String(),
+		}); err != nil {
+			logg.Error(ctx, "failed to record local map file size", "err", err)
+		}
+	}
+
 	markParams := db.MarkOlderMapBuildsForDeletionParams{
 		Uuid:    id.String(),
 		Maxzoom: int64(spec.maxZoom),

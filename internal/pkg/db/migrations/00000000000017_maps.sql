@@ -22,6 +22,9 @@ CREATE TABLE map_builds (
     -- This column records whether the extraction completed successfully.
     ready INTEGER NOT NULL DEFAULT 0,
 
+    -- Size of the locally extracted PMTiles file in bytes. Set after successful extraction.
+    local_size INTEGER,
+
     -- Set by the downloader when a newer extract with identical parameters has fully completed.
     -- The cleaner job deletes the file and record for any row where this is true.
     marked_for_deletion INTEGER NOT NULL DEFAULT 0,

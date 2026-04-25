@@ -20,6 +20,7 @@ type mapBuildResponse struct {
 	Version    string    `json:"version"`
 	Uploaded   time.Time `json:"uploaded"`
 	Size       int64     `json:"size"`
+	LocalSize  *int64    `json:"localSize,omitempty"`
 	MaxZoom    int64     `json:"maxZoom"`
 	BboxMinLon *float64  `json:"bboxMinLon,omitempty"`
 	BboxMinLat *float64  `json:"bboxMinLat,omitempty"`
@@ -27,7 +28,16 @@ type mapBuildResponse struct {
 	BboxMaxLat *float64  `json:"bboxMaxLat,omitempty"`
 }
 
-// toMapBuildResponse converts a db.MapBuild to the JSON response type.
+// adminMapBuildResponse is the JSON representation of a map build for admin endpoints,
+// including status fields not exposed on the public API.
+type adminMapBuildResponse struct {
+	mapBuildResponse
+	CreatedAt         time.Time `json:"createdAt"`
+	Ready             bool      `json:"ready"`
+	MarkedForDeletion bool      `json:"markedForDeletion"`
+}
+
+// toMapBuildResponse converts a db.MapBuild to the public JSON response type.
 func toMapBuildResponse(b db.MapBuild) mapBuildResponse {
 	r := mapBuildResponse{
 		UUID:     b.Uuid,
@@ -36,6 +46,10 @@ func toMapBuildResponse(b db.MapBuild) mapBuildResponse {
 		Uploaded: b.Uploaded,
 		Size:     b.Size,
 		MaxZoom:  b.Maxzoom,
+	}
+	if b.LocalSize.Valid {
+		v := b.LocalSize.Int64
+		r.LocalSize = &v
 	}
 	if b.BboxMinLon.Valid {
 		v := b.BboxMinLon.Float64
@@ -56,6 +70,16 @@ func toMapBuildResponse(b db.MapBuild) mapBuildResponse {
 	return r
 }
 
+// toAdminMapBuildResponse converts a db.MapBuild to the admin JSON response type.
+func toAdminMapBuildResponse(b db.MapBuild) adminMapBuildResponse {
+	return adminMapBuildResponse{
+		mapBuildResponse:  toMapBuildResponse(b),
+		CreatedAt:         b.CreatedAt,
+		Ready:             b.Ready != 0,
+		MarkedForDeletion: b.MarkedForDeletion != 0,
+	}
+}
+
 // handleListMapBuilds returns all ready PMTiles map builds.
 func (sv *server) handleListMapBuilds(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -72,6 +96,39 @@ func (sv *server) handleListMapBuilds(w http.ResponseWriter, r *http.Request) {
 		resp[i] = toMapBuildResponse(b)
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// handleAdminListMapBuilds returns all map builds regardless of status.
+func (sv *server) handleAdminListMapBuilds(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	builds, err := sv.d.QueryRO().ListMapBuilds(ctx)
+	if err != nil {
+		logg.Error(ctx, "failed to list map builds", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	resp := make([]adminMapBuildResponse, len(builds))
+	for i, b := range builds {
+		resp[i] = toAdminMapBuildResponse(b)
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// handleAdminMarkMapForDeletion sets the marked_for_deletion flag on a map build.
+func (sv *server) handleAdminMarkMapForDeletion(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	uuid := chi.URLParam(r, "uuid")
+
+	_, err := sv.d.QueryRW().SetMapBuildMarkedForDeletion(ctx, uuid)
+	if err != nil {
+		logg.Error(ctx, "failed to mark map build for deletion", "err", err, "uuid", uuid)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleGetMapFile serves a PMTiles file by UUID, supporting HTTP range requests.

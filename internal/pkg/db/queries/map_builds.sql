@@ -5,6 +5,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 -- name: SetMapBuildReady :execresult
 UPDATE map_builds SET ready = 1 WHERE uuid = ?;
 
+-- name: SetMapBuildLocalSize :exec
+UPDATE map_builds SET local_size = ? WHERE uuid = ?;
+
+-- name: SetMapBuildMarkedForDeletion :execresult
+UPDATE map_builds SET marked_for_deletion = 1 WHERE uuid = ?;
+
 -- name: GetLatestReadyMapBuild :one
 SELECT * FROM map_builds WHERE ready = 1 ORDER BY uploaded DESC LIMIT 1;
 

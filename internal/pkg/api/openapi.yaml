@@ -2562,6 +2562,74 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /admin/maps:
+    get:
+      summary: List all map builds
+      description: Returns all map builds regardless of ready or deletion status.
+      operationId: adminListMapBuilds
+      tags: [Admin]
+      responses:
+        "200":
+          description: All map builds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminMapBuildResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /admin/maps/{uuid}/mark-for-deletion:
+    post:
+      summary: Mark a map build for deletion
+      description: Sets the marked_for_deletion flag. The cleaner job will remove the file and record.
+      operationId: adminMarkMapForDeletion
+      tags: [Admin]
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Map build marked for deletion
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   securitySchemes:
     cookieAuth:
@@ -3609,6 +3677,10 @@ components:
           type: integer
           format: int64
           description: Size of the source archive in bytes
+        localSize:
+          type: integer
+          format: int64
+          description: Size of the locally extracted PMTiles file in bytes
         maxZoom:
           type: integer
         bboxMinLon:
@@ -3623,3 +3695,20 @@ components:
         bboxMaxLat:
           type: number
           format: double
+
+    AdminMapBuildResponse:
+      allOf:
+        - $ref: "#/components/schemas/MapBuildResponse"
+        - type: object
+          required:
+            - createdAt
+            - ready
+            - markedForDeletion
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+            ready:
+              type: boolean
+            markedForDeletion:
+              type: boolean
