@@ -10,6 +10,7 @@ import WMTS from "ol/source/WMTS"
 import Feature from "ol/Feature"
 import GeoJSON from "ol/format/GeoJSON"
 import { fromLonLat } from "ol/proj"
+import { isEmpty as extentIsEmpty } from "ol/extent"
 import { LineString, Point } from "ol/geom"
 import { Circle, Fill, Stroke, Style, Icon } from "ol/style"
 import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
@@ -196,10 +197,6 @@ export default memo(function TrackMap({
   const markerSource = useRef<VectorSource | null>(null)
   const closureLayerRef = useRef<VectorLayer | null>(null)
   const overlayRef = useRef<Overlay | null>(null)
-  // GeoJSON format is projection-dependent; updated when the map is initialized.
-  const geoJSONFormatRef = useRef<GeoJSON>(
-    new GeoJSON({ dataProjection: "EPSG:4326", featureProjection: "EPSG:3857" })
-  )
   const [tooltip, setTooltip] = useState<RoadClosure | null>(null)
   const [darkMode, setDarkMode] = useState(
     () => window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -229,11 +226,6 @@ export default memo(function TrackMap({
 
     const coords = points.map((p) => projectPoint(p.lon, p.lat, layer.type))
     coordsRef.current = coords
-
-    geoJSONFormatRef.current = new GeoJSON({
-      dataProjection: "EPSG:4326",
-      featureProjection: layer.type === "swisstopo" ? "EPSG:2056" : "EPSG:3857",
-    })
 
     const trackFeature = new Feature({
       geometry: new LineString(coords),
@@ -318,7 +310,7 @@ export default memo(function TrackMap({
     })
 
     const extent = vectorSource.getExtent()
-    if (extent && extent[0] !== Infinity) {
+    if (extent && !extentIsEmpty(extent)) {
       map.getView().fit(extent, { padding: [40, 40, 40, 40], maxZoom: 16 })
     }
 
@@ -394,7 +386,8 @@ export default memo(function TrackMap({
       const coords = coordsRef.current
       const idx = hoverStore.get()
       if (idx != null && idx >= 0 && idx < coords.length) {
-        const geom = marker.getGeometry() as Point
+        const geom = marker.getGeometry()
+        if (!(geom instanceof Point)) return
         geom.setCoordinates(coords[idx])
         marker.setStyle(markerVisibleStyle)
       } else {
@@ -412,7 +405,10 @@ export default memo(function TrackMap({
 
     if (!closures || closures.length === 0) return
 
-    const fmt = geoJSONFormatRef.current
+    const fmt = new GeoJSON({
+      dataProjection: "EPSG:4326",
+      featureProjection: layer.type === "swisstopo" ? "EPSG:2056" : "EPSG:3857",
+    })
     for (const c of closures) {
       try {
         const geom = fmt.readGeometry(JSON.parse(c.geometry))
@@ -424,7 +420,7 @@ export default memo(function TrackMap({
         // Skip closures with unparseable geometry.
       }
     }
-  }, [closures])
+  }, [closures, layer])
 
   // Closure hover: show tooltip and highlight on pointer move over closure features.
   useEffect(() => {

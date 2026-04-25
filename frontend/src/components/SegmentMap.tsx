@@ -6,6 +6,7 @@ import VectorLayer from "ol/layer/Vector"
 import VectorSource from "ol/source/Vector"
 import WMTS from "ol/source/WMTS"
 import Feature from "ol/Feature"
+import { isEmpty as extentIsEmpty } from "ol/extent"
 import { LineString, Point } from "ol/geom"
 import { Circle, Fill, Stroke, Style } from "ol/style"
 import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
@@ -35,7 +36,7 @@ const endStyle = new Style({
 })
 
 interface SegmentMapProps {
-  /** JSON-encoded array of [lat, lon] pairs. */
+  /** JSON-encoded array of [lat, lon] pairs (latitude first, as sent by the API). */
   polyline: string
 }
 
@@ -95,7 +96,7 @@ export default function SegmentMap({ polyline }: SegmentMapProps) {
     })
 
     const extent = vectorSource.getExtent()
-    if (extent && extent[0] !== Infinity) {
+    if (extent && !extentIsEmpty(extent)) {
       map.getView().fit(extent, { padding: [40, 40, 40, 40], maxZoom: 16 })
     }
 
