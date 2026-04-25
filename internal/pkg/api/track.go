@@ -1222,7 +1222,16 @@ const (
 )
 
 var errUploadTrackLimitReached = errors.New("track limit reached")
-var errUploadTrackDuplicate = errors.New("duplicate track")
+
+// errUploadTrackDuplicate is returned when a user uploads a file whose content
+// hash already exists in their library. It carries the UUID of the existing track.
+type errUploadTrackDuplicate struct {
+	existingUUID string
+}
+
+func (e *errUploadTrackDuplicate) Error() string {
+	return fmt.Sprintf("duplicate track: %s", e.existingUUID)
+}
 
 func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -1313,12 +1322,12 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			return errUploadTrackLimitReached
 		}
 
-		_, txErr = q.TrackExistsByUserAndBlobHash(ctx, db.TrackExistsByUserAndBlobHashParams{
+		dupUUID, txErr := q.TrackExistsByUserAndBlobHash(ctx, db.TrackExistsByUserAndBlobHashParams{
 			UserID: user.Uuid,
 			Hash:   contentHash[:],
 		})
 		if txErr == nil {
-			return errUploadTrackDuplicate
+			return &errUploadTrackDuplicate{existingUUID: dupUUID}
 		}
 		if !errors.Is(txErr, sql.ErrNoRows) {
 			return txErr
@@ -1380,8 +1389,9 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "per-user track limit reached")
 		return
 	}
-	if errors.Is(err, errUploadTrackDuplicate) {
-		writeError(w, http.StatusConflict, "duplicate file")
+	var dupErr *errUploadTrackDuplicate
+	if errors.As(err, &dupErr) {
+		writeError(w, http.StatusConflict, fmt.Sprintf("duplicate file (%s)", dupErr.existingUUID))
 		return
 	}
 	if err != nil {
