@@ -54,39 +54,83 @@ func ParseBbox(s string) (Bbox, error) {
 	return Bbox{MinLon: vals[0], MinLat: vals[1], MaxLon: vals[2], MaxLat: vals[3]}, nil
 }
 
+// MapSpec describes a single map extract: an optional bounding box and a maximum zoom level.
+type MapSpec struct {
+	// Bbox is the geographic bounding box; nil means the entire world.
+	Bbox    *Bbox
+	MaxZoom int
+}
+
+// parseMapSpec parses a single spec entry in "bbox@maxzoom" format.
+// An empty bbox (i.e. "@maxzoom") means the entire world.
+func parseMapSpec(s string) (MapSpec, error) {
+	s = strings.TrimSpace(s)
+	at := strings.LastIndex(s, "@")
+	if at < 0 {
+		return MapSpec{}, fmt.Errorf("spec %q: missing '@' separator between bbox and zoom", s)
+	}
+
+	bboxStr := s[:at]
+	zoomStr := s[at+1:]
+
+	zoom, err := strconv.Atoi(strings.TrimSpace(zoomStr))
+	if err != nil {
+		return MapSpec{}, fmt.Errorf("spec %q: invalid zoom %q: %w", s, zoomStr, err)
+	}
+	if zoom < 0 || zoom > 22 {
+		return MapSpec{}, fmt.Errorf("spec %q: zoom must be between 0 and 22, got %d", s, zoom)
+	}
+
+	var bbox *Bbox
+	if strings.TrimSpace(bboxStr) != "" {
+		b, err := ParseBbox(bboxStr)
+		if err != nil {
+			return MapSpec{}, fmt.Errorf("spec %q: %w", s, err)
+		}
+		bbox = &b
+	}
+
+	return MapSpec{Bbox: bbox, MaxZoom: zoom}, nil
+}
+
 // MapsConfig contains configuration for the maps downloader.
 // It has struct tags compatible with [github.com/alexflint/go-arg].
 //
 //revive:disable:exported Naming necessary for struct embedding.
 type MapsConfig struct {
-	// MapsBbox is the bounding box for the map extract in min_lon,min_lat,max_lon,max_lat format.
-	// Empty means the entire world.
-	MapsBbox string `arg:"--maps-bbox,env:MAPS_BBOX" default:"5.5,45.5,11.0,48.2" help:"Bounding box for map extract (min_lon,min_lat,max_lon,max_lat; empty for entire world)" placeholder:"BBOX"`
-	// MapsMaxZoom is the maximum zoom level to extract.
-	MapsMaxZoom int `arg:"--maps-maxzoom,env:MAPS_MAXZOOM" default:"10" help:"Maximum zoom level for map extract" placeholder:"Z"`
+	// MapsSpecs is a semicolon-separated list of map extract specifications.
+	// Each entry is "bbox@maxzoom" where bbox is "min_lon,min_lat,max_lon,max_lat".
+	// An empty bbox (i.e. "@maxzoom") downloads the entire world at that zoom level.
+	// Example: "@7;5.5,45.5,11.0,48.2@10" downloads a world overview at zoom 7
+	// and a regional extract for Switzerland at zoom 10.
+	MapsSpecs string `arg:"--maps-specs,env:MAPS_SPECS" default:"@7;-16.9,27.8,-13.4,29.2@10" help:"Semicolon-separated list of map extract specs (bbox@maxzoom); empty bbox means entire world" placeholder:"SPECS"`
 }
 
-// ParsedBbox returns the parsed bounding box, or nil if empty (entire world).
-func (c *MapsConfig) ParsedBbox() (*Bbox, error) {
-	if c.MapsBbox == "" {
+// ParsedSpecs parses MapsSpecs into a slice of [MapSpec].
+func (c *MapsConfig) ParsedSpecs() ([]MapSpec, error) {
+	if strings.TrimSpace(c.MapsSpecs) == "" {
 		return nil, nil
 	}
-	b, err := ParseBbox(c.MapsBbox)
-	if err != nil {
-		return nil, err
+
+	entries := strings.Split(c.MapsSpecs, ";")
+	specs := make([]MapSpec, 0, len(entries))
+	for _, entry := range entries {
+		if strings.TrimSpace(entry) == "" {
+			continue
+		}
+		spec, err := parseMapSpec(entry)
+		if err != nil {
+			return nil, fmt.Errorf("--maps-specs / MAPS_SPECS: %w", err)
+		}
+		specs = append(specs, spec)
 	}
-	return &b, nil
+	return specs, nil
 }
 
 // Validate checks for basic configuration errors.
 func (c *MapsConfig) Validate() error {
-	if c.MapsMaxZoom < 0 || c.MapsMaxZoom > 22 {
-		return fmt.Errorf("--maps-maxzoom / MAPS_MAXZOOM must be between 0 and 22, got %d", c.MapsMaxZoom)
-	}
-	if c.MapsBbox != "" {
-		if _, err := ParseBbox(c.MapsBbox); err != nil {
-			return fmt.Errorf("--maps-bbox / MAPS_BBOX: %w", err)
-		}
+	if _, err := c.ParsedSpecs(); err != nil {
+		return err
 	}
 	return nil
 }

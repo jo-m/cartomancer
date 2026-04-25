@@ -19,10 +19,7 @@ const (
 	jobTimeout = 60 * time.Minute
 
 	// minRefreshAge is the minimum age of the last successful build before a new one is attempted.
-	minRefreshAge = 23 * time.Hour
-
-	// worldOverviewMaxZoom is the zoom level for the always-downloaded world overview map.
-	worldOverviewMaxZoom = 7
+	minRefreshAge = 70 * time.Hour
 )
 
 // DownloaderArgs are the arguments for the map downloader job.
@@ -33,34 +30,26 @@ func (DownloaderArgs) Kind() string { return "maps.downloader" }
 
 var _ jobs.Args = (*DownloaderArgs)(nil)
 
-// Downloader periodically extracts a regional PMTiles subset from the latest protomaps build.
+// Downloader periodically extracts regional PMTiles subsets from the latest protomaps build.
 // Use [NewDownloader] to create an instance.
 type Downloader struct {
 	d       *db.DB
-	cfg     MapsConfig
+	specs   []MapSpec
 	mapsDir string
-	bbox    *Bbox
 }
 
 // NewDownloader creates a new [Downloader] instance.
 // The mapsDir parameter is the directory where extracted PMTiles files are written.
 // The config must have been validated before calling this function.
 func NewDownloader(d *db.DB, cfg MapsConfig, mapsDir string) *Downloader {
-	bbox, _ := cfg.ParsedBbox()
-	return &Downloader{d: d, cfg: cfg, mapsDir: mapsDir, bbox: bbox}
+	specs, _ := cfg.ParsedSpecs()
+	return &Downloader{d: d, specs: specs, mapsDir: mapsDir}
 }
 
 var _ jobs.Job[DownloaderArgs] = (*Downloader)(nil)
 
-// extractSpec describes a single extraction to perform.
-type extractSpec struct {
-	maxZoom int
-	bbox    *Bbox
-}
-
 // Run implements [jobs.Job].
-// It fetches the current builds index and performs up to two extractions per build:
-// a low-zoom world overview (no bbox, zoom 7) and the configured regional extract.
+// It fetches the current builds index and performs an extraction for each configured spec.
 // Each extraction is independently deduplicated.
 func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, jobTimeout)
@@ -89,16 +78,10 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 
 	logg.Info(ctx, "latest protomaps build", "key", build.Key, "version", build.Version, "uploaded", build.Uploaded)
 
-	// World overview (no bbox, low zoom).
-	worldSpec := extractSpec{maxZoom: worldOverviewMaxZoom, bbox: nil}
-	if err := dl.ensureExtract(ctx, build, worldSpec); err != nil {
-		return fmt.Errorf("world overview: %w", err)
-	}
-
-	// Regional extract from config.
-	regionalSpec := extractSpec{maxZoom: dl.cfg.MapsMaxZoom, bbox: dl.bbox}
-	if err := dl.ensureExtract(ctx, build, regionalSpec); err != nil {
-		return fmt.Errorf("regional extract: %w", err)
+	for i, spec := range dl.specs {
+		if err := dl.ensureExtract(ctx, build, spec); err != nil {
+			return fmt.Errorf("spec %d: %w", i, err)
+		}
 	}
 
 	return nil
@@ -106,21 +89,21 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 
 // ensureExtract checks whether the given build+spec combination already exists
 // and performs the extraction if not.
-func (dl *Downloader) ensureExtract(ctx context.Context, build BuildMetadata, spec extractSpec) error {
+func (dl *Downloader) ensureExtract(ctx context.Context, build BuildMetadata, spec MapSpec) error {
 	lookupParams := db.GetMapBuildByKeyParams{
 		Key:     build.Key,
-		Maxzoom: int64(spec.maxZoom),
+		Maxzoom: int64(spec.MaxZoom),
 	}
-	if spec.bbox != nil {
-		lookupParams.BboxMinLon = spec.bbox.NullMinLon()
-		lookupParams.BboxMinLat = spec.bbox.NullMinLat()
-		lookupParams.BboxMaxLon = spec.bbox.NullMaxLon()
-		lookupParams.BboxMaxLat = spec.bbox.NullMaxLat()
+	if spec.Bbox != nil {
+		lookupParams.BboxMinLon = spec.Bbox.NullMinLon()
+		lookupParams.BboxMinLat = spec.Bbox.NullMinLat()
+		lookupParams.BboxMaxLon = spec.Bbox.NullMaxLon()
+		lookupParams.BboxMaxLat = spec.Bbox.NullMaxLat()
 	}
 
 	_, err := dl.d.QueryRO().GetMapBuildByKey(ctx, lookupParams)
 	if err == nil {
-		logg.Info(ctx, "build already extracted, skipping", "key", build.Key, "maxzoom", spec.maxZoom)
+		logg.Info(ctx, "build already extracted, skipping", "key", build.Key, "maxzoom", spec.MaxZoom)
 		return nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
@@ -131,7 +114,7 @@ func (dl *Downloader) ensureExtract(ctx context.Context, build BuildMetadata, sp
 }
 
 // extractAndRecord performs the PMTiles extraction and records the result in the database.
-func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata, spec extractSpec) error {
+func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata, spec MapSpec) error {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return fmt.Errorf("generate uuid: %w", err)
@@ -147,28 +130,28 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata,
 		Md5sum:    build.MD5Sum,
 		Uploaded:  build.Uploaded,
 		Version:   build.Version,
-		Maxzoom:   int64(spec.maxZoom),
+		Maxzoom:   int64(spec.MaxZoom),
 	}
-	if spec.bbox != nil {
-		insertParams.BboxMinLon = spec.bbox.NullMinLon()
-		insertParams.BboxMinLat = spec.bbox.NullMinLat()
-		insertParams.BboxMaxLon = spec.bbox.NullMaxLon()
-		insertParams.BboxMaxLat = spec.bbox.NullMaxLat()
+	if spec.Bbox != nil {
+		insertParams.BboxMinLon = spec.Bbox.NullMinLon()
+		insertParams.BboxMinLat = spec.Bbox.NullMinLat()
+		insertParams.BboxMaxLon = spec.Bbox.NullMaxLon()
+		insertParams.BboxMaxLat = spec.Bbox.NullMaxLat()
 	}
 	if err := dl.d.QueryRW().InsertMapBuild(ctx, insertParams); err != nil {
 		return fmt.Errorf("insert map build: %w", err)
 	}
 
 	bboxStr := ""
-	if spec.bbox != nil {
-		bboxStr = spec.bbox.String()
+	if spec.Bbox != nil {
+		bboxStr = spec.Bbox.String()
 	}
-	logg.Info(ctx, "starting PMTiles extraction", "key", build.Key, "output", outPath, "bbox", bboxStr, "maxzoom", spec.maxZoom)
+	logg.Info(ctx, "starting PMTiles extraction", "key", build.Key, "output", outPath, "bbox", bboxStr, "maxzoom", spec.MaxZoom)
 
 	err = Extract(ctx, ExtractParams{
 		BucketURL:  SourceBucketURL,
 		Key:        build.Key,
-		MaxZoom:    spec.maxZoom,
+		MaxZoom:    spec.MaxZoom,
 		Bbox:       bboxStr,
 		OutputPath: outPath,
 	})
@@ -197,13 +180,13 @@ func (dl *Downloader) extractAndRecord(ctx context.Context, build BuildMetadata,
 
 	markParams := db.MarkOlderMapBuildsForDeletionParams{
 		Uuid:    id.String(),
-		Maxzoom: int64(spec.maxZoom),
+		Maxzoom: int64(spec.MaxZoom),
 	}
-	if spec.bbox != nil {
-		markParams.BboxMinLon = spec.bbox.NullMinLon()
-		markParams.BboxMinLat = spec.bbox.NullMinLat()
-		markParams.BboxMaxLon = spec.bbox.NullMaxLon()
-		markParams.BboxMaxLat = spec.bbox.NullMaxLat()
+	if spec.Bbox != nil {
+		markParams.BboxMinLon = spec.Bbox.NullMinLon()
+		markParams.BboxMinLat = spec.Bbox.NullMinLat()
+		markParams.BboxMaxLon = spec.Bbox.NullMaxLon()
+		markParams.BboxMaxLat = spec.Bbox.NullMaxLat()
 	}
 	if _, err := dl.d.QueryRW().MarkOlderMapBuildsForDeletion(ctx, markParams); err != nil {
 		logg.Error(ctx, "failed to mark older map builds for deletion", "err", err)

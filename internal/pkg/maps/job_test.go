@@ -11,14 +11,6 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
 )
 
-const (
-	// testBbox is a bounding box covering approximately Switzerland, used across test files.
-	testBbox = "5.5,45.5,11.0,48.2"
-
-	// testMaxZoom is the default maximum zoom level used in tests.
-	testMaxZoom = 8
-)
-
 var testBboxParsed = Bbox{MinLon: 5.5, MinLat: 45.5, MaxLon: 11.0, MaxLat: 48.2}
 
 func TestDbRoundTrip_withBbox(t *testing.T) {
