@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import { LockClosedIcon } from "@heroicons/react/24/solid"
 import SvgPreview from "./SvgPreview"
 import StarIcon from "../assets/StarIcon"
 import SvgIcon from "../assets/SvgIcon"
@@ -28,6 +29,7 @@ interface TrackData {
   totalAscentM: number
   starred?: boolean
   isOwner?: boolean
+  public?: boolean
   user: { uuid: string; name: string }
   forecast?: TrackForecast | null
 }
@@ -74,6 +76,11 @@ export default function TrackCard({
       />
 
       <div className="tarot-card-inner">
+        {track.public === false && (
+          <div className="absolute left-3 top-3 z-10 rounded bg-panel/80 p-1">
+            <LockClosedIcon className="h-4 w-4 text-text-muted" />
+          </div>
+        )}
         {canSelect && (
           <button
             onClick={(e) => {
