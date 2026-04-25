@@ -19,6 +19,7 @@ export interface FullscreenMapDialogProps {
   color: string
   closures?: RoadClosure[]
   forecastTimes?: number[]
+  pmtilesUrl?: string
 }
 
 /** Fullscreen map dialog with transition animations. */
@@ -30,6 +31,7 @@ export default function FullscreenMapDialog({
   color,
   closures,
   forecastTimes,
+  pmtilesUrl,
 }: FullscreenMapDialogProps) {
   return (
     <Transition show={open} as={Fragment}>
@@ -70,6 +72,7 @@ export default function FullscreenMapDialog({
                 color={color}
                 className="h-full w-full"
                 closures={closures}
+                pmtilesUrl={pmtilesUrl}
               />
               <MapHoverOverlay
                 hoverStore={hoverStore}

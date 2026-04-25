@@ -2,16 +2,16 @@ import { useEffect, useRef, useCallback, useMemo, useState, memo } from "react"
 import OlMap from "ol/Map"
 import OlView from "ol/View"
 import Overlay from "ol/Overlay"
-import TileLayer from "ol/layer/Tile"
+import VectorTileLayer from "ol/layer/VectorTile"
 import VectorLayer from "ol/layer/Vector"
 import VectorSource from "ol/source/Vector"
-import WMTS from "ol/source/WMTS"
 import Feature from "ol/Feature"
+import type { FeatureLike } from "ol/Feature"
 import GeoJSON from "ol/format/GeoJSON"
+import { fromLonLat } from "ol/proj"
 import { LineString, Point } from "ol/geom"
-import { Circle, Fill, Icon, Stroke, Style } from "ol/style"
-import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
-import { lv95, proj4 } from "../lib/proj"
+import { Circle, Fill, Stroke, Style, Icon } from "ol/style"
+import { PMTilesVectorSource } from "ol-pmtiles"
 
 import type { HoverStore } from "../hooks/useHoverSync"
 
@@ -144,8 +144,62 @@ const closureStyleHover = [
 
 const geoJSONFormat = new GeoJSON({
   dataProjection: "EPSG:4326",
-  featureProjection: "EPSG:2056",
+  featureProjection: "EPSG:3857",
 })
+
+// Pre-built style instances for Protomaps Basemap v4 layers.
+const earthStyle = new Style({ fill: new Fill({ color: "#f0ece4" }) })
+const waterStyle = new Style({ fill: new Fill({ color: "#ccdded" }) })
+const parkStyle = new Style({ fill: new Fill({ color: "#d8e8d8" }) })
+const buildingStyle = new Style({ fill: new Fill({ color: "#e6e2d8" }) })
+const highwayOutlineStyle = new Style({
+  stroke: new Stroke({ color: "#ffffff", width: 4 }),
+})
+const highwayFillStyle = new Style({
+  stroke: new Stroke({ color: "#c8c0b0", width: 2.5 }),
+})
+const majorRoadOutlineStyle = new Style({
+  stroke: new Stroke({ color: "#ffffff", width: 3 }),
+})
+const majorRoadFillStyle = new Style({
+  stroke: new Stroke({ color: "#d0cab8", width: 1.8 }),
+})
+const mediumRoadStyle = new Style({
+  stroke: new Stroke({ color: "#d8d4c8", width: 1.2 }),
+})
+const minorRoadStyle = new Style({
+  stroke: new Stroke({ color: "#e0dcd4", width: 0.7 }),
+})
+
+/** Style function for Protomaps Basemap v4 vector tiles. */
+function pmtilesStyleFn(feature: FeatureLike): Style | Style[] | void {
+  const layer = feature.get("layer") as string
+  const kind = feature.get("kind") as string
+  switch (layer) {
+    case "earth":
+      return earthStyle
+    case "natural":
+      if (kind === "water") return waterStyle
+      return
+    case "landuse":
+      if (["park", "urban_green", "forest", "scrub", "grass"].includes(kind)) {
+        return parkStyle
+      }
+      return
+    case "water":
+      return waterStyle
+    case "roads":
+      if (kind === "highway") return [highwayOutlineStyle, highwayFillStyle]
+      if (kind === "major_road")
+        return [majorRoadOutlineStyle, majorRoadFillStyle]
+      if (kind === "medium_road") return mediumRoadStyle
+      return minorRoadStyle
+    case "buildings":
+      return buildingStyle
+    default:
+      return
+  }
+}
 
 /** Props for the TrackMap component. */
 interface TrackMapProps {
@@ -159,15 +213,18 @@ interface TrackMapProps {
   className?: string
   /** Optional road closures to render on the map. */
   closures?: RoadClosure[]
+  /** URL of the PMTiles file to use as the background map layer. */
+  pmtilesUrl?: string
 }
 
-/** Renders an interactive swisstopo map with the track line and hover marker. */
+/** Renders an interactive map with the track line and hover marker using PMTiles vector tiles. */
 export default memo(function TrackMap({
   points,
   hoverStore,
   color,
   className,
   closures,
+  pmtilesUrl,
 }: TrackMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -194,9 +251,7 @@ export default memo(function TrackMap({
   useEffect(() => {
     if (!mapRef.current || points.length === 0) return
 
-    const coords = points.map((p) =>
-      proj4("EPSG:4326", "EPSG:2056", [p.lon, p.lat])
-    )
+    const coords = points.map((p) => fromLonLat([p.lon, p.lat]))
     coordsRef.current = coords
 
     const trackFeature = new Feature({
@@ -225,18 +280,15 @@ export default memo(function TrackMap({
     const mSource = new VectorSource({ features: [marker] })
     markerSource.current = mSource
 
-    const tileGrid = getLV95TileGrid()
-    const tileLayer = new TileLayer({
-      source: new WMTS({
-        url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/2056/{TileMatrix}/{TileCol}/{TileRow}.jpeg",
-        tileGrid,
-        projection: lv95,
-        requestEncoding: "REST",
-        layer: "ch.swisstopo.pixelkarte-farbe",
-        style: "default",
-        matrixSet: "2056",
-      }),
-    })
+    const layers = []
+
+    if (pmtilesUrl) {
+      const tilesLayer = new VectorTileLayer({
+        source: new PMTilesVectorSource({ url: pmtilesUrl }),
+        style: pmtilesStyleFn,
+      })
+      layers.push(tilesLayer)
+    }
 
     const vectorLayer = new VectorLayer({ source: vectorSource })
     const markerLayer = new VectorLayer({ source: mSource })
@@ -244,6 +296,8 @@ export default memo(function TrackMap({
     const closureSource = new VectorSource()
     const closureLayer = new VectorLayer({ source: closureSource })
     closureLayerRef.current = closureLayer
+
+    layers.push(vectorLayer, closureLayer, markerLayer)
 
     const overlay = new Overlay({
       element: tooltipRef.current!,
@@ -253,12 +307,11 @@ export default memo(function TrackMap({
     })
     overlayRef.current = overlay
 
-    const viewConfig = getLV95ViewConfig()
     const map = new OlMap({
       target: mapRef.current,
-      layers: [tileLayer, vectorLayer, closureLayer, markerLayer],
+      layers,
       overlays: [overlay],
-      view: new OlView(viewConfig),
+      view: new OlView({}),
     })
 
     const extent = vectorSource.getExtent()
@@ -276,7 +329,7 @@ export default memo(function TrackMap({
       closureLayerRef.current = null
       overlayRef.current = null
     }
-  }, [points, color, markerVisibleStyle])
+  }, [points, color, markerVisibleStyle, pmtilesUrl])
 
   // Find nearest track point within a pixel threshold of the pointer.
   const findNearest = useCallback((pixel: number[]) => {
@@ -448,6 +501,9 @@ export default memo(function TrackMap({
         className ?? "relative h-[400px] w-full rounded-lg border border-border"
       }
     >
+      {!pmtilesUrl && (
+        <div className="absolute inset-0 rounded-lg bg-[#f0ece4]" />
+      )}
       <div ref={mapRef} className="h-full w-full" />
       <div
         ref={tooltipRef}
@@ -475,17 +531,28 @@ export default memo(function TrackMap({
           </div>
         )}
       </div>
-      <div className="pointer-events-none absolute bottom-0 right-0 z-10 px-1.5 py-0.5 text-xs text-text-muted bg-panel/80">
-        Map data:&nbsp;
-        <a
-          href="https://www.swisstopo.admin.ch/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="pointer-events-auto hover:underline"
-        >
-          SwissTopo
-        </a>
-      </div>
+      {pmtilesUrl && (
+        <div className="pointer-events-none absolute bottom-0 right-0 z-10 px-1.5 py-0.5 text-xs text-text-muted bg-panel/80">
+          Map data:&nbsp;
+          <a
+            href="https://openstreetmap.org/copyright"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pointer-events-auto hover:underline"
+          >
+            OpenStreetMap contributors
+          </a>
+          ,&nbsp;
+          <a
+            href="https://protomaps.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pointer-events-auto hover:underline"
+          >
+            Protomaps
+          </a>
+        </div>
+      )}
     </div>
   )
 })

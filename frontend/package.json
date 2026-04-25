@@ -17,6 +17,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@swissgeo/coordinates": "1.0.2",
     "@tanstack/react-query": "^5.90.21",
+    "ol-pmtiles": "^2.0.2",
     "openapi-fetch": "^0.17.0",
     "openapi-react-query": "^0.5.4",
     "proj4": "^2.20.2",

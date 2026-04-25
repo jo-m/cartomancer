@@ -61,6 +61,17 @@ export default function Track() {
 
   const closures = closuresData?.closures as RoadClosure[] | undefined
 
+  const { data: mapsData } = $api.useQuery("get", "/maps")
+
+  // Select the highest-zoom ready map build (regional extract preferred over world overview).
+  const pmtilesUrl = (() => {
+    if (!mapsData || mapsData.length === 0) return undefined
+    const best = [...mapsData].sort(
+      (a, b) => (b.maxZoom ?? 0) - (a.maxZoom ?? 0)
+    )[0]
+    return `/api/maps/${best.uuid}`
+  })()
+
   const onForecastError = useCallback(
     (msg: string) => showToast(msg),
     [showToast]
@@ -246,6 +257,7 @@ export default function Track() {
               hoverStore={hoverStore}
               color={trackColor}
               closures={closures}
+              pmtilesUrl={pmtilesUrl}
             />
             <MapHoverOverlay
               hoverStore={hoverStore}
@@ -269,6 +281,7 @@ export default function Track() {
               color={trackColor}
               closures={closures}
               forecastTimes={forecast.forecastTimes}
+              pmtilesUrl={pmtilesUrl}
             />
           </div>
         ) : (
