@@ -48,6 +48,12 @@ export default function AdminForecasts() {
         >
           Forecasts
         </Link>
+        <Link
+          to="/admin/maps"
+          className="pb-0.5 text-sm font-medium text-text-muted hover:text-text-secondary transition-colors"
+        >
+          Maps
+        </Link>
       </div>
 
       <div className="mb-4">

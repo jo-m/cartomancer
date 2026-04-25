@@ -3,16 +3,22 @@ import OlMap from "ol/Map"
 import OlView from "ol/View"
 import Overlay from "ol/Overlay"
 import TileLayer from "ol/layer/Tile"
+import VectorTileLayer from "ol/layer/VectorTile"
 import VectorLayer from "ol/layer/Vector"
 import VectorSource from "ol/source/Vector"
 import WMTS from "ol/source/WMTS"
 import Feature from "ol/Feature"
 import GeoJSON from "ol/format/GeoJSON"
+import { fromLonLat } from "ol/proj"
+import { isEmpty as extentIsEmpty } from "ol/extent"
 import { LineString, Point } from "ol/geom"
-import { Circle, Fill, Icon, Stroke, Style } from "ol/style"
+import { Circle, Fill, Stroke, Style, Icon } from "ol/style"
 import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
 import { lv95, proj4 } from "../lib/proj"
+import { PMTilesVectorSource } from "ol-pmtiles"
 
+import type { MapLayer } from "../lib/mapLayer"
+import { createPmtilesStyleFn } from "../lib/pmtilesStyle"
 import type { HoverStore } from "../hooks/useHoverSync"
 
 import "ol/ol.css"
@@ -142,10 +148,17 @@ const closureStyleHover = [
   }),
 ]
 
-const geoJSONFormat = new GeoJSON({
-  dataProjection: "EPSG:4326",
-  featureProjection: "EPSG:2056",
-})
+/** Projects a WGS84 lon/lat point into the map projection for the given layer type. */
+function projectPoint(
+  lon: number,
+  lat: number,
+  layerType: MapLayer["type"]
+): number[] {
+  if (layerType === "swisstopo") {
+    return proj4("EPSG:4326", "EPSG:2056", [lon, lat])
+  }
+  return fromLonLat([lon, lat])
+}
 
 /** Props for the TrackMap component. */
 interface TrackMapProps {
@@ -159,15 +172,22 @@ interface TrackMapProps {
   className?: string
   /** Optional road closures to render on the map. */
   closures?: RoadClosure[]
+  /** Resolved tile layer to display as the map background. */
+  layer: MapLayer
 }
 
-/** Renders an interactive swisstopo map with the track line and hover marker. */
+/**
+ * Renders an interactive map with the track line and hover marker.
+ * Uses SwissTopo WMTS tiles for Swiss tracks or PMTiles vector tiles otherwise,
+ * as determined by the layer prop.
+ */
 export default memo(function TrackMap({
   points,
   hoverStore,
   color,
   className,
   closures,
+  layer,
 }: TrackMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
@@ -178,6 +198,18 @@ export default memo(function TrackMap({
   const closureLayerRef = useRef<VectorLayer | null>(null)
   const overlayRef = useRef<Overlay | null>(null)
   const [tooltip, setTooltip] = useState<RoadClosure | null>(null)
+  const [tileErrorUrl, setTileErrorUrl] = useState<string | null>(null)
+  const tileError = layer.type === "pmtiles" && tileErrorUrl === layer.url
+  const [darkMode, setDarkMode] = useState(
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches
+  )
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
+    const handler = (e: MediaQueryListEvent) => setDarkMode(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
 
   const markerVisibleStyle = useMemo(
     () =>
@@ -194,9 +226,7 @@ export default memo(function TrackMap({
   useEffect(() => {
     if (!mapRef.current || points.length === 0) return
 
-    const coords = points.map((p) =>
-      proj4("EPSG:4326", "EPSG:2056", [p.lon, p.lat])
-    )
+    const coords = points.map((p) => projectPoint(p.lon, p.lat, layer.type))
     coordsRef.current = coords
 
     const trackFeature = new Feature({
@@ -225,21 +255,36 @@ export default memo(function TrackMap({
     const mSource = new VectorSource({ features: [marker] })
     markerSource.current = mSource
 
-    const tileGrid = getLV95TileGrid()
-    const tileLayer = new TileLayer({
-      source: new WMTS({
-        url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/2056/{TileMatrix}/{TileCol}/{TileRow}.jpeg",
-        tileGrid,
-        projection: lv95,
-        requestEncoding: "REST",
-        layer: "ch.swisstopo.pixelkarte-farbe",
-        style: "default",
-        matrixSet: "2056",
-      }),
-    })
+    const mapLayers = []
 
-    const vectorLayer = new VectorLayer({ source: vectorSource })
-    const markerLayer = new VectorLayer({ source: mSource })
+    if (layer.type === "swisstopo") {
+      const tileGrid = getLV95TileGrid()
+      mapLayers.push(
+        new TileLayer({
+          source: new WMTS({
+            url: "https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/2056/{TileMatrix}/{TileCol}/{TileRow}.jpeg",
+            tileGrid,
+            projection: lv95,
+            requestEncoding: "REST",
+            layer: "ch.swisstopo.pixelkarte-farbe",
+            style: "default",
+            matrixSet: "2056",
+          }),
+        })
+      )
+    } else if (layer.type === "pmtiles") {
+      const pmtilesSource = new PMTilesVectorSource({ url: layer.url })
+      pmtilesSource.on("error", (event) => {
+        console.error("PMTiles source error:", event)
+        setTileErrorUrl(layer.url)
+      })
+      mapLayers.push(
+        new VectorTileLayer({
+          source: pmtilesSource,
+          style: createPmtilesStyleFn(darkMode),
+        })
+      )
+    }
 
     const closureSource = new VectorSource()
     const closureLayer = new VectorLayer({ source: closureSource })
@@ -253,16 +298,26 @@ export default memo(function TrackMap({
     })
     overlayRef.current = overlay
 
-    const viewConfig = getLV95ViewConfig()
+    mapLayers.push(
+      new VectorLayer({ source: vectorSource }),
+      closureLayer,
+      new VectorLayer({ source: mSource })
+    )
+
+    const view =
+      layer.type === "swisstopo"
+        ? new OlView(getLV95ViewConfig())
+        : new OlView({})
+
     const map = new OlMap({
       target: mapRef.current,
-      layers: [tileLayer, vectorLayer, closureLayer, markerLayer],
+      layers: mapLayers,
       overlays: [overlay],
-      view: new OlView(viewConfig),
+      view,
     })
 
     const extent = vectorSource.getExtent()
-    if (extent && extent[0] !== Infinity) {
+    if (extent && !extentIsEmpty(extent)) {
       map.getView().fit(extent, { padding: [40, 40, 40, 40], maxZoom: 16 })
     }
 
@@ -276,7 +331,7 @@ export default memo(function TrackMap({
       closureLayerRef.current = null
       overlayRef.current = null
     }
-  }, [points, color, markerVisibleStyle])
+  }, [points, color, markerVisibleStyle, layer, darkMode])
 
   // Find nearest track point within a pixel threshold of the pointer.
   const findNearest = useCallback((pixel: number[]) => {
@@ -338,7 +393,8 @@ export default memo(function TrackMap({
       const coords = coordsRef.current
       const idx = hoverStore.get()
       if (idx != null && idx >= 0 && idx < coords.length) {
-        const geom = marker.getGeometry() as Point
+        const geom = marker.getGeometry()
+        if (!(geom instanceof Point)) return
         geom.setCoordinates(coords[idx])
         marker.setStyle(markerVisibleStyle)
       } else {
@@ -349,25 +405,29 @@ export default memo(function TrackMap({
 
   // Render road closure geometries on the map.
   useEffect(() => {
-    const layer = closureLayerRef.current
-    if (!layer) return
-    const source = layer.getSource()!
+    const closureLayer = closureLayerRef.current
+    if (!closureLayer) return
+    const source = closureLayer.getSource()!
     source.clear()
 
     if (!closures || closures.length === 0) return
 
+    const fmt = new GeoJSON({
+      dataProjection: "EPSG:4326",
+      featureProjection: layer.type === "swisstopo" ? "EPSG:2056" : "EPSG:3857",
+    })
     for (const c of closures) {
       try {
-        const geom = geoJSONFormat.readGeometry(JSON.parse(c.geometry))
+        const geom = fmt.readGeometry(JSON.parse(c.geometry))
         const feature = new Feature({ geometry: geom })
         feature.set("closure", c, true)
         feature.setStyle(c.type === "detour" ? detourStyle : closureStyle)
         source.addFeature(feature)
-      } catch {
-        // Skip closures with unparseable geometry.
+      } catch (err) {
+        console.error(`Failed to parse closure geometry (${c.uuid}):`, err)
       }
     }
-  }, [closures])
+  }, [closures, layer])
 
   // Closure hover: show tooltip and highlight on pointer move over closure features.
   useEffect(() => {
@@ -442,13 +502,29 @@ export default memo(function TrackMap({
     }
   }, [closures])
 
+  const isNone = layer.type === "none"
+  const isSwiss = layer.type === "swisstopo"
+
   return (
     <div
       className={
         className ?? "relative h-[400px] w-full rounded-lg border border-border"
       }
     >
+      {isNone && (
+        <div
+          className="absolute inset-0 rounded-lg"
+          style={{ background: darkMode ? "#24201a" : "#f0ece4" }}
+        />
+      )}
       <div ref={mapRef} className="h-full w-full" />
+      {tileError && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="rounded bg-panel/90 px-3 py-1.5 text-sm text-error ring-1 ring-border">
+            Map tiles unavailable
+          </span>
+        </div>
+      )}
       <div
         ref={tooltipRef}
         className={tooltip ? "pointer-events-none" : "hidden"}
@@ -476,15 +552,40 @@ export default memo(function TrackMap({
         )}
       </div>
       <div className="pointer-events-none absolute bottom-0 right-0 z-10 px-1.5 py-0.5 text-xs text-text-muted bg-panel/80">
-        Map data:&nbsp;
-        <a
-          href="https://www.swisstopo.admin.ch/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="pointer-events-auto hover:underline"
-        >
-          SwissTopo
-        </a>
+        {isSwiss ? (
+          <>
+            Map data:&nbsp;
+            <a
+              href="https://www.swisstopo.admin.ch/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pointer-events-auto hover:underline"
+            >
+              SwissTopo
+            </a>
+          </>
+        ) : !isNone ? (
+          <>
+            Map data:&nbsp;
+            <a
+              href="https://openstreetmap.org/copyright"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pointer-events-auto hover:underline"
+            >
+              OpenStreetMap contributors
+            </a>
+            ,&nbsp;
+            <a
+              href="https://maps.protomaps.com/builds/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pointer-events-auto hover:underline"
+            >
+              Protomaps
+            </a>
+          </>
+        ) : null}
       </div>
     </div>
   )

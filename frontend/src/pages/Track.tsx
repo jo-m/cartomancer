@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { useParams } from "react-router-dom"
@@ -24,6 +24,7 @@ import { useForecast } from "../hooks/useForecast"
 import useDocumentTitle from "../hooks/useDocumentTitle"
 import PageContainer from "../components/ui/PageContainer"
 import Alert from "../components/ui/Alert"
+import { selectMapLayer } from "../lib/mapLayer"
 
 export default function Track() {
   const { uuid } = useParams<{ uuid: string }>()
@@ -60,6 +61,22 @@ export default function Track() {
   )
 
   const closures = closuresData?.closures as RoadClosure[] | undefined
+
+  const { data: mapsData } = $api.useQuery("get", "/maps")
+
+  const mapLayer = useMemo(() => {
+    const b = data?.bounds
+    if (!b) return { type: "none" as const }
+    return selectMapLayer(
+      {
+        minLat: b.min.lat,
+        maxLat: b.max.lat,
+        minLon: b.min.lon,
+        maxLon: b.max.lon,
+      },
+      mapsData ?? []
+    )
+  }, [data?.bounds, mapsData])
 
   const onForecastError = useCallback(
     (msg: string) => showToast(msg),
@@ -246,6 +263,7 @@ export default function Track() {
               hoverStore={hoverStore}
               color={trackColor}
               closures={closures}
+              layer={mapLayer}
             />
             <MapHoverOverlay
               hoverStore={hoverStore}
@@ -269,6 +287,7 @@ export default function Track() {
               color={trackColor}
               closures={closures}
               forecastTimes={forecast.forecastTimes}
+              layer={mapLayer}
             />
           </div>
         ) : (

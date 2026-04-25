@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import OlMap from "ol/Map"
 import OlView from "ol/View"
 import TileLayer from "ol/layer/Tile"
@@ -6,6 +6,7 @@ import VectorLayer from "ol/layer/Vector"
 import VectorSource from "ol/source/Vector"
 import WMTS from "ol/source/WMTS"
 import Feature from "ol/Feature"
+import { isEmpty as extentIsEmpty } from "ol/extent"
 import { LineString, Point } from "ol/geom"
 import { Circle, Fill, Stroke, Style } from "ol/style"
 import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
@@ -35,7 +36,7 @@ const endStyle = new Style({
 })
 
 interface SegmentMapProps {
-  /** JSON-encoded array of [lat, lon] pairs. */
+  /** JSON-encoded array of [lat, lon] pairs (latitude first, as sent by the API). */
   polyline: string
 }
 
@@ -43,20 +44,20 @@ interface SegmentMapProps {
 export default function SegmentMap({ polyline }: SegmentMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!mapRef.current) return
-
-    let coords: number[][]
+  const coords = useMemo<number[][] | null>(() => {
     try {
       const points: [number, number][] = JSON.parse(polyline)
-      coords = points.map(([lat, lon]) =>
+      const result = points.map(([lat, lon]) =>
         proj4("EPSG:4326", "EPSG:2056", [lon, lat])
       )
+      return result.length >= 2 ? result : null
     } catch {
-      return
+      return null
     }
+  }, [polyline])
 
-    if (coords.length < 2) return
+  useEffect(() => {
+    if (!mapRef.current || !coords) return
 
     const trackFeature = new Feature({ geometry: new LineString(coords) })
     trackFeature.setStyle(lineStyle)
@@ -95,14 +96,22 @@ export default function SegmentMap({ polyline }: SegmentMapProps) {
     })
 
     const extent = vectorSource.getExtent()
-    if (extent && extent[0] !== Infinity) {
+    if (extent && !extentIsEmpty(extent)) {
       map.getView().fit(extent, { padding: [40, 40, 40, 40], maxZoom: 16 })
     }
 
     return () => {
       map.setTarget(undefined)
     }
-  }, [polyline])
+  }, [coords])
+
+  if (!coords) {
+    return (
+      <div className="flex h-80 w-full items-center justify-center rounded-lg border border-border bg-panel text-sm text-text-muted">
+        Map unavailable
+      </div>
+    )
+  }
 
   return (
     <div ref={mapRef} className="h-80 w-full rounded-lg border border-border" />

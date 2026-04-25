@@ -10,6 +10,7 @@ import TrackMap from "./TrackMap"
 import type { RoadClosure } from "./TrackMap"
 import { useHoverStore } from "../hooks/useHoverSync"
 import MapHoverOverlay from "./MapHoverOverlay"
+import type { MapLayer } from "../lib/mapLayer"
 
 export interface FullscreenMapDialogProps {
   open: boolean
@@ -19,6 +20,7 @@ export interface FullscreenMapDialogProps {
   color: string
   closures?: RoadClosure[]
   forecastTimes?: number[]
+  layer: MapLayer
 }
 
 /** Fullscreen map dialog with transition animations. */
@@ -30,6 +32,7 @@ export default function FullscreenMapDialog({
   color,
   closures,
   forecastTimes,
+  layer,
 }: FullscreenMapDialogProps) {
   return (
     <Transition show={open} as={Fragment}>
@@ -70,6 +73,7 @@ export default function FullscreenMapDialog({
                 color={color}
                 className="h-full w-full"
                 closures={closures}
+                layer={layer}
               />
               <MapHoverOverlay
                 hoverStore={hoverStore}

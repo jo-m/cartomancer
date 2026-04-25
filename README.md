@@ -16,7 +16,8 @@ This one tries to be.
 - Live weather forecasts and road closures (Switzerland only), reverse geocoding.
 - Filtering, search, tagging, mark favorites.
 - Map view: [SwissTopo](https://map.geo.admin.ch/).
-- Except for map, does not need any live APIs. Instead, will download data in the background and query that locally (meteo and geo names).
+  - Fallback to self-hosted [pmtiles/protomaps](https://docs.protomaps.com/) in areas not covered.
+- Does not use any 3rd party live APIs. Instead, will download data in the background and query that locally (meteo and geo names).
 - Easy to self host, single binary, SQLite only.
 
 ## Deployment (Docker)

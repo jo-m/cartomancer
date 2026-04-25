@@ -23,6 +23,7 @@ import Segments from "./pages/Segments"
 import SegmentDetail from "./pages/SegmentDetail"
 import AdminUsers from "./pages/AdminUsers"
 import AdminForecasts from "./pages/AdminForecasts"
+import AdminMaps from "./pages/AdminMaps"
 import About from "./pages/About"
 import Help from "./pages/Help"
 import Leaving from "./pages/Leaving"
@@ -146,6 +147,14 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminForecasts />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/maps"
+                element={
+                  <AdminRoute>
+                    <AdminMaps />
                   </AdminRoute>
                 }
               />
