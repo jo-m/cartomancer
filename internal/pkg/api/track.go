@@ -759,7 +759,11 @@ func parseInt64Slice(q map[string][]string, key string) ([]int64, error) {
 	return result, nil
 }
 
-func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
+// parseListTracksParams parses the shared track-listing query string used by
+// both [server.handleListTracks] and [server.handleListTrackPolylines]. On
+// validation failure it returns a non-nil error whose message is safe to
+// surface as an HTTP 400 body.
+func parseListTracksParams(r *http.Request) (db.ListTracksParams, error) {
 	ctx := r.Context()
 	user := session.GetUser(ctx)
 
@@ -772,207 +776,160 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		params.ViewerUserID = user.Uuid
 	}
 
-	// onlyMine restricts results to tracks owned by the authenticated user.
 	if v := q.Get("onlyMine"); v != "" {
 		b, err := strconv.ParseBool(v)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid value for 'onlyMine'")
-			return
+			return params, fmt.Errorf("invalid value for 'onlyMine'")
 		}
 		if b && user != nil {
 			params.OnlyOwnedByUser = true
 		}
 	}
 
-	// onlyStarred restricts results to tracks starred by the authenticated user.
 	if v := q.Get("onlyStarred"); v != "" {
 		b, err := strconv.ParseBool(v)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid value for 'onlyStarred'")
-			return
+			return params, fmt.Errorf("invalid value for 'onlyStarred'")
 		}
 		if b && user != nil {
 			params.OnlyStarred = true
 		}
 	}
 
-	// Pagination.
 	if v := q.Get("page"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 1 {
-			writeError(w, http.StatusBadRequest, "invalid value for 'page'")
-			return
+			return params, fmt.Errorf("invalid value for 'page'")
 		}
 		params.Page = n
 	}
 	if v := q.Get("pageSize"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 1 || n > 200 {
-			writeError(w, http.StatusBadRequest, "invalid value for 'pageSize': must be 1-200")
-			return
+			return params, fmt.Errorf("invalid value for 'pageSize': must be 1-200")
 		}
 		params.PageSize = n
 	}
 
-	// Public filter.
 	if v := q.Get("public"); v != "" {
 		b, err := strconv.ParseBool(v)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid value for 'public'")
-			return
+			return params, fmt.Errorf("invalid value for 'public'")
 		}
 		params.Public = &b
 	}
 
-	// Enum multi-value filters.
 	var err error
 	if params.FileFormats, err = parseInt64Slice(qmap, "fileFormat"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.TrackTypes, err = parseInt64Slice(qmap, "trackType"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.Sports, err = parseInt64Slice(qmap, "sport"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.SubSports, err = parseInt64Slice(qmap, "subSport"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 
-	// Tag filters.
 	if tags := qmap["tag"]; len(tags) > 0 {
 		params.Tags = tags
 	}
 	if v := q.Get("tagsAnd"); v != "" {
 		b, err := strconv.ParseBool(v)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid value for 'tagsAnd'")
-			return
+			return params, fmt.Errorf("invalid value for 'tagsAnd'")
 		}
 		params.TagsAnd = b
 	}
 
-	// Text filters.
 	params.Name = parseOptionalString(qmap, "name")
 	params.Description = parseOptionalString(qmap, "description")
 	params.Source = parseOptionalString(qmap, "source")
 
-	// Datetime range filters.
 	if params.CreatedAtMin, err = parseOptionalTime(qmap, "createdAtMin"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.CreatedAtMax, err = parseOptionalTime(qmap, "createdAtMax"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.UpdatedAtMin, err = parseOptionalTime(qmap, "updatedAtMin"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.UpdatedAtMax, err = parseOptionalTime(qmap, "updatedAtMax"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.OriginalCreatedAtMin, err = parseOptionalTime(qmap, "originalCreatedAtMin"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.OriginalCreatedAtMax, err = parseOptionalTime(qmap, "originalCreatedAtMax"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 
-	// Numeric range filters.
 	if params.TotalDistanceMMin, err = parseOptionalFloat64(qmap, "totalDistanceMMin"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.TotalDistanceMMax, err = parseOptionalFloat64(qmap, "totalDistanceMMax"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.TotalAscentMMin, err = parseOptionalFloat64(qmap, "totalAscentMMin"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.TotalAscentMMax, err = parseOptionalFloat64(qmap, "totalAscentMMax"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 
-	// Coordinate bounding box filters.
 	if params.StartLatMin, err = parseOptionalFloat64(qmap, "startLatMin"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.StartLatMax, err = parseOptionalFloat64(qmap, "startLatMax"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.StartLonMin, err = parseOptionalFloat64(qmap, "startLonMin"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.StartLonMax, err = parseOptionalFloat64(qmap, "startLonMax"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.EndLatMin, err = parseOptionalFloat64(qmap, "endLatMin"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.EndLatMax, err = parseOptionalFloat64(qmap, "endLatMax"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.EndLonMin, err = parseOptionalFloat64(qmap, "endLonMin"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.EndLonMax, err = parseOptionalFloat64(qmap, "endLonMax"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 
-	// Radial filters.
 	if params.StartNearLat, err = parseOptionalFloat64(qmap, "startNearLat"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.StartNearLon, err = parseOptionalFloat64(qmap, "startNearLon"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.StartNearRadiusM, err = parseOptionalFloat64(qmap, "startNearRadiusM"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.EndNearLat, err = parseOptionalFloat64(qmap, "endNearLat"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.EndNearLon, err = parseOptionalFloat64(qmap, "endNearLon"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 	if params.EndNearRadiusM, err = parseOptionalFloat64(qmap, "endNearRadiusM"); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
+		return params, err
 	}
 
-	// Sort parameters.
 	if v := q.Get("sortBy"); v != "" {
 		switch v {
 		case "created_at", "total_distance_m", "total_ascent_m":
 			params.SortBy = v
 		default:
-			writeError(w, http.StatusBadRequest, "invalid value for 'sortBy': must be one of created_at, total_distance_m, total_ascent_m")
-			return
+			return params, fmt.Errorf("invalid value for 'sortBy': must be one of created_at, total_distance_m, total_ascent_m")
 		}
 	}
 	if v := q.Get("sortOrder"); v != "" {
@@ -980,20 +937,29 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		case "asc", "desc":
 			params.SortOrder = v
 		default:
-			writeError(w, http.StatusBadRequest, "invalid value for 'sortOrder': must be asc or desc")
-			return
+			return params, fmt.Errorf("invalid value for 'sortOrder': must be asc or desc")
 		}
 	}
 
-	// Validate radial filters: all three or none.
 	startNearCount := boolToInt(params.StartNearLat != nil) + boolToInt(params.StartNearLon != nil) + boolToInt(params.StartNearRadiusM != nil)
 	if startNearCount > 0 && startNearCount < 3 {
-		writeError(w, http.StatusBadRequest, "startNearLat, startNearLon, and startNearRadiusM must all be provided together")
-		return
+		return params, fmt.Errorf("startNearLat, startNearLon, and startNearRadiusM must all be provided together")
 	}
 	endNearCount := boolToInt(params.EndNearLat != nil) + boolToInt(params.EndNearLon != nil) + boolToInt(params.EndNearRadiusM != nil)
 	if endNearCount > 0 && endNearCount < 3 {
-		writeError(w, http.StatusBadRequest, "endNearLat, endNearLon, and endNearRadiusM must all be provided together")
+		return params, fmt.Errorf("endNearLat, endNearLon, and endNearRadiusM must all be provided together")
+	}
+
+	return params, nil
+}
+
+func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+
+	params, err := parseListTracksParams(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -1022,6 +988,135 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 		TotalCount: result.TotalCount,
 		Page:       params.Page,
 		PageSize:   params.PageSize,
+	})
+}
+
+// trackPolylineEntry is one row in the response from
+// [server.handleListTrackPolylines5M] / [server.handleListTrackPolylines50M].
+// The shape is intentionally lean to keep the bulk-listing payload small.
+type trackPolylineEntry struct {
+	UUID           string        `json:"uuid"`
+	Name           string        `json:"name"`
+	UserID         string        `json:"userId"`
+	UserName       string        `json:"userName"`
+	TotalDistanceM float64       `json:"totalDistanceM"`
+	TotalAscentM   float64       `json:"totalAscentM"`
+	Bounds         *bboxResponse `json:"bounds,omitempty"`
+	// Polyline is the simplified track as an array of [lat, lon] pairs in
+	// WGS84 degrees, decoded from the stored varint-encoded blob.
+	Polyline [][2]float64           `json:"polyline"`
+	Starred  bool                   `json:"starred"`
+	Forecast *trackForecastResponse `json:"forecast,omitempty"`
+}
+
+type listTrackPolylinesResponse struct {
+	Tracks       []trackPolylineEntry `json:"tracks"`
+	TotalCount   int                  `json:"totalCount"`
+	PendingCount int                  `json:"pendingCount"`
+	Limit        int                  `json:"limit"`
+}
+
+// trackPolylinesLimit caps how many polylines a single response carries. Tracks
+// in excess of this are reported via PendingCount/TotalCount so the client can
+// surface a banner.
+const trackPolylinesLimit = 250
+
+// handleListTrackPolylines5M returns 5 m simplified preview polylines.
+func (sv *server) handleListTrackPolylines5M(w http.ResponseWriter, r *http.Request) {
+	sv.handleListTrackPolylines(w, r, db.PreviewPolyline5M, "5m")
+}
+
+// handleListTrackPolylines50M returns 50 m simplified preview polylines.
+func (sv *server) handleListTrackPolylines50M(w http.ResponseWriter, r *http.Request) {
+	sv.handleListTrackPolylines(w, r, db.PreviewPolyline50M, "50m")
+}
+
+// handleListTrackPolylines returns the simplified preview polylines for all
+// tracks matching the same query string accepted by [server.handleListTracks].
+// Pagination on the input is ignored; instead the server returns up to
+// [trackPolylinesLimit] tracks. Strong ETag based on the most recent
+// updated_at and the result counts allows the browser to skip the body on
+// repeated requests. The varint blob stored in the DB is decoded server-side
+// so the response is plain JSON arrays of [lat, lon] pairs.
+//
+// kindLabel is mixed into the ETag so the 5 m and 50 m variants do not
+// alias even when their underlying counts and updated_at coincide.
+func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Request, kind db.PreviewPolylineKind, kindLabel string) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+
+	params, err := parseListTracksParams(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	result, err := sv.d.ListTracksWithPolylines(ctx, params, kind, trackPolylinesLimit)
+	if err != nil {
+		logg.Error(ctx, "failed to list track polylines", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	var viewerID string
+	if user != nil {
+		viewerID = user.Uuid
+	}
+	eTag := fmt.Sprintf(`"%d-%d-%d-%s-%s-v2"`,
+		result.MaxUpdatedAt.UnixMilli(),
+		result.TotalCount,
+		result.PendingCount,
+		viewerID,
+		kindLabel,
+	)
+	if r.Header.Get(headerIfNoneMatch) == eTag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
+	entries := make([]trackPolylineEntry, len(result.Tracks))
+	for i, t := range result.Tracks {
+		pts, decErr := track.DecodeVarint(t.PolylineVarint)
+		if decErr != nil {
+			logg.Error(ctx, "decode preview polyline", "trackId", t.UUID, "err", decErr)
+			pts = nil
+		}
+		latlon := make([][2]float64, len(pts))
+		for j, p := range pts {
+			latlon[j] = [2]float64{p.Lat, p.Lon}
+		}
+		entries[i] = trackPolylineEntry{
+			UUID:           t.UUID,
+			Name:           t.Name,
+			UserID:         t.UserID,
+			UserName:       t.UserName,
+			TotalDistanceM: t.TotalDistanceM,
+			TotalAscentM:   t.TotalAscentM,
+			Bounds:         nullBBox(t.BoundsMinLat, t.BoundsMinLon, t.BoundsMaxLat, t.BoundsMaxLon),
+			Polyline:       latlon,
+			Starred:        t.Starred,
+		}
+		if t.Forecast.HasData() {
+			entries[i].Forecast = &trackForecastResponse{
+				ForecastReferenceTime: t.Forecast.ForecastReferenceTime.Time.Format(time.RFC3339),
+				StartTime:             t.Forecast.StartTime.Time.Format(time.RFC3339),
+				AvgTemperatureC:       nullFloat64Ptr(t.Forecast.AvgTemperatureC),
+				TotalPrecipitationMm:  nullFloat64Ptr(t.Forecast.TotalPrecipitationMm),
+				WindHeadMs:            nullFloat64Ptr(t.Forecast.WindHeadMs),
+				WindRightMs:           nullFloat64Ptr(t.Forecast.WindRightMs),
+				WindTailMs:            nullFloat64Ptr(t.Forecast.WindTailMs),
+				WindLeftMs:            nullFloat64Ptr(t.Forecast.WindLeftMs),
+			}
+		}
+	}
+
+	w.Header().Set(headerCacheControl, "private, max-age=60")
+	w.Header().Set(headerETag, eTag)
+	writeJSON(w, http.StatusOK, listTrackPolylinesResponse{
+		Tracks:       entries,
+		TotalCount:   result.TotalCount,
+		PendingCount: result.PendingCount,
+		Limit:        trackPolylinesLimit,
 	})
 }
 

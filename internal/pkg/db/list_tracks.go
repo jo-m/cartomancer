@@ -295,53 +295,11 @@ func lonDeltaDeg(radiusM, lat float64) float64 {
 	return radiusM / (metersPerDegreeLat * math.Abs(cosLat))
 }
 
-// ListTracks returns a paginated list of tracks matching the given filters.
-// Each returned track includes an Starred field indicating whether ViewerUserID
-// has starred it (always false when ViewerUserID is empty).
-func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResult, error) {
-	if p.Page < 1 {
-		p.Page = 1
-	}
-	if p.PageSize < 1 {
-		p.PageSize = 25
-	}
-	if p.PageSize > ListTracksMaxPageSize {
-		p.PageSize = ListTracksMaxPageSize
-	}
-
-	// Validate and default sort parameters.
-	allowedSortCols := map[string]string{
-		"created_at":       "tracks.created_at",
-		"total_distance_m": "tracks.total_distance_m",
-		"total_ascent_m":   "tracks.total_ascent_m",
-	}
-	sortCol, ok := allowedSortCols[p.SortBy]
-	if !ok {
-		sortCol = "tracks.created_at"
-	}
-	sortDir := "DESC"
-	if p.SortOrder == "asc" {
-		sortDir = "ASC"
-	}
-
-	// Convert radial filters to bounding boxes.
-	if p.StartNearLat != nil && p.StartNearLon != nil && p.StartNearRadiusM != nil {
-		dLat := latDeltaDeg(*p.StartNearRadiusM)
-		dLon := lonDeltaDeg(*p.StartNearRadiusM, *p.StartNearLat)
-		p.StartLatMin = utl.Ptr(*p.StartNearLat - dLat)
-		p.StartLatMax = utl.Ptr(*p.StartNearLat + dLat)
-		p.StartLonMin = utl.Ptr(*p.StartNearLon - dLon)
-		p.StartLonMax = utl.Ptr(*p.StartNearLon + dLon)
-	}
-	if p.EndNearLat != nil && p.EndNearLon != nil && p.EndNearRadiusM != nil {
-		dLat := latDeltaDeg(*p.EndNearRadiusM)
-		dLon := lonDeltaDeg(*p.EndNearRadiusM, *p.EndNearLat)
-		p.EndLatMin = utl.Ptr(*p.EndNearLat - dLat)
-		p.EndLatMax = utl.Ptr(*p.EndNearLat + dLat)
-		p.EndLonMin = utl.Ptr(*p.EndNearLon - dLon)
-		p.EndLonMax = utl.Ptr(*p.EndNearLon + dLon)
-	}
-
+// buildTrackPredicate translates the filter portion of p (everything except
+// pagination, sorting and the viewer-id-based JOIN) into a [queryBuilder].
+// Both [DB.ListTracks] and [DB.ListTracksWithPolylines] share this so their
+// WHERE clauses stay in lockstep.
+func buildTrackPredicate(p ListTracksParams) queryBuilder {
 	var b queryBuilder
 
 	// Visibility filter.
@@ -452,6 +410,57 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 		b.add("tracks.end_lon <= ?", *p.EndLonMax)
 	}
 
+	return b
+}
+
+// ListTracks returns a paginated list of tracks matching the given filters.
+// Each returned track includes an Starred field indicating whether ViewerUserID
+// has starred it (always false when ViewerUserID is empty).
+func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResult, error) {
+	if p.Page < 1 {
+		p.Page = 1
+	}
+	if p.PageSize < 1 {
+		p.PageSize = 25
+	}
+	if p.PageSize > ListTracksMaxPageSize {
+		p.PageSize = ListTracksMaxPageSize
+	}
+
+	// Validate and default sort parameters.
+	allowedSortCols := map[string]string{
+		"created_at":       "tracks.created_at",
+		"total_distance_m": "tracks.total_distance_m",
+		"total_ascent_m":   "tracks.total_ascent_m",
+	}
+	sortCol, ok := allowedSortCols[p.SortBy]
+	if !ok {
+		sortCol = "tracks.created_at"
+	}
+	sortDir := "DESC"
+	if p.SortOrder == "asc" {
+		sortDir = "ASC"
+	}
+
+	// Convert radial filters to bounding boxes.
+	if p.StartNearLat != nil && p.StartNearLon != nil && p.StartNearRadiusM != nil {
+		dLat := latDeltaDeg(*p.StartNearRadiusM)
+		dLon := lonDeltaDeg(*p.StartNearRadiusM, *p.StartNearLat)
+		p.StartLatMin = utl.Ptr(*p.StartNearLat - dLat)
+		p.StartLatMax = utl.Ptr(*p.StartNearLat + dLat)
+		p.StartLonMin = utl.Ptr(*p.StartNearLon - dLon)
+		p.StartLonMax = utl.Ptr(*p.StartNearLon + dLon)
+	}
+	if p.EndNearLat != nil && p.EndNearLon != nil && p.EndNearRadiusM != nil {
+		dLat := latDeltaDeg(*p.EndNearRadiusM)
+		dLon := lonDeltaDeg(*p.EndNearRadiusM, *p.EndNearLat)
+		p.EndLatMin = utl.Ptr(*p.EndNearLat - dLat)
+		p.EndLatMax = utl.Ptr(*p.EndNearLat + dLat)
+		p.EndLonMin = utl.Ptr(*p.EndNearLon - dLon)
+		p.EndLonMax = utl.Ptr(*p.EndNearLon + dLon)
+	}
+
+	b := buildTrackPredicate(p)
 	where := b.whereClause()
 	// The JOINs fetch owner info, starred status for the viewer, geoname label,
 	// and the forecast summary (only included when start_time is still in the future).
