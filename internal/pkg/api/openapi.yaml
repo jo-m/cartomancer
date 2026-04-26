@@ -3530,6 +3530,8 @@ components:
               format: double
         starred:
           type: boolean
+        forecast:
+          $ref: "#/components/schemas/TrackForecastSummary"
 
     ListTrackPolylinesResponse:
       type: object

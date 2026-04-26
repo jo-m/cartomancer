@@ -1004,8 +1004,9 @@ type trackPolylineEntry struct {
 	Bounds         *bboxResponse `json:"bounds,omitempty"`
 	// Polyline is the simplified track as an array of [lat, lon] pairs in
 	// WGS84 degrees, decoded from the stored varint-encoded blob.
-	Polyline [][2]float64 `json:"polyline"`
-	Starred  bool         `json:"starred"`
+	Polyline [][2]float64           `json:"polyline"`
+	Starred  bool                   `json:"starred"`
+	Forecast *trackForecastResponse `json:"forecast,omitempty"`
 }
 
 type listTrackPolylinesResponse struct {
@@ -1094,6 +1095,18 @@ func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Reques
 			Bounds:         nullBBox(t.BoundsMinLat, t.BoundsMinLon, t.BoundsMaxLat, t.BoundsMaxLon),
 			Polyline:       latlon,
 			Starred:        t.Starred,
+		}
+		if t.Forecast.HasData() {
+			entries[i].Forecast = &trackForecastResponse{
+				ForecastReferenceTime: t.Forecast.ForecastReferenceTime.Time.Format(time.RFC3339),
+				StartTime:             t.Forecast.StartTime.Time.Format(time.RFC3339),
+				AvgTemperatureC:       nullFloat64Ptr(t.Forecast.AvgTemperatureC),
+				TotalPrecipitationMm:  nullFloat64Ptr(t.Forecast.TotalPrecipitationMm),
+				WindHeadMs:            nullFloat64Ptr(t.Forecast.WindHeadMs),
+				WindRightMs:           nullFloat64Ptr(t.Forecast.WindRightMs),
+				WindTailMs:            nullFloat64Ptr(t.Forecast.WindTailMs),
+				WindLeftMs:            nullFloat64Ptr(t.Forecast.WindLeftMs),
+			}
 		}
 	}
 

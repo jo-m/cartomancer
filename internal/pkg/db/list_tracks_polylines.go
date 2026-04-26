@@ -55,6 +55,10 @@ type TrackPolyline struct {
 	PolylineVarint []byte
 	Starred        bool
 	UpdatedAt      time.Time
+	// Forecast holds the pre-computed weather forecast summary for the
+	// track, only populated when the assumed journey start time is still in
+	// the future.
+	Forecast TrackForecastSummary
 }
 
 // ListTracksWithPolylinesResult holds a page of tracks-with-polylines and
@@ -123,9 +127,12 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, ki
 
 	joins := " JOIN users ON users.uuid = tracks.user_id" +
 		" LEFT JOIN track_stars ts ON ts.track_id = tracks.uuid AND ts.user_id = ?" +
-		" LEFT JOIN track_geonames tg ON tg.track_id = tracks.uuid"
+		" LEFT JOIN track_geonames tg ON tg.track_id = tracks.uuid" +
+		" LEFT JOIN track_forecasts tf ON tf.track_uuid = tracks.uuid AND datetime(tf.start_time) > datetime(?)"
 
-	baseArgs := append([]any{p.ViewerUserID}, b.args...)
+	now := time.Now()
+
+	baseArgs := append([]any{p.ViewerUserID, now}, b.args...)
 
 	// Total count over the entire matched set (including not-yet-backfilled).
 	var total int
@@ -171,7 +178,9 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, ki
 			"tracks.bounds_min_lat, tracks.bounds_min_lon, tracks.bounds_max_lat, tracks.bounds_max_lon, "+
 			"tracks.%s, "+
 			"CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred, "+
-			"tracks.updated_at "+
+			"tracks.updated_at, "+
+			"tf.forecast_reference_time, tf.start_time, tf.avg_temperature_c, tf.total_precipitation_mm, "+
+			"tf.wind_head_ms, tf.wind_right_ms, tf.wind_tail_ms, tf.wind_left_ms "+
 			"FROM tracks%s%s ORDER BY %s %s LIMIT ?",
 		col, joins, dataWhere, sortCol, sortDir,
 	)
@@ -201,6 +210,14 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, ki
 			&tp.PolylineVarint,
 			&starred,
 			&tp.UpdatedAt,
+			&tp.Forecast.ForecastReferenceTime,
+			&tp.Forecast.StartTime,
+			&tp.Forecast.AvgTemperatureC,
+			&tp.Forecast.TotalPrecipitationMm,
+			&tp.Forecast.WindHeadMs,
+			&tp.Forecast.WindRightMs,
+			&tp.Forecast.WindTailMs,
+			&tp.Forecast.WindLeftMs,
 		); err != nil {
 			return ListTracksWithPolylinesResult{}, fmt.Errorf("scan track polyline: %w", err)
 		}

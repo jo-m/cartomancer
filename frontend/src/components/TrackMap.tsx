@@ -19,6 +19,7 @@ import { PMTilesVectorSource } from "ol-pmtiles"
 import type { MapLayer } from "../lib/mapLayer"
 import { createPmtilesStyleFn } from "../lib/pmtilesStyle"
 import type { HoverStore } from "../hooks/useHoverSync"
+import MapAttribution from "./MapAttribution"
 
 import "ol/ol.css"
 
@@ -490,7 +491,6 @@ export default memo(function TrackMap({
   }, [closures])
 
   const isNone = layer.type === "none"
-  const isSwiss = layer.type === "swisstopo"
 
   return (
     <div
@@ -538,42 +538,7 @@ export default memo(function TrackMap({
           </div>
         )}
       </div>
-      <div className="pointer-events-none absolute bottom-0 right-0 z-10 px-1.5 py-0.5 text-xs text-text-muted bg-panel/80">
-        {isSwiss ? (
-          <>
-            Map data:&nbsp;
-            <a
-              href="https://www.swisstopo.admin.ch/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pointer-events-auto hover:underline"
-            >
-              SwissTopo
-            </a>
-          </>
-        ) : !isNone ? (
-          <>
-            Map data:&nbsp;
-            <a
-              href="https://protomaps.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pointer-events-auto hover:underline"
-            >
-              Protomaps
-            </a>
-            {" © "}
-            <a
-              href="https://openstreetmap.org/copyright"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pointer-events-auto hover:underline"
-            >
-              OpenStreetMap
-            </a>
-          </>
-        ) : null}
-      </div>
+      <MapAttribution layer={layer} />
     </div>
   )
 })

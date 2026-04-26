@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import OlMap from "ol/Map"
 import OlView from "ol/View"
 import TileLayer from "ol/layer/Tile"
@@ -20,11 +20,26 @@ import { selectMapLayer, unionBbox } from "../lib/mapLayer"
 import type { Bbox, MapLayer } from "../lib/mapLayer"
 import { createPmtilesStyleFn } from "../lib/pmtilesStyle"
 import { trackColorFromUUID } from "../lib/trackColor"
-import SvgPreview from "./SvgPreview"
+import SvgIcon from "../assets/SvgIcon"
+import distanceSvg from "../assets/distance.svg?raw"
+import elevationSvg from "../assets/elevation.svg?raw"
+import temperatureSvg from "../assets/temperature.svg?raw"
+import rainSvg from "../assets/rain.svg?raw"
+import MiniWindRose from "./MiniWindRose"
+import MapAttribution from "./MapAttribution"
 import { formatDistance, formatAscent } from "../lib/format"
 import { stringParam, useUrlState } from "../hooks/useUrlState"
 
 import "ol/ol.css"
+
+interface PopoverForecast {
+  avgTemperatureC?: number | null
+  totalPrecipitationMm?: number | null
+  windHeadMs?: number
+  windRightMs?: number
+  windTailMs?: number
+  windLeftMs?: number
+}
 
 /**
  * Query parameters for the /tracks/polylines/50m endpoint. Pagination is
@@ -51,6 +66,7 @@ interface PopoverState {
   userName: string
   totalDistanceM: number
   totalAscentM: number
+  forecast: PopoverForecast | null
   pixel: [number, number]
 }
 
@@ -117,11 +133,13 @@ export default function TracksMapView({
   selected,
   onSelect,
 }: TracksMapViewProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<OlMap | null>(null)
   const sourceRef = useRef<VectorSource | null>(null)
   const featureMapRef = useRef<Map<string, Feature>>(new Map())
   const hoveredFeatureRef = useRef<Feature | null>(null)
+  const navigate = useNavigate()
   const [popover, setPopover] = useState<PopoverState | null>(null)
   const [viewportUrl, setViewportUrl] = useUrlState(viewportSchema)
   const [tileErrorUrl, setTileErrorUrl] = useState<string | null>(null)
@@ -260,6 +278,7 @@ export default function TracksMapView({
       f.set("trackUserName", t.userName)
       f.set("trackTotalDistanceM", t.totalDistanceM)
       f.set("trackTotalAscentM", t.totalAscentM)
+      f.set("trackForecast", t.forecast ?? null)
       f.set("trackIndex", i)
       f.setStyle(selected.has(t.uuid) ? selectedStyle : baseStyleFor(t.uuid))
       source.addFeature(f)
@@ -301,7 +320,8 @@ export default function TracksMapView({
   // Hover and click: track features only.
   useEffect(() => {
     const map = mapInstanceRef.current
-    if (!map) return
+    const container = containerRef.current
+    if (!map || !container) return
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onMove = (evt: any) => {
@@ -318,14 +338,17 @@ export default function TracksMapView({
         { hitTolerance: 4 }
       )
 
-      if (hoveredFeatureRef.current && hoveredFeatureRef.current !== hovered) {
-        const prev = hoveredFeatureRef.current
-        const uuid = prev.get("trackUuid") as string
-        prev.setStyle(selected.has(uuid) ? selectedStyle : baseStyleFor(uuid))
-        hoveredFeatureRef.current = null
-      }
-
-      if (hovered) {
+      // Sticky popover: only react to transitions to a new feature. When the
+      // cursor leaves a polyline (without reaching another) the popover and
+      // the feature highlight stay put, so the user can move the cursor over
+      // the popover content. The popover is dismissed only when leaving the
+      // whole map container or moving onto a different track.
+      if (hovered && hovered !== hoveredFeatureRef.current) {
+        if (hoveredFeatureRef.current) {
+          const prev = hoveredFeatureRef.current
+          const uuid = prev.get("trackUuid") as string
+          prev.setStyle(selected.has(uuid) ? selectedStyle : baseStyleFor(uuid))
+        }
         const h = hovered as Feature
         h.setStyle(hoverStyle)
         hoveredFeatureRef.current = h
@@ -335,13 +358,11 @@ export default function TracksMapView({
           userName: h.get("trackUserName") as string,
           totalDistanceM: h.get("trackTotalDistanceM") as number,
           totalAscentM: h.get("trackTotalAscentM") as number,
+          forecast: h.get("trackForecast") as PopoverForecast | null,
           pixel,
         })
-        map.getTargetElement().style.cursor = "pointer"
-      } else {
-        setPopover(null)
-        map.getTargetElement().style.cursor = ""
       }
+      map.getTargetElement().style.cursor = hovered ? "pointer" : ""
     }
 
     const onLeave = () => {
@@ -356,24 +377,28 @@ export default function TracksMapView({
     }
 
     map.on("pointermove", onMove)
-    const viewport = map.getViewport()
-    viewport.addEventListener("pointerleave", onLeave)
+    // Listen on the outer container rather than the OL viewport so that
+    // moving the cursor onto the popover (a sibling of the viewport but
+    // inside the container) does not dismiss it.
+    container.addEventListener("pointerleave", onLeave)
     return () => {
       map.un("pointermove", onMove)
-      viewport.removeEventListener("pointerleave", onLeave)
+      container.removeEventListener("pointerleave", onLeave)
     }
-  }, [selected])
+    // layer and darkMode are included because the OL map is rebuilt when
+    // either changes, and the listeners must be re-attached to the new map.
+  }, [selected, layer, darkMode])
 
-  // Click handler: navigate via popover Link, or toggle selection in
-  // selection mode. We attach it on the map so any click on a feature
+  // Click handler: in selection mode, toggle selection; otherwise navigate
+  // to the clicked track. We attach it on the map so any click on a feature
   // counts even when the popover isn't pinned.
   useEffect(() => {
     const map = mapInstanceRef.current
     if (!map) return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onClick = (evt: any) => {
-      if (!selectionActive) return
       const pixel = evt.pixel as [number, number]
+      let hit = false
       map.forEachFeatureAtPixel(
         pixel,
         (f) => {
@@ -381,21 +406,41 @@ export default function TracksMapView({
           const uuid = feat.get("trackUuid") as string | undefined
           const idx = feat.get("trackIndex") as number | undefined
           if (!uuid || idx == null) return false
-          const me = evt.originalEvent as React.MouseEvent
-          onSelect(me, uuid, idx)
+          hit = true
+          if (selectionActive) {
+            const me = evt.originalEvent as React.MouseEvent
+            onSelect(me, uuid, idx)
+          } else {
+            navigate(`/tracks/${uuid}`)
+          }
           return true
         },
         { hitTolerance: 4 }
       )
+      if (!hit) {
+        // Clicking on empty map dismisses the sticky popover and clears the
+        // associated feature highlight.
+        if (hoveredFeatureRef.current) {
+          const prev = hoveredFeatureRef.current
+          const uuid = prev.get("trackUuid") as string
+          prev.setStyle(selected.has(uuid) ? selectedStyle : baseStyleFor(uuid))
+          hoveredFeatureRef.current = null
+        }
+        setPopover(null)
+      }
     }
     map.on("click", onClick)
     return () => {
       map.un("click", onClick)
     }
-  }, [selectionActive, onSelect])
+    // layer and darkMode trigger a map rebuild, requiring re-attachment.
+  }, [selectionActive, onSelect, navigate, layer, darkMode, selected])
 
   return (
-    <div className="relative h-[calc(100vh-260px)] min-h-[400px] w-full rounded-lg border border-border">
+    <div
+      ref={containerRef}
+      className="relative h-[calc(100vh-260px)] min-h-[400px] w-full rounded-lg border border-border"
+    >
       {layer.type === "none" && (
         <div
           className="absolute inset-0 rounded-lg"
@@ -425,6 +470,8 @@ export default function TracksMapView({
         </div>
       )}
 
+      <MapAttribution layer={layer} />
+
       {data && (
         <div className="absolute bottom-2 left-2 max-w-[80%] rounded bg-panel/95 px-3 py-1.5 text-xs text-text ring-1 ring-border">
           {data.totalCount > data.tracks.length ? (
@@ -452,27 +499,49 @@ export default function TracksMapView({
             top: popover.pixel[1] + 12,
           }}
         >
-          <div className="aspect-square overflow-hidden rounded bg-surface text-track">
-            <SvgPreview
-              src={`/api/tracks/${popover.uuid}/preview.svg?size=128`}
-              alt="Track preview"
-              className="h-full w-full object-contain"
-            />
-          </div>
-          <p className="mt-1 truncate font-medium text-text">{popover.name}</p>
+          <p className="truncate font-medium text-text">{popover.name}</p>
           <p className="text-text-muted">{popover.userName}</p>
-          <p className="text-text-muted">
-            {formatDistance(popover.totalDistanceM)} &middot;{" "}
-            {formatAscent(popover.totalAscentM)}
-          </p>
-          {!selectionActive && (
-            <Link
-              to={`/tracks/${popover.uuid}`}
-              className="mt-1 block text-primary hover:underline"
-            >
-              View track
-            </Link>
+          <div className="mt-0.5 flex items-center gap-2 text-text-muted">
+            <span className="flex items-center gap-0.5">
+              <SvgIcon svg={distanceSvg} className="inline h-3 w-3" />
+              {formatDistance(popover.totalDistanceM)}
+            </span>
+            <span className="flex items-center gap-0.5">
+              <SvgIcon svg={elevationSvg} className="inline h-3 w-3" />
+              {formatAscent(popover.totalAscentM)}
+            </span>
+          </div>
+          {popover.forecast && (
+            <div className="mt-1 flex items-center gap-x-2">
+              {popover.forecast.avgTemperatureC != null && (
+                <span className="flex items-center gap-0.5 text-error">
+                  <SvgIcon svg={temperatureSvg} className="inline h-3 w-3" />
+                  {popover.forecast.avgTemperatureC.toFixed(0)}
+                  &deg;C
+                </span>
+              )}
+              {popover.forecast.totalPrecipitationMm != null && (
+                <span className="flex items-center gap-0.5 text-info">
+                  <SvgIcon svg={rainSvg} className="inline h-3 w-3" />
+                  {popover.forecast.totalPrecipitationMm < 0.1
+                    ? "dry"
+                    : `${popover.forecast.totalPrecipitationMm.toFixed(1)} mm`}
+                </span>
+              )}
+              <MiniWindRose
+                head={popover.forecast.windHeadMs}
+                right={popover.forecast.windRightMs}
+                tail={popover.forecast.windTailMs}
+                left={popover.forecast.windLeftMs}
+              />
+            </div>
           )}
+          <Link
+            to={`/tracks/${popover.uuid}`}
+            className="mt-1 block text-primary hover:underline"
+          >
+            View track
+          </Link>
         </div>
       )}
     </div>
