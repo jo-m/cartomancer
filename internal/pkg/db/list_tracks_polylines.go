@@ -116,10 +116,12 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, li
 		return ListTracksWithPolylinesResult{}, fmt.Errorf("count pending tracks: %w", err)
 	}
 
-	// Max updated_at over the matched set, for ETag.
-	var maxUpdatedRaw sql.NullTime
-	maxSQL := "SELECT MAX(tracks.updated_at) FROM tracks" + joins + where
-	if err := d.ro.QueryRowContext(ctx, maxSQL, baseArgs...).Scan(&maxUpdatedRaw); err != nil {
+	// Max updated_at over the matched set, for ETag. SQLite drops column
+	// affinity on aggregates, so MAX() returns a TEXT timestamp that won't
+	// scan into time.Time; convert to integer millis in SQL instead.
+	var maxUpdatedMs sql.NullInt64
+	maxSQL := "SELECT CAST(unixepoch(MAX(tracks.updated_at), 'subsec') * 1000 AS INTEGER) FROM tracks" + joins + where
+	if err := d.ro.QueryRowContext(ctx, maxSQL, baseArgs...).Scan(&maxUpdatedMs); err != nil {
 		return ListTracksWithPolylinesResult{}, fmt.Errorf("max updated_at: %w", err)
 	}
 
@@ -181,8 +183,8 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, li
 		TotalCount:   total,
 		PendingCount: pending,
 	}
-	if maxUpdatedRaw.Valid {
-		res.MaxUpdatedAt = maxUpdatedRaw.Time
+	if maxUpdatedMs.Valid {
+		res.MaxUpdatedAt = time.UnixMilli(maxUpdatedMs.Int64).UTC()
 	}
 	return res, nil
 }
