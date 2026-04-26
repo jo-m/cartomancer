@@ -1,7 +1,8 @@
 // Command dpviz loads a GPX or FIT track file, applies Douglas-Peucker
 // simplification at several epsilon values (2, 5, 10, 20, 50, 100, 200 m),
-// and writes the simplified GPX file and the encoded polyline as a .txt file
-// for each epsilon to a subdirectory named after the input file.
+// and writes the simplified GPX file, the encoded polyline as a .txt file,
+// and the varint-encoded points as a .bin file for each epsilon to a
+// subdirectory named after the input file.
 //
 // Usage:
 //
@@ -55,9 +56,13 @@ func run() error {
 	}
 
 	origPolylineBytes := len(track.EncodePolyline(pts))
+	origVarint, err := track.EncodeVarint(pts)
+	if err != nil {
+		return fmt.Errorf("varint encoding original: %w", err)
+	}
 	origInt32Bytes := len(pts) * 2 * 4
-	fmt.Printf("original:          %5d pts  polyline=%6d B  2xint32=%6d B\n",
-		len(pts), origPolylineBytes, origInt32Bytes)
+	fmt.Printf("original:          %5d pts  polyline=%6d B  varint=%6d B  2xint32=%6d B\n",
+		len(pts), origPolylineBytes, len(origVarint), origInt32Bytes)
 
 	for _, eps := range epsilons {
 		simplified := pts.SimplifyDP(eps)
@@ -65,6 +70,7 @@ func run() error {
 		name := fmt.Sprintf("simplified_%dm", int(eps))
 		gpxFile := filepath.Join(stem, name+".gpx")
 		txtFile := filepath.Join(stem, name+".txt")
+		binFile := filepath.Join(stem, name+".bin")
 
 		if err := writeGPX(gpxFile, simplified); err != nil {
 			return fmt.Errorf("writing %s: %w", gpxFile, err)
@@ -75,11 +81,19 @@ func run() error {
 			return fmt.Errorf("writing %s: %w", txtFile, err)
 		}
 
+		varintBuf, err := track.EncodeVarint(simplified)
+		if err != nil {
+			return fmt.Errorf("varint encoding %s: %w", name, err)
+		}
+		if err := os.WriteFile(binFile, varintBuf, 0o600); err != nil {
+			return fmt.Errorf("writing %s: %w", binFile, err)
+		}
+
 		nPts := len(simplified)
 		polylineBytes := len(polyline)
 		int32Bytes := nPts * 2 * 4
-		fmt.Printf("epsilon=%3dm: %5d pts  polyline=%6d B  2xint32=%6d B  -> %s\n",
-			int(eps), nPts, polylineBytes, int32Bytes, gpxFile)
+		fmt.Printf("epsilon=%3dm: %5d pts  polyline=%6d B  varint=%6d B  2xint32=%6d B  -> %s\n",
+			int(eps), nPts, polylineBytes, len(varintBuf), int32Bytes, gpxFile)
 	}
 
 	return nil
