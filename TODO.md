@@ -136,6 +136,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Enable cross build from x86 to arm
 - [ ] Remove SubsampleLTTB() and use DP instead. Use the pre-encoded previews where possible. Remove/change/update the /tracks/{uuid}/points endpoint.
 - [ ] Remove the track preview backfill job and make the cols non-null once prod is migrated.
+- [ ] In the track filter view (map mode), add map zoom state to the url so it is persisted when sharing the link or reloading.
 - [ ] Go through the periodic TODOs
 
 ## Before enabling public signup
