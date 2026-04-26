@@ -20,6 +20,10 @@ import { selectMapLayer, unionBbox } from "../lib/mapLayer"
 import type { Bbox, MapLayer } from "../lib/mapLayer"
 import { createPmtilesStyleFn } from "../lib/pmtilesStyle"
 import { trackColorFromUUID } from "../lib/trackColor"
+import {
+  TRACK_LINE_HALO_WIDTH,
+  TRACK_LINE_INNER_WIDTH,
+} from "../lib/trackMapStyle"
 import SvgIcon from "../assets/SvgIcon"
 import distanceSvg from "../assets/distance.svg?raw"
 import elevationSvg from "../assets/elevation.svg?raw"
@@ -78,20 +82,39 @@ interface PopoverState {
 function makeBaseStyle(color: string): Style[] {
   return [
     new Style({
-      stroke: new Stroke({ color: "rgba(255,255,255,0.85)", width: 4 }),
+      stroke: new Stroke({
+        color: "rgba(255,255,255,0.85)",
+        width: TRACK_LINE_HALO_WIDTH,
+      }),
     }),
-    new Style({ stroke: new Stroke({ color, width: 2 }) }),
+    new Style({
+      stroke: new Stroke({ color, width: TRACK_LINE_INNER_WIDTH }),
+    }),
   ]
 }
 
 const hoverStyle = [
-  new Style({ stroke: new Stroke({ color: "#ffffff", width: 6 }) }),
-  new Style({ stroke: new Stroke({ color: "#f59e0b", width: 3 }) }),
+  new Style({
+    stroke: new Stroke({ color: "#ffffff", width: TRACK_LINE_HALO_WIDTH + 2 }),
+  }),
+  new Style({
+    stroke: new Stroke({
+      color: "#f59e0b",
+      width: TRACK_LINE_INNER_WIDTH + 2,
+    }),
+  }),
 ]
 
 const selectedStyle = [
-  new Style({ stroke: new Stroke({ color: "#ffffff", width: 5 }) }),
-  new Style({ stroke: new Stroke({ color: "#22c55e", width: 3 }) }),
+  new Style({
+    stroke: new Stroke({ color: "#ffffff", width: TRACK_LINE_HALO_WIDTH + 1 }),
+  }),
+  new Style({
+    stroke: new Stroke({
+      color: "#22c55e",
+      width: TRACK_LINE_INNER_WIDTH + 1,
+    }),
+  }),
 ]
 
 /** Returns the base style for a track, looking up its UUID-derived color. */

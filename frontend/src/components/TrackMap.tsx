@@ -18,6 +18,10 @@ import { PMTilesVectorSource } from "ol-pmtiles"
 
 import type { MapLayer } from "../lib/mapLayer"
 import { createPmtilesStyleFn } from "../lib/pmtilesStyle"
+import {
+  TRACK_LINE_HALO_WIDTH,
+  TRACK_LINE_INNER_WIDTH,
+} from "../lib/trackMapStyle"
 import type { HoverStore } from "../hooks/useHoverSync"
 import MapAttribution from "./MapAttribution"
 
@@ -221,8 +225,12 @@ export default memo(function TrackMap({
       geometry: new LineString(coords),
     })
     trackFeature.setStyle([
-      new Style({ stroke: new Stroke({ color: "#ffffff", width: 7 }) }),
-      new Style({ stroke: new Stroke({ color, width: 4 }) }),
+      new Style({
+        stroke: new Stroke({ color: "#ffffff", width: TRACK_LINE_HALO_WIDTH }),
+      }),
+      new Style({
+        stroke: new Stroke({ color, width: TRACK_LINE_INNER_WIDTH }),
+      }),
     ])
 
     const startFeature = new Feature({ geometry: new Point(coords[0]) })
