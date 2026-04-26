@@ -1282,6 +1282,23 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 
 	meta := t.EnhancedMetadata()
 
+	// Compute the encoded preview polylines from the simplified point cloud.
+	// This is cheap relative to the rest of the upload pipeline and avoids
+	// having to re-load and re-parse the blob later.
+	pts := t.Points()
+	previewDp5m, err := track.EncodeVarint(pts.SimplifyDP(track.PreviewPolylineEpsilon5M))
+	if err != nil {
+		logg.Error(ctx, "encode preview polyline 5m", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+	previewDp50m, err := track.EncodeVarint(pts.SimplifyDP(track.PreviewPolylineEpsilon50M))
+	if err != nil {
+		logg.Error(ctx, "encode preview polyline 50m", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
 	meta.Name = strings.TrimSpace(meta.Name)
 	if meta.Name == "" {
 		name := strings.TrimSuffix(header.Filename, filepath.Ext(header.Filename))
@@ -1383,7 +1400,15 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			OriginalCreatedAt: toNullTime(meta.OriginalCreatedAt),
 			Public:            0,
 		})
-		return txErr
+		if txErr != nil {
+			return txErr
+		}
+
+		return q.SetTrackPreviewPolylines(ctx, db.SetTrackPreviewPolylinesParams{
+			Uuid:                created.Uuid,
+			PolylineDp5mVarint:  previewDp5m,
+			PolylineDp50mVarint: previewDp50m,
+		})
 	})
 	if errors.Is(err, errUploadTrackLimitReached) {
 		writeError(w, http.StatusConflict, "per-user track limit reached")
