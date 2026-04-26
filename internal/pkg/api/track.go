@@ -992,8 +992,8 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 }
 
 // trackPolylineEntry is one row in the response from
-// [server.handleListTrackPolylines]. The shape is intentionally lean to keep
-// the bulk-listing payload small.
+// [server.handleListTrackPolylines5M] / [server.handleListTrackPolylines50M].
+// The shape is intentionally lean to keep the bulk-listing payload small.
 type trackPolylineEntry struct {
 	UUID           string        `json:"uuid"`
 	Name           string        `json:"name"`
@@ -1002,8 +1002,10 @@ type trackPolylineEntry struct {
 	TotalDistanceM float64       `json:"totalDistanceM"`
 	TotalAscentM   float64       `json:"totalAscentM"`
 	Bounds         *bboxResponse `json:"bounds,omitempty"`
-	Polyline       string        `json:"polyline"`
-	Starred        bool          `json:"starred"`
+	// Polyline is the simplified track as an array of [lat, lon] pairs in
+	// WGS84 degrees, decoded from the stored varint-encoded blob.
+	Polyline [][2]float64 `json:"polyline"`
+	Starred  bool         `json:"starred"`
 }
 
 type listTrackPolylinesResponse struct {
@@ -1018,13 +1020,27 @@ type listTrackPolylinesResponse struct {
 // surface a banner.
 const trackPolylinesLimit = 250
 
+// handleListTrackPolylines5M returns 5 m simplified preview polylines.
+func (sv *server) handleListTrackPolylines5M(w http.ResponseWriter, r *http.Request) {
+	sv.handleListTrackPolylines(w, r, db.PreviewPolyline5M, "5m")
+}
+
+// handleListTrackPolylines50M returns 50 m simplified preview polylines.
+func (sv *server) handleListTrackPolylines50M(w http.ResponseWriter, r *http.Request) {
+	sv.handleListTrackPolylines(w, r, db.PreviewPolyline50M, "50m")
+}
+
 // handleListTrackPolylines returns the simplified preview polylines for all
 // tracks matching the same query string accepted by [server.handleListTracks].
 // Pagination on the input is ignored; instead the server returns up to
 // [trackPolylinesLimit] tracks. Strong ETag based on the most recent
 // updated_at and the result counts allows the browser to skip the body on
-// repeated requests.
-func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Request) {
+// repeated requests. The varint blob stored in the DB is decoded server-side
+// so the response is plain JSON arrays of [lat, lon] pairs.
+//
+// kindLabel is mixed into the ETag so the 5 m and 50 m variants do not
+// alias even when their underlying counts and updated_at coincide.
+func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Request, kind db.PreviewPolylineKind, kindLabel string) {
 	ctx := r.Context()
 	user := session.GetUser(ctx)
 
@@ -1034,7 +1050,7 @@ func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	result, err := sv.d.ListTracksWithPolylines(ctx, params, trackPolylinesLimit)
+	result, err := sv.d.ListTracksWithPolylines(ctx, params, kind, trackPolylinesLimit)
 	if err != nil {
 		logg.Error(ctx, "failed to list track polylines", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
@@ -1045,11 +1061,12 @@ func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Reques
 	if user != nil {
 		viewerID = user.Uuid
 	}
-	eTag := fmt.Sprintf(`"%d-%d-%d-%s-v1"`,
+	eTag := fmt.Sprintf(`"%d-%d-%d-%s-%s-v2"`,
 		result.MaxUpdatedAt.UnixMilli(),
 		result.TotalCount,
 		result.PendingCount,
 		viewerID,
+		kindLabel,
 	)
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
@@ -1058,6 +1075,15 @@ func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Reques
 
 	entries := make([]trackPolylineEntry, len(result.Tracks))
 	for i, t := range result.Tracks {
+		pts, decErr := track.DecodeVarint(t.PolylineVarint)
+		if decErr != nil {
+			logg.Error(ctx, "decode preview polyline", "trackId", t.UUID, "err", decErr)
+			pts = nil
+		}
+		latlon := make([][2]float64, len(pts))
+		for j, p := range pts {
+			latlon[j] = [2]float64{p.Lat, p.Lon}
+		}
 		entries[i] = trackPolylineEntry{
 			UUID:           t.UUID,
 			Name:           t.Name,
@@ -1066,7 +1092,7 @@ func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Reques
 			TotalDistanceM: t.TotalDistanceM,
 			TotalAscentM:   t.TotalAscentM,
 			Bounds:         nullBBox(t.BoundsMinLat, t.BoundsMinLon, t.BoundsMaxLat, t.BoundsMaxLon),
-			Polyline:       t.Polyline,
+			Polyline:       latlon,
 			Starred:        t.Starred,
 		}
 	}
@@ -1338,10 +1364,22 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 
 	meta := t.EnhancedMetadata()
 
-	// Compute the encoded preview polyline from the simplified point cloud.
+	// Compute the encoded preview polylines from the simplified point cloud.
 	// This is cheap relative to the rest of the upload pipeline and avoids
 	// having to re-load and re-parse the blob later.
-	previewPolyline := track.EncodePolyline(t.Points().SimplifyDP(track.PreviewPolylineEpsilonM))
+	pts := t.Points()
+	previewDp5m, err := track.EncodeVarint(pts.SimplifyDP(track.PreviewPolylineEpsilon5M))
+	if err != nil {
+		logg.Error(ctx, "encode preview polyline 5m", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+	previewDp50m, err := track.EncodeVarint(pts.SimplifyDP(track.PreviewPolylineEpsilon50M))
+	if err != nil {
+		logg.Error(ctx, "encode preview polyline 50m", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
 
 	meta.Name = strings.TrimSpace(meta.Name)
 	if meta.Name == "" {
@@ -1448,9 +1486,10 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 			return txErr
 		}
 
-		return q.SetTrackPreviewPolyline(ctx, db.SetTrackPreviewPolylineParams{
-			Uuid:            created.Uuid,
-			PreviewPolyline: toNullString(previewPolyline),
+		return q.SetTrackPreviewPolylines(ctx, db.SetTrackPreviewPolylinesParams{
+			Uuid:                created.Uuid,
+			PolylineDp5mVarint:  previewDp5m,
+			PolylineDp50mVarint: previewDp50m,
 		})
 	})
 	if errors.Is(err, errUploadTrackLimitReached) {

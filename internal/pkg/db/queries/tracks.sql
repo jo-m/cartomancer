@@ -58,11 +58,17 @@ SET updated_at = ?,
 WHERE uuid = ?
 RETURNING *;
 
--- name: SetTrackPreviewPolyline :exec
-UPDATE tracks SET preview_polyline = ? WHERE uuid = ?;
+-- name: SetTrackPreviewPolylines :exec
+UPDATE tracks
+SET polyline_dp5m_varint = ?,
+    polyline_dp50m_varint = ?
+WHERE uuid = ?;
 
--- name: CountTracksMissingPreviewPolyline :one
-SELECT COUNT(*) FROM tracks WHERE preview_polyline IS NULL;
+-- name: CountTracksMissingPreviewPolylines :one
+SELECT COUNT(*) FROM tracks
+WHERE polyline_dp5m_varint IS NULL OR polyline_dp50m_varint IS NULL;
 
--- name: NextTrackMissingPreviewPolyline :one
-SELECT uuid FROM tracks WHERE preview_polyline IS NULL ORDER BY uuid LIMIT 1;
+-- name: NextTrackMissingPreviewPolylines :one
+SELECT uuid FROM tracks
+WHERE polyline_dp5m_varint IS NULL OR polyline_dp50m_varint IS NULL
+ORDER BY uuid LIMIT 1;

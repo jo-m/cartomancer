@@ -134,6 +134,8 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [ ] What are some options to move the stuff currently in the makefile (lint, format, check, gen... ) also to nix? Also don't forget to run the tests.
   - [ ] Cache go modules and node modules by having them as a separate derivation
   - [x] Enable cross build from x86 to arm
+- [ ] Remove SubsampleLTTB() and use DP instead. Use the pre-encoded previews where possible. Remove/change/update the /tracks/{uuid}/points endpoint.
+- [ ] Remove the track preview backfill job and make the cols non-null once prod is migrated.
 - [ ] Go through the periodic TODOs
 
 ## Before enabling public signup

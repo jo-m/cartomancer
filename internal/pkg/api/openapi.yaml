@@ -934,19 +934,20 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /tracks/polylines:
+  /tracks/polylines/5m:
     get:
-      summary: List preview polylines for matching tracks
-      operationId: listTrackPolylines
+      summary: List 5m-simplified preview polylines for matching tracks
+      operationId: listTrackPolylines5m
       tags: [Tracks]
       description: >
-        Returns the simplified, encoded preview polylines for tracks matching
-        the same filters as listTracks (page/pageSize are ignored). Used by
-        the map view. Up to a fixed server-side limit of tracks is returned;
-        clients should display a banner when totalCount exceeds the result
-        size. pendingCount reports how many matching tracks still lack a
-        backfilled polyline. The response is ETagged so revalidation is cheap.
-      parameters:
+        Returns the 5 m Douglas-Peucker simplified preview polylines for
+        tracks matching the same filters as listTracks (page/pageSize are
+        ignored). Suitable for fullscreen rendering. Up to a fixed
+        server-side limit of tracks is returned; clients should display a
+        banner when totalCount exceeds the result size. pendingCount
+        reports how many matching tracks still lack a backfilled polyline.
+        The response is ETagged so revalidation is cheap.
+      parameters: &trackPolylinesParams
         - name: sortBy
           in: query
           schema:
@@ -1145,9 +1146,9 @@ paths:
           schema:
             type: number
             format: double
-      responses:
+      responses: &trackPolylinesResponses
         "200":
-          description: List of matching tracks with encoded preview polylines
+          description: List of matching tracks with decoded preview polylines
           content:
             application/json:
               schema:
@@ -1166,6 +1167,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
+  /tracks/polylines/50m:
+    get:
+      summary: List 50m-simplified preview polylines for matching tracks
+      operationId: listTrackPolylines50m
+      tags: [Tracks]
+      description: >
+        Same as /tracks/polylines/5m but with a coarser 50 m
+        Douglas-Peucker tolerance, suitable for the many-tracks map
+        overview where each track is rendered as a tiny outline.
+      parameters: *trackPolylinesParams
+      responses: *trackPolylinesResponses
 
   /tracks/{uuid}:
     get:
@@ -3504,8 +3517,17 @@ components:
         bounds:
           $ref: "#/components/schemas/BBox"
         polyline:
-          type: string
-          description: Google encoded polyline (precision 5).
+          type: array
+          description: >
+            Decoded simplified track as an array of [latitude, longitude]
+            pairs in WGS84 degrees.
+          items:
+            type: array
+            minItems: 2
+            maxItems: 2
+            items:
+              type: number
+              format: double
         starred:
           type: boolean
 

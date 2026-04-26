@@ -9,9 +9,36 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/utl"
 )
 
+// PreviewPolylineKind selects which simplified preview polyline column
+// [DB.ListTracksWithPolylines] returns. The kind also drives the
+// "pending" check: rows whose chosen column is NULL are not returned.
+type PreviewPolylineKind int
+
+const (
+	// PreviewPolyline5M selects the 5 m Douglas-Peucker preview, suitable
+	// for fullscreen rendering of a single track.
+	PreviewPolyline5M PreviewPolylineKind = iota
+	// PreviewPolyline50M selects the 50 m Douglas-Peucker preview, suitable
+	// for the many-tracks map overview.
+	PreviewPolyline50M
+)
+
+// column returns the SQL column name backing this kind.
+func (k PreviewPolylineKind) column() string {
+	switch k {
+	case PreviewPolyline5M:
+		return "polyline_dp5m_varint"
+	case PreviewPolyline50M:
+		return "polyline_dp50m_varint"
+	default:
+		// Fallback to 50 m, the safer/cheaper default.
+		return "polyline_dp50m_varint"
+	}
+}
+
 // TrackPolyline is a single row returned by [DB.ListTracksWithPolylines].
 // It carries the small subset of track columns that the map view needs in
-// addition to the encoded preview polyline.
+// addition to the varint-encoded preview polyline.
 type TrackPolyline struct {
 	UUID           string
 	UserID         string
@@ -23,7 +50,9 @@ type TrackPolyline struct {
 	BoundsMinLon   sql.NullFloat64
 	BoundsMaxLat   sql.NullFloat64
 	BoundsMaxLon   sql.NullFloat64
-	Polyline       string
+	// PolylineVarint is the raw varint-encoded delta sequence stored in the
+	// chosen polyline column. Decode with [track.DecodeVarint].
+	PolylineVarint []byte
 	Starred        bool
 	UpdatedAt      time.Time
 }
@@ -31,14 +60,14 @@ type TrackPolyline struct {
 // ListTracksWithPolylinesResult holds a page of tracks-with-polylines and
 // summary counts of the matched set.
 type ListTracksWithPolylinesResult struct {
-	// Tracks holds the rendered tracks (those with a non-NULL preview_polyline,
-	// up to the requested limit).
+	// Tracks holds the rendered tracks (those whose chosen polyline column
+	// is non-NULL, up to the requested limit).
 	Tracks []TrackPolyline
 	// TotalCount is the total number of tracks matching the filters
-	// (regardless of preview_polyline state and limit).
+	// (regardless of preview polyline state and limit).
 	TotalCount int
-	// PendingCount is the number of matching tracks whose preview_polyline
-	// is still NULL (i.e. waiting on the backfill job).
+	// PendingCount is the number of matching tracks whose chosen polyline
+	// column is still NULL (i.e. waiting on the backfill job).
 	PendingCount int
 	// MaxUpdatedAt is the most recent updated_at over the matched set, used
 	// for ETag computation. Zero if the set is empty.
@@ -46,13 +75,15 @@ type ListTracksWithPolylinesResult struct {
 }
 
 // ListTracksWithPolylines returns all tracks matching p (subject to limit)
-// that have a non-NULL preview_polyline, alongside summary counts. The
-// returned slice is ordered by the configured sort columns from p.
-// Pagination on p is ignored; limit is applied after filtering.
-func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, limit int) (ListTracksWithPolylinesResult, error) {
+// whose chosen preview polyline column is non-NULL, alongside summary
+// counts. The returned slice is ordered by the configured sort columns
+// from p. Pagination on p is ignored; limit is applied after filtering.
+func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, kind PreviewPolylineKind, limit int) (ListTracksWithPolylinesResult, error) {
 	if limit < 1 {
 		limit = 1
 	}
+
+	col := kind.column()
 
 	// Validate and default sort parameters.
 	allowedSortCols := map[string]string{
@@ -106,10 +137,11 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, li
 	// Pending count.
 	var pending int
 	pendingWhere := where
+	pendingClause := fmt.Sprintf("tracks.%s IS NULL", col) // #nosec G201
 	if pendingWhere == "" {
-		pendingWhere = " WHERE tracks.preview_polyline IS NULL"
+		pendingWhere = " WHERE " + pendingClause
 	} else {
-		pendingWhere += " AND tracks.preview_polyline IS NULL"
+		pendingWhere += " AND " + pendingClause
 	}
 	pendingSQL := "SELECT COUNT(*) FROM tracks" + joins + pendingWhere
 	if err := d.ro.QueryRowContext(ctx, pendingSQL, baseArgs...).Scan(&pending); err != nil {
@@ -125,22 +157,23 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, li
 		return ListTracksWithPolylinesResult{}, fmt.Errorf("max updated_at: %w", err)
 	}
 
-	// Data query: only rows with a non-NULL preview_polyline.
+	// Data query: only rows whose chosen polyline column is non-NULL.
 	dataWhere := where
+	dataClause := fmt.Sprintf("tracks.%s IS NOT NULL", col) // #nosec G201
 	if dataWhere == "" {
-		dataWhere = " WHERE tracks.preview_polyline IS NOT NULL"
+		dataWhere = " WHERE " + dataClause
 	} else {
-		dataWhere += " AND tracks.preview_polyline IS NOT NULL"
+		dataWhere += " AND " + dataClause
 	}
 	dataSQL := fmt.Sprintf( // #nosec G201
 		"SELECT tracks.uuid, tracks.user_id, users.name AS user_name, tracks.name, "+
 			"tracks.total_distance_m, tracks.total_ascent_m, "+
 			"tracks.bounds_min_lat, tracks.bounds_min_lon, tracks.bounds_max_lat, tracks.bounds_max_lon, "+
-			"tracks.preview_polyline, "+
+			"tracks.%s, "+
 			"CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred, "+
 			"tracks.updated_at "+
 			"FROM tracks%s%s ORDER BY %s %s LIMIT ?",
-		joins, dataWhere, sortCol, sortDir,
+		col, joins, dataWhere, sortCol, sortDir,
 	)
 	dataArgs := append(append([]any{}, baseArgs...), int64(limit))
 
@@ -165,7 +198,7 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, li
 			&tp.BoundsMinLon,
 			&tp.BoundsMaxLat,
 			&tp.BoundsMaxLon,
-			&tp.Polyline,
+			&tp.PolylineVarint,
 			&starred,
 			&tp.UpdatedAt,
 		); err != nil {

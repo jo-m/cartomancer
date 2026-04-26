@@ -18,7 +18,6 @@ import { $api } from "../api/client"
 import { lv95, projectPoint } from "../lib/proj"
 import { selectMapLayer, unionBbox } from "../lib/mapLayer"
 import type { Bbox, MapLayer } from "../lib/mapLayer"
-import { decodePolyline } from "../lib/polyline"
 import { createPmtilesStyleFn } from "../lib/pmtilesStyle"
 import SvgPreview from "./SvgPreview"
 import { formatDistance, formatAscent } from "../lib/format"
@@ -27,11 +26,11 @@ import { stringParam, useUrlState } from "../hooks/useUrlState"
 import "ol/ol.css"
 
 /**
- * Query parameters for the /tracks/polylines endpoint. Pagination is
+ * Query parameters for the /tracks/polylines/50m endpoint. Pagination is
  * intentionally absent: the endpoint applies a server-side cap.
  */
 export type TracksPolylinesQuery = NonNullable<
-  Parameters<typeof $api.useQuery<"get", "/tracks/polylines">>[2]
+  Parameters<typeof $api.useQuery<"get", "/tracks/polylines/50m">>[2]
 >["params"] extends infer P
   ? P extends { query?: infer Q }
     ? Q
@@ -124,9 +123,13 @@ export default function TracksMapView({
     return () => mq.removeEventListener("change", handler)
   }, [])
 
-  const { data, isLoading, error } = $api.useQuery("get", "/tracks/polylines", {
-    params: { query },
-  })
+  const { data, isLoading, error } = $api.useQuery(
+    "get",
+    "/tracks/polylines/50m",
+    {
+      params: { query },
+    }
+  )
 
   const { data: mapsData } = $api.useQuery("get", "/maps")
 
@@ -233,9 +236,10 @@ export default function TracksMapView({
     const featureMap = new Map<string, Feature>()
     for (let i = 0; i < data.tracks.length; i++) {
       const t = data.tracks[i]
-      const points = decodePolyline(t.polyline)
-      if (points.length < 2) continue
-      const coords = points.map((p) => projectPoint(p.lon, p.lat, layer.type))
+      if (t.polyline.length < 2) continue
+      const coords = t.polyline.map(([lat, lon]) =>
+        projectPoint(lon, lat, layer.type)
+      )
       const f = new Feature({ geometry: new LineString(coords) })
       f.setId(t.uuid)
       f.set("trackUuid", t.uuid)

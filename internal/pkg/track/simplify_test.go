@@ -68,7 +68,7 @@ func TestSimplifyDP(t *testing.T) {
 
 	t.Run("real GPX is reduced", func(t *testing.T) {
 		pts := loadGPXPoints(t, "../load/testdata/COURSE_436298480.gpx")
-		got := pts.SimplifyDP(PreviewPolylineEpsilonM)
+		got := pts.SimplifyDP(PreviewPolylineEpsilon50M)
 		require.Less(t, len(got), len(pts))
 		require.GreaterOrEqual(t, len(got), 2)
 		require.Equal(t, pts[0], got[0])

@@ -2,11 +2,14 @@ package track
 
 import "math"
 
-// PreviewPolylineEpsilonM is the default Douglas-Peucker tolerance in metres
-// used when computing low-resolution preview polylines for tracks.
-// At this tolerance, straight stretches collapse to two points while
-// switchbacks keep the points needed to render their shape.
-const PreviewPolylineEpsilonM = 200.0
+// Douglas-Peucker tolerances used when computing preview polylines for
+// tracks. The 5 m tolerance retains enough detail for fullscreen track
+// rendering; the 50 m tolerance produces tiny outlines suitable for the
+// many-tracks map overview where a single track is only a few pixels wide.
+const (
+	PreviewPolylineEpsilon5M  = 5.0
+	PreviewPolylineEpsilon50M = 50.0
+)
 
 // SimplifyDP applies the Douglas-Peucker algorithm to pts and returns a
 // simplified polyline whose points lie within epsilonM metres of the

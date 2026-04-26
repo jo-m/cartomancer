@@ -31,8 +31,8 @@ var _ Args = (*BackfillPreviewPolylineArgs)(nil)
 const backfillRescheduleDelay = 1 * time.Second
 
 // BackfillPreviewPolylineHandler computes and stores preview polylines for
-// tracks that still have a NULL preview_polyline column. Use
-// [NewBackfillPreviewPolyline] to construct.
+// tracks that still have NULL polyline_dp5m_varint or polyline_dp50m_varint
+// columns. Use [NewBackfillPreviewPolyline] to construct.
 type BackfillPreviewPolylineHandler struct {
 	d *db.DB
 	s *Submitter
@@ -50,12 +50,12 @@ func NewBackfillPreviewPolyline(d *db.DB, s *Submitter) *BackfillPreviewPolyline
 
 var _ Job[BackfillPreviewPolylineArgs] = (*BackfillPreviewPolylineHandler)(nil)
 
-// Run implements [Job]. It picks the oldest track without a preview
-// polyline, parses its blob, computes the simplified encoded polyline and
-// stores it. If at least one more track still needs backfilling, the job
-// reschedules itself.
+// Run implements [Job]. It picks the oldest track without preview
+// polylines, parses its blob, computes both simplified varint-encoded
+// polylines (5 m and 50 m epsilon) and stores them. If at least one more
+// track still needs backfilling, the job reschedules itself.
 func (h *BackfillPreviewPolylineHandler) Run(ctx context.Context, _ BackfillPreviewPolylineArgs) error {
-	uuid, err := h.d.QueryRO().NextTrackMissingPreviewPolyline(ctx)
+	uuid, err := h.d.QueryRO().NextTrackMissingPreviewPolylines(ctx)
 	if errors.Is(err, sql.ErrNoRows) {
 		logg.Debug(ctx, "preview polyline backfill: nothing to do")
 		return nil
@@ -69,7 +69,7 @@ func (h *BackfillPreviewPolylineHandler) Run(ctx context.Context, _ BackfillPrev
 	}
 
 	// Reschedule unless this was the last one.
-	remaining, err := h.d.QueryRO().CountTracksMissingPreviewPolyline(ctx)
+	remaining, err := h.d.QueryRO().CountTracksMissingPreviewPolylines(ctx)
 	if err != nil {
 		return fmt.Errorf("count missing preview polylines: %w", err)
 	}
@@ -86,61 +86,67 @@ func (h *BackfillPreviewPolylineHandler) Run(ctx context.Context, _ BackfillPrev
 	return nil
 }
 
-// processTrack computes the preview polyline for a single track and
-// persists it. Tracks whose blobs cannot be parsed are skipped with an
-// empty polyline so the backfill makes monotonic progress.
+// processTrack computes both preview polylines for a single track and
+// persists them. Tracks whose blobs cannot be parsed are skipped with empty
+// polylines so the backfill makes monotonic progress.
 func (h *BackfillPreviewPolylineHandler) processTrack(ctx context.Context, uuid string) error {
 	t, err := h.d.QueryRO().GetTrackByUUID(ctx, uuid)
 	if err != nil {
 		return fmt.Errorf("get track %s: %w", uuid, err)
 	}
 
-	encoded, err := computePreviewPolyline(ctx, h.d.QueryRO(), t)
+	dp5, dp50, err := computePreviewPolylines(ctx, h.d.QueryRO(), t)
 	if err != nil {
 		logg.Error(ctx, "preview polyline backfill: skipping track", "trackId", uuid, "err", err)
-		// Persist an empty polyline so the row drops out of the candidate
+		// Persist empty polylines so the row drops out of the candidate
 		// set and we make forward progress on subsequent runs.
-		encoded = ""
+		dp5, dp50 = []byte{}, []byte{}
 	}
 
-	if err := h.d.QueryRW().SetTrackPreviewPolyline(ctx, db.SetTrackPreviewPolylineParams{
-		Uuid: uuid,
-		PreviewPolyline: sql.NullString{
-			Valid:  true,
-			String: encoded,
-		},
+	if err := h.d.QueryRW().SetTrackPreviewPolylines(ctx, db.SetTrackPreviewPolylinesParams{
+		Uuid:                uuid,
+		PolylineDp5mVarint:  dp5,
+		PolylineDp50mVarint: dp50,
 	}); err != nil {
-		return fmt.Errorf("set preview polyline %s: %w", uuid, err)
+		return fmt.Errorf("set preview polylines %s: %w", uuid, err)
 	}
 
-	logg.Debug(ctx, "preview polyline backfilled", "trackId", uuid, "bytes", len(encoded))
+	logg.Debug(ctx, "preview polylines backfilled", "trackId", uuid, "dp5mBytes", len(dp5), "dp50mBytes", len(dp50))
 	return nil
 }
 
-// computePreviewPolyline loads the track blob, parses it, simplifies the
-// point sequence and returns the encoded polyline.
-func computePreviewPolyline(ctx context.Context, q *db.Queries, t db.Track) (string, error) {
+// computePreviewPolylines loads the track blob, parses it, and returns the
+// 5 m and 50 m simplified polylines encoded as varint byte slices.
+func computePreviewPolylines(ctx context.Context, q *db.Queries, t db.Track) ([]byte, []byte, error) {
 	b, err := blob.Get(ctx, q, t.BlobID)
 	if err != nil {
-		return "", fmt.Errorf("get blob: %w", err)
+		return nil, nil, fmt.Errorf("get blob: %w", err)
 	}
 	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
 	if err != nil {
-		return "", fmt.Errorf("parse blob: %w", err)
+		return nil, nil, fmt.Errorf("parse blob: %w", err)
 	}
 	tr, err := track.New(src)
 	if err != nil {
-		return "", fmt.Errorf("new track: %w", err)
+		return nil, nil, fmt.Errorf("new track: %w", err)
 	}
-	simplified := tr.Points().SimplifyDP(track.PreviewPolylineEpsilonM)
-	return track.EncodePolyline(simplified), nil
+	pts := tr.Points()
+	dp5, err := track.EncodeVarint(pts.SimplifyDP(track.PreviewPolylineEpsilon5M))
+	if err != nil {
+		return nil, nil, fmt.Errorf("encode dp5m: %w", err)
+	}
+	dp50, err := track.EncodeVarint(pts.SimplifyDP(track.PreviewPolylineEpsilon50M))
+	if err != nil {
+		return nil, nil, fmt.Errorf("encode dp50m: %w", err)
+	}
+	return dp5, dp50, nil
 }
 
 // EnqueueBackfillPreviewPolylineIfNeeded enqueues a single backfill job
 // when at least one track still lacks a preview polyline. Safe to call on
 // every startup; the job itself reschedules until everything is processed.
 func EnqueueBackfillPreviewPolylineIfNeeded(ctx context.Context, d *db.DB, s *Submitter) error {
-	n, err := d.QueryRO().CountTracksMissingPreviewPolyline(ctx)
+	n, err := d.QueryRO().CountTracksMissingPreviewPolylines(ctx)
 	if err != nil {
 		return fmt.Errorf("count missing preview polylines: %w", err)
 	}
