@@ -425,10 +425,19 @@ export default function TracksMapView({
         </div>
       )}
 
-      {data && data.totalCount > data.tracks.length && (
-        <div className="absolute left-2 top-2 max-w-[80%] rounded bg-panel/95 px-3 py-1.5 text-xs text-text ring-1 ring-border">
-          Showing {data.tracks.length} of {data.totalCount} matching tracks
-          (limit {data.limit}). Refine filters to see fewer.
+      {data && (
+        <div className="absolute bottom-2 left-2 max-w-[80%] rounded bg-panel/95 px-3 py-1.5 text-xs text-text ring-1 ring-border">
+          {data.totalCount > data.tracks.length ? (
+            <>
+              Showing {data.tracks.length} of {data.totalCount} matching tracks
+              (cap {data.limit}). Refine filters to see fewer.
+            </>
+          ) : (
+            <>
+              Showing {data.tracks.length} matching track
+              {data.tracks.length === 1 ? "" : "s"} (cap {data.limit}).
+            </>
+          )}
           {data.pendingCount > 0 && (
             <> {data.pendingCount} still being processed.</>
           )}
