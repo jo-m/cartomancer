@@ -934,6 +934,239 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/polylines:
+    get:
+      summary: List preview polylines for matching tracks
+      operationId: listTrackPolylines
+      tags: [Tracks]
+      description: >
+        Returns the simplified, encoded preview polylines for tracks matching
+        the same filters as listTracks (page/pageSize are ignored). Used by
+        the map view. Up to a fixed server-side limit of tracks is returned;
+        clients should display a banner when totalCount exceeds the result
+        size. pendingCount reports how many matching tracks still lack a
+        backfilled polyline. The response is ETagged so revalidation is cheap.
+      parameters:
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [created_at, total_distance_m, total_ascent_m]
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+        - name: public
+          in: query
+          schema:
+            type: boolean
+        - name: onlyMine
+          in: query
+          schema:
+            type: boolean
+        - name: onlyStarred
+          in: query
+          schema:
+            type: boolean
+        - name: fileFormat
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+        - name: trackType
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+        - name: sport
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+        - name: subSport
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+          style: form
+          explode: true
+        - name: tag
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - name: tagsAnd
+          in: query
+          schema:
+            type: boolean
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: description
+          in: query
+          schema:
+            type: string
+        - name: source
+          in: query
+          schema:
+            type: string
+        - name: createdAtMin
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: createdAtMax
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: updatedAtMin
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: updatedAtMax
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: originalCreatedAtMin
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: originalCreatedAtMax
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: totalDistanceMMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: totalDistanceMMax
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: totalAscentMMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: totalAscentMMax
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: startLatMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: startLatMax
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: startLonMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: startLonMax
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: endLatMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: endLatMax
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: endLonMin
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: endLonMax
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: startNearLat
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: startNearLon
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: startNearRadiusM
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: endNearLat
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: endNearLon
+          in: query
+          schema:
+            type: number
+            format: double
+        - name: endNearRadiusM
+          in: query
+          schema:
+            type: number
+            format: double
+      responses:
+        "200":
+          description: List of matching tracks with encoded preview polylines
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListTrackPolylinesResponse"
+        "304":
+          description: Cached response is still valid
+        "400":
+          description: Invalid filter parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /tracks/{uuid}:
     get:
       summary: Get a track by UUID
@@ -3241,6 +3474,62 @@ components:
           type: integer
         pageSize:
           type: integer
+
+    TrackPolylineEntry:
+      type: object
+      required:
+        - uuid
+        - name
+        - userId
+        - userName
+        - totalDistanceM
+        - totalAscentM
+        - polyline
+        - starred
+      properties:
+        uuid:
+          type: string
+        name:
+          type: string
+        userId:
+          type: string
+        userName:
+          type: string
+        totalDistanceM:
+          type: number
+          format: double
+        totalAscentM:
+          type: number
+          format: double
+        bounds:
+          $ref: "#/components/schemas/BBox"
+        polyline:
+          type: string
+          description: Google encoded polyline (precision 5).
+        starred:
+          type: boolean
+
+    ListTrackPolylinesResponse:
+      type: object
+      required:
+        - tracks
+        - totalCount
+        - pendingCount
+        - limit
+      properties:
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPolylineEntry"
+        totalCount:
+          type: integer
+          description: Total tracks matching the filters, regardless of polyline state.
+        pendingCount:
+          type: integer
+          description: Matching tracks whose preview polyline has not yet been backfilled.
+        limit:
+          type: integer
+          description: Maximum number of tracks returned in this response.
 
     TagSuggestionResponse:
       type: object

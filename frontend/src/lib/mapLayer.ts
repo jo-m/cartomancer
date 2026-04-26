@@ -67,6 +67,21 @@ export function computeTrackBbox(
 }
 
 /**
+ * Returns the union of two bounding boxes. A null input is treated as an
+ * empty bbox so unionBbox(null, x) === x.
+ */
+export function unionBbox(a: Bbox | null, b: Bbox | null): Bbox | null {
+  if (!a) return b
+  if (!b) return a
+  return {
+    minLat: Math.min(a.minLat, b.minLat),
+    maxLat: Math.max(a.maxLat, b.maxLat),
+    minLon: Math.min(a.minLon, b.minLon),
+    maxLon: Math.max(a.maxLon, b.maxLon),
+  }
+}
+
+/**
  * Selects the appropriate tile layer for a given track bounding box.
  *
  * Returns "swisstopo" if the track lies entirely within the SwissTopo

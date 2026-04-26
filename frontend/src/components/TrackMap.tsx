@@ -9,12 +9,11 @@ import VectorSource from "ol/source/Vector"
 import WMTS from "ol/source/WMTS"
 import Feature from "ol/Feature"
 import GeoJSON from "ol/format/GeoJSON"
-import { fromLonLat } from "ol/proj"
 import { isEmpty as extentIsEmpty } from "ol/extent"
 import { LineString, Point } from "ol/geom"
 import { Circle, Fill, Stroke, Style, Icon } from "ol/style"
 import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
-import { lv95, proj4 } from "../lib/proj"
+import { lv95, projectPoint } from "../lib/proj"
 import { PMTilesVectorSource } from "ol-pmtiles"
 
 import type { MapLayer } from "../lib/mapLayer"
@@ -147,18 +146,6 @@ const closureStyleHover = [
     }),
   }),
 ]
-
-/** Projects a WGS84 lon/lat point into the map projection for the given layer type. */
-function projectPoint(
-  lon: number,
-  lat: number,
-  layerType: MapLayer["type"]
-): number[] {
-  if (layerType === "swisstopo") {
-    return proj4("EPSG:4326", "EPSG:2056", [lon, lat])
-  }
-  return fromLonLat([lon, lat])
-}
 
 /** Props for the TrackMap component. */
 interface TrackMapProps {

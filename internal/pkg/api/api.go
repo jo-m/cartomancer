@@ -93,6 +93,7 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 
 	// Public read endpoints: accessible without authentication.
 	mux.Get("/tracks", sv.handleListTracks)
+	mux.Get("/tracks/polylines", sv.handleListTrackPolylines)
 	mux.Get("/tracks/statistics", sv.handleTrackStatistics)
 	mux.Get("/tracks/{uuid}", sv.handleGetTrack)
 	mux.Get("/tracks/{uuid}/download", sv.handleDownloadTrackBlob)

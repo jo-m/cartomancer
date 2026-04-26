@@ -57,3 +57,12 @@ SET updated_at = ?,
     public = ?
 WHERE uuid = ?
 RETURNING *;
+
+-- name: SetTrackPreviewPolyline :exec
+UPDATE tracks SET preview_polyline = ? WHERE uuid = ?;
+
+-- name: CountTracksMissingPreviewPolyline :one
+SELECT COUNT(*) FROM tracks WHERE preview_polyline IS NULL;
+
+-- name: NextTrackMissingPreviewPolyline :one
+SELECT uuid FROM tracks WHERE preview_polyline IS NULL ORDER BY uuid LIMIT 1;
