@@ -19,6 +19,7 @@ import { lv95, projectPoint } from "../lib/proj"
 import { selectMapLayer, unionBbox } from "../lib/mapLayer"
 import type { Bbox, MapLayer } from "../lib/mapLayer"
 import { createPmtilesStyleFn } from "../lib/pmtilesStyle"
+import { trackColorFromUUID } from "../lib/trackColor"
 import SvgPreview from "./SvgPreview"
 import { formatDistance, formatAscent } from "../lib/format"
 import { stringParam, useUrlState } from "../hooks/useUrlState"
@@ -53,12 +54,19 @@ interface PopoverState {
   pixel: [number, number]
 }
 
-const baseStyle = [
-  new Style({
-    stroke: new Stroke({ color: "rgba(255,255,255,0.85)", width: 4 }),
-  }),
-  new Style({ stroke: new Stroke({ color: "#7c3aed", width: 2 }) }),
-]
+/**
+ * Default style for an unselected, unhovered track. The white halo provides
+ * contrast against any basemap; the inner stroke uses the track's stable
+ * UUID-derived color so adjacent tracks remain distinguishable.
+ */
+function makeBaseStyle(color: string): Style[] {
+  return [
+    new Style({
+      stroke: new Stroke({ color: "rgba(255,255,255,0.85)", width: 4 }),
+    }),
+    new Style({ stroke: new Stroke({ color, width: 2 }) }),
+  ]
+}
 
 const hoverStyle = [
   new Style({ stroke: new Stroke({ color: "#ffffff", width: 6 }) }),
@@ -69,6 +77,11 @@ const selectedStyle = [
   new Style({ stroke: new Stroke({ color: "#ffffff", width: 5 }) }),
   new Style({ stroke: new Stroke({ color: "#22c55e", width: 3 }) }),
 ]
+
+/** Returns the base style for a track, looking up its UUID-derived color. */
+function baseStyleFor(uuid: string): Style[] {
+  return makeBaseStyle(trackColorFromUUID(uuid))
+}
 
 /**
  * Parses the m URL parameter shape "lat,lon,zoom" used to persist map
@@ -248,7 +261,7 @@ export default function TracksMapView({
       f.set("trackTotalDistanceM", t.totalDistanceM)
       f.set("trackTotalAscentM", t.totalAscentM)
       f.set("trackIndex", i)
-      f.setStyle(selected.has(t.uuid) ? selectedStyle : baseStyle)
+      f.setStyle(selected.has(t.uuid) ? selectedStyle : baseStyleFor(t.uuid))
       source.addFeature(f)
       featureMap.set(t.uuid, f)
     }
@@ -308,7 +321,7 @@ export default function TracksMapView({
       if (hoveredFeatureRef.current && hoveredFeatureRef.current !== hovered) {
         const prev = hoveredFeatureRef.current
         const uuid = prev.get("trackUuid") as string
-        prev.setStyle(selected.has(uuid) ? selectedStyle : baseStyle)
+        prev.setStyle(selected.has(uuid) ? selectedStyle : baseStyleFor(uuid))
         hoveredFeatureRef.current = null
       }
 
@@ -335,7 +348,7 @@ export default function TracksMapView({
       if (hoveredFeatureRef.current) {
         const prev = hoveredFeatureRef.current
         const uuid = prev.get("trackUuid") as string
-        prev.setStyle(selected.has(uuid) ? selectedStyle : baseStyle)
+        prev.setStyle(selected.has(uuid) ? selectedStyle : baseStyleFor(uuid))
         hoveredFeatureRef.current = null
       }
       setPopover(null)
