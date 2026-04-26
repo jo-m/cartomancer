@@ -101,7 +101,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Filtering
   - [ ] Unknown sport or subsport
   - [ ] By start location (1km radius?)
-- [ ] Make minRefreshAge for maps etc. a public const and use it also for job scheduling
+- [x] Make minRefreshAge for maps etc. a public const and use it also for job scheduling
 
 ## Before initial push/deploy
 

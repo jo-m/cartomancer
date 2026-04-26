@@ -406,11 +406,11 @@ func main() {
 	jobs.MustRegisterJob(w, segment.NewBuilder(d))
 
 	jobs.MustRegisterJob(w, roadclosures.NewDownloader(d))
-	jobs.Periodic(ctxJobs, w.Submitter(), roadclosures.DownloaderArgs{}, 24*time.Hour, true)
+	jobs.Periodic(ctxJobs, w.Submitter(), roadclosures.DownloaderArgs{}, roadclosures.MinRefreshAge+time.Hour, true)
 
 	mapsDir := filepath.Join(dataDir, "maps")
 	jobs.MustRegisterJob(w, maps.NewDownloader(d, c.MapsConfig, mapsDir))
-	jobs.Periodic(ctxJobs, w.Submitter(), maps.DownloaderArgs{}, 72*time.Hour, true)
+	jobs.Periodic(ctxJobs, w.Submitter(), maps.DownloaderArgs{}, maps.MinRefreshAge+time.Hour, true)
 	jobs.MustRegisterJob(w, maps.NewCleaner(d, mapsDir))
 	jobs.Periodic(ctxJobs, w.Submitter(), maps.CleanerArgs{}, 2*time.Hour, true)
 
