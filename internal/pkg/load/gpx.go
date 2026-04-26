@@ -216,7 +216,12 @@ func (g *GPX) Metadata() track.Metadata {
 
 	// Strava route.
 	if g.XMetadata.Link != nil {
-		ret.LinkURL = g.XMetadata.Link.Href
+		href := g.XMetadata.Link.Href
+		// Garmin Connect exports omit the scheme (e.g. "connect.garmin.com").
+		if !strings.Contains(href, "://") {
+			href = "https://" + href
+		}
+		ret.LinkURL = href
 	}
 	if g.XMetadata.Author != nil {
 		ret.Author = g.XMetadata.Author.Name
