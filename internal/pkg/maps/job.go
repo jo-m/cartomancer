@@ -18,8 +18,8 @@ const (
 	// jobTimeout is the maximum time the map download job may run.
 	jobTimeout = 60 * time.Minute
 
-	// minRefreshAge is the minimum age of the last successful build before a new one is attempted.
-	minRefreshAge = 70 * time.Hour
+	// MinRefreshAge is the minimum age of the last successful build before a new one is attempted.
+	MinRefreshAge = 71 * time.Hour
 )
 
 // DownloaderArgs are the arguments for the map downloader job.
@@ -73,7 +73,7 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		if specErr != nil && !errors.Is(specErr, sql.ErrNoRows) {
 			return fmt.Errorf("check latest build for spec: %w", specErr)
 		}
-		if errors.Is(specErr, sql.ErrNoRows) || time.Since(latest.CreatedAt) >= minRefreshAge {
+		if errors.Is(specErr, sql.ErrNoRows) || time.Since(latest.CreatedAt) >= MinRefreshAge {
 			allFresh = false
 			break
 		}
