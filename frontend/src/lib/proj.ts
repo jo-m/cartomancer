@@ -1,5 +1,5 @@
 import { register } from "ol/proj/proj4"
-import { get as getProjection } from "ol/proj"
+import { get as getProjection, fromLonLat } from "ol/proj"
 import proj4 from "proj4"
 
 proj4.defs(
@@ -10,5 +10,22 @@ register(proj4)
 
 /** The Swiss LV95 projection (EPSG:2056), registered with OpenLayers. */
 export const lv95 = getProjection("EPSG:2056")!
+
+/**
+ * Projects a WGS84 lon/lat point into the projection used by the given map
+ * layer type. SwissTopo uses LV95 (EPSG:2056); all other layers use Web
+ * Mercator (EPSG:3857). The result is a coordinate suitable for OpenLayers
+ * geometries.
+ */
+export function projectPoint(
+  lon: number,
+  lat: number,
+  layerType: "swisstopo" | "pmtiles" | "none"
+): number[] {
+  if (layerType === "swisstopo") {
+    return proj4("EPSG:4326", "EPSG:2056", [lon, lat])
+  }
+  return fromLonLat([lon, lat])
+}
 
 export { proj4 }

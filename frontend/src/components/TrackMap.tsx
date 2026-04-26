@@ -9,17 +9,21 @@ import VectorSource from "ol/source/Vector"
 import WMTS from "ol/source/WMTS"
 import Feature from "ol/Feature"
 import GeoJSON from "ol/format/GeoJSON"
-import { fromLonLat } from "ol/proj"
 import { isEmpty as extentIsEmpty } from "ol/extent"
 import { LineString, Point } from "ol/geom"
 import { Circle, Fill, Stroke, Style, Icon } from "ol/style"
 import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
-import { lv95, proj4 } from "../lib/proj"
+import { lv95, projectPoint } from "../lib/proj"
 import { PMTilesVectorSource } from "ol-pmtiles"
 
 import type { MapLayer } from "../lib/mapLayer"
 import { createPmtilesStyleFn } from "../lib/pmtilesStyle"
+import {
+  TRACK_LINE_HALO_WIDTH,
+  TRACK_LINE_INNER_WIDTH,
+} from "../lib/trackMapStyle"
 import type { HoverStore } from "../hooks/useHoverSync"
+import MapAttribution from "./MapAttribution"
 
 import "ol/ol.css"
 
@@ -148,18 +152,6 @@ const closureStyleHover = [
   }),
 ]
 
-/** Projects a WGS84 lon/lat point into the map projection for the given layer type. */
-function projectPoint(
-  lon: number,
-  lat: number,
-  layerType: MapLayer["type"]
-): number[] {
-  if (layerType === "swisstopo") {
-    return proj4("EPSG:4326", "EPSG:2056", [lon, lat])
-  }
-  return fromLonLat([lon, lat])
-}
-
 /** Props for the TrackMap component. */
 interface TrackMapProps {
   /** Array of track point objects in WGS84. */
@@ -233,8 +225,12 @@ export default memo(function TrackMap({
       geometry: new LineString(coords),
     })
     trackFeature.setStyle([
-      new Style({ stroke: new Stroke({ color: "#ffffff", width: 7 }) }),
-      new Style({ stroke: new Stroke({ color, width: 4 }) }),
+      new Style({
+        stroke: new Stroke({ color: "#ffffff", width: TRACK_LINE_HALO_WIDTH }),
+      }),
+      new Style({
+        stroke: new Stroke({ color, width: TRACK_LINE_INNER_WIDTH }),
+      }),
     ])
 
     const startFeature = new Feature({ geometry: new Point(coords[0]) })
@@ -503,7 +499,6 @@ export default memo(function TrackMap({
   }, [closures])
 
   const isNone = layer.type === "none"
-  const isSwiss = layer.type === "swisstopo"
 
   return (
     <div
@@ -551,42 +546,7 @@ export default memo(function TrackMap({
           </div>
         )}
       </div>
-      <div className="pointer-events-none absolute bottom-0 right-0 z-10 px-1.5 py-0.5 text-xs text-text-muted bg-panel/80">
-        {isSwiss ? (
-          <>
-            Map data:&nbsp;
-            <a
-              href="https://www.swisstopo.admin.ch/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pointer-events-auto hover:underline"
-            >
-              SwissTopo
-            </a>
-          </>
-        ) : !isNone ? (
-          <>
-            Map data:&nbsp;
-            <a
-              href="https://protomaps.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pointer-events-auto hover:underline"
-            >
-              Protomaps
-            </a>
-            {" © "}
-            <a
-              href="https://openstreetmap.org/copyright"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pointer-events-auto hover:underline"
-            >
-              OpenStreetMap
-            </a>
-          </>
-        ) : null}
-      </div>
+      <MapAttribution layer={layer} />
     </div>
   )
 })

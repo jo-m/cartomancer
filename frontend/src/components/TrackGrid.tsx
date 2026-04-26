@@ -1,4 +1,12 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  lazy,
+  Suspense,
+} from "react"
 import { $api } from "../api/client"
 import {
   useUrlState,
@@ -15,6 +23,7 @@ import Toast from "./Toast"
 import useToast from "../hooks/useToast"
 import Button from "./ui/Button"
 import Select from "./ui/Select"
+import ToggleGroup from "./ui/ToggleGroup"
 import PageContainer from "./ui/PageContainer"
 import { useQueryClient } from "@tanstack/react-query"
 import TrackFilters from "./TrackFilters"
@@ -22,11 +31,14 @@ import type { LiveFilters } from "./TrackFilters"
 import TrackCard from "./TrackCard"
 import BulkEditToolbar from "./BulkEditToolbar"
 
+const TracksMapView = lazy(() => import("./TracksMapView"))
+
 const DEFAULT_PAGE_SIZE = 24
 const PAGE_SIZE_OPTIONS = [12, 24, 48, 96]
 
 export type SortBy = "created_at" | "total_distance_m" | "total_ascent_m"
 export type SortOrder = "asc" | "desc"
+export type ViewMode = "list" | "map"
 
 export interface TrackGridProps {
   mode: "public" | "user"
@@ -50,6 +62,7 @@ const urlSchema = {
   order: enumParam("desc" as SortOrder, ["asc", "desc"] as const),
   page: numberParam(1),
   pageSize: numberParam(DEFAULT_PAGE_SIZE),
+  view: enumParam("list" as ViewMode, ["list", "map"] as const),
 }
 
 /** Converts URL state to LiveFilters. */
@@ -162,12 +175,11 @@ export default function TrackGrid({ mode }: TrackGridProps) {
     publicParam = false
   }
 
-  const trackTypeParam: number[] | undefined =
-    applied.trackType === "recorded"
-      ? [2]
-      : applied.trackType === "planned"
-        ? [1]
-        : undefined
+  const trackTypeParam: number[] | undefined = useMemo(() => {
+    if (applied.trackType === "recorded") return [2]
+    if (applied.trackType === "planned") return [1]
+    return undefined
+  }, [applied.trackType])
 
   const starMutation = $api.useMutation("post", "/tracks/{uuid}/star")
   const unstarMutation = $api.useMutation("delete", "/tracks/{uuid}/star")
@@ -209,37 +221,56 @@ export default function TrackGrid({ mode }: TrackGridProps) {
     setLastClickedIndex(null)
   }
 
-  const { data, isLoading, error } = $api.useQuery("get", "/tracks", {
-    params: {
-      query: {
-        page,
-        pageSize: pageSize,
-        onlyMine,
-        ...(publicParam !== undefined ? { public: publicParam } : {}),
-        ...(trackTypeParam ? { trackType: trackTypeParam } : {}),
-        ...(applied.onlyStarred && user ? { onlyStarred: true } : {}),
-        ...(applied.search ? { name: applied.search } : {}),
-        ...(applied.sports.length > 0 ? { sport: applied.sports } : {}),
-        ...(applied.subSports.length > 0
-          ? { subSport: applied.subSports }
-          : {}),
-        ...(applied.tags.length > 0 ? { tag: applied.tags } : {}),
-        ...(applied.tags.length > 1 ? { tagsAnd: applied.tagsAnd } : {}),
-        ...(appliedDistMin > 0
-          ? { totalDistanceMMin: appliedDistMin * 1000 }
-          : {}),
-        ...(absMaxDistKm > 0 && appliedDistMax < absMaxDistKm
-          ? { totalDistanceMMax: appliedDistMax * 1000 }
-          : {}),
-        ...(appliedAscentMin > 0 ? { totalAscentMMin: appliedAscentMin } : {}),
-        ...(absMaxAscentM > 0 && appliedAscentMax < absMaxAscentM
-          ? { totalAscentMMax: appliedAscentMax }
-          : {}),
-        sortBy: applied.sortBy,
-        sortOrder: applied.sortOrder,
-      },
+  const sharedQuery = useMemo(
+    () => ({
+      onlyMine,
+      ...(publicParam !== undefined ? { public: publicParam } : {}),
+      ...(trackTypeParam ? { trackType: trackTypeParam } : {}),
+      ...(applied.onlyStarred && user ? { onlyStarred: true } : {}),
+      ...(applied.search ? { name: applied.search } : {}),
+      ...(applied.sports.length > 0 ? { sport: applied.sports } : {}),
+      ...(applied.subSports.length > 0 ? { subSport: applied.subSports } : {}),
+      ...(applied.tags.length > 0 ? { tag: applied.tags } : {}),
+      ...(applied.tags.length > 1 ? { tagsAnd: applied.tagsAnd } : {}),
+      ...(appliedDistMin > 0
+        ? { totalDistanceMMin: appliedDistMin * 1000 }
+        : {}),
+      ...(absMaxDistKm > 0 && appliedDistMax < absMaxDistKm
+        ? { totalDistanceMMax: appliedDistMax * 1000 }
+        : {}),
+      ...(appliedAscentMin > 0 ? { totalAscentMMin: appliedAscentMin } : {}),
+      ...(absMaxAscentM > 0 && appliedAscentMax < absMaxAscentM
+        ? { totalAscentMMax: appliedAscentMax }
+        : {}),
+      sortBy: applied.sortBy,
+      sortOrder: applied.sortOrder,
+    }),
+    [
+      onlyMine,
+      publicParam,
+      trackTypeParam,
+      user,
+      applied,
+      appliedDistMin,
+      appliedDistMax,
+      appliedAscentMin,
+      appliedAscentMax,
+      absMaxDistKm,
+      absMaxAscentM,
+    ]
+  )
+
+  const view = urlState.view
+  const isMap = view === "map"
+
+  const { data, isLoading, error } = $api.useQuery(
+    "get",
+    "/tracks",
+    {
+      params: { query: { ...sharedQuery, page, pageSize } },
     },
-  })
+    { enabled: !isMap }
+  )
 
   const totalPages = data ? Math.ceil(data.totalCount / pageSize) : 1
 
@@ -292,9 +323,20 @@ export default function TrackGrid({ mode }: TrackGridProps) {
 
   return (
     <PageContainer>
-      <h1 className="mb-4 text-xl font-semibold text-text">
-        {mode === "public" ? "Public Tracks" : "My Tracks"}
-      </h1>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold text-text">
+          {mode === "public" ? "Public Tracks" : "My Tracks"}
+        </h1>
+        <ToggleGroup<ViewMode>
+          ariaLabel="Track view mode"
+          options={[
+            { value: "list", label: "List" },
+            { value: "map", label: "Map" },
+          ]}
+          value={view}
+          onChange={(v) => setUrlState({ view: v, page: 1 })}
+        />
+      </div>
 
       <TrackFilters
         mode={mode}
@@ -304,87 +346,98 @@ export default function TrackGrid({ mode }: TrackGridProps) {
         absMaxAscentM={absMaxAscentM}
       />
 
-      {isLoading && <p className="text-text-muted">Loading...</p>}
+      {!isMap && isLoading && <p className="text-text-muted">Loading...</p>}
 
-      {error && (
+      {!isMap && error && (
         <p role="alert" className="text-error">
           {error.message}
         </p>
       )}
 
-      {data && (
-        <>
-          {selectionActive && onlyMine && (
-            <BulkEditToolbar
-              selected={selected}
-              onSelectAll={() =>
-                setSelected(new Set(data.tracks.map((t) => t.uuid)))
-              }
-              onClearSelection={clearSelection}
-              onError={showBulkError}
-            />
-          )}
+      {selectionActive && onlyMine && (
+        <BulkEditToolbar
+          selected={selected}
+          onSelectAll={() =>
+            data ? setSelected(new Set(data.tracks.map((t) => t.uuid))) : null
+          }
+          onClearSelection={clearSelection}
+          onError={showBulkError}
+        />
+      )}
 
-          {data.tracks.length === 0 ? (
-            <p className="py-12 text-center text-text-muted">
-              No tracks found.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
-              {data.tracks.map((track, index) => (
-                <TrackCard
-                  key={track.uuid}
-                  track={track}
-                  index={index}
-                  isSelected={selected.has(track.uuid)}
-                  selectionActive={selectionActive}
-                  canSelect={onlyMine && (track.isOwner ?? false)}
-                  showStar={!!user}
-                  onToggleStar={toggleStar}
-                  onSelect={handleTrackClick}
-                />
-              ))}
-            </div>
-          )}
-
-          {(totalPages > 1 || pageSize !== DEFAULT_PAGE_SIZE) && (
-            <div className="mt-8 flex items-center justify-center gap-4">
-              <Button
-                variant="secondary"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="px-3 py-1.5"
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-text-secondary">
-                {page} / {totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                disabled={page === totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="px-3 py-1.5"
-              >
-                Next
-              </Button>
-              <Select
-                value={String(pageSize)}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value))
-                }}
-                className="px-2 py-1.5 text-sm"
-                aria-label="Page size"
-              >
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <option key={size} value={size}>
-                    {size} / page
-                  </option>
+      {isMap ? (
+        <Suspense fallback={<p className="text-text-muted">Loading map...</p>}>
+          <TracksMapView
+            query={sharedQuery}
+            selectionActive={selectionActive}
+            selected={selected}
+            onSelect={handleTrackClick}
+          />
+        </Suspense>
+      ) : (
+        data && (
+          <>
+            {data.tracks.length === 0 ? (
+              <p className="py-12 text-center text-text-muted">
+                No tracks found.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
+                {data.tracks.map((track, index) => (
+                  <TrackCard
+                    key={track.uuid}
+                    track={track}
+                    index={index}
+                    isSelected={selected.has(track.uuid)}
+                    selectionActive={selectionActive}
+                    canSelect={onlyMine && (track.isOwner ?? false)}
+                    showStar={!!user}
+                    onToggleStar={toggleStar}
+                    onSelect={handleTrackClick}
+                  />
                 ))}
-              </Select>
-            </div>
-          )}
-        </>
+              </div>
+            )}
+
+            {(totalPages > 1 || pageSize !== DEFAULT_PAGE_SIZE) && (
+              <div className="mt-8 flex items-center justify-center gap-4">
+                <Button
+                  variant="secondary"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="px-3 py-1.5"
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-text-secondary">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="secondary"
+                  disabled={page === totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="px-3 py-1.5"
+                >
+                  Next
+                </Button>
+                <Select
+                  value={String(pageSize)}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value))
+                  }}
+                  className="px-2 py-1.5 text-sm"
+                  aria-label="Page size"
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size} / page
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
+          </>
+        )
       )}
       {toastError && (
         <Toast
