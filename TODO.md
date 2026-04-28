@@ -135,7 +135,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [ ] Cache go modules and node modules by having them as a separate derivation
   - [x] Enable cross build from x86 to arm
 - [ ] Remove SubsampleLTTB() and use DP instead. Use the pre-encoded previews where possible. Remove/change/update the /tracks/{uuid}/points endpoint.
-- [ ] Remove the track preview backfill job and make the cols non-null once prod is migrated.
+- [ ] Remove the track preview backfill job and make the cols non-null once prod is migrated. Ensure there are no fallbacks to GPX/FIT parsing anywhere they are used.
 - [x] In the track filter view (map mode), add map zoom state to the url so it is persisted when sharing the link or reloading.
 - [ ] Go through the periodic TODOs
 
@@ -183,7 +183,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Map view, showing all tracks and their starting points
 - [ ] Allow to attach images to tracks
 - [ ] Session middleware opens a write transaction on every request
-- [ ] Potentially cache track blob -> track.Track{} for performance.
+- [x] Potentially cache track blob -> track.Track{} for performance.
 
 ## Periodic
 
