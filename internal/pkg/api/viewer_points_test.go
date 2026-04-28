@@ -84,7 +84,7 @@ func TestLoadViewerPoints(t *testing.T) {
 		require.InDelta(t, 0.003, got[len(got)-1].Lat, 1e-9)
 	})
 
-	t.Run("falls back to blob when polyline empty", func(t *testing.T) {
+	t.Run("returns error when polyline not backfilled", func(t *testing.T) {
 		require.NoError(t, d.QueryRW().SetTrackPreviewPolylines(ctx, db.SetTrackPreviewPolylinesParams{
 			Uuid:                created.Uuid,
 			PolylineDp5mVarint:  []byte{},
@@ -94,8 +94,7 @@ func TestLoadViewerPoints(t *testing.T) {
 		row, err := d.QueryRO().GetTrackByUUID(ctx, created.Uuid)
 		require.NoError(t, err)
 
-		got, err := loadViewerPoints(ctx, d.QueryRO(), row, db.PreviewPolyline5M, track.PointsViewerEpsilonM, track.PointsViewerMinDistM)
-		require.NoError(t, err)
-		require.GreaterOrEqual(t, len(got), 2)
+		_, err = loadViewerPoints(ctx, d.QueryRO(), row, db.PreviewPolyline5M, track.PointsViewerEpsilonM, track.PointsViewerMinDistM)
+		require.ErrorIs(t, err, errPreviewPolylineMissing)
 	})
 }
