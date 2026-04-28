@@ -11,10 +11,14 @@ import (
 )
 
 // Point is a single GPS sample with time, coordinates, and elevation.
+// Distance is the cumulative great-circle distance in metres from the first
+// point of the track; it is zero when the point was not created via [New].
+// Time may be zero depending on the context.
 type Point struct {
 	Time      time.Time
 	Lat, Lon  float64
 	Elevation float64
+	Distance  float64
 }
 
 // MetersTo computes the great-circle distance in meters to another point.
@@ -229,11 +233,17 @@ func (pts Points) ProfileSVG(opts PreviewOptions) string {
 		return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d"/>`, w, h)
 	}
 
-	// Compute cumulative distances and find the minimum elevation.
+	// Use pre-computed cumulative distances when available (set by [New]),
+	// falling back to on-the-fly computation for point sets not from a Track.
 	dists := make([]float64, len(pts))
 	minElev := pts[0].Elevation
+	usePrecomputed := pts[len(pts)-1].Distance > 0
 	for i := 1; i < len(pts); i++ {
-		dists[i] = dists[i-1] + pts[i-1].MetersTo(&pts[i])
+		if usePrecomputed {
+			dists[i] = pts[i].Distance
+		} else {
+			dists[i] = dists[i-1] + pts[i-1].MetersTo(&pts[i])
+		}
 		if pts[i].Elevation < minElev {
 			minElev = pts[i].Elevation
 		}
