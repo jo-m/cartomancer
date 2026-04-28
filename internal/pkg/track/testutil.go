@@ -40,5 +40,12 @@ func loadGPXPoints(t *testing.T, path string) Points {
 			}
 		}
 	}
+
+	cumDist := 0.0
+	for i := 1; i < len(pts); i++ {
+		cumDist += pts[i-1].MetersTo(&pts[i])
+		pts[i].Distance = cumDist
+	}
+
 	return pts
 }
