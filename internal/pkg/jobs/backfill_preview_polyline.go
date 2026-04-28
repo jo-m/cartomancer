@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	"jo-m.ch/go/cartomancer/internal/pkg/blob"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
@@ -28,7 +27,7 @@ var _ Args = (*BackfillPreviewPolylineArgs)(nil)
 // backfillRescheduleDelay is the delay applied when the job reschedules
 // itself after successfully processing one track. Whole seconds are
 // required by the job queue.
-const backfillRescheduleDelay = 1 * time.Second
+const backfillRescheduleDelay = 0
 
 // BackfillPreviewPolylineHandler computes and stores preview polylines for
 // tracks that still have NULL polyline_dp5m_varint or polyline_dp50m_varint
