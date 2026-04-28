@@ -307,31 +307,16 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	// Compute ETag before the expensive blob load so 304s are cheap.
-	eTag := fmt.Sprintf(`"%d-%d-v1"`, t.UpdatedAt.UnixMilli(), opts.Size)
+	eTag := fmt.Sprintf(`"%d-%d-v2"`, t.UpdatedAt.UnixMilli(), opts.Size)
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
+	pts, err := loadViewerPoints(ctx, sv.d.QueryRO(), t, db.PreviewPolyline50M, track.ForecastViewerEpsilonM, track.ForecastViewerMinDistM)
 	if err != nil {
-		logg.Error(ctx, "failed to get track blob", "err", err)
+		logg.Error(ctx, "failed to load preview points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
-	if err != nil {
-		logg.Error(ctx, "failed to parse track blob", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	tr, err := track.New(src)
-	if err != nil {
-		logg.Error(ctx, "failed to create track", "err", err)
-		writeStatusError(w, http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -345,7 +330,7 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	svg := []byte(tr.PreviewSVG(opts, bounds))
+	svg := []byte(pts.PreviewSVG(opts, bounds))
 	w.Header().Set(headerContentType, "image/svg+xml")
 	w.Header().Set(headerCacheControl, "private, max-age=3600")
 	w.Header().Set(headerETag, eTag)
@@ -381,35 +366,20 @@ func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Compute ETag before the expensive blob load so 304s are cheap.
-	eTag := fmt.Sprintf(`"%d-%d-v1"`, t.UpdatedAt.UnixMilli(), opts.Size)
+	eTag := fmt.Sprintf(`"%d-%d-v2"`, t.UpdatedAt.UnixMilli(), opts.Size)
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
+	pts, err := loadViewerPoints(ctx, sv.d.QueryRO(), t, db.PreviewPolyline5M, track.PointsViewerEpsilonM, track.PointsViewerMinDistM)
 	if err != nil {
-		logg.Error(ctx, "failed to get track blob", "err", err)
+		logg.Error(ctx, "failed to load profile points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
-	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
-	if err != nil {
-		logg.Error(ctx, "failed to parse track blob", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	tr, err := track.New(src)
-	if err != nil {
-		logg.Error(ctx, "failed to create track", "err", err)
-		writeStatusError(w, http.StatusUnprocessableEntity)
-		return
-	}
-
-	svg := []byte(tr.ProfileSVG(opts))
+	svg := []byte(pts.ProfileSVG(opts))
 	w.Header().Set(headerContentType, "image/svg+xml")
 	w.Header().Set(headerCacheControl, "private, max-age=3600")
 	w.Header().Set(headerETag, eTag)
@@ -466,35 +436,18 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eTag := fmt.Sprintf(`"%d-points-v3"`, t.UpdatedAt.UnixMilli())
+	eTag := fmt.Sprintf(`"%d-points-v4"`, t.UpdatedAt.UnixMilli())
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
+	pts, err := loadViewerPoints(ctx, sv.d.QueryRO(), t, db.PreviewPolyline5M, track.PointsViewerEpsilonM, track.PointsViewerMinDistM)
 	if err != nil {
-		logg.Error(ctx, "failed to get track blob", "err", err)
+		logg.Error(ctx, "failed to load viewer points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
-
-	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
-	if err != nil {
-		logg.Error(ctx, "failed to parse track blob", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	tr, err := track.New(src)
-	if err != nil {
-		logg.Error(ctx, "failed to create track", "err", err)
-		writeStatusError(w, http.StatusUnprocessableEntity)
-		return
-	}
-	pts := tr.Points().SubsampleLTTB(TrackPointsTarget, func(p track.Point) float64 {
-		return p.Elevation
-	})
 
 	points := make([]trackPoint, len(pts))
 	cumDist := 0.0
@@ -1302,10 +1255,6 @@ func boolToInt(b bool) int {
 	}
 	return 0
 }
-
-// TrackPointsTarget is the maximum number of points returned by the points
-// endpoint. Tracks with more points are down-sampled using LTTB.
-const TrackPointsTarget = 1000
 
 const (
 	maxUploadSize         = 5 << 20 // 5 MiB

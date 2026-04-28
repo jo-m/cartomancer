@@ -13,7 +13,6 @@ import type { HoverStore } from "../hooks/useHoverSync"
 import { externalUrl } from "../lib/externalUrl"
 
 export interface ForecastPoint {
-  index: number
   distanceM: number
   time: string
   temperatureC: number | null
@@ -30,7 +29,6 @@ export interface SunEvent {
 }
 
 interface ChartDatum {
-  index: number
   ts: number
   dKm: number
   temperatureC: number | null
@@ -53,6 +51,7 @@ interface Props {
   points: ForecastPoint[]
   units: ForecastUnits
   hoverStore: HoverStore
+  trackDistancesM?: number[]
   attribution?: { text: string; href: string }
   sunEvents?: SunEvent[]
 }
@@ -183,6 +182,7 @@ export default function ForecastChart({
   points,
   units,
   hoverStore,
+  trackDistancesM,
   attribution,
   sunEvents,
 }: Props) {
@@ -204,7 +204,6 @@ export default function ForecastChart({
               ) / 10
             : null
         return {
-          index: p.index,
           ts: new Date(p.time).getTime(),
           dKm: Math.round((p.distanceM / 1000) * 100) / 100,
           temperatureC:
@@ -244,14 +243,22 @@ export default function ForecastChart({
     [data]
   )
 
-  /** Finds the nearest forecast datum for a track point index. */
+  /** Finds the nearest forecast datum for a track point index by distance. */
   const findNearestDatum = useCallback(
     (trackIdx: number): ChartDatum | null => {
       if (data.length === 0) return null
+      if (
+        !trackDistancesM ||
+        trackIdx < 0 ||
+        trackIdx >= trackDistancesM.length
+      ) {
+        return null
+      }
+      const targetKm = trackDistancesM[trackIdx] / 1000
       let best = 0
-      let bestDist = Math.abs(data[0].index - trackIdx)
+      let bestDist = Math.abs(data[0].dKm - targetKm)
       for (let i = 1; i < data.length; i++) {
-        const dist = Math.abs(data[i].index - trackIdx)
+        const dist = Math.abs(data[i].dKm - targetKm)
         if (dist < bestDist) {
           bestDist = dist
           best = i
@@ -259,7 +266,26 @@ export default function ForecastChart({
       }
       return data[best]
     },
-    [data]
+    [data, trackDistancesM]
+  )
+
+  /** Finds the nearest track point index for a distance in km. */
+  const trackIdxForDKm = useCallback(
+    (dKm: number): number | null => {
+      if (!trackDistancesM || trackDistancesM.length === 0) return null
+      const targetM = dKm * 1000
+      let best = 0
+      let bestDist = Math.abs(trackDistancesM[0] - targetM)
+      for (let i = 1; i < trackDistancesM.length; i++) {
+        const dist = Math.abs(trackDistancesM[i] - targetM)
+        if (dist < bestDist) {
+          bestDist = dist
+          best = i
+        }
+      }
+      return best
+    },
+    [trackDistancesM]
   )
 
   const handleMouseMove = useCallback(
@@ -279,18 +305,11 @@ export default function ForecastChart({
       const minDKm = data[0].dKm
       const maxDKm = data[data.length - 1].dKm
       const dKm = minDKm + fraction * (maxDKm - minDKm)
-      let best = 0
-      let bestDist = Math.abs(data[0].dKm - dKm)
-      for (let i = 1; i < data.length; i++) {
-        const dist = Math.abs(data[i].dKm - dKm)
-        if (dist < bestDist) {
-          bestDist = dist
-          best = i
-        }
-      }
-      hoverStore.set(data[best].index)
+      const idx = trackIdxForDKm(dKm)
+      if (idx == null) return
+      hoverStore.set(idx)
     },
-    [hoverStore, data]
+    [hoverStore, data, trackIdxForDKm]
   )
 
   const handleMouseLeave = useCallback(() => {

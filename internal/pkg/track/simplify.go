@@ -11,6 +11,36 @@ const (
 	PreviewPolylineEpsilon50M = 50.0
 )
 
+// Viewer-resolution parameters used by [Points.SimplifyForView] for the
+// per-track detail endpoints. The DP epsilon controls how aggressively
+// near-collinear points are dropped; the min-distance threshold caps the
+// resulting density on dense recordings.
+//
+// PointsViewerEpsilonM / PointsViewerMinDistM target the track detail page
+// (map polyline plus elevation chart). The 25 m floor caps the count for
+// 1 Hz FIT files at slow speeds without losing visible detail.
+//
+// ForecastViewerEpsilonM / ForecastViewerMinDistM target the forecast time
+// series. The 500 m spacing roughly matches the ~1.1 km native ICON-CH1-EPS
+// grid spacing.
+const (
+	PointsViewerEpsilonM   = 5.0
+	PointsViewerMinDistM   = 25.0
+	ForecastViewerEpsilonM = 50.0
+	ForecastViewerMinDistM = 500.0
+)
+
+// SimplifyForView returns a sparse view of pts suitable for client-side
+// rendering: first DP-simplified by epsilonM metres of perpendicular
+// distance, then thinned so consecutive points are at least minDistM metres
+// apart along the track. The first and last points are always kept.
+//
+// Both passes are no-ops for non-positive parameters; for an empty or
+// single-point input the original slice is returned.
+func (pts Points) SimplifyForView(epsilonM, minDistM float64) Points {
+	return pts.SimplifyDP(epsilonM).Subsample(minDistM)
+}
+
 // SimplifyDP applies the Douglas-Peucker algorithm to pts and returns a
 // simplified polyline whose points lie within epsilonM metres of the
 // original. The first and last points are always kept.

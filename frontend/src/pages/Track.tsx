@@ -54,6 +54,11 @@ export default function Track() {
     | { lat: number; lon: number; ele: number; d: number }[]
     | undefined
 
+  const trackDistancesM = useMemo(
+    () => trackPoints?.map((p) => p.d),
+    [trackPoints]
+  )
+
   const { data: closuresData } = $api.useQuery(
     "get",
     "/tracks/{uuid}/road-closures",
@@ -86,7 +91,7 @@ export default function Track() {
   const forecast = useForecast(
     uuid,
     data?.totalDistanceM,
-    trackPoints?.length,
+    trackDistancesM,
     onForecastError
   )
 
@@ -348,6 +353,7 @@ export default function Track() {
           points={forecast.forecastPoints}
           units={forecast.forecastUnits}
           hoverStore={hoverStore}
+          trackDistancesM={trackDistancesM}
           attribution={forecast.forecastAttribution}
           sunEvents={forecast.sunEvents}
         />

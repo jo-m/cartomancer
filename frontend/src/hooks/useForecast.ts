@@ -43,7 +43,7 @@ export interface UseForecastResult {
 export function useForecast(
   uuid: string | undefined,
   totalDistanceM: number | undefined,
-  trackPointsLength: number | undefined,
+  trackDistancesM: number[] | undefined,
   onError: (msg: string) => void
 ): UseForecastResult {
   const [forecastPoints, setForecastPoints] = useState<ForecastPoint[] | null>(
@@ -62,9 +62,11 @@ export function useForecast(
   const [speedKmh, setSpeedKmh] = useState(28)
 
   const forecastTimes = useMemo(() => {
-    if (!forecastPoints || !trackPointsLength) return undefined
-    return buildForecastTimes(forecastPoints, trackPointsLength)
-  }, [forecastPoints, trackPointsLength])
+    if (!forecastPoints || !trackDistancesM || trackDistancesM.length === 0) {
+      return undefined
+    }
+    return buildForecastTimes(forecastPoints, trackDistancesM)
+  }, [forecastPoints, trackDistancesM])
 
   const estDurationH =
     totalDistanceM && speedKmh > 0 ? totalDistanceM / 1000 / speedKmh : 0

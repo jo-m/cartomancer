@@ -76,6 +76,40 @@ func TestSimplifyDP(t *testing.T) {
 	})
 }
 
+func TestSimplifyForView(t *testing.T) {
+	t.Run("nil input", func(t *testing.T) {
+		require.Nil(t, Points(nil).SimplifyForView(5, 25))
+	})
+
+	t.Run("two points pass through", func(t *testing.T) {
+		pts := Points{{Lat: 0, Lon: 0}, {Lat: 0, Lon: 1}}
+		got := pts.SimplifyForView(5, 25)
+		require.Equal(t, pts, got)
+	})
+
+	t.Run("dense recording is thinned", func(t *testing.T) {
+		// 0.0001 deg ~ 11 m spacing along the equator; 200 such points span ~2.2 km.
+		pts := make(Points, 200)
+		for i := range pts {
+			pts[i] = Point{Lat: 0, Lon: float64(i) * 0.0001}
+		}
+		got := pts.SimplifyForView(5, 25)
+		require.Less(t, len(got), len(pts))
+		require.GreaterOrEqual(t, len(got), 2)
+		require.Equal(t, pts[0], got[0])
+		require.Equal(t, pts[len(pts)-1], got[len(got)-1])
+	})
+
+	t.Run("real GPX is reduced", func(t *testing.T) {
+		pts := loadGPXPoints(t, "../load/testdata/COURSE_436298480.gpx")
+		got := pts.SimplifyForView(PointsViewerEpsilonM, PointsViewerMinDistM)
+		require.Less(t, len(got), len(pts))
+		require.GreaterOrEqual(t, len(got), 2)
+		require.Equal(t, pts[0], got[0])
+		require.Equal(t, pts[len(pts)-1], got[len(got)-1])
+	})
+}
+
 func TestPerpendicularDistanceM(t *testing.T) {
 	// Build a 1km east-west segment near the equator.
 	a := Point{Lat: 0, Lon: 0}

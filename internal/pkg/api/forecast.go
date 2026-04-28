@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"database/sql"
 	"errors"
 	"math"
@@ -12,9 +11,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sixdouglas/suncalc"
-	"jo-m.ch/go/cartomancer/internal/pkg/blob"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
 	"jo-m.ch/go/cartomancer/internal/pkg/forecast"
-	"jo-m.ch/go/cartomancer/internal/pkg/load"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo/vars"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
@@ -22,7 +20,6 @@ import (
 )
 
 type forecastPointResponse struct {
-	Index                    int      `json:"index"`
 	DistanceM                float64  `json:"distanceM"`
 	Time                     string   `json:"time"`
 	TemperatureC             *float64 `json:"temperatureC"`
@@ -102,29 +99,16 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
+	pts, err := loadViewerPoints(ctx, sv.d.QueryRO(), t, db.PreviewPolyline5M, track.ForecastViewerEpsilonM, track.ForecastViewerMinDistM)
 	if err != nil {
-		logg.Error(ctx, "failed to get track blob", "err", err)
+		logg.Error(ctx, "failed to load forecast viewer points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
-
-	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
-	if err != nil {
-		logg.Error(ctx, "failed to parse track blob", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+	if len(pts) < 2 {
+		writeError(w, http.StatusUnprocessableEntity, "track has too few points")
 		return
 	}
-
-	tr, err := track.New(src)
-	if err != nil {
-		logg.Error(ctx, "failed to create track", "err", err)
-		writeStatusError(w, http.StatusUnprocessableEntity)
-		return
-	}
-	pts := tr.Points().SubsampleLTTB(TrackPointsTarget, func(p track.Point) float64 {
-		return p.Elevation
-	})
 
 	// Compute cumulative distances and travel bearings for the subsampled points.
 	distances := make([]float64, len(pts))
@@ -146,12 +130,15 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		MaxLon: t.BoundsMaxLon.Float64,
 	}
 	if !t.BoundsMinLat.Valid || !t.BoundsMaxLat.Valid || !t.BoundsMinLon.Valid || !t.BoundsMaxLon.Valid {
-		meta := tr.EnhancedMetadata()
-		if meta.BoundsMinLat != nil {
-			bbox.MinLat = *meta.BoundsMinLat
-			bbox.MaxLat = *meta.BoundsMaxLat
-			bbox.MinLon = *meta.BoundsMinLon
-			bbox.MaxLon = *meta.BoundsMaxLon
+		// The bounds columns are populated for every track on upload, but old
+		// rows may still be NULL. Derive a fallback bbox from the loaded points.
+		bbox.MinLat, bbox.MaxLat = pts[0].Lat, pts[0].Lat
+		bbox.MinLon, bbox.MaxLon = pts[0].Lon, pts[0].Lon
+		for _, p := range pts[1:] {
+			bbox.MinLat = math.Min(bbox.MinLat, p.Lat)
+			bbox.MaxLat = math.Max(bbox.MaxLat, p.Lat)
+			bbox.MinLon = math.Min(bbox.MinLon, p.Lon)
+			bbox.MaxLon = math.Max(bbox.MaxLon, p.Lon)
 		}
 	}
 
@@ -179,7 +166,6 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	for i := range pts {
 		pointTime := startTime.Add(time.Duration(distances[i]/speedMs) * time.Second)
 		rp := forecastPointResponse{
-			Index:     i,
 			DistanceM: distances[i],
 			Time:      pointTime.Format(time.RFC3339),
 		}

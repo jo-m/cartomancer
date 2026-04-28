@@ -29,9 +29,6 @@ const (
 	// summaryStartOffset is how far in the future the journey is assumed to start.
 	summaryStartOffset = 1 * time.Hour
 
-	// summaryPointsTarget is the maximum number of subsampled points used for forecast sampling.
-	summaryPointsTarget = 200
-
 	// summaryBatchSize is how many track UUIDs to fetch per cursor-based batch.
 	summaryBatchSize = 100
 )
@@ -165,9 +162,7 @@ func (s *Summarizer) summarizeTrack(ctx context.Context, uuid string, refTime, s
 		logg.Debug(ctx, "track has too few points, skipping", "uuid", uuid)
 		return nil
 	}
-	pts := tr.Points().SubsampleLTTB(summaryPointsTarget, func(p track.Point) float64 {
-		return p.Elevation
-	})
+	pts := tr.Points().SimplifyForView(track.ForecastViewerEpsilonM, track.ForecastViewerMinDistM)
 
 	distances, bearings := computeDistancesAndBearings(pts)
 
