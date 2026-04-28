@@ -225,6 +225,8 @@ const profileElevationRange = 1500.0 // meters; fixed Y-axis range for ProfileSV
 // track's lowest point with a fixed scale.
 // The canvas is opts.Size wide and opts.Size/4 tall.
 // Points are subsampled so that each line segment spans approximately 5 px.
+// Assumes [Point.Distance] is populated for every point, as is the case for
+// points produced by [New] or decoded via [DecodeVarint].
 func (pts Points) ProfileSVG(opts PreviewOptions) string {
 	w := opts.Size
 	h := max(1, opts.Size/4)
@@ -233,23 +235,14 @@ func (pts Points) ProfileSVG(opts PreviewOptions) string {
 		return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d"/>`, w, h)
 	}
 
-	// Use pre-computed cumulative distances when available (set by [New]),
-	// falling back to on-the-fly computation for point sets not from a Track.
-	dists := make([]float64, len(pts))
 	minElev := pts[0].Elevation
-	usePrecomputed := pts[len(pts)-1].Distance > 0
 	for i := 1; i < len(pts); i++ {
-		if usePrecomputed {
-			dists[i] = pts[i].Distance
-		} else {
-			dists[i] = dists[i-1] + pts[i-1].MetersTo(&pts[i])
-		}
 		if pts[i].Elevation < minElev {
 			minElev = pts[i].Elevation
 		}
 	}
 
-	totalDist := dists[len(dists)-1]
+	totalDist := pts[len(pts)-1].Distance
 	if totalDist == 0 {
 		return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d"/>`, w, h)
 	}
@@ -271,7 +264,7 @@ func (pts Points) ProfileSVG(opts PreviewOptions) string {
 	// Compute total pixel-space path length to determine subsampling stride.
 	totalPx := 0.0
 	for i := 1; i < len(pts); i++ {
-		dx := toSVGX(dists[i]) - toSVGX(dists[i-1])
+		dx := toSVGX(pts[i].Distance) - toSVGX(pts[i-1].Distance)
 		dy := toSVGY(pts[i].Elevation) - toSVGY(pts[i-1].Elevation)
 		totalPx += math.Sqrt(dx*dx + dy*dy)
 	}
@@ -285,12 +278,12 @@ func (pts Points) ProfileSVG(opts PreviewOptions) string {
 		if b.Len() > 0 {
 			b.WriteByte(' ')
 		}
-		fmt.Fprintf(&b, "%.1f,%.1f", toSVGX(dists[i]), toSVGY(pts[i].Elevation))
+		fmt.Fprintf(&b, "%.1f,%.1f", toSVGX(pts[i].Distance), toSVGY(pts[i].Elevation))
 	}
 	// Always include the last point.
 	last := len(pts) - 1
 	if last%stride != 0 {
-		fmt.Fprintf(&b, " %.1f,%.1f", toSVGX(dists[last]), toSVGY(pts[last].Elevation))
+		fmt.Fprintf(&b, " %.1f,%.1f", toSVGX(pts[last].Distance), toSVGY(pts[last].Elevation))
 	}
 	profilePts := b.String()
 
@@ -298,7 +291,7 @@ func (pts Points) ProfileSVG(opts PreviewOptions) string {
 	baseline := padY + innerH
 	fillPts := fmt.Sprintf("%s %.1f,%.1f %.1f,%.1f",
 		profilePts,
-		toSVGX(dists[last]), baseline,
+		toSVGX(pts[last].Distance), baseline,
 		padX, baseline,
 	)
 

@@ -366,7 +366,7 @@ func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	eTag := fmt.Sprintf(`"%d-%d-v2"`, t.UpdatedAt.UnixMilli(), opts.Size)
+	eTag := fmt.Sprintf(`"%d-%d-v3"`, t.UpdatedAt.UnixMilli(), opts.Size)
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
