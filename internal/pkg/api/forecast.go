@@ -110,17 +110,17 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Compute cumulative distances and travel bearings for the subsampled points.
-	distances := make([]float64, len(pts))
+	// Compute travel bearings for the subsampled points. Cumulative distance
+	// is already populated on each point by loadViewerPoints (carried over
+	// from the full-resolution track through simplification and subsampling).
 	bearings := make([]float64, len(pts))
 	for i := 1; i < len(pts); i++ {
-		distances[i] = distances[i-1] + pts[i-1].MetersTo(&pts[i])
 		bearings[i] = forwardBearing(pts[i-1].Lat, pts[i-1].Lon, pts[i].Lat, pts[i].Lon)
 	}
 	bearings[0] = bearings[1]
 
 	speedMs := speedKmh / 3.6
-	totalDist := distances[len(distances)-1]
+	totalDist := pts[len(pts)-1].Distance
 	endTime := startTime.Add(time.Duration(totalDist/speedMs) * time.Second)
 
 	bbox := forecast.BBox{
@@ -164,9 +164,9 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 
 	result := make([]forecastPointResponse, len(pts))
 	for i := range pts {
-		pointTime := startTime.Add(time.Duration(distances[i]/speedMs) * time.Second)
+		pointTime := startTime.Add(time.Duration(pts[i].Distance/speedMs) * time.Second)
 		rp := forecastPointResponse{
-			DistanceM: distances[i],
+			DistanceM: pts[i].Distance,
 			Time:      pointTime.Format(time.RFC3339),
 		}
 

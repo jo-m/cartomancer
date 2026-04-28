@@ -436,7 +436,7 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eTag := fmt.Sprintf(`"%d-points-v4"`, t.UpdatedAt.UnixMilli())
+	eTag := fmt.Sprintf(`"%d-points-v5"`, t.UpdatedAt.UnixMilli())
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -450,12 +450,8 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 	}
 
 	points := make([]trackPoint, len(pts))
-	cumDist := 0.0
 	for i, p := range pts {
-		if i > 0 {
-			cumDist += pts[i-1].MetersTo(&p)
-		}
-		points[i] = trackPoint{Lat: p.Lat, Lon: p.Lon, Ele: p.Elevation, D: cumDist}
+		points[i] = trackPoint{Lat: p.Lat, Lon: p.Lon, Ele: p.Elevation, D: p.Distance}
 	}
 
 	w.Header().Set(headerCacheControl, "private, max-age=3600")
