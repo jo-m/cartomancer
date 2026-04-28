@@ -11,12 +11,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sixdouglas/suncalc"
-	"jo-m.ch/go/cartomancer/internal/pkg/db"
 	"jo-m.ch/go/cartomancer/internal/pkg/forecast"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo/vars"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
-	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
 type forecastPointResponse struct {
@@ -99,9 +97,14 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	pts, err := loadViewerPoints(ctx, sv.d.QueryRO(), t, db.PreviewPolyline5M, track.ForecastViewerEpsilonM, track.ForecastViewerMinDistM)
+	pts, err := forecast.InterpolatedTrackPoints(t, forecast.LiveStepM)
+	if errors.Is(err, forecast.ErrPolylineMissing) {
+		logg.Error(ctx, "track preview polyline not backfilled", "uuid", trackUUID)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
 	if err != nil {
-		logg.Error(ctx, "failed to load forecast viewer points", "err", err)
+		logg.Error(ctx, "failed to load interpolated track points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
@@ -110,9 +113,8 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Compute travel bearings for the subsampled points. Cumulative distance
-	// is already populated on each point by loadViewerPoints (carried over
-	// from the full-resolution track through simplification and subsampling).
+	// Compute travel bearings for the interpolated points. Cumulative
+	// distance is already populated on each point by InterpolatedTrackPoints.
 	bearings := make([]float64, len(pts))
 	for i := 1; i < len(pts); i++ {
 		bearings[i] = forwardBearing(pts[i-1].Lat, pts[i-1].Lon, pts[i].Lat, pts[i].Lon)

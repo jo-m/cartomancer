@@ -51,20 +51,15 @@ func TestForwardBearing(t *testing.T) {
 	require.InDelta(t, 180, b, 1.0)
 }
 
-func TestComputeDistancesAndBearings(t *testing.T) {
+func TestComputeBearings(t *testing.T) {
 	pts := track.Points{
 		{Lat: 46.0, Lon: 8.0},
 		{Lat: 46.0, Lon: 8.01},
 		{Lat: 46.0, Lon: 8.02},
 	}
-	distances, bearings := computeDistancesAndBearings(pts)
+	bearings := computeBearings(pts)
 
-	require.Len(t, distances, 3)
 	require.Len(t, bearings, 3)
-
-	require.Equal(t, 0.0, distances[0])
-	require.Greater(t, distances[1], 500.0)
-	require.Greater(t, distances[2], distances[1])
 
 	// Heading east, bearings should be around 90 degrees.
 	for _, b := range bearings {
@@ -77,11 +72,11 @@ func TestComputeSummary_EmptyHandle(t *testing.T) {
 		values: map[string][]timedValues{},
 	}
 	pts := track.Points{
-		{Lat: 46.0, Lon: 8.0},
-		{Lat: 46.1, Lon: 8.1},
+		{Lat: 46.0, Lon: 8.0, Distance: 0},
+		{Lat: 46.1, Lon: 8.1, Distance: 13000},
 	}
-	distances, bearings := computeDistancesAndBearings(pts)
-	s := computeSummary(h, pts, distances, bearings, fixedTime(), 7.78)
+	bearings := computeBearings(pts)
+	s := computeSummary(h, pts, bearings, fixedTime(), 7.78)
 
 	require.True(t, math.IsNaN(s.avgTempC), "expected NaN for temperature with no data")
 	require.True(t, math.IsNaN(s.windHeadMs), "expected NaN for wind with no data")
