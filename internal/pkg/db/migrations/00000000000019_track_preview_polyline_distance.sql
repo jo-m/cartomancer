@@ -9,5 +9,6 @@ UPDATE tracks SET polyline_dp5m_varint = NULL, polyline_dp50m_varint = NULL;
 
 -- +goose Down
 -- +goose StatementBegin
-SELECT 1;
+-- If we migrate down, we have to do the same.
+UPDATE tracks SET polyline_dp5m_varint = NULL, polyline_dp50m_varint = NULL;
 -- +goose StatementEnd
