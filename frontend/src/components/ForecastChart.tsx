@@ -56,7 +56,7 @@ interface Props {
   sunEvents?: SunEvent[]
 }
 
-const Y_AXIS_WIDTH = 36
+const Y_AXIS_WIDTH = 44
 const CHART_MARGIN = { top: 5, right: 5, bottom: 5, left: 5 }
 
 const WIND_DIRS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const
@@ -518,7 +518,7 @@ export default function ForecastChart({
           />
           <div
             ref={tempLabelRef}
-            className="pointer-events-none absolute bottom-2 left-10 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
+            className="pointer-events-none absolute bottom-2 left-12 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
             style={{ display: "none" }}
           />
         </div>
@@ -592,7 +592,7 @@ export default function ForecastChart({
           />
           <div
             ref={precipLabelRef}
-            className="pointer-events-none absolute bottom-2 left-10 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
+            className="pointer-events-none absolute bottom-2 left-12 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
             style={{ display: "none" }}
           />
         </div>
@@ -686,7 +686,7 @@ export default function ForecastChart({
             />
             <div
               ref={windLabelRef}
-              className="pointer-events-none absolute bottom-2 left-10 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
+              className="pointer-events-none absolute bottom-2 left-12 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
               style={{ display: "none" }}
             />
           </div>
@@ -754,7 +754,7 @@ export default function ForecastChart({
             />
             <div
               ref={windLabelRef}
-              className="pointer-events-none absolute bottom-2 left-10 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
+              className="pointer-events-none absolute bottom-2 left-12 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
               style={{ display: "none" }}
             />
           </div>
