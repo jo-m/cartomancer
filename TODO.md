@@ -102,6 +102,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [ ] Unknown sport or subsport
   - [ ] By start location (1km radius?)
 - [x] Make minRefreshAge for maps etc. a public const and use it also for job scheduling
+- [ ] Does our current way of using eTags even make sense, if we are not actually checking for them when the clients sends them? If not, remove them.
 
 ## Before initial push/deploy
 

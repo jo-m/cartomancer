@@ -76,7 +76,7 @@ func TestLoadViewerPoints(t *testing.T) {
 		row, err := d.QueryRO().GetTrackByUUID(ctx, created.Uuid)
 		require.NoError(t, err)
 
-		got, err := loadViewerPoints(ctx, d.QueryRO(), row, db.PreviewPolyline5M, track.PointsViewerEpsilonM, 1.0)
+		got, err := loadViewerPoints(row, db.PreviewPolyline5M)
 		require.NoError(t, err)
 		// 1 m thinning preserves all four distinct points.
 		require.Len(t, got, 4)
@@ -94,7 +94,7 @@ func TestLoadViewerPoints(t *testing.T) {
 		row, err := d.QueryRO().GetTrackByUUID(ctx, created.Uuid)
 		require.NoError(t, err)
 
-		_, err = loadViewerPoints(ctx, d.QueryRO(), row, db.PreviewPolyline5M, track.PointsViewerEpsilonM, track.PointsViewerMinDistM)
+		_, err = loadViewerPoints(row, db.PreviewPolyline5M)
 		require.ErrorIs(t, err, errPreviewPolylineMissing)
 	})
 }

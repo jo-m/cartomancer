@@ -313,7 +313,7 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	pts, err := loadViewerPoints(ctx, sv.d.QueryRO(), t, db.PreviewPolyline50M, track.ForecastViewerEpsilonM, track.ForecastViewerMinDistM)
+	pts, err := loadViewerPoints(t, db.PreviewPolyline50M)
 	if err != nil {
 		logg.Error(ctx, "failed to load preview points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
@@ -372,7 +372,7 @@ func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	pts, err := loadViewerPoints(ctx, sv.d.QueryRO(), t, db.PreviewPolyline5M, track.PointsViewerEpsilonM, track.PointsViewerMinDistM)
+	pts, err := loadViewerPoints(t, db.PreviewPolyline5M)
 	if err != nil {
 		logg.Error(ctx, "failed to load profile points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
@@ -442,7 +442,7 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pts, err := loadViewerPoints(ctx, sv.d.QueryRO(), t, db.PreviewPolyline5M, track.PointsViewerEpsilonM, track.PointsViewerMinDistM)
+	pts, err := loadViewerPoints(t, db.PreviewPolyline5M)
 	if err != nil {
 		logg.Error(ctx, "failed to load viewer points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)

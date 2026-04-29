@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -17,12 +16,9 @@ var errPreviewPolylineMissing = errors.New("preview polyline not backfilled")
 
 // loadViewerPoints returns a viewer-resolution point set for t.
 //
-// It decodes the precomputed varint polyline column for kind and thins it
-// with [track.Points.Subsample] to minDistM. epsilonM is accepted for API
-// symmetry with earlier callers but is unused now that simplification is
-// always done at write time. Returns [errPreviewPolylineMissing] when the
-// column is empty.
-func loadViewerPoints(_ context.Context, _ *db.Queries, t db.Track, kind db.PreviewPolylineKind, _, minDistM float64) (track.Points, error) {
+// Decodes the precomputed varint polyline column for kind.
+// Returns [errPreviewPolylineMissing] when the column is empty.
+func loadViewerPoints(t db.Track, kind db.PreviewPolylineKind) (track.Points, error) {
 	var encoded []byte
 	switch kind {
 	case db.PreviewPolyline5M:
@@ -41,5 +37,5 @@ func loadViewerPoints(_ context.Context, _ *db.Queries, t db.Track, kind db.Prev
 	if err != nil {
 		return nil, fmt.Errorf("decode preview polyline: %w", err)
 	}
-	return pts.Subsample(minDistM), nil
+	return pts, nil
 }
