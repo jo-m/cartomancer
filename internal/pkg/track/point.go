@@ -328,22 +328,37 @@ type InterpolatedPoint struct {
 }
 
 // InterpolateByDistance walks the point sequence and emits points at fixed
-// distance intervals. The first and last original points are always included.
-// Returns nil if there are fewer than two points.
+// cumulative-distance intervals. Spacing is measured against [Point.Distance],
+// which is preserved from the original track even after Douglas-Peucker
+// simplification, so the returned distances match what other endpoints (e.g.
+// the elevation profile) report for the same track. The first and last
+// original points are always included.
+//
+// Returns nil if there are fewer than two points, the interval is non-positive,
+// or the input does not have monotonically increasing [Point.Distance].
 func (pts Points) InterpolateByDistance(intervalM float64) []InterpolatedPoint {
 	if len(pts) < 2 || intervalM <= 0 {
 		return nil
 	}
 
-	result := []InterpolatedPoint{{DistanceM: 0, Lat: pts[0].Lat, Lon: pts[0].Lon}}
-	nextDist := intervalM
-	cumDist := 0.0
+	startDist := pts[0].Distance
+	endDist := pts[len(pts)-1].Distance
+	if endDist <= startDist {
+		return nil
+	}
+
+	result := []InterpolatedPoint{{DistanceM: startDist, Lat: pts[0].Lat, Lon: pts[0].Lon}}
+	nextDist := startDist + intervalM
 
 	for i := 1; i < len(pts); i++ {
-		segLen := pts[i-1].MetersTo(&pts[i])
-		segStart := cumDist
+		segStart := pts[i-1].Distance
+		segEnd := pts[i].Distance
+		segLen := segEnd - segStart
+		if segLen <= 0 {
+			continue
+		}
 
-		for nextDist <= segStart+segLen {
+		for nextDist <= segEnd {
 			frac := (nextDist - segStart) / segLen
 			p := pts[i-1].Interpolate(&pts[i], frac)
 			result = append(result, InterpolatedPoint{
@@ -353,8 +368,6 @@ func (pts Points) InterpolateByDistance(intervalM float64) []InterpolatedPoint {
 			})
 			nextDist += intervalM
 		}
-
-		cumDist += segLen
 	}
 
 	// Always include the last point.
@@ -362,7 +375,7 @@ func (pts Points) InterpolateByDistance(intervalM float64) []InterpolatedPoint {
 	lastResult := result[len(result)-1]
 	if lastResult.Lat != last.Lat || lastResult.Lon != last.Lon {
 		result = append(result, InterpolatedPoint{
-			DistanceM: cumDist,
+			DistanceM: endDist,
 			Lat:       last.Lat,
 			Lon:       last.Lon,
 		})

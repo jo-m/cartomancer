@@ -156,24 +156,33 @@ func TestInterpolateByDistance(t *testing.T) {
 		require.Nil(t, Points{berlin, paris}.InterpolateByDistance(0))
 	})
 
+	t.Run("nil when total distance is zero", func(t *testing.T) {
+		// Default Distance values (zero) mean total distance is zero.
+		require.Nil(t, Points{berlin, paris}.InterpolateByDistance(100))
+	})
+
 	t.Run("first and last always included", func(t *testing.T) {
-		pts := Points{berlin, paris}
+		pts := Points{
+			{Lat: berlin.Lat, Lon: berlin.Lon, Distance: 0},
+			{Lat: paris.Lat, Lon: paris.Lon, Distance: 878_000},
+		}
 		result := pts.InterpolateByDistance(1_000_000) // Larger than the total distance.
 		require.GreaterOrEqual(t, len(result), 2)
 		require.InDelta(t, 0, result[0].DistanceM, 1e-9)
 		require.InDelta(t, berlin.Lat, result[0].Lat, 1e-9)
 		require.InDelta(t, berlin.Lon, result[0].Lon, 1e-9)
 		last := result[len(result)-1]
+		require.InDelta(t, 878_000, last.DistanceM, 1e-9)
 		require.InDelta(t, paris.Lat, last.Lat, 1e-9)
 		require.InDelta(t, paris.Lon, last.Lon, 1e-9)
 	})
 
 	t.Run("spacing", func(t *testing.T) {
-		// Three points along the equator, each ~111 km apart.
+		// Three points along the equator, each ~111 km apart by stored distance.
 		pts := Points{
-			{Lat: 0, Lon: 0},
-			{Lat: 0, Lon: 1},
-			{Lat: 0, Lon: 2},
+			{Lat: 0, Lon: 0, Distance: 0},
+			{Lat: 0, Lon: 1, Distance: 111_000},
+			{Lat: 0, Lon: 2, Distance: 222_000},
 		}
 		result := pts.InterpolateByDistance(50_000) // 50 km interval.
 		require.Greater(t, len(result), 4)
@@ -183,10 +192,33 @@ func TestInterpolateByDistance(t *testing.T) {
 			require.Greater(t, result[i].DistanceM, result[i-1].DistanceM)
 		}
 
-		// Intermediate points should be spaced at ~50 km.
+		// Intermediate points should be spaced at exactly 50 km.
 		for i := 1; i < len(result)-1; i++ {
 			gap := result[i].DistanceM - result[i-1].DistanceM
-			require.InDelta(t, 50_000, gap, 1)
+			require.InDelta(t, 50_000, gap, 1e-9)
+		}
+
+		// The last point's distance must equal the input's last cumulative distance.
+		require.InDelta(t, 222_000, result[len(result)-1].DistanceM, 1e-9)
+	})
+
+	t.Run("distance reflects original cumulative distance after simplification", func(t *testing.T) {
+		// Simulate a Douglas-Peucker simplified polyline where the geometry
+		// chord is shorter than the original cumulative distance: two vertices
+		// at the same coordinates with non-zero stored distance between them.
+		pts := Points{
+			{Lat: 0, Lon: 0, Distance: 0},
+			{Lat: 0, Lon: 1, Distance: 200_000}, // Stored distance > geographic distance.
+		}
+		result := pts.InterpolateByDistance(50_000)
+		require.Greater(t, len(result), 2)
+
+		// Total reported distance must equal the stored cumulative distance,
+		// not the chord length recomputed from coordinates.
+		require.InDelta(t, 200_000, result[len(result)-1].DistanceM, 1e-9)
+		for i := 1; i < len(result)-1; i++ {
+			gap := result[i].DistanceM - result[i-1].DistanceM
+			require.InDelta(t, 50_000, gap, 1e-9)
 		}
 	})
 }
