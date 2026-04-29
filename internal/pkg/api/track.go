@@ -1357,6 +1357,19 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "track distance must be at most 10000 km")
 		return
 	}
+	// meta.TotalDistanceM may be the device-reported value (FIT). Cross-check
+	// the chord total computed from the points themselves so an upload whose
+	// device total is plausible but whose points are clustered at the start
+	// is also rejected.
+	chordTotalM := pts[len(pts)-1].Distance
+	if chordTotalM < minTrackDistM {
+		writeError(w, http.StatusUnprocessableEntity, "track distance must be at least 10 m")
+		return
+	}
+	if chordTotalM > maxTrackDistM {
+		writeError(w, http.StatusUnprocessableEntity, "track distance must be at most 10000 km")
+		return
+	}
 
 	trackID, err := uuid.NewV7()
 	if err != nil {
