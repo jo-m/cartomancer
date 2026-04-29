@@ -28,11 +28,11 @@ func TestInterpolatedTrackPoints_InvalidStep(t *testing.T) {
 }
 
 func TestInterpolatedTrackPoints_FixedSpacing(t *testing.T) {
-	// Three points along the equator, ~111 km apart.
+	// Three points along the equator at known cumulative distances.
 	pts := track.Points{
-		{Lat: 0, Lon: 0},
-		{Lat: 0, Lon: 1},
-		{Lat: 0, Lon: 2},
+		{Lat: 0, Lon: 0, Distance: 0},
+		{Lat: 0, Lon: 1, Distance: 111_000},
+		{Lat: 0, Lon: 2, Distance: 222_000},
 	}
 	encoded, err := track.EncodeVarint(pts)
 	require.NoError(t, err)
@@ -52,16 +52,17 @@ func TestInterpolatedTrackPoints_FixedSpacing(t *testing.T) {
 		require.Greater(t, got[i].Distance, got[i-1].Distance)
 	}
 
-	// Intermediate gaps are ~50 km.
+	// Intermediate gaps are exactly 50 km.
 	for i := 1; i < len(got)-1; i++ {
 		gap := got[i].Distance - got[i-1].Distance
-		require.InDelta(t, 50_000, gap, 1)
+		require.InDelta(t, 50_000, gap, 1e-6)
 	}
 
 	// Final point matches the source's last point.
 	last := got[len(got)-1]
 	require.InDelta(t, 0.0, last.Lat, 1e-9)
 	require.InDelta(t, 2.0, last.Lon, 1e-9)
+	require.InDelta(t, 222_000, last.Distance, 1e-6)
 }
 
 func TestInterpolatedTrackPoints_TooShort(t *testing.T) {
