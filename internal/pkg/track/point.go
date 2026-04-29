@@ -370,10 +370,15 @@ func (pts Points) InterpolateByDistance(intervalM float64) []InterpolatedPoint {
 		}
 	}
 
-	// Always include the last point.
+	// Always include the last point. The distance comparison guards a
+	// subtle edge case: when the last input vertex shares lat/lon with the
+	// previously emitted interpolated point but sits at a different
+	// cumulative distance (e.g. the trailing partial segment after a
+	// switchback that returns to the same coordinate), skipping by lat/lon
+	// alone would leave the result short of the track's true end distance.
 	last := pts[len(pts)-1]
 	lastResult := result[len(result)-1]
-	if lastResult.Lat != last.Lat || lastResult.Lon != last.Lon {
+	if lastResult.Lat != last.Lat || lastResult.Lon != last.Lon || lastResult.DistanceM != endDist {
 		result = append(result, InterpolatedPoint{
 			DistanceM: endDist,
 			Lat:       last.Lat,
