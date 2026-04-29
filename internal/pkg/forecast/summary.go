@@ -157,7 +157,7 @@ func (s *Summarizer) summarizeTrack(ctx context.Context, uuid string, refTime, s
 		return nil
 	}
 
-	bearings := computeBearings(pts)
+	bearings := pts.Bearings()
 
 	speedMs := summarySpeedKmh / 3.6
 	totalDist := pts[len(pts)-1].Distance
@@ -291,30 +291,6 @@ func relativeWindSector(relDeg float64) int {
 	return int(shifted / 90)
 }
 
-// computeBearings returns forward travel bearings (deg) for a sequence of
-// track points. The first bearing is copied from the second so that every
-// point has a defined heading.
-func computeBearings(pts track.Points) []float64 {
-	bearings := make([]float64, len(pts))
-	for i := 1; i < len(pts); i++ {
-		bearings[i] = forwardBearing(pts[i-1].Lat, pts[i-1].Lon, pts[i].Lat, pts[i].Lon)
-	}
-	if len(pts) > 1 {
-		bearings[0] = bearings[1]
-	}
-	return bearings
-}
-
-// forwardBearing computes the initial bearing in degrees [0, 360) from point 1 to point 2.
-func forwardBearing(lat1, lon1, lat2, lon2 float64) float64 {
-	lat1R := lat1 * math.Pi / 180
-	lat2R := lat2 * math.Pi / 180
-	dLon := (lon2 - lon1) * math.Pi / 180
-	y := math.Sin(dLon) * math.Cos(lat2R)
-	x := math.Cos(lat1R)*math.Sin(lat2R) - math.Sin(lat1R)*math.Cos(lat2R)*math.Cos(dLon)
-	brng := math.Atan2(y, x) * 180 / math.Pi
-	return math.Mod(brng+360, 360)
-}
 
 // trackBBox extracts the bounding box from a track database row.
 func trackBBox(t db.Track) BBox {

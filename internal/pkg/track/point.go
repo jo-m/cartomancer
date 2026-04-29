@@ -424,3 +424,30 @@ func (pts Points) Subsample(minDistM float64) Points {
 	result = append(result, pts[len(pts)-1])
 	return result
 }
+
+// forwardBearing computes the initial bearing in degrees [0, 360) from (lat1, lon1) to (lat2, lon2).
+func forwardBearing(lat1, lon1, lat2, lon2 float64) float64 {
+	lat1R := lat1 * math.Pi / 180
+	lat2R := lat2 * math.Pi / 180
+	dLon := (lon2 - lon1) * math.Pi / 180
+	y := math.Sin(dLon) * math.Cos(lat2R)
+	x := math.Cos(lat1R)*math.Sin(lat2R) - math.Sin(lat1R)*math.Cos(lat2R)*math.Cos(dLon)
+	brng := math.Atan2(y, x) * 180 / math.Pi
+	return math.Mod(brng+360, 360)
+}
+
+// Bearings returns the forward travel bearing in degrees [0, 360) for each
+// point in pts. The bearing at index i is the heading from pts[i-1] to
+// pts[i]; the first point copies the second so every index has a defined
+// value. Returns nil for fewer than two points.
+func (pts Points) Bearings() []float64 {
+	if len(pts) < 2 {
+		return nil
+	}
+	bearings := make([]float64, len(pts))
+	for i := 1; i < len(pts); i++ {
+		bearings[i] = forwardBearing(pts[i-1].Lat, pts[i-1].Lon, pts[i].Lat, pts[i].Lon)
+	}
+	bearings[0] = bearings[1]
+	return bearings
+}
