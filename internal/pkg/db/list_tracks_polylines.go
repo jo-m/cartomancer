@@ -155,13 +155,21 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, ki
 		return ListTracksWithPolylinesResult{}, fmt.Errorf("count pending tracks: %w", err)
 	}
 
-	// Max updated_at over the matched set, for ETag. SQLite drops column
-	// affinity on aggregates, so MAX() returns a TEXT timestamp that won't
-	// scan into time.Time; convert to integer millis in SQL instead.
-	var maxUpdatedMs sql.NullInt64
-	maxSQL := "SELECT CAST(unixepoch(MAX(tracks.updated_at), 'subsec') * 1000 AS INTEGER) FROM tracks" + joins + where
-	if err := d.ro.QueryRowContext(ctx, maxSQL, baseArgs...).Scan(&maxUpdatedMs); err != nil {
+	// Max updated_at over the matched set, for ETag. The response embeds a
+	// per-track forecast summary, so a newer track_forecasts.created_at must
+	// also invalidate the ETag even when the track row itself is unchanged.
+	// SQLite drops column affinity on aggregates, so MAX() returns a TEXT
+	// timestamp that won't scan into time.Time; convert to integer millis in
+	// SQL instead.
+	var maxTracksMs, maxForecastsMs sql.NullInt64
+	maxSQL := "SELECT CAST(unixepoch(MAX(tracks.updated_at), 'subsec') * 1000 AS INTEGER), " +
+		"CAST(unixepoch(MAX(tf.created_at), 'subsec') * 1000 AS INTEGER) FROM tracks" + joins + where
+	if err := d.ro.QueryRowContext(ctx, maxSQL, baseArgs...).Scan(&maxTracksMs, &maxForecastsMs); err != nil {
 		return ListTracksWithPolylinesResult{}, fmt.Errorf("max updated_at: %w", err)
+	}
+	maxUpdatedMs := maxTracksMs
+	if maxForecastsMs.Valid && (!maxUpdatedMs.Valid || maxForecastsMs.Int64 > maxUpdatedMs.Int64) {
+		maxUpdatedMs = maxForecastsMs
 	}
 
 	// Data query: only rows whose chosen polyline column is non-NULL.

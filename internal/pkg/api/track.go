@@ -1423,46 +1423,40 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		}
 
 		created, txErr = q.CreateTrack(ctx, db.CreateTrackParams{
-			Uuid:              trackID.String(),
-			CreatedAt:         now,
-			UpdatedAt:         now,
-			UserID:            user.Uuid,
-			BlobID:            blobID,
-			FileFormat:        int64(fileFormatFromExt(header.Filename)),
-			OriginalFilename:  header.Filename,
-			Name:              meta.Name,
-			Description:       toNullString(meta.Description),
-			Source:            toNullString(meta.Source),
-			Author:            toNullString(meta.Author),
-			AuthorLinkUrl:     toNullString(meta.AuthorLinkURL),
-			TrackType:         int64(meta.TrackType),
-			LinkUrl:           toNullString(meta.LinkURL),
-			Sport:             int64(meta.Sport),
-			SubSport:          int64(meta.SubSport),
-			TotalDistanceM:    meta.TotalDistanceM,
-			TotalAscentM:      meta.TotalAscentM,
-			StartLat:          toNullFloat64(meta.StartLat),
-			StartLon:          toNullFloat64(meta.StartLon),
-			EndLat:            toNullFloat64(meta.EndLat),
-			EndLon:            toNullFloat64(meta.EndLon),
-			BoundsMinLat:      toNullFloat64(meta.BoundsMinLat),
-			BoundsMinLon:      toNullFloat64(meta.BoundsMinLon),
-			BoundsMaxLat:      toNullFloat64(meta.BoundsMaxLat),
-			BoundsMaxLon:      toNullFloat64(meta.BoundsMaxLon),
-			MinElevationM:     toNullFloat64(meta.MinElevationM),
-			MaxElevationM:     toNullFloat64(meta.MaxElevationM),
-			OriginalCreatedAt: toNullTime(meta.OriginalCreatedAt),
-			Public:            0,
-		})
-		if txErr != nil {
-			return txErr
-		}
-
-		return q.SetTrackPreviewPolylines(ctx, db.SetTrackPreviewPolylinesParams{
-			Uuid:                created.Uuid,
+			Uuid:                trackID.String(),
+			CreatedAt:           now,
+			UpdatedAt:           now,
+			UserID:              user.Uuid,
+			BlobID:              blobID,
+			FileFormat:          int64(fileFormatFromExt(header.Filename)),
+			OriginalFilename:    header.Filename,
+			Name:                meta.Name,
+			Description:         toNullString(meta.Description),
+			Source:              toNullString(meta.Source),
+			Author:              toNullString(meta.Author),
+			AuthorLinkUrl:       toNullString(meta.AuthorLinkURL),
+			TrackType:           int64(meta.TrackType),
+			LinkUrl:             toNullString(meta.LinkURL),
+			Sport:               int64(meta.Sport),
+			SubSport:            int64(meta.SubSport),
+			TotalDistanceM:      meta.TotalDistanceM,
+			TotalAscentM:        meta.TotalAscentM,
+			StartLat:            toNullFloat64(meta.StartLat),
+			StartLon:            toNullFloat64(meta.StartLon),
+			EndLat:              toNullFloat64(meta.EndLat),
+			EndLon:              toNullFloat64(meta.EndLon),
+			BoundsMinLat:        toNullFloat64(meta.BoundsMinLat),
+			BoundsMinLon:        toNullFloat64(meta.BoundsMinLon),
+			BoundsMaxLat:        toNullFloat64(meta.BoundsMaxLat),
+			BoundsMaxLon:        toNullFloat64(meta.BoundsMaxLon),
+			MinElevationM:       toNullFloat64(meta.MinElevationM),
+			MaxElevationM:       toNullFloat64(meta.MaxElevationM),
+			OriginalCreatedAt:   toNullTime(meta.OriginalCreatedAt),
+			Public:              0,
 			PolylineDp5mVarint:  previewDp5m,
 			PolylineDp50mVarint: previewDp50m,
 		})
+		return txErr
 	})
 	if errors.Is(err, errUploadTrackLimitReached) {
 		writeError(w, http.StatusConflict, "per-user track limit reached")
