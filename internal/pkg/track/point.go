@@ -390,15 +390,33 @@ func (pts Points) InterpolateByDistance(intervalM float64) []InterpolatedPoint {
 }
 
 // Subsample returns a subset of points such that consecutive points are at
-// least minDistM meters apart. The first and last points are always included.
+// least minDistM meters apart along the track. The first and last points are
+// always included.
+//
+// When the input carries populated cumulative [Point.Distance] values (as
+// produced by [New] or [DecodeVarint]), the threshold is evaluated against
+// those distances, so switchback sections where the chord between two
+// retained vertices is much shorter than the path between them are not
+// over-thinned. Falls back to the great-circle chord between the last
+// retained point and the candidate when [Point.Distance] is not available.
 func (pts Points) Subsample(minDistM float64) Points {
 	if len(pts) <= 2 {
 		return pts
 	}
+	// Cumulative distance is monotonically non-decreasing, so a positive
+	// final value means the column is populated for every point after the
+	// origin. The origin itself is allowed to be zero.
+	useDistance := pts[len(pts)-1].Distance > 0
 	result := Points{pts[0]}
 	last := &pts[0]
 	for i := 1; i < len(pts)-1; i++ {
-		if last.MetersTo(&pts[i]) >= minDistM {
+		var advanced bool
+		if useDistance {
+			advanced = pts[i].Distance >= last.Distance+minDistM
+		} else {
+			advanced = last.MetersTo(&pts[i]) >= minDistM
+		}
+		if advanced {
 			result = append(result, pts[i])
 			last = &pts[i]
 		}

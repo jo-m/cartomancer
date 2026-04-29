@@ -136,6 +136,49 @@ func TestSubsample(t *testing.T) {
 		// Middle close points should be thinned out.
 		require.Less(t, len(got), len(pts))
 	})
+
+	t.Run("uses cumulative distance when populated", func(t *testing.T) {
+		// Switchback: three retained DP vertices that lie close together by
+		// chord (0.001 deg ~ 111 m apart) but are far apart along the path
+		// because the original track zig-zagged. The cumulative Distance
+		// reflects the path length, not the chord.
+		pts := Points{
+			{Lat: 0, Lon: 0, Distance: 0},
+			{Lat: 0, Lon: 0.001, Distance: 600},  // 600 m along path, ~111 m by chord.
+			{Lat: 0, Lon: 0.002, Distance: 1200}, // 1200 m along path, ~222 m by chord.
+			{Lat: 0, Lon: 0.003, Distance: 1800},
+			{Lat: 0, Lon: 0.004, Distance: 2400},
+		}
+		// With a 500 m threshold and chord-only logic, the second point would
+		// be dropped (chord ~111 m < 500 m). With distance-aware logic, every
+		// vertex satisfies the 500 m gap by stored distance and is kept.
+		got := pts.Subsample(500)
+		require.Equal(t, len(pts), len(got))
+	})
+
+	t.Run("uses cumulative distance to thin dense recordings", func(t *testing.T) {
+		// Densely sampled points 100 m apart by stored distance, total 1500 m;
+		// with a 500 m threshold the 500 m and 1000 m marks are retained.
+		pts := make(Points, 16)
+		for i := range pts {
+			pts[i] = Point{Lat: 0, Lon: float64(i) * 0.0009, Distance: float64(i) * 100}
+		}
+		got := pts.Subsample(500)
+		require.Equal(t, pts[0], got[0])
+		require.Equal(t, pts[len(pts)-1], got[len(got)-1])
+		require.Len(t, got, 4)
+		require.InDelta(t, 500, got[1].Distance, 1e-9)
+		require.InDelta(t, 1000, got[2].Distance, 1e-9)
+	})
+
+	t.Run("falls back to chord when distance is unpopulated", func(t *testing.T) {
+		// All points have zero Distance: behave exactly like the chord path.
+		pts := Points{pt(0), pt(0.001), pt(0.002), pt(0.003), pt(1)}
+		got := pts.Subsample(200)
+		require.Equal(t, pts[0], got[0])
+		require.Equal(t, pts[len(pts)-1], got[len(got)-1])
+		require.Less(t, len(got), len(pts))
+	})
 }
 
 func TestPoints(t *testing.T) {
@@ -200,6 +243,34 @@ func TestInterpolateByDistance(t *testing.T) {
 
 		// The last point's distance must equal the input's last cumulative distance.
 		require.InDelta(t, 222_000, result[len(result)-1].DistanceM, 1e-9)
+	})
+
+	t.Run("trailing partial segment with coincident lat/lon", func(t *testing.T) {
+		// After Douglas-Peucker on a switchback, the final input vertex can
+		// share lat/lon with the last emitted interpolated point but sit at
+		// a slightly larger cumulative distance. The function must still
+		// emit a final point at the true end distance, not silently drop it.
+		pts := Points{
+			{Lat: 0, Lon: 0, Distance: 0},
+			{Lat: 0, Lon: 0.001, Distance: 200},
+			{Lat: 0, Lon: 0.002, Distance: 400},
+			// Same coords as previously emitted (200 m mark) but a larger
+			// stored distance: the trailing 50 m partial segment.
+			{Lat: 0, Lon: 0.002, Distance: 450},
+		}
+		result := pts.InterpolateByDistance(200)
+
+		// The final reported distance must equal the input track's last
+		// cumulative distance, even though the lat/lon coincides with the
+		// previously emitted point.
+		require.InDelta(t, 450, result[len(result)-1].DistanceM, 1e-9)
+		require.InDelta(t, 0, result[len(result)-1].Lat, 1e-9)
+		require.InDelta(t, 0.002, result[len(result)-1].Lon, 1e-9)
+
+		// Distances must remain strictly increasing.
+		for i := 1; i < len(result); i++ {
+			require.Greater(t, result[i].DistanceM, result[i-1].DistanceM)
+		}
 	})
 
 	t.Run("distance reflects original cumulative distance after simplification", func(t *testing.T) {
