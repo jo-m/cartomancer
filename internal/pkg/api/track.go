@@ -1324,18 +1324,19 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 
 	// Compute the encoded preview polylines from the simplified point cloud.
 	// This is cheap relative to the rest of the upload pipeline and avoids
-	// having to re-load and re-parse the blob later.
+	// having to re-load and re-parse the blob later. Any failure here aborts
+	// the upload so a track row is never created without valid previews.
 	pts := t.Points()
 	previewDp5m, err := track.EncodeVarint(pts.SimplifyDP(track.PreviewPolylineEpsilon5M))
 	if err != nil {
 		logg.Error(ctx, "encode preview polyline 5m", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeError(w, http.StatusUnprocessableEntity, "failed to encode track preview polyline")
 		return
 	}
 	previewDp50m, err := track.EncodeVarint(pts.SimplifyDP(track.PreviewPolylineEpsilon50M))
 	if err != nil {
 		logg.Error(ctx, "encode preview polyline 50m", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeError(w, http.StatusUnprocessableEntity, "failed to encode track preview polyline")
 		return
 	}
 
