@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
 func TestForwardBearing(t *testing.T) {
@@ -23,7 +24,7 @@ func TestForwardBearing(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := forwardBearing(tc.lat1, tc.lon1, tc.lat2, tc.lon2)
+			got := track.ForwardBearing(tc.lat1, tc.lon1, tc.lat2, tc.lon2)
 			diff := math.Abs(got - tc.wantDeg)
 			if diff > 180 {
 				diff = 360 - diff

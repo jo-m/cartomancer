@@ -294,6 +294,35 @@ func TestInterpolateByDistance(t *testing.T) {
 	})
 }
 
+func TestBearings(t *testing.T) {
+	t.Run("nil for fewer than two points", func(t *testing.T) {
+		require.Nil(t, Points(nil).Bearings())
+		require.Nil(t, Points{berlin}.Bearings())
+	})
+
+	t.Run("heading east", func(t *testing.T) {
+		pts := Points{
+			{Lat: 46.0, Lon: 8.0},
+			{Lat: 46.0, Lon: 8.01},
+			{Lat: 46.0, Lon: 8.02},
+		}
+		bearings := pts.Bearings()
+		require.Len(t, bearings, 3)
+		for _, b := range bearings {
+			require.InDelta(t, 90, b, 5.0)
+		}
+	})
+
+	t.Run("first copied from second", func(t *testing.T) {
+		pts := Points{
+			{Lat: 46.0, Lon: 8.0},
+			{Lat: 47.0, Lon: 8.0},
+		}
+		bearings := pts.Bearings()
+		require.InDelta(t, bearings[0], bearings[1], 1e-9)
+	})
+}
+
 func TestComputeElevationBounds(t *testing.T) {
 	t.Run("empty track", func(t *testing.T) {
 		tr := &Track{}

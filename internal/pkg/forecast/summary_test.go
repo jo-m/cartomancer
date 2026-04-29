@@ -36,37 +36,6 @@ func TestRelativeWindSector(t *testing.T) {
 	}
 }
 
-func TestForwardBearing(t *testing.T) {
-	// Due east: Bern to Zurich (roughly east).
-	b := forwardBearing(46.948, 7.447, 47.376, 8.541)
-	require.Greater(t, b, 30.0)
-	require.Less(t, b, 80.0)
-
-	// Due north.
-	b = forwardBearing(46.0, 8.0, 47.0, 8.0)
-	require.InDelta(t, 0, b, 1.0)
-
-	// Due south.
-	b = forwardBearing(47.0, 8.0, 46.0, 8.0)
-	require.InDelta(t, 180, b, 1.0)
-}
-
-func TestComputeBearings(t *testing.T) {
-	pts := track.Points{
-		{Lat: 46.0, Lon: 8.0},
-		{Lat: 46.0, Lon: 8.01},
-		{Lat: 46.0, Lon: 8.02},
-	}
-	bearings := computeBearings(pts)
-
-	require.Len(t, bearings, 3)
-
-	// Heading east, bearings should be around 90 degrees.
-	for _, b := range bearings {
-		require.InDelta(t, 90, b, 5.0)
-	}
-}
-
 func TestComputeSummary_EmptyHandle(t *testing.T) {
 	h := &Handle{
 		values: map[string][]timedValues{},
@@ -75,7 +44,7 @@ func TestComputeSummary_EmptyHandle(t *testing.T) {
 		{Lat: 46.0, Lon: 8.0, Distance: 0},
 		{Lat: 46.1, Lon: 8.1, Distance: 13000},
 	}
-	bearings := computeBearings(pts)
+	bearings := pts.Bearings()
 	s := computeSummary(h, pts, bearings, fixedTime(), 7.78)
 
 	require.True(t, math.IsNaN(s.avgTempC), "expected NaN for temperature with no data")

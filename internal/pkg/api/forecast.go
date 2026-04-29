@@ -115,11 +115,7 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 
 	// Compute travel bearings for the interpolated points. Cumulative
 	// distance is already populated on each point by InterpolatedTrackPoints.
-	bearings := make([]float64, len(pts))
-	for i := 1; i < len(pts); i++ {
-		bearings[i] = forwardBearing(pts[i-1].Lat, pts[i-1].Lon, pts[i].Lat, pts[i].Lon)
-	}
-	bearings[0] = bearings[1]
+	bearings := pts.Bearings()
 
 	speedMs := speedKmh / 3.6
 	totalDist := pts[len(pts)-1].Distance
@@ -272,13 +268,3 @@ func computeSunEvents(start, end time.Time, lat, lon, totalDist float64) []sunEv
 	return events
 }
 
-// forwardBearing computes the initial bearing in degrees [0, 360) from point 1 to point 2.
-func forwardBearing(lat1, lon1, lat2, lon2 float64) float64 {
-	lat1R := lat1 * math.Pi / 180
-	lat2R := lat2 * math.Pi / 180
-	dLon := (lon2 - lon1) * math.Pi / 180
-	y := math.Sin(dLon) * math.Cos(lat2R)
-	x := math.Cos(lat1R)*math.Sin(lat2R) - math.Sin(lat1R)*math.Cos(lat2R)*math.Cos(dLon)
-	brng := math.Atan2(y, x) * 180 / math.Pi
-	return math.Mod(brng+360, 360)
-}
