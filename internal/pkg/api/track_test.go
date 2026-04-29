@@ -660,7 +660,7 @@ func TestUploadTrack_PreviewPolylineFailureFails(t *testing.T) {
 
 	status, resp := e.doUploadRaw(client, gpx, "bad.gpx")
 	assert.Equal(t, http.StatusUnprocessableEntity, status)
-	assert.Contains(t, resp["error"], "preview polyline")
+	assert.Contains(t, resp["msg"], "preview polyline")
 
 	// No track row was inserted.
 	var listResp map[string]any
