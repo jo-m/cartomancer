@@ -307,31 +307,16 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	// Compute ETag before the expensive blob load so 304s are cheap.
-	eTag := fmt.Sprintf(`"%d-%d-v1"`, t.UpdatedAt.UnixMilli(), opts.Size)
+	eTag := fmt.Sprintf(`"%d-%d-v2"`, t.UpdatedAt.UnixMilli(), opts.Size)
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
+	pts, err := loadViewerPoints(t, db.PreviewPolyline50M)
 	if err != nil {
-		logg.Error(ctx, "failed to get track blob", "err", err)
+		logg.Error(ctx, "failed to load preview points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
-	if err != nil {
-		logg.Error(ctx, "failed to parse track blob", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	tr, err := track.New(src)
-	if err != nil {
-		logg.Error(ctx, "failed to create track", "err", err)
-		writeStatusError(w, http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -345,7 +330,7 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	svg := []byte(tr.PreviewSVG(opts, bounds))
+	svg := []byte(pts.PreviewSVG(opts, bounds))
 	w.Header().Set(headerContentType, "image/svg+xml")
 	w.Header().Set(headerCacheControl, "private, max-age=3600")
 	w.Header().Set(headerETag, eTag)
@@ -381,35 +366,20 @@ func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Compute ETag before the expensive blob load so 304s are cheap.
-	eTag := fmt.Sprintf(`"%d-%d-v1"`, t.UpdatedAt.UnixMilli(), opts.Size)
+	eTag := fmt.Sprintf(`"%d-%d-v3"`, t.UpdatedAt.UnixMilli(), opts.Size)
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
+	pts, err := loadViewerPoints(t, db.PreviewPolyline5M)
 	if err != nil {
-		logg.Error(ctx, "failed to get track blob", "err", err)
+		logg.Error(ctx, "failed to load profile points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
 
-	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
-	if err != nil {
-		logg.Error(ctx, "failed to parse track blob", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	tr, err := track.New(src)
-	if err != nil {
-		logg.Error(ctx, "failed to create track", "err", err)
-		writeStatusError(w, http.StatusUnprocessableEntity)
-		return
-	}
-
-	svg := []byte(tr.ProfileSVG(opts))
+	svg := []byte(pts.ProfileSVG(opts))
 	w.Header().Set(headerContentType, "image/svg+xml")
 	w.Header().Set(headerCacheControl, "private, max-age=3600")
 	w.Header().Set(headerETag, eTag)
@@ -466,43 +436,22 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eTag := fmt.Sprintf(`"%d-points-v3"`, t.UpdatedAt.UnixMilli())
+	eTag := fmt.Sprintf(`"%d-points-v5"`, t.UpdatedAt.UnixMilli())
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
+	pts, err := loadViewerPoints(t, db.PreviewPolyline5M)
 	if err != nil {
-		logg.Error(ctx, "failed to get track blob", "err", err)
+		logg.Error(ctx, "failed to load viewer points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
-
-	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
-	if err != nil {
-		logg.Error(ctx, "failed to parse track blob", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	tr, err := track.New(src)
-	if err != nil {
-		logg.Error(ctx, "failed to create track", "err", err)
-		writeStatusError(w, http.StatusUnprocessableEntity)
-		return
-	}
-	pts := tr.Points().SubsampleLTTB(TrackPointsTarget, func(p track.Point) float64 {
-		return p.Elevation
-	})
 
 	points := make([]trackPoint, len(pts))
-	cumDist := 0.0
 	for i, p := range pts {
-		if i > 0 {
-			cumDist += pts[i-1].MetersTo(&p)
-		}
-		points[i] = trackPoint{Lat: p.Lat, Lon: p.Lon, Ele: p.Elevation, D: cumDist}
+		points[i] = trackPoint{Lat: p.Lat, Lon: p.Lon, Ele: p.Elevation, D: p.Distance}
 	}
 
 	w.Header().Set(headerCacheControl, "private, max-age=3600")
@@ -1303,10 +1252,6 @@ func boolToInt(b bool) int {
 	return 0
 }
 
-// TrackPointsTarget is the maximum number of points returned by the points
-// endpoint. Tracks with more points are down-sampled using LTTB.
-const TrackPointsTarget = 1000
-
 const (
 	maxUploadSize         = 5 << 20 // 5 MiB
 	maxTrackPoints        = 100_000
@@ -1379,18 +1324,19 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 
 	// Compute the encoded preview polylines from the simplified point cloud.
 	// This is cheap relative to the rest of the upload pipeline and avoids
-	// having to re-load and re-parse the blob later.
+	// having to re-load and re-parse the blob later. Any failure here aborts
+	// the upload so a track row is never created without valid previews.
 	pts := t.Points()
 	previewDp5m, err := track.EncodeVarint(pts.SimplifyDP(track.PreviewPolylineEpsilon5M))
 	if err != nil {
 		logg.Error(ctx, "encode preview polyline 5m", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeError(w, http.StatusUnprocessableEntity, "failed to encode track preview polyline")
 		return
 	}
 	previewDp50m, err := track.EncodeVarint(pts.SimplifyDP(track.PreviewPolylineEpsilon50M))
 	if err != nil {
 		logg.Error(ctx, "encode preview polyline 50m", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeError(w, http.StatusUnprocessableEntity, "failed to encode track preview polyline")
 		return
 	}
 
@@ -1408,6 +1354,19 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if meta.TotalDistanceM > maxTrackDistM {
+		writeError(w, http.StatusUnprocessableEntity, "track distance must be at most 10000 km")
+		return
+	}
+	// meta.TotalDistanceM may be the device-reported value (FIT). Cross-check
+	// the chord total computed from the points themselves so an upload whose
+	// device total is plausible but whose points are clustered at the start
+	// is also rejected.
+	chordTotalM := pts[len(pts)-1].Distance
+	if chordTotalM < minTrackDistM {
+		writeError(w, http.StatusUnprocessableEntity, "track distance must be at least 10 m")
+		return
+	}
+	if chordTotalM > maxTrackDistM {
 		writeError(w, http.StatusUnprocessableEntity, "track distance must be at most 10000 km")
 		return
 	}
@@ -1464,46 +1423,40 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		}
 
 		created, txErr = q.CreateTrack(ctx, db.CreateTrackParams{
-			Uuid:              trackID.String(),
-			CreatedAt:         now,
-			UpdatedAt:         now,
-			UserID:            user.Uuid,
-			BlobID:            blobID,
-			FileFormat:        int64(fileFormatFromExt(header.Filename)),
-			OriginalFilename:  header.Filename,
-			Name:              meta.Name,
-			Description:       toNullString(meta.Description),
-			Source:            toNullString(meta.Source),
-			Author:            toNullString(meta.Author),
-			AuthorLinkUrl:     toNullString(meta.AuthorLinkURL),
-			TrackType:         int64(meta.TrackType),
-			LinkUrl:           toNullString(meta.LinkURL),
-			Sport:             int64(meta.Sport),
-			SubSport:          int64(meta.SubSport),
-			TotalDistanceM:    meta.TotalDistanceM,
-			TotalAscentM:      meta.TotalAscentM,
-			StartLat:          toNullFloat64(meta.StartLat),
-			StartLon:          toNullFloat64(meta.StartLon),
-			EndLat:            toNullFloat64(meta.EndLat),
-			EndLon:            toNullFloat64(meta.EndLon),
-			BoundsMinLat:      toNullFloat64(meta.BoundsMinLat),
-			BoundsMinLon:      toNullFloat64(meta.BoundsMinLon),
-			BoundsMaxLat:      toNullFloat64(meta.BoundsMaxLat),
-			BoundsMaxLon:      toNullFloat64(meta.BoundsMaxLon),
-			MinElevationM:     toNullFloat64(meta.MinElevationM),
-			MaxElevationM:     toNullFloat64(meta.MaxElevationM),
-			OriginalCreatedAt: toNullTime(meta.OriginalCreatedAt),
-			Public:            0,
-		})
-		if txErr != nil {
-			return txErr
-		}
-
-		return q.SetTrackPreviewPolylines(ctx, db.SetTrackPreviewPolylinesParams{
-			Uuid:                created.Uuid,
+			Uuid:                trackID.String(),
+			CreatedAt:           now,
+			UpdatedAt:           now,
+			UserID:              user.Uuid,
+			BlobID:              blobID,
+			FileFormat:          int64(fileFormatFromExt(header.Filename)),
+			OriginalFilename:    header.Filename,
+			Name:                meta.Name,
+			Description:         toNullString(meta.Description),
+			Source:              toNullString(meta.Source),
+			Author:              toNullString(meta.Author),
+			AuthorLinkUrl:       toNullString(meta.AuthorLinkURL),
+			TrackType:           int64(meta.TrackType),
+			LinkUrl:             toNullString(meta.LinkURL),
+			Sport:               int64(meta.Sport),
+			SubSport:            int64(meta.SubSport),
+			TotalDistanceM:      meta.TotalDistanceM,
+			TotalAscentM:        meta.TotalAscentM,
+			StartLat:            toNullFloat64(meta.StartLat),
+			StartLon:            toNullFloat64(meta.StartLon),
+			EndLat:              toNullFloat64(meta.EndLat),
+			EndLon:              toNullFloat64(meta.EndLon),
+			BoundsMinLat:        toNullFloat64(meta.BoundsMinLat),
+			BoundsMinLon:        toNullFloat64(meta.BoundsMinLon),
+			BoundsMaxLat:        toNullFloat64(meta.BoundsMaxLat),
+			BoundsMaxLon:        toNullFloat64(meta.BoundsMaxLon),
+			MinElevationM:       toNullFloat64(meta.MinElevationM),
+			MaxElevationM:       toNullFloat64(meta.MaxElevationM),
+			OriginalCreatedAt:   toNullTime(meta.OriginalCreatedAt),
+			Public:              0,
 			PolylineDp5mVarint:  previewDp5m,
 			PolylineDp50mVarint: previewDp50m,
 		})
+		return txErr
 	})
 	if errors.Is(err, errUploadTrackLimitReached) {
 		writeError(w, http.StatusConflict, "per-user track limit reached")

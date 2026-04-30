@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"database/sql"
 	"errors"
 	"math"
@@ -12,17 +11,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sixdouglas/suncalc"
-	"jo-m.ch/go/cartomancer/internal/pkg/blob"
 	"jo-m.ch/go/cartomancer/internal/pkg/forecast"
-	"jo-m.ch/go/cartomancer/internal/pkg/load"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo/vars"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
-	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
 type forecastPointResponse struct {
-	Index                    int      `json:"index"`
 	DistanceM                float64  `json:"distanceM"`
 	Time                     string   `json:"time"`
 	TemperatureC             *float64 `json:"temperatureC"`
@@ -102,41 +97,28 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
-	if err != nil {
-		logg.Error(ctx, "failed to get track blob", "err", err)
+	pts, err := forecast.InterpolatedTrackPoints(t, forecast.LiveStepM)
+	if errors.Is(err, forecast.ErrPolylineMissing) {
+		logg.Error(ctx, "track preview polyline not backfilled", "uuid", trackUUID)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
-
-	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
 	if err != nil {
-		logg.Error(ctx, "failed to parse track blob", "err", err)
+		logg.Error(ctx, "failed to load interpolated track points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)
 		return
 	}
-
-	tr, err := track.New(src)
-	if err != nil {
-		logg.Error(ctx, "failed to create track", "err", err)
-		writeStatusError(w, http.StatusUnprocessableEntity)
+	if len(pts) < 2 {
+		writeError(w, http.StatusUnprocessableEntity, "track has too few points")
 		return
 	}
-	pts := tr.Points().SubsampleLTTB(TrackPointsTarget, func(p track.Point) float64 {
-		return p.Elevation
-	})
 
-	// Compute cumulative distances and travel bearings for the subsampled points.
-	distances := make([]float64, len(pts))
-	bearings := make([]float64, len(pts))
-	for i := 1; i < len(pts); i++ {
-		distances[i] = distances[i-1] + pts[i-1].MetersTo(&pts[i])
-		bearings[i] = forwardBearing(pts[i-1].Lat, pts[i-1].Lon, pts[i].Lat, pts[i].Lon)
-	}
-	bearings[0] = bearings[1]
+	// Compute travel bearings for the interpolated points. Cumulative
+	// distance is already populated on each point by InterpolatedTrackPoints.
+	bearings := pts.Bearings()
 
 	speedMs := speedKmh / 3.6
-	totalDist := distances[len(distances)-1]
+	totalDist := pts[len(pts)-1].Distance
 	endTime := startTime.Add(time.Duration(totalDist/speedMs) * time.Second)
 
 	bbox := forecast.BBox{
@@ -146,12 +128,15 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 		MaxLon: t.BoundsMaxLon.Float64,
 	}
 	if !t.BoundsMinLat.Valid || !t.BoundsMaxLat.Valid || !t.BoundsMinLon.Valid || !t.BoundsMaxLon.Valid {
-		meta := tr.EnhancedMetadata()
-		if meta.BoundsMinLat != nil {
-			bbox.MinLat = *meta.BoundsMinLat
-			bbox.MaxLat = *meta.BoundsMaxLat
-			bbox.MinLon = *meta.BoundsMinLon
-			bbox.MaxLon = *meta.BoundsMaxLon
+		// The bounds columns are populated for every track on upload, but old
+		// rows may still be NULL. Derive a fallback bbox from the loaded points.
+		bbox.MinLat, bbox.MaxLat = pts[0].Lat, pts[0].Lat
+		bbox.MinLon, bbox.MaxLon = pts[0].Lon, pts[0].Lon
+		for _, p := range pts[1:] {
+			bbox.MinLat = math.Min(bbox.MinLat, p.Lat)
+			bbox.MaxLat = math.Max(bbox.MaxLat, p.Lat)
+			bbox.MinLon = math.Min(bbox.MinLon, p.Lon)
+			bbox.MaxLon = math.Max(bbox.MaxLon, p.Lon)
 		}
 	}
 
@@ -177,10 +162,9 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 
 	result := make([]forecastPointResponse, len(pts))
 	for i := range pts {
-		pointTime := startTime.Add(time.Duration(distances[i]/speedMs) * time.Second)
+		pointTime := startTime.Add(time.Duration(pts[i].Distance/speedMs) * time.Second)
 		rp := forecastPointResponse{
-			Index:     i,
-			DistanceM: distances[i],
+			DistanceM: pts[i].Distance,
 			Time:      pointTime.Format(time.RFC3339),
 		}
 
@@ -282,15 +266,4 @@ func computeSunEvents(start, end time.Time, lat, lon, totalDist float64) []sunEv
 		return events[i].DistanceM < events[j].DistanceM
 	})
 	return events
-}
-
-// forwardBearing computes the initial bearing in degrees [0, 360) from point 1 to point 2.
-func forwardBearing(lat1, lon1, lat2, lon2 float64) float64 {
-	lat1R := lat1 * math.Pi / 180
-	lat2R := lat2 * math.Pi / 180
-	dLon := (lon2 - lon1) * math.Pi / 180
-	y := math.Sin(dLon) * math.Cos(lat2R)
-	x := math.Cos(lat1R)*math.Sin(lat2R) - math.Sin(lat1R)*math.Cos(lat2R)*math.Cos(dLon)
-	brng := math.Atan2(y, x) * 180 / math.Pi
-	return math.Mod(brng+360, 360)
 }

@@ -16,30 +16,42 @@ export function fmtClock(ts: number): string {
   })
 }
 
-/** Interpolates forecast timestamps to cover every track point index. */
+/**
+ * Interpolates forecast timestamps onto every track point by cumulative
+ * distance, so /points and /forecast can use independent point counts.
+ *
+ * `forecastPoints` carries the forecast samples with `distanceM` along the
+ * track; `trackDistancesM` is the cumulative distance of each track point.
+ * For points before the first forecast sample the first timestamp is used,
+ * and for points beyond the last sample the last timestamp is used.
+ */
 export function buildForecastTimes(
-  forecastPoints: { index: number; time: string }[],
-  numTrackPoints: number
+  forecastPoints: { distanceM: number; time: string }[],
+  trackDistancesM: number[]
 ): number[] {
-  const result = new Array<number>(numTrackPoints)
+  const result = new Array<number>(trackDistancesM.length)
   if (forecastPoints.length === 0) return result.fill(0)
 
   const fp = forecastPoints.map((p) => ({
-    i: p.index,
+    d: p.distanceM,
     ts: new Date(p.time).getTime(),
   }))
 
-  for (let i = 0; i < numTrackPoints; i++) {
-    if (i <= fp[0].i) {
+  let j = 0
+  for (let i = 0; i < trackDistancesM.length; i++) {
+    const d = trackDistancesM[i]
+    if (d <= fp[0].d) {
       result[i] = fp[0].ts
-    } else if (i >= fp[fp.length - 1].i) {
-      result[i] = fp[fp.length - 1].ts
-    } else {
-      let j = 0
-      while (j < fp.length - 1 && fp[j + 1].i <= i) j++
-      const t = (i - fp[j].i) / (fp[j + 1].i - fp[j].i)
-      result[i] = Math.round(fp[j].ts + t * (fp[j + 1].ts - fp[j].ts))
+      continue
     }
+    if (d >= fp[fp.length - 1].d) {
+      result[i] = fp[fp.length - 1].ts
+      continue
+    }
+    while (j < fp.length - 1 && fp[j + 1].d <= d) j++
+    const span = fp[j + 1].d - fp[j].d
+    const t = span > 0 ? (d - fp[j].d) / span : 0
+    result[i] = Math.round(fp[j].ts + t * (fp[j + 1].ts - fp[j].ts))
   }
   return result
 }

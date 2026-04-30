@@ -15,7 +15,8 @@ INSERT INTO tracks (
   bounds_min_lat, bounds_min_lon, bounds_max_lat, bounds_max_lon,
   min_elevation_m, max_elevation_m,
   original_created_at,
-  public
+  public,
+  polyline_dp5m_varint, polyline_dp50m_varint
 ) VALUES (
   ?, ?, ?, ?, ?, ?, ?,
   ?, ?, ?, ?, ?,
@@ -26,7 +27,8 @@ INSERT INTO tracks (
   ?, ?, ?, ?,
   ?, ?,
   ?,
-  ?
+  ?,
+  ?, ?
 )
 RETURNING *;
 

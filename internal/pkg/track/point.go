@@ -11,10 +11,14 @@ import (
 )
 
 // Point is a single GPS sample with time, coordinates, and elevation.
+// Distance is the cumulative great-circle distance in metres from the first
+// point of the track; it is zero when the point was not created via [New].
+// Time may be zero depending on the context.
 type Point struct {
 	Time      time.Time
 	Lat, Lon  float64
 	Elevation float64
+	Distance  float64
 }
 
 // MetersTo computes the great-circle distance in meters to another point.
@@ -221,6 +225,8 @@ const profileElevationRange = 1500.0 // meters; fixed Y-axis range for ProfileSV
 // track's lowest point with a fixed scale.
 // The canvas is opts.Size wide and opts.Size/4 tall.
 // Points are subsampled so that each line segment spans approximately 5 px.
+// Assumes [Point.Distance] is populated for every point, as is the case for
+// points produced by [New] or decoded via [DecodeVarint].
 func (pts Points) ProfileSVG(opts PreviewOptions) string {
 	w := opts.Size
 	h := max(1, opts.Size/4)
@@ -229,17 +235,14 @@ func (pts Points) ProfileSVG(opts PreviewOptions) string {
 		return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d"/>`, w, h)
 	}
 
-	// Compute cumulative distances and find the minimum elevation.
-	dists := make([]float64, len(pts))
 	minElev := pts[0].Elevation
 	for i := 1; i < len(pts); i++ {
-		dists[i] = dists[i-1] + pts[i-1].MetersTo(&pts[i])
 		if pts[i].Elevation < minElev {
 			minElev = pts[i].Elevation
 		}
 	}
 
-	totalDist := dists[len(dists)-1]
+	totalDist := pts[len(pts)-1].Distance
 	if totalDist == 0 {
 		return fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d"/>`, w, h)
 	}
@@ -261,7 +264,7 @@ func (pts Points) ProfileSVG(opts PreviewOptions) string {
 	// Compute total pixel-space path length to determine subsampling stride.
 	totalPx := 0.0
 	for i := 1; i < len(pts); i++ {
-		dx := toSVGX(dists[i]) - toSVGX(dists[i-1])
+		dx := toSVGX(pts[i].Distance) - toSVGX(pts[i-1].Distance)
 		dy := toSVGY(pts[i].Elevation) - toSVGY(pts[i-1].Elevation)
 		totalPx += math.Sqrt(dx*dx + dy*dy)
 	}
@@ -275,12 +278,12 @@ func (pts Points) ProfileSVG(opts PreviewOptions) string {
 		if b.Len() > 0 {
 			b.WriteByte(' ')
 		}
-		fmt.Fprintf(&b, "%.1f,%.1f", toSVGX(dists[i]), toSVGY(pts[i].Elevation))
+		fmt.Fprintf(&b, "%.1f,%.1f", toSVGX(pts[i].Distance), toSVGY(pts[i].Elevation))
 	}
 	// Always include the last point.
 	last := len(pts) - 1
 	if last%stride != 0 {
-		fmt.Fprintf(&b, " %.1f,%.1f", toSVGX(dists[last]), toSVGY(pts[last].Elevation))
+		fmt.Fprintf(&b, " %.1f,%.1f", toSVGX(pts[last].Distance), toSVGY(pts[last].Elevation))
 	}
 	profilePts := b.String()
 
@@ -288,7 +291,7 @@ func (pts Points) ProfileSVG(opts PreviewOptions) string {
 	baseline := padY + innerH
 	fillPts := fmt.Sprintf("%s %.1f,%.1f %.1f,%.1f",
 		profilePts,
-		toSVGX(dists[last]), baseline,
+		toSVGX(pts[last].Distance), baseline,
 		padX, baseline,
 	)
 
@@ -325,22 +328,37 @@ type InterpolatedPoint struct {
 }
 
 // InterpolateByDistance walks the point sequence and emits points at fixed
-// distance intervals. The first and last original points are always included.
-// Returns nil if there are fewer than two points.
+// cumulative-distance intervals. Spacing is measured against [Point.Distance],
+// which is preserved from the original track even after Douglas-Peucker
+// simplification, so the returned distances match what other endpoints (e.g.
+// the elevation profile) report for the same track. The first and last
+// original points are always included.
+//
+// Returns nil if there are fewer than two points, the interval is non-positive,
+// or the input does not have monotonically increasing [Point.Distance].
 func (pts Points) InterpolateByDistance(intervalM float64) []InterpolatedPoint {
 	if len(pts) < 2 || intervalM <= 0 {
 		return nil
 	}
 
-	result := []InterpolatedPoint{{DistanceM: 0, Lat: pts[0].Lat, Lon: pts[0].Lon}}
-	nextDist := intervalM
-	cumDist := 0.0
+	startDist := pts[0].Distance
+	endDist := pts[len(pts)-1].Distance
+	if endDist <= startDist {
+		return nil
+	}
+
+	result := []InterpolatedPoint{{DistanceM: startDist, Lat: pts[0].Lat, Lon: pts[0].Lon}}
+	nextDist := startDist + intervalM
 
 	for i := 1; i < len(pts); i++ {
-		segLen := pts[i-1].MetersTo(&pts[i])
-		segStart := cumDist
+		segStart := pts[i-1].Distance
+		segEnd := pts[i].Distance
+		segLen := segEnd - segStart
+		if segLen <= 0 {
+			continue
+		}
 
-		for nextDist <= segStart+segLen {
+		for nextDist <= segEnd {
 			frac := (nextDist - segStart) / segLen
 			p := pts[i-1].Interpolate(&pts[i], frac)
 			result = append(result, InterpolatedPoint{
@@ -350,16 +368,19 @@ func (pts Points) InterpolateByDistance(intervalM float64) []InterpolatedPoint {
 			})
 			nextDist += intervalM
 		}
-
-		cumDist += segLen
 	}
 
-	// Always include the last point.
+	// Always include the last point. The distance comparison guards a
+	// subtle edge case: when the last input vertex shares lat/lon with the
+	// previously emitted interpolated point but sits at a different
+	// cumulative distance (e.g. the trailing partial segment after a
+	// switchback that returns to the same coordinate), skipping by lat/lon
+	// alone would leave the result short of the track's true end distance.
 	last := pts[len(pts)-1]
 	lastResult := result[len(result)-1]
-	if lastResult.Lat != last.Lat || lastResult.Lon != last.Lon {
+	if lastResult.Lat != last.Lat || lastResult.Lon != last.Lon || lastResult.DistanceM != endDist {
 		result = append(result, InterpolatedPoint{
-			DistanceM: cumDist,
+			DistanceM: endDist,
 			Lat:       last.Lat,
 			Lon:       last.Lon,
 		})
@@ -368,96 +389,66 @@ func (pts Points) InterpolateByDistance(intervalM float64) []InterpolatedPoint {
 	return result
 }
 
-// SubsampleLTTB down-samples the points to at most targetN using the
-// Largest-Triangle-Three-Buckets algorithm. valueFn extracts the Y-axis
-// value for each point (e.g. elevation); cumulative distance is used as
-// the X-axis. The first and last points are always preserved.
-// If len(pts) <= targetN the original slice is returned unchanged.
-func (pts Points) SubsampleLTTB(targetN int, valueFn func(Point) float64) Points {
-	n := len(pts)
-	if targetN <= 2 || n <= targetN {
-		return pts
-	}
-
-	// Pre-compute cumulative distances (X-axis).
-	dist := make([]float64, n)
-	for i := 1; i < n; i++ {
-		dist[i] = dist[i-1] + pts[i-1].MetersTo(&pts[i])
-	}
-
-	result := make(Points, 0, targetN)
-	result = append(result, pts[0])
-
-	// Number of buckets for the interior points.
-	buckets := targetN - 2
-	bucketSize := float64(n-2) / float64(buckets)
-
-	prevSelected := 0
-
-	for b := range buckets {
-		// Current bucket range (interior points start at index 1).
-		bucketStart := int(math.Floor(float64(b)*bucketSize)) + 1
-		bucketEnd := min(int(math.Floor(float64(b+1)*bucketSize))+1, n-1)
-
-		// Next bucket average (for the triangle area calculation).
-		nextStart := bucketEnd
-		nextEnd := int(math.Floor(float64(b+2)*bucketSize)) + 1
-		if b+2 >= buckets {
-			// Last bucket: the "next" bucket is just the final point.
-			nextStart = n - 1
-			nextEnd = n
-		}
-		if nextEnd > n {
-			nextEnd = n
-		}
-
-		var avgX, avgY float64
-		nextCount := nextEnd - nextStart
-		for i := nextStart; i < nextEnd; i++ {
-			avgX += dist[i]
-			avgY += valueFn(pts[i])
-		}
-		avgX /= float64(nextCount)
-		avgY /= float64(nextCount)
-
-		// Pick the point in the current bucket that forms the largest triangle
-		// with the previously selected point and the next-bucket average.
-		ax := dist[prevSelected]
-		ay := valueFn(pts[prevSelected])
-
-		bestIdx := bucketStart
-		bestArea := -1.0
-		for i := bucketStart; i < bucketEnd; i++ {
-			// Triangle area (times 2, but we only compare).
-			area := math.Abs((ax-avgX)*(valueFn(pts[i])-ay) - (ax-dist[i])*(avgY-ay))
-			if area > bestArea {
-				bestArea = area
-				bestIdx = i
-			}
-		}
-
-		result = append(result, pts[bestIdx])
-		prevSelected = bestIdx
-	}
-
-	result = append(result, pts[n-1])
-	return result
-}
-
 // Subsample returns a subset of points such that consecutive points are at
-// least minDistM meters apart. The first and last points are always included.
+// least minDistM meters apart along the track. The first and last points are
+// always included.
+//
+// When the input carries populated cumulative [Point.Distance] values (as
+// produced by [New] or [DecodeVarint]), the threshold is evaluated against
+// those distances, so switchback sections where the chord between two
+// retained vertices is much shorter than the path between them are not
+// over-thinned. Falls back to the great-circle chord between the last
+// retained point and the candidate when [Point.Distance] is not available.
 func (pts Points) Subsample(minDistM float64) Points {
 	if len(pts) <= 2 {
 		return pts
 	}
+	// Cumulative distance is monotonically non-decreasing, so a positive
+	// final value means the column is populated for every point after the
+	// origin. The origin itself is allowed to be zero.
+	useDistance := pts[len(pts)-1].Distance > 0
 	result := Points{pts[0]}
 	last := &pts[0]
 	for i := 1; i < len(pts)-1; i++ {
-		if last.MetersTo(&pts[i]) >= minDistM {
+		var advanced bool
+		if useDistance {
+			advanced = pts[i].Distance >= last.Distance+minDistM
+		} else {
+			advanced = last.MetersTo(&pts[i]) >= minDistM
+		}
+		if advanced {
 			result = append(result, pts[i])
 			last = &pts[i]
 		}
 	}
 	result = append(result, pts[len(pts)-1])
 	return result
+}
+
+// ForwardBearing computes the initial bearing in degrees [0, 360) from
+// (lat1, lon1) to (lat2, lon2) using the haversine formula.
+func ForwardBearing(lat1, lon1, lat2, lon2 float64) float64 {
+	lat1R := lat1 * math.Pi / 180
+	lat2R := lat2 * math.Pi / 180
+	dLon := (lon2 - lon1) * math.Pi / 180
+	y := math.Sin(dLon) * math.Cos(lat2R)
+	x := math.Cos(lat1R)*math.Sin(lat2R) - math.Sin(lat1R)*math.Cos(lat2R)*math.Cos(dLon)
+	brng := math.Atan2(y, x) * 180 / math.Pi
+	return math.Mod(brng+360, 360)
+}
+
+// Bearings returns the forward travel bearing in degrees [0, 360) for each
+// point in pts. The bearing at index i is the heading from pts[i-1] to
+// pts[i]; the first point copies the second so every index has a defined
+// value. Returns nil for fewer than two points.
+func (pts Points) Bearings() []float64 {
+	if len(pts) < 2 {
+		return nil
+	}
+	bearings := make([]float64, len(pts))
+	for i := 1; i < len(pts); i++ {
+		bearings[i] = ForwardBearing(pts[i-1].Lat, pts[i-1].Lon, pts[i].Lat, pts[i].Lon)
+	}
+	bearings[0] = bearings[1]
+	return bearings
 }

@@ -102,6 +102,16 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [ ] Unknown sport or subsport
   - [ ] By start location (1km radius?)
 - [x] Make minRefreshAge for maps etc. a public const and use it also for job scheduling
+- [ ] Does our current way of using eTags even make sense, if we are not actually checking for them when the clients sends them? If not, remove them.
+- [x] Nix flake setup for devshell, incl. direnv, and for building the binary and frontend and docker image
+  - [ ] Create a separate nix/ directory and move the package definitions there. Same for scripts.
+  - [ ] Formatting via Nix treefmt.
+  - [ ] What are some options to move the stuff currently in the makefile (lint, format, check, gen... ) also to nix? Also don't forget to run the tests.
+  - [ ] Cache go modules and node modules by having them as a separate derivation
+  - [x] Enable cross build from x86 to arm
+- [x] Remove SubsampleLTTB() and use DP instead. Use the pre-encoded previews where possible. Remove/change/update the /tracks/{uuid}/points endpoint.
+- [ ] Remove the track preview backfill job and make the cols non-null once prod is migrated. Ensure there are no fallbacks to GPX/FIT parsing anywhere they are used.
+- [ ] Create a Typescript varint decoder and then deliver the tracks directly to the frontend as varint encoded. Create a snapshot test with some source of truth encoded on the Go side. Add instructions how to also run the ts tests.
 
 ## Before initial push/deploy
 
@@ -128,16 +138,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] Grep for TODO in code
 - [x] SQLite without rowid
 - [x] Move geonames and maybe forecasts to separate database files?
-- [x] Nix flake setup for devshell, incl. direnv, and for building the binary and frontend and docker image
-  - [ ] Create a separate nix/ directory and move the package definitions there. Same for scripts.
-  - [ ] Formatting via Nix treefmt.
-  - [ ] What are some options to move the stuff currently in the makefile (lint, format, check, gen... ) also to nix? Also don't forget to run the tests.
-  - [ ] Cache go modules and node modules by having them as a separate derivation
-  - [x] Enable cross build from x86 to arm
-- [ ] Remove SubsampleLTTB() and use DP instead. Use the pre-encoded previews where possible. Remove/change/update the /tracks/{uuid}/points endpoint.
-- [ ] Remove the track preview backfill job and make the cols non-null once prod is migrated.
 - [x] In the track filter view (map mode), add map zoom state to the url so it is persisted when sharing the link or reloading.
-- [ ] Go through the periodic TODOs
 
 ## Before enabling public signup
 
@@ -180,10 +181,9 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] Show road closures, construction (entered manually, or sourced somewhere)
 - [ ] Download road closures from more sources (e.g. https://www.geocat.ch/geonetwork/srv/ger/catalog.search#/search?any=Baustellen)
 - [ ] Download country shapes, and issue a warning if a track includes a border crossing
-- [ ] Map view, showing all tracks and their starting points
-- [ ] Allow to attach images to tracks
-- [ ] Session middleware opens a write transaction on every request
-- [ ] Potentially cache track blob -> track.Track{} for performance.
+- [x] Map view, showing all tracks and their starting points
+- [x] Potentially cache track blob -> track.Track{} for performance.
+- [ ] Go through the periodic TODOs
 
 ## Periodic
 

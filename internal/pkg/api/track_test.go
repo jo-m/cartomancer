@@ -639,3 +639,32 @@ func TestUploadTrack_NameFallsBackToTimestamp(t *testing.T) {
 	require.True(t, ok)
 	assert.True(t, strings.HasPrefix(name, "Track uploaded "), "expected timestamp fallback, got: %s", name)
 }
+
+// TestUploadTrack_PreviewPolylineFailureFails verifies that an upload whose
+// simplified preview polyline cannot be encoded is rejected with 422 and
+// leaves no track row behind. An elevation of 25000 m overflows the int32
+// fixed-point used by [track.EncodeVarint] (precision 1e5).
+func TestUploadTrack_PreviewPolylineFailureFails(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret11")
+
+	gpx := []byte(`<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><name>bad</name><trkseg>
+    <trkpt lat="47.3769" lon="8.5417"><ele>0</ele></trkpt>
+    <trkpt lat="47.3779" lon="8.5427"><ele>25000</ele></trkpt>
+  </trkseg></trk>
+</gpx>`)
+
+	status, resp := e.doUploadRaw(client, gpx, "bad.gpx")
+	assert.Equal(t, http.StatusUnprocessableEntity, status)
+	assert.Contains(t, resp["msg"], "preview polyline")
+
+	// No track row was inserted.
+	var listResp map[string]any
+	_, _ = e.do(client, http.MethodGet, "/tracks", nil, &listResp)
+	tracks, _ := listResp["tracks"].([]any)
+	assert.Empty(t, tracks)
+}

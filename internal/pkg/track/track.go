@@ -227,6 +227,12 @@ func New(src TrackSource) (*Track, error) {
 		return nil, fmt.Errorf("track must have at least 2 points, got %d", len(pts))
 	}
 
+	cumDist := 0.0
+	for i := 1; i < len(pts); i++ {
+		cumDist += pts[i-1].MetersTo(&pts[i])
+		pts[i].Distance = cumDist
+	}
+
 	track := Track{
 		meta: src.Metadata(),
 		pts:  pts,

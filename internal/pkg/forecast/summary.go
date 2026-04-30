@@ -1,7 +1,6 @@
 package forecast
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"errors"
@@ -9,11 +8,9 @@ import (
 	"math"
 	"time"
 
-	"jo-m.ch/go/cartomancer/internal/pkg/blob"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
 	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
-	"jo-m.ch/go/cartomancer/internal/pkg/load"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo/vars"
 	"jo-m.ch/go/cartomancer/internal/pkg/track"
@@ -28,9 +25,6 @@ const (
 
 	// summaryStartOffset is how far in the future the journey is assumed to start.
 	summaryStartOffset = 1 * time.Hour
-
-	// summaryPointsTarget is the maximum number of subsampled points used for forecast sampling.
-	summaryPointsTarget = 200
 
 	// summaryBatchSize is how many track UUIDs to fetch per cursor-based batch.
 	summaryBatchSize = 100
@@ -150,29 +144,23 @@ func (s *Summarizer) summarizeTrack(ctx context.Context, uuid string, refTime, s
 		return fmt.Errorf("get track: %w", err)
 	}
 
-	b, err := blob.Get(ctx, s.d.QueryRO(), t.BlobID)
-	if err != nil {
-		return fmt.Errorf("get blob: %w", err)
+	pts, err := InterpolatedTrackPoints(t, SummarizerStepM)
+	if errors.Is(err, ErrPolylineMissing) {
+		logg.Debug(ctx, "track preview polyline not backfilled, skipping", "uuid", uuid)
+		return nil
 	}
-
-	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
 	if err != nil {
-		return fmt.Errorf("parse blob: %w", err)
+		return fmt.Errorf("interpolate track points: %w", err)
 	}
-
-	tr, err := track.New(src)
-	if err != nil {
+	if len(pts) < 2 {
 		logg.Debug(ctx, "track has too few points, skipping", "uuid", uuid)
 		return nil
 	}
-	pts := tr.Points().SubsampleLTTB(summaryPointsTarget, func(p track.Point) float64 {
-		return p.Elevation
-	})
 
-	distances, bearings := computeDistancesAndBearings(pts)
+	bearings := pts.Bearings()
 
 	speedMs := summarySpeedKmh / 3.6
-	totalDist := distances[len(distances)-1]
+	totalDist := pts[len(pts)-1].Distance
 	endTime := startTime.Add(time.Duration(totalDist/speedMs) * time.Second)
 
 	bbox := trackBBox(t)
@@ -193,7 +181,7 @@ func (s *Summarizer) summarizeTrack(ctx context.Context, uuid string, refTime, s
 		return fmt.Errorf("load forecast: %w", err)
 	}
 
-	summary := computeSummary(h, pts, distances, bearings, startTime, speedMs)
+	summary := computeSummary(h, pts, bearings, startTime, speedMs)
 
 	return s.d.QueryRW().UpsertTrackForecast(ctx, db.UpsertTrackForecastParams{
 		TrackUuid:             uuid,
@@ -221,7 +209,8 @@ type trackSummary struct {
 
 // computeSummary samples the forecast at each point along the track and
 // aggregates temperature, precipitation, and wind into summary values.
-func computeSummary(h *Handle, pts track.Points, distances, bearings []float64, startTime time.Time, speedMs float64) trackSummary {
+// Each point's cumulative distance must be populated on [track.Point.Distance].
+func computeSummary(h *Handle, pts track.Points, bearings []float64, startTime time.Time, speedMs float64) trackSummary {
 	var (
 		tempSum   float64
 		tempCount int
@@ -233,7 +222,7 @@ func computeSummary(h *Handle, pts track.Points, distances, bearings []float64, 
 	)
 
 	for i := range pts {
-		pointTime := startTime.Add(time.Duration(distances[i]/speedMs) * time.Second)
+		pointTime := startTime.Add(time.Duration(pts[i].Distance/speedMs) * time.Second)
 
 		tempK := h.Sample(vars.VarT2m.Name, pointTime, i)
 		if !math.IsNaN(float64(tempK)) {
@@ -243,8 +232,7 @@ func computeSummary(h *Handle, pts track.Points, distances, bearings []float64, 
 
 		precipRate := h.Sample(vars.VarTotPr.Name, pointTime, i)
 		if !math.IsNaN(float64(precipRate)) && i < len(pts)-1 {
-			nextDist := distances[i+1]
-			segDurationS := (nextDist - distances[i]) / speedMs
+			segDurationS := (pts[i+1].Distance - pts[i].Distance) / speedMs
 			totalPrecipMm += float64(precipRate) * segDurationS
 		}
 
@@ -301,32 +289,6 @@ func relativeWindSector(relDeg float64) int {
 	// Shift by 45 so head (centered at 0) starts at 0.
 	shifted := math.Mod(relDeg+45, 360)
 	return int(shifted / 90)
-}
-
-// computeDistancesAndBearings returns cumulative distances (m) and forward bearings (deg)
-// for a sequence of track points.
-func computeDistancesAndBearings(pts track.Points) ([]float64, []float64) {
-	distances := make([]float64, len(pts))
-	bearings := make([]float64, len(pts))
-	for i := 1; i < len(pts); i++ {
-		distances[i] = distances[i-1] + pts[i-1].MetersTo(&pts[i])
-		bearings[i] = forwardBearing(pts[i-1].Lat, pts[i-1].Lon, pts[i].Lat, pts[i].Lon)
-	}
-	if len(pts) > 1 {
-		bearings[0] = bearings[1]
-	}
-	return distances, bearings
-}
-
-// forwardBearing computes the initial bearing in degrees [0, 360) from point 1 to point 2.
-func forwardBearing(lat1, lon1, lat2, lon2 float64) float64 {
-	lat1R := lat1 * math.Pi / 180
-	lat2R := lat2 * math.Pi / 180
-	dLon := (lon2 - lon1) * math.Pi / 180
-	y := math.Sin(dLon) * math.Cos(lat2R)
-	x := math.Cos(lat1R)*math.Sin(lat2R) - math.Sin(lat1R)*math.Cos(lat2R)*math.Cos(dLon)
-	brng := math.Atan2(y, x) * 180 / math.Pi
-	return math.Mod(brng+360, 360)
 }
 
 // trackBBox extracts the bounding box from a track database row.

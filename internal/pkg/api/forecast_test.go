@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/cartomancer/internal/pkg/db"
 	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
 )
 
@@ -127,6 +128,28 @@ func TestGetTrackForecast_NoForecastData(t *testing.T) {
 	assert.NotEmpty(t, first["time"])
 	assert.Nil(t, first["temperatureC"])
 	assert.Nil(t, first["precipitationRate"])
+}
+
+func TestGetTrackForecast_PolylineNotBackfilled(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret11")
+
+	status, resp := e.doUpload(client, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	uuid := resp["uuid"].(string)
+
+	// Clear the precomputed polylines to simulate a track that has not yet
+	// been backfilled. The forecast endpoint must surface this as a 500.
+	require.NoError(t, e.d.QueryRW().SetTrackPreviewPolylines(t.Context(), db.SetTrackPreviewPolylinesParams{
+		Uuid:                uuid,
+		PolylineDp5mVarint:  []byte{},
+		PolylineDp50mVarint: []byte{},
+	}))
+
+	status, _ = e.do(client, http.MethodGet, "/tracks/"+uuid+"/forecast?startTime=2026-03-10T00:00:00Z&speedKmh=25", nil, nil)
+	assert.Equal(t, http.StatusInternalServerError, status)
 }
 
 func TestGetTrackForecast_Success(t *testing.T) {

@@ -30,10 +30,10 @@ func TestDecodeVarintEmpty(t *testing.T) {
 
 func TestVarintRoundTrip(t *testing.T) {
 	pts := Points{
-		{Lat: 47.3769, Lon: 8.5417, Elevation: 408.2},
-		{Lat: 47.3770, Lon: 8.5420, Elevation: 408.5},
-		{Lat: 47.3771, Lon: 8.5430, Elevation: 410.1},
-		{Lat: 47.3680, Lon: 8.5500, Elevation: 415.0},
+		{Lat: 47.3769, Lon: 8.5417, Elevation: 408.2, Distance: 0},
+		{Lat: 47.3770, Lon: 8.5420, Elevation: 408.5, Distance: 32.7},
+		{Lat: 47.3771, Lon: 8.5430, Elevation: 410.1, Distance: 110.4},
+		{Lat: 47.3680, Lon: 8.5500, Elevation: 415.0, Distance: 1284.6},
 	}
 	encoded, err := EncodeVarint(pts)
 	require.NoError(t, err)
@@ -46,11 +46,13 @@ func TestVarintRoundTrip(t *testing.T) {
 		require.InDelta(t, p.Lat, got[i].Lat, 1e-5)
 		require.InDelta(t, p.Lon, got[i].Lon, 1e-5)
 		require.InDelta(t, p.Elevation, got[i].Elevation, 1e-5)
+		// Distance is stored at 1 m resolution.
+		require.InDelta(t, p.Distance, got[i].Distance, 0.5)
 	}
 }
 
 func TestVarintSinglePoint(t *testing.T) {
-	pts := Points{{Lat: 0, Lon: 0, Elevation: 0}}
+	pts := Points{{Lat: 0, Lon: 0, Elevation: 0, Distance: 0}}
 	encoded, err := EncodeVarint(pts)
 	require.NoError(t, err)
 
@@ -60,6 +62,47 @@ func TestVarintSinglePoint(t *testing.T) {
 	require.InDelta(t, 0, got[0].Lat, 1e-9)
 	require.InDelta(t, 0, got[0].Lon, 1e-9)
 	require.InDelta(t, 0, got[0].Elevation, 1e-9)
+	require.InDelta(t, 0, got[0].Distance, 1e-9)
+}
+
+func TestVarintDistanceRoundTrip(t *testing.T) {
+	// Cumulative distances along a 100 km track at 1 m resolution.
+	pts := Points{
+		{Lat: 47.0, Lon: 8.0, Elevation: 500, Distance: 0},
+		{Lat: 47.0, Lon: 8.0001, Elevation: 500, Distance: 7},
+		{Lat: 47.0, Lon: 8.001, Elevation: 510, Distance: 81},
+		{Lat: 47.01, Lon: 8.01, Elevation: 520, Distance: 1234},
+		{Lat: 47.5, Lon: 8.5, Elevation: 800, Distance: 100_000},
+	}
+	encoded, err := EncodeVarint(pts)
+	require.NoError(t, err)
+
+	got, err := DecodeVarint(encoded)
+	require.NoError(t, err)
+	require.Len(t, got, len(pts))
+	for i, p := range pts {
+		require.InDeltaf(t, p.Distance, got[i].Distance, 0.5, "distance mismatch at index %d", i)
+	}
+
+	// Distances must be monotonic non-decreasing after round-trip.
+	for i := 1; i < len(got); i++ {
+		require.GreaterOrEqual(t, got[i].Distance, got[i-1].Distance)
+	}
+}
+
+func TestEncodeVarintRejectsDistanceOverflow(t *testing.T) {
+	// Distance precision is 1 m, so any value above ~2.147e9 m overflows int32.
+	_, err := EncodeVarint(Points{{Lat: 0, Lon: 0, Elevation: 0, Distance: 3e9}})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "distance")
+	require.Contains(t, err.Error(), "does not fit")
+}
+
+func TestEncodeVarintRejectsDistanceNaN(t *testing.T) {
+	_, err := EncodeVarint(Points{{Lat: 0, Lon: 0, Elevation: 0, Distance: math.NaN()}})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "distance")
+	require.Contains(t, err.Error(), "not finite")
 }
 
 func TestVarintNegativeValues(t *testing.T) {
@@ -152,6 +195,7 @@ func TestVarintEndToEndPfanni(t *testing.T) {
 		require.InDeltaf(t, p.Lat, got[i].Lat, 1e-5, "lat mismatch at index %d", i)
 		require.InDeltaf(t, p.Lon, got[i].Lon, 1e-5, "lon mismatch at index %d", i)
 		require.InDeltaf(t, p.Elevation, got[i].Elevation, 1e-5, "ele mismatch at index %d", i)
+		require.InDeltaf(t, p.Distance, got[i].Distance, 0.5, "distance mismatch at index %d", i)
 	}
 
 	// Sanity check: with delta + varint encoding the buffer should be much

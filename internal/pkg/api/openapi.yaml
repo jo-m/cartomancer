@@ -1641,7 +1641,8 @@ paths:
       description: >
         Computes a time series of weather conditions at subsampled points
         along the track, given an assumed start time and average speed.
-        Points share the same subsampled index space as the /points endpoint.
+        Each point carries its own cumulative distance; clients align
+        forecast values to track points by interpolating on distanceM.
         Public tracks are accessible anonymously; private tracks require ownership.
       parameters:
         - name: uuid
@@ -1724,11 +1725,8 @@ paths:
                     type: array
                     items:
                       type: object
-                      required: [index, distanceM, time]
+                      required: [distanceM, time]
                       properties:
-                        index:
-                          type: integer
-                          description: Index into the subsampled points array (shared with /points endpoint).
                         distanceM:
                           type: number
                           description: Cumulative distance in meters from the start.
