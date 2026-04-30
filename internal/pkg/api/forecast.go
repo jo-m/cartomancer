@@ -267,4 +267,3 @@ func computeSunEvents(start, end time.Time, lat, lon, totalDist float64) []sunEv
 	})
 	return events
 }
-

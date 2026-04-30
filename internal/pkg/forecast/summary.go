@@ -291,7 +291,6 @@ func relativeWindSector(relDeg float64) int {
 	return int(shifted / 90)
 }
 
-
 // trackBBox extracts the bounding box from a track database row.
 func trackBBox(t db.Track) BBox {
 	return BBox{
