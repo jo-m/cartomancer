@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	"errors"
 	"math"
 	"net/http"
@@ -14,7 +13,6 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/forecast"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo/vars"
-	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
 type forecastPointResponse struct {
@@ -54,22 +52,10 @@ type forecastResponse struct {
 // Query params: startTime (RFC3339), speedKmh (float64, average speed in km/h).
 func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
-	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "track not found")
-			return
-		}
-		logg.Error(ctx, "failed to get track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
-		writeError(w, http.StatusNotFound, "track not found")
+	t, ok := sv.getViewableTrack(w, r, trackUUID)
+	if !ok {
 		return
 	}
 

@@ -197,6 +197,39 @@ func fileFormatFromExt(filename string) track.FileFormat {
 	}
 }
 
+// trackVisibleToUser reports whether t is accessible to user.
+// A track is accessible if it is public or user is the owner.
+// user may be nil for anonymous requests.
+func trackVisibleToUser(t db.Track, user *db.User) bool {
+	return t.Public != 0 || (user != nil && user.Uuid == t.UserID)
+}
+
+// getViewableTrack fetches a track by UUID and checks that the requesting user
+// may view it. On failure it writes the appropriate error response and returns
+// (db.Track{}, false).
+func (sv *server) getViewableTrack(w http.ResponseWriter, r *http.Request, trackUUID string) (db.Track, bool) {
+	ctx := r.Context()
+	user := session.GetUser(ctx)
+
+	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "track not found")
+			return db.Track{}, false
+		}
+		logg.Error(ctx, "failed to get track", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return db.Track{}, false
+	}
+
+	if !trackVisibleToUser(t, user) {
+		writeError(w, http.StatusNotFound, "track not found")
+		return db.Track{}, false
+	}
+
+	return t, true
+}
+
 func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := session.GetUser(ctx)
@@ -218,7 +251,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
+	if !trackVisibleToUser(t.Track, user) {
 		writeError(w, http.StatusNotFound, "track not found")
 		return
 	}
@@ -242,22 +275,10 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 
 func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
-	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "track not found")
-			return
-		}
-		logg.Error(ctx, "failed to get track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
-		writeError(w, http.StatusNotFound, "track not found")
+	t, ok := sv.getViewableTrack(w, r, trackUUID)
+	if !ok {
 		return
 	}
 
@@ -283,22 +304,10 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 
 func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
-	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "track not found")
-			return
-		}
-		logg.Error(ctx, "failed to get track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
-		writeError(w, http.StatusNotFound, "track not found")
+	t, ok := sv.getViewableTrack(w, r, trackUUID)
+	if !ok {
 		return
 	}
 
@@ -341,22 +350,10 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 
 func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
-	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "track not found")
-			return
-		}
-		logg.Error(ctx, "failed to get track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
-		writeError(w, http.StatusNotFound, "track not found")
+	t, ok := sv.getViewableTrack(w, r, trackUUID)
+	if !ok {
 		return
 	}
 
@@ -417,22 +414,10 @@ type trackPoint struct {
 // Public tracks are accessible without authentication; private tracks require the owner.
 func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
-	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "track not found")
-			return
-		}
-		logg.Error(ctx, "failed to get track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
-		writeError(w, http.StatusNotFound, "track not found")
+	t, ok := sv.getViewableTrack(w, r, trackUUID)
+	if !ok {
 		return
 	}
 

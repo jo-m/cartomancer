@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"database/sql"
-	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -12,7 +11,6 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/load"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures"
-	"jo-m.ch/go/cartomancer/internal/pkg/session"
 	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
@@ -34,22 +32,10 @@ type roadClosureResponse struct {
 // at H3 res-12 confirms that each closure actually overlaps the track.
 func (sv *server) handleGetTrackRoadClosures(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	user := session.GetUser(ctx)
 	trackUUID := chi.URLParam(r, "uuid")
 
-	t, err := sv.d.QueryRO().GetTrackByUUID(ctx, trackUUID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "track not found")
-			return
-		}
-		logg.Error(ctx, "failed to get track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	if t.Public == 0 && (user == nil || user.Uuid != t.UserID) {
-		writeError(w, http.StatusNotFound, "track not found")
+	t, ok := sv.getViewableTrack(w, r, trackUUID)
+	if !ok {
 		return
 	}
 
