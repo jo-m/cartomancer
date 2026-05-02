@@ -44,7 +44,7 @@ CREATE TABLE forecast_files (
     -- file holds the raw GRIB2 file content.
     file BLOB NOT NULL,
 
-    forecast_id INTEGER NOT NULL REFERENCES forecasts(id),
+    forecast_id INTEGER NOT NULL REFERENCES forecasts(id) ON DELETE CASCADE,
 
     UNIQUE(forecast_id, variable, valid_time)
 );
