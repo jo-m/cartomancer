@@ -26,6 +26,7 @@ type adminUserResponse struct {
 	LastLoginAt                 *string `json:"lastLoginAt,omitempty"`
 	LastActiveAt                *string `json:"lastActiveAt,omitempty"`
 	HasPendingEmailVerification bool    `json:"hasPendingEmailVerification"`
+	TrackCount                  int64   `json:"trackCount"`
 }
 
 func adminUserResponseFromDB(u db.User) adminUserResponse {
@@ -88,8 +89,18 @@ func (sv *server) handleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 
 	resp := make([]adminUserResponse, len(users))
 	for i, u := range users {
-		resp[i] = adminUserResponseFromDB(u)
+		resp[i] = adminUserResponseFromDB(db.User{
+			Uuid:         u.Uuid,
+			CreatedAt:    u.CreatedAt,
+			UpdatedAt:    u.UpdatedAt,
+			LastLoginAt:  u.LastLoginAt,
+			LastActiveAt: u.LastActiveAt,
+			Email:        u.Email,
+			Name:         u.Name,
+			Admin:        u.Admin,
+		})
 		_, resp[i].HasPendingEmailVerification = pendingSet[u.Uuid]
+		resp[i].TrackCount = u.TrackCount
 	}
 	writeJSON(w, http.StatusOK, resp)
 }

@@ -13,14 +13,23 @@ import (
 func TestAdminListUsers_Success(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("admin@example.com", "Admin", "adminpass", true)
-	e.createUser("alice@example.com", "Alice", "secret11", false)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
+	createTestTrack(t, e.d, aliceUUID, "Alice 1")
+	createTestTrack(t, e.d, aliceUUID, "Alice 2")
 	client := e.newClient()
 	e.login(client, "admin@example.com", "adminpass")
 
 	var resp []map[string]any
 	status, _ := e.do(client, http.MethodGet, "/admin/users", nil, &resp)
 	assert.Equal(t, http.StatusOK, status)
-	assert.Len(t, resp, 2)
+	require.Len(t, resp, 2)
+
+	byEmail := map[string]map[string]any{}
+	for _, u := range resp {
+		byEmail[u["email"].(string)] = u
+	}
+	assert.EqualValues(t, 2, byEmail["alice@example.com"]["trackCount"])
+	assert.EqualValues(t, 0, byEmail["admin@example.com"]["trackCount"])
 }
 
 func TestAdminListUsers_Forbidden(t *testing.T) {

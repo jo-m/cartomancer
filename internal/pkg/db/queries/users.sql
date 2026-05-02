@@ -11,7 +11,12 @@ SELECT * FROM users
 WHERE lower(name) = lower(?) LIMIT 1;
 
 -- name: GetUsers :many
-SELECT * FROM users ORDER BY uuid;
+SELECT users.*, COALESCE(tc.track_count, 0) AS track_count
+FROM users
+LEFT JOIN (
+    SELECT user_id, COUNT(*) AS track_count FROM tracks GROUP BY user_id
+) tc ON tc.user_id = users.uuid
+ORDER BY users.uuid;
 
 -- name: ListUserUUIDsAfter :many
 SELECT uuid FROM users WHERE uuid > ? ORDER BY uuid LIMIT ?;

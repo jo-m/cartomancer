@@ -249,6 +249,7 @@ export default function AdminUsers() {
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Admin</th>
+              <th className="px-4 py-3">Tracks</th>
               <th className="px-4 py-3">Last active</th>
               <th className="px-4 py-3">Actions</th>
             </tr>
@@ -257,7 +258,7 @@ export default function AdminUsers() {
             {filtered.map((u) => (
               <tr key={u.uuid} className="border-b border-border last:border-0">
                 {editingUuid === u.uuid ? (
-                  <td colSpan={6} className="px-4 py-3">
+                  <td colSpan={7} className="px-4 py-3">
                     <form
                       onSubmit={editForm.handleSubmit(onEditUser)}
                       className="flex flex-wrap items-start gap-3"
@@ -313,6 +314,9 @@ export default function AdminUsers() {
                     <td className="px-4 py-3 text-text-secondary">{u.email}</td>
                     <td className="px-4 py-3 text-text-secondary">
                       {u.admin ? "Yes" : "No"}
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">
+                      {u.trackCount}
                     </td>
                     <td className="px-4 py-3 text-text-muted">
                       {u.lastActiveAt
@@ -393,7 +397,7 @@ export default function AdminUsers() {
             {filtered.length === 0 && (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-6 text-center text-sm text-text-muted"
                 >
                   No users found.

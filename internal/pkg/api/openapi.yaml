@@ -3081,6 +3081,7 @@ components:
         - createdAt
         - updatedAt
         - hasPendingEmailVerification
+        - trackCount
       properties:
         uuid:
           type: string
@@ -3105,6 +3106,9 @@ components:
           format: date-time
         hasPendingEmailVerification:
           type: boolean
+        trackCount:
+          type: integer
+          format: int64
 
     UpdateMeRequest:
       type: object

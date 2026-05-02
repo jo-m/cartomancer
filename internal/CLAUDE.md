@@ -144,6 +144,7 @@ Written in SQL in `internal/pkg/db/queries/*.sql` (main DB), `internal/pkg/db/ge
 Compiled to Go methods via sqlc.
 Run `make gen` after editing queries.
 When querying datetimes, you MUST use the sqlite `datetime()` function on both sides to account for timezones etc.
+We almost NEVER want to join data in Go code - instead use JOIN statements to let SQLite do the work.
 
 ## Track points pipeline
 
