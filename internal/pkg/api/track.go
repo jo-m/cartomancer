@@ -36,6 +36,7 @@ type trackResponse struct {
 	Author                  string                 `json:"author,omitempty"`
 	AuthorLinkURL           string                 `json:"authorLinkUrl,omitempty"`
 	FileFormat              int                    `json:"fileFormat"`
+	OriginalFilename        string                 `json:"originalFilename,omitempty"`
 	TrackType               int                    `json:"trackType"`
 	LinkURL                 string                 `json:"linkUrl,omitempty"`
 	Sport                   int                    `json:"sport"`
@@ -146,6 +147,7 @@ func trackResponseFromDB(tw db.TrackWithStarred, tags []string, similar []db.Get
 		Author:                  nullStringVal(t.Author),
 		AuthorLinkURL:           nullStringVal(t.AuthorLinkUrl),
 		FileFormat:              int(t.FileFormat),
+		OriginalFilename:        t.OriginalFilename,
 		TrackType:               int(t.TrackType),
 		LinkURL:                 nullStringVal(t.LinkUrl),
 		Sport:                   int(t.Sport),

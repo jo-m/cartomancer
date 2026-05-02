@@ -428,6 +428,41 @@ func TestListTracks_SearchByGeoname(t *testing.T) {
 	assert.Empty(t, tracks)
 }
 
+func TestListTracks_SearchByOriginalFilename(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret11")
+
+	content, err := os.ReadFile(testGPXFile)
+	require.NoError(t, err)
+
+	status, track1 := e.doUploadRaw(alice, content, "morning_ride_unique_42.gpx")
+	require.Equal(t, http.StatusCreated, status)
+	track1UUID := track1["uuid"].(string)
+	assert.Equal(t, "morning_ride_unique_42.gpx", track1["originalFilename"])
+
+	// The single-track endpoint must also expose the originalFilename.
+	var detail map[string]any
+	status, _ = e.do(alice, http.MethodGet, "/tracks/"+track1UUID, nil, &detail)
+	require.Equal(t, http.StatusOK, status)
+	assert.Equal(t, "morning_ride_unique_42.gpx", detail["originalFilename"])
+
+	// Search by a substring of the original filename should find the track.
+	var listResp map[string]any
+	status, _ = e.do(alice, http.MethodGet, "/tracks?onlyMine=true&name=unique_42", nil, &listResp)
+	assert.Equal(t, http.StatusOK, status)
+	tracks, _ := listResp["tracks"].([]any)
+	require.Len(t, tracks, 1)
+	assert.Equal(t, track1UUID, tracks[0].(map[string]any)["uuid"])
+
+	// A term not present in name, geoname, or filename returns nothing.
+	status, _ = e.do(alice, http.MethodGet, "/tracks?onlyMine=true&name=nonexistent_substring", nil, &listResp)
+	assert.Equal(t, http.StatusOK, status)
+	tracks, _ = listResp["tracks"].([]any)
+	assert.Empty(t, tracks)
+}
+
 func TestDeleteTrack_Unauthenticated(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("alice@example.com", "Alice", "secret11", false)

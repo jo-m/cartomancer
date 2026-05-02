@@ -53,6 +53,7 @@ interface TrackDetailData {
   subSport: number
   trackType: number
   fileFormat: number
+  originalFilename?: string
   originalCreatedAt?: string
   createdAt: string
   author?: string
@@ -285,6 +286,20 @@ export default function TrackDetails({
             {FILE_FORMAT_LABELS[track.fileFormat] ?? track.fileFormat}
           </dd>
         </div>
+
+        {track.originalFilename && (
+          <div className="col-span-2">
+            <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
+              Original filename
+            </dt>
+            <dd
+              className="mt-0.5 truncate text-sm text-text"
+              title={track.originalFilename}
+            >
+              {track.originalFilename}
+            </dd>
+          </div>
+        )}
 
         {track.originalCreatedAt && (
           <div>

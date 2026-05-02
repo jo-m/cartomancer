@@ -136,7 +136,7 @@ export default function TrackFilters({
         <div className="w-56">
           <Input
             type="search"
-            placeholder="Search by name or location..."
+            placeholder="Search by name, location or filename..."
             value={live.search}
             onChange={(e) =>
               setLive((prev) => ({ ...prev, search: e.target.value }))

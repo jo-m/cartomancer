@@ -3234,6 +3234,8 @@ components:
           type: string
         fileFormat:
           type: integer
+        originalFilename:
+          type: string
         trackType:
           type: integer
         linkUrl:

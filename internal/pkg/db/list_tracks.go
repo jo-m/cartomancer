@@ -52,6 +52,7 @@ type ListTracksParams struct {
 	TagsAnd bool
 
 	// Text LIKE filters (substring match). nil = no filter.
+	// Name matches against the track name, the geoname label, or the original filename.
 	Name        *string
 	Description *string
 	Source      *string
@@ -344,7 +345,8 @@ func buildTrackPredicate(p ListTracksParams) queryBuilder {
 	}
 
 	if p.Name != nil {
-		b.add("(tracks.name LIKE ? OR tg.label LIKE ?)", "%"+*p.Name+"%", "%"+*p.Name+"%")
+		like := "%" + *p.Name + "%"
+		b.add("(tracks.name LIKE ? OR tg.label LIKE ? OR tracks.original_filename LIKE ?)", like, like, like)
 	}
 	if p.Description != nil {
 		b.add("tracks.description LIKE ?", "%"+*p.Description+"%")
