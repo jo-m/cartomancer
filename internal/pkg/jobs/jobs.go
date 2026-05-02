@@ -249,7 +249,7 @@ func (w *Workers) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
 	}
 
 	// Run job.
-	logger := logg.GetLogger(ctx).With("jobId", job.ID)
+	logger := logg.GetLogger(ctx).With("jobId", job.ID).With("kind", job.Kind)
 	jobErr := w.runJob(logg.WithLogger(ctx, logger), job)
 
 	// Submit result.
