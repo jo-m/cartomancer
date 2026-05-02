@@ -102,7 +102,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [ ] Unknown sport or subsport
   - [ ] By start location (1km radius?)
 - [x] Make minRefreshAge for maps etc. a public const and use it also for job scheduling
-- [ ] Does our current way of using eTags even make sense, if we are not actually checking for them when the clients sends them? If not, remove them.
+- [x] Does our current way of using eTags even make sense, if we are not actually checking for them when the clients sends them? If not, remove them.
 - [x] Nix flake setup for devshell, incl. direnv, and for building the binary and frontend and docker image
   - [ ] Create a separate nix/ directory and move the package definitions there. Same for scripts.
   - [ ] Formatting via Nix treefmt.

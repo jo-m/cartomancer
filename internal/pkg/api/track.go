@@ -439,7 +439,7 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 		points[i] = trackPoint{Lat: p.Lat, Lon: p.Lon, Ele: p.Elevation, D: p.Distance}
 	}
 
-	w.Header().Set(headerCacheControl, "private, max-age=3600")
+	w.Header().Set(headerCacheControl, "private, no-cache")
 	w.Header().Set(headerETag, eTag)
 	writeJSON(w, http.StatusOK, map[string]any{"points": points})
 }
@@ -1042,7 +1042,7 @@ func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	w.Header().Set(headerCacheControl, "private, max-age=60")
+	w.Header().Set(headerCacheControl, "private, no-cache")
 	w.Header().Set(headerETag, eTag)
 	writeJSON(w, http.StatusOK, listTrackPolylinesResponse{
 		Tracks:     entries,
