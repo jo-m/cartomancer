@@ -34,6 +34,13 @@ export interface LiveFilters {
   tagsAnd: boolean
   sortBy: SortBy
   sortOrder: "asc" | "desc"
+  /**
+   * Optional radial start-location filter. When set, only tracks whose
+   * recorded start point lies within `radiusM` of (lat, lon) are returned.
+   * The picker UI lives in the map view; this field is shared so the same
+   * URL/query state is used by both views.
+   */
+  startNear: { lat: number; lon: number; radiusM: number } | null
 }
 
 export interface TrackFiltersProps {

@@ -18,6 +18,7 @@ import {
   rangeParam,
   enumParam,
 } from "../hooks/useUrlState"
+import type { ParamDef } from "../hooks/useUrlState"
 import { useSession } from "../context/SessionContext"
 import Toast from "./Toast"
 import useToast from "../hooks/useToast"
@@ -36,9 +37,57 @@ const TracksMapView = lazy(() => import("./TracksMapView"))
 const DEFAULT_PAGE_SIZE = 24
 const PAGE_SIZE_OPTIONS = [12, 24, 48, 96]
 
+/**
+ * Allowed radius values (in meters) for the "start near" filter. The user
+ * picks one of these in the map toolbar; the API uses the chosen value as
+ * `startNearRadiusM`.
+ */
+export const START_NEAR_RADII_M = [100, 200, 500, 1000] as const
+
+/** Default radius used when a start-location pin is first dropped. */
+export const DEFAULT_START_NEAR_RADIUS_M = 500
+
 export type SortBy = "created_at" | "total_distance_m" | "total_ascent_m"
 export type SortOrder = "asc" | "desc"
 export type ViewMode = "list" | "map"
+
+/**
+ * URL parameter definition for the "start near" filter. Serialized as
+ * "lat,lon,radiusM" with six decimals on lat/lon (~10 cm); null when
+ * absent. Two-part legacy values default to DEFAULT_START_NEAR_RADIUS_M.
+ * Any radius outside the allowed set is snapped to the default.
+ */
+function nearParam(): ParamDef<{
+  lat: number
+  lon: number
+  radiusM: number
+} | null> {
+  return {
+    defaultValue: null,
+    parse: (raw) => {
+      const parts = raw.split(",").map(Number)
+      if (parts.length < 2 || !parts.every(Number.isFinite)) return null
+      const [lat, lon] = parts
+      if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null
+      const rawRadius = parts[2]
+      const radiusM = (START_NEAR_RADII_M as readonly number[]).includes(
+        rawRadius
+      )
+        ? rawRadius
+        : DEFAULT_START_NEAR_RADIUS_M
+      return { lat, lon, radiusM }
+    },
+    serialize: (value) =>
+      value
+        ? `${value.lat.toFixed(6)},${value.lon.toFixed(6)},${value.radiusM}`
+        : "",
+    equals: (a, b) => {
+      if (a === null && b === null) return true
+      if (a === null || b === null) return false
+      return a.lat === b.lat && a.lon === b.lon && a.radiusM === b.radiusM
+    },
+  }
+}
 
 export interface TrackGridProps {
   mode: "public" | "user"
@@ -63,6 +112,7 @@ const urlSchema = {
   page: numberParam(1),
   pageSize: numberParam(DEFAULT_PAGE_SIZE),
   view: enumParam("list" as ViewMode, ["list", "map"] as const),
+  near: nearParam(),
 }
 
 /** Converts URL state to LiveFilters. */
@@ -79,6 +129,7 @@ function urlToFilters(url: {
   tagsAnd: boolean
   sort: SortBy
   order: SortOrder
+  near: { lat: number; lon: number; radiusM: number } | null
 }): LiveFilters {
   return {
     search: url.q,
@@ -93,6 +144,7 @@ function urlToFilters(url: {
     tagsAnd: url.tagsAnd,
     sortBy: url.sort,
     sortOrder: url.order,
+    startNear: url.near,
   }
 }
 
@@ -111,6 +163,7 @@ function filtersToUrl(f: LiveFilters) {
     tagsAnd: f.tagsAnd,
     sort: f.sortBy,
     order: f.sortOrder,
+    near: f.startNear,
   }
 }
 
@@ -149,6 +202,13 @@ export default function TrackGrid({ mode }: TrackGridProps) {
   function setPageSize(size: number) {
     setUrlState({ pageSize: size, page: 1 })
   }
+
+  const setStartNear = useCallback(
+    (loc: { lat: number; lon: number; radiusM: number } | null) => {
+      setLive((prev) => ({ ...prev, startNear: loc }))
+    },
+    []
+  )
 
   const prevLiveRef = useRef(live)
   useEffect(() => {
@@ -241,6 +301,13 @@ export default function TrackGrid({ mode }: TrackGridProps) {
       ...(appliedAscentMin > 0 ? { totalAscentMMin: appliedAscentMin } : {}),
       ...(absMaxAscentM > 0 && appliedAscentMax < absMaxAscentM
         ? { totalAscentMMax: appliedAscentMax }
+        : {}),
+      ...(applied.startNear
+        ? {
+            startNearLat: applied.startNear.lat,
+            startNearLon: applied.startNear.lon,
+            startNearRadiusM: applied.startNear.radiusM,
+          }
         : {}),
       sortBy: applied.sortBy,
       sortOrder: applied.sortOrder,
@@ -372,6 +439,8 @@ export default function TrackGrid({ mode }: TrackGridProps) {
             selectionActive={selectionActive}
             selected={selected}
             onSelect={handleTrackClick}
+            startNear={live.startNear}
+            onSetStartNear={setStartNear}
           />
         </Suspense>
       ) : (

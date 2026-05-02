@@ -8,14 +8,16 @@ import VectorLayer from "ol/layer/Vector"
 import VectorSource from "ol/source/Vector"
 import WMTS from "ol/source/WMTS"
 import Feature from "ol/Feature"
-import { LineString } from "ol/geom"
-import { Stroke, Style } from "ol/style"
+import { LineString, Point } from "ol/geom"
+import { circular } from "ol/geom/Polygon"
+import { Circle as CircleStyle, Fill, Stroke, Style } from "ol/style"
 import { isEmpty as extentIsEmpty } from "ol/extent"
 import { toLonLat } from "ol/proj"
 import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
 import { PMTilesVectorSource } from "ol-pmtiles"
 import { $api } from "../api/client"
-import { lv95, projectPoint } from "../lib/proj"
+import { lv95, projectPoint, proj4 } from "../lib/proj"
+import { DEFAULT_START_NEAR_RADIUS_M, START_NEAR_RADII_M } from "./TrackGrid"
 import { selectMapLayer, unionBbox } from "../lib/mapLayer"
 import type { Bbox, MapLayer } from "../lib/mapLayer"
 import { createPmtilesStyleFn } from "../lib/pmtilesStyle"
@@ -62,6 +64,15 @@ interface TracksMapViewProps {
   selectionActive: boolean
   selected: Set<string>
   onSelect: (e: React.MouseEvent, uuid: string, index: number) => void
+  /**
+   * Current start-location filter (or null if not set). When set, the map
+   * renders a pin at (lat, lon) together with a circle of `radiusM`.
+   */
+  startNear: { lat: number; lon: number; radiusM: number } | null
+  /** Updates the start-location filter; pass null to clear it. */
+  onSetStartNear: (
+    loc: { lat: number; lon: number; radiusM: number } | null
+  ) => void
 }
 
 interface PopoverState {
@@ -122,6 +133,34 @@ function baseStyleFor(uuid: string): Style[] {
   return makeBaseStyle(trackColorFromUUID(uuid))
 }
 
+/** Pin marker style for the user-picked start-location filter center. */
+const startNearPinStyle = new Style({
+  image: new CircleStyle({
+    radius: 7,
+    fill: new Fill({ color: "#0ea5e9" }),
+    stroke: new Stroke({ color: "#ffffff", width: 2 }),
+  }),
+  zIndex: 100,
+})
+
+/** Translucent disc style for the start-location filter radius. */
+const startNearCircleStyle = new Style({
+  fill: new Fill({ color: "rgba(14, 165, 233, 0.12)" }),
+  stroke: new Stroke({ color: "rgba(14, 165, 233, 0.7)", width: 2 }),
+  zIndex: 90,
+})
+
+/**
+ * Formats a start-near radius (in meters) for display in the map toolbar.
+ * Whole-kilometer values are rendered as "1 km", smaller values stay in
+ * meters.
+ */
+function formatRadius(meters: number): string {
+  return meters >= 1000 && meters % 1000 === 0
+    ? `${meters / 1000} km`
+    : `${meters} m`
+}
+
 /**
  * Parses the m URL parameter shape "lat,lon,zoom" used to persist map
  * viewport between sessions. Returns null on invalid input.
@@ -155,11 +194,14 @@ export default function TracksMapView({
   selectionActive,
   selected,
   onSelect,
+  startNear,
+  onSetStartNear,
 }: TracksMapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<OlMap | null>(null)
   const sourceRef = useRef<VectorSource | null>(null)
+  const filterSourceRef = useRef<VectorSource | null>(null)
   const featureMapRef = useRef<Map<string, Feature>>(new Map())
   const hoveredFeatureRef = useRef<Feature | null>(null)
   const navigate = useNavigate()
@@ -169,6 +211,12 @@ export default function TracksMapView({
   const [darkMode, setDarkMode] = useState(
     () => window.matchMedia("(prefers-color-scheme: dark)").matches
   )
+  /**
+   * True while the user is selecting a start-location filter center on the
+   * map. The next map click will resolve the picked coordinate and exit
+   * pick mode; track hover/click are disabled while picking. ESC cancels.
+   */
+  const [pickingStartNear, setPickingStartNear] = useState(false)
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)")
@@ -249,6 +297,10 @@ export default function TracksMapView({
 
     layers.push(new VectorLayer({ source }))
 
+    const filterSource = new VectorSource()
+    filterSourceRef.current = filterSource
+    layers.push(new VectorLayer({ source: filterSource }))
+
     const view =
       layer.type === "swisstopo"
         ? new OlView(getLV95ViewConfig())
@@ -274,6 +326,7 @@ export default function TracksMapView({
       map.setTarget(undefined)
       mapInstanceRef.current = null
       sourceRef.current = null
+      filterSourceRef.current = null
       featureMapRef.current = new Map()
     }
     // viewportUrl.m is intentionally only read on (re)mount.
@@ -320,6 +373,35 @@ export default function TracksMapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, layer, selected])
 
+  // Sync the start-near pin and 1 km radius polygon into the filter layer.
+  useEffect(() => {
+    const source = filterSourceRef.current
+    if (!source) return
+    source.clear()
+    if (!startNear) return
+
+    const polygon = circular(
+      [startNear.lon, startNear.lat],
+      startNear.radiusM,
+      64
+    )
+    polygon.transform(
+      "EPSG:4326",
+      layer.type === "swisstopo" ? lv95 : "EPSG:3857"
+    )
+    const circleFeature = new Feature({ geometry: polygon })
+    circleFeature.setStyle(startNearCircleStyle)
+    source.addFeature(circleFeature)
+
+    const pinFeature = new Feature({
+      geometry: new Point(
+        projectPoint(startNear.lon, startNear.lat, layer.type)
+      ),
+    })
+    pinFeature.setStyle(startNearPinStyle)
+    source.addFeature(pinFeature)
+  }, [startNear, layer])
+
   // Persist viewport into URL on move-end.
   useEffect(() => {
     const map = mapInstanceRef.current
@@ -348,6 +430,9 @@ export default function TracksMapView({
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onMove = (evt: any) => {
+      // While picking a start-location filter, suppress hover popovers and
+      // let the picking effect manage the cursor.
+      if (pickingStartNear) return
       const pixel = evt.pixel as [number, number]
       let hovered: Feature | null = null
       map.forEachFeatureAtPixel(
@@ -410,7 +495,7 @@ export default function TracksMapView({
     }
     // layer and darkMode are included because the OL map is rebuilt when
     // either changes, and the listeners must be re-attached to the new map.
-  }, [selected, layer, darkMode])
+  }, [selected, layer, darkMode, pickingStartNear])
 
   // Click handler: in selection mode, toggle selection; otherwise navigate
   // to the clicked track. We attach it on the map so any click on a feature
@@ -420,6 +505,19 @@ export default function TracksMapView({
     if (!map) return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onClick = (evt: any) => {
+      if (pickingStartNear) {
+        const coord = evt.coordinate as [number, number]
+        const lonLat =
+          layer.type === "swisstopo"
+            ? proj4("EPSG:2056", "EPSG:4326", coord)
+            : toLonLat(coord)
+        // Reuse the previously-chosen radius so picking a new center keeps
+        // the user's selection; otherwise fall back to the default.
+        const radiusM = startNear?.radiusM ?? DEFAULT_START_NEAR_RADIUS_M
+        onSetStartNear({ lat: lonLat[1], lon: lonLat[0], radiusM })
+        setPickingStartNear(false)
+        return
+      }
       const pixel = evt.pixel as [number, number]
       let hit = false
       map.forEachFeatureAtPixel(
@@ -457,7 +555,36 @@ export default function TracksMapView({
       map.un("click", onClick)
     }
     // layer and darkMode trigger a map rebuild, requiring re-attachment.
-  }, [selectionActive, onSelect, navigate, layer, darkMode, selected])
+  }, [
+    selectionActive,
+    onSelect,
+    navigate,
+    layer,
+    darkMode,
+    selected,
+    pickingStartNear,
+    onSetStartNear,
+    startNear,
+  ])
+
+  // While picking the start-location filter center, force a crosshair cursor
+  // and let the user cancel with ESC. The cursor is reset on exit because
+  // the hover handler only updates it when not picking.
+  useEffect(() => {
+    if (!pickingStartNear) return
+    const map = mapInstanceRef.current
+    if (!map) return
+    const target = map.getTargetElement()
+    target.style.cursor = "crosshair"
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setPickingStartNear(false)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      target.style.cursor = ""
+    }
+  }, [pickingStartNear, layer, darkMode])
 
   return (
     <div
@@ -492,6 +619,84 @@ export default function TracksMapView({
           </span>
         </div>
       )}
+
+      <div className="absolute right-2 top-2 z-10 flex items-center gap-1.5 rounded bg-panel/95 px-2 py-1 text-xs text-text ring-1 ring-border">
+        {pickingStartNear ? (
+          <>
+            <span className="text-text-secondary">
+              Click on the map to filter by start location (
+              {formatRadius(startNear?.radiusM ?? DEFAULT_START_NEAR_RADIUS_M)}{" "}
+              radius)
+            </span>
+            <button
+              type="button"
+              onClick={() => setPickingStartNear(false)}
+              className="cursor-pointer rounded border border-border px-1.5 py-0.5 text-text-secondary transition-colors hover:bg-surface"
+              aria-label="Cancel start-location pick"
+            >
+              Cancel
+            </button>
+          </>
+        ) : startNear ? (
+          <>
+            <span
+              aria-hidden
+              className="inline-block h-2 w-2 rounded-full bg-[#0ea5e9] ring-1 ring-white"
+            />
+            <span className="text-text-secondary">Within</span>
+            <div
+              role="radiogroup"
+              aria-label="Start-location radius"
+              className="flex rounded border border-border"
+            >
+              {START_NEAR_RADII_M.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  role="radio"
+                  aria-checked={startNear.radiusM === r}
+                  onClick={() => onSetStartNear({ ...startNear, radiusM: r })}
+                  className={`cursor-pointer px-1.5 py-0.5 first:rounded-l last:rounded-r tabular-nums transition-colors ${
+                    startNear.radiusM === r
+                      ? "bg-active text-active-text"
+                      : "text-text-secondary hover:bg-surface"
+                  }`}
+                >
+                  {formatRadius(r)}
+                </button>
+              ))}
+            </div>
+            <span className="text-text-secondary">
+              of {startNear.lat.toFixed(4)}, {startNear.lon.toFixed(4)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPickingStartNear(true)}
+              className="cursor-pointer rounded border border-border px-1.5 py-0.5 text-text-secondary transition-colors hover:bg-surface"
+              aria-label="Pick a different start location"
+            >
+              Move
+            </button>
+            <button
+              type="button"
+              onClick={() => onSetStartNear(null)}
+              className="cursor-pointer rounded border border-border px-1.5 py-0.5 text-text-secondary transition-colors hover:bg-surface"
+              aria-label="Clear start-location filter"
+            >
+              Reset
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPickingStartNear(true)}
+            className="cursor-pointer rounded border border-border px-1.5 py-0.5 text-text-secondary transition-colors hover:bg-surface"
+            aria-label="Filter tracks by start location"
+          >
+            Filter by start location
+          </button>
+        )}
+      </div>
 
       <MapAttribution layer={layer} />
 

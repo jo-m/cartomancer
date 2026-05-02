@@ -99,7 +99,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Update CLAUDE.md
 - [ ] Filtering
   - [ ] Unknown sport or subsport
-  - [ ] By start location (1km radius?)
+  - [x] By start location (1km radius?)
 - [x] Make minRefreshAge for maps etc. a public const and use it also for job scheduling
 - [x] Does our current way of using eTags even make sense, if we are not actually checking for them when the clients sends them? If not, remove them.
 - [x] Nix flake setup for devshell, incl. direnv, and for building the binary and frontend and docker image
