@@ -53,7 +53,6 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [x] Drop the following cols: modification date, timezone, dem, elevation, population
   - [x] Maybe do import in a temp table which is then renamed
   - [x] `geocode` -> `geonames` in api
-  - [ ] Track filtering by location
   - [ ] ~~Maybe use simple index for search (faster, but can do only prefix)~~
 - [ ] Extract segments to allow for "remixing" of tracks
   - [ ] Ensure deleting tracks also correctly deletes segments
@@ -89,10 +88,10 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [x] Tags
   - [x] Make count vs. name distinguishable on button
   - [x] Also enable tag search/suggestions for anon users
-- [ ] Maps
+- [x] Maps
   - [x] Self hosted alternative
   - [x] Track overview on map
-  - [ ] Track previews with map background
+  - [ ] ~~Track previews with map background~~
   - [x] Map files cleanup
   - [x] Allow configuring multiple map bboxes for download
   - [x] Show all maps in the Admin section, incl. size of the map file, and add a new endpoint where admins can manually set the deletion flag on a map.
@@ -107,11 +106,11 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [ ] Create a separate nix/ directory and move the package definitions there. Same for scripts.
   - [ ] Formatting via Nix treefmt.
   - [ ] What are some options to move the stuff currently in the makefile (lint, format, check, gen... ) also to nix? Also don't forget to run the tests.
-  - [ ] Cache go modules and node modules by having them as a separate derivation
+  - [ ] ~~Cache go modules and node modules by having them as a separate derivation~~
   - [x] Enable cross build from x86 to arm
 - [x] Remove SubsampleLTTB() and use DP instead. Use the pre-encoded previews where possible. Remove/change/update the /tracks/{uuid}/points endpoint.
 - [x] Remove the track preview backfill job and make the cols non-null via db migration (prod has been running this migration and all backfill jobs so its fine). Ensure there are no fallbacks to GPX/FIT parsing anywhere they are used.
-- [ ] Create a Typescript varint tracks decoder (Go decoder: internal/pkg/track/varint.go) and then deliver the tracks directly to the frontend as varint encoded. Create a snapshot test with some source of truth encoded on the Go side. Add instructions how to also run the TS tests.
+- [ ] ~~Create a Typescript varint tracks decoder (Go decoder: internal/pkg/track/varint.go) and then deliver the tracks directly to the frontend as varint encoded. Create a snapshot test with some source of truth encoded on the Go side. Add instructions how to also run the TS tests.~~
 
 ## Before initial push/deploy
 
@@ -174,9 +173,7 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
 - [ ] Make tags on track view page clickable and go to list view, with filter applied
 - [ ] Correct elevation on upload
 - [x] Periodically compute wind rose and average temp for all tracks
-- [ ] On long tracks, the track on the map is now imprecise when zooming in due to subsampling
 - [ ] Share link to private track with signed link (limited time)
-- [ ] Filter tracks by start/end point
 - [ ] Let users configure their location and then show their loc on maps, and allow to filter tracks by relative location
 - [x] Show road closures, construction (entered manually, or sourced somewhere)
 - [ ] Download road closures from more sources (e.g. https://www.geocat.ch/geonetwork/srv/ger/catalog.search#/search?any=Baustellen)
