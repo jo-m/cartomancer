@@ -110,8 +110,8 @@ copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:
   - [ ] Cache go modules and node modules by having them as a separate derivation
   - [x] Enable cross build from x86 to arm
 - [x] Remove SubsampleLTTB() and use DP instead. Use the pre-encoded previews where possible. Remove/change/update the /tracks/{uuid}/points endpoint.
-- [ ] Remove the track preview backfill job and make the cols non-null once prod is migrated. Ensure there are no fallbacks to GPX/FIT parsing anywhere they are used.
-- [ ] Create a Typescript varint decoder and then deliver the tracks directly to the frontend as varint encoded. Create a snapshot test with some source of truth encoded on the Go side. Add instructions how to also run the ts tests.
+- [x] Remove the track preview backfill job and make the cols non-null via db migration (prod has been running this migration and all backfill jobs so its fine). Ensure there are no fallbacks to GPX/FIT parsing anywhere they are used.
+- [ ] Create a Typescript varint tracks decoder (Go decoder: internal/pkg/track/varint.go) and then deliver the tracks directly to the frontend as varint encoded. Create a snapshot test with some source of truth encoded on the Go side. Add instructions how to also run the TS tests.
 
 ## Before initial push/deploy
 

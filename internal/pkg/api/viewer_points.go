@@ -1,23 +1,17 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
 	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
-// errPreviewPolylineMissing is returned by [loadViewerPoints] when the track
-// row has no precomputed varint polyline for the requested kind. Callers map
-// this to a 500 response; the column is populated on upload and by the
-// backfill migration, so an empty value here indicates an inconsistent DB.
-var errPreviewPolylineMissing = errors.New("preview polyline not backfilled")
-
 // loadViewerPoints returns a viewer-resolution point set for t.
 //
-// Decodes the precomputed varint polyline column for kind.
-// Returns [errPreviewPolylineMissing] when the column is empty.
+// Decodes the precomputed varint polyline column for kind. The columns are
+// NOT NULL in the schema, so an empty value here would be a programmer
+// error rather than a missing-backfill situation.
 func loadViewerPoints(t db.Track, kind db.PreviewPolylineKind) (track.Points, error) {
 	var encoded []byte
 	switch kind {
@@ -27,10 +21,6 @@ func loadViewerPoints(t db.Track, kind db.PreviewPolylineKind) (track.Points, er
 		encoded = t.PolylineDp50mVarint
 	default:
 		return nil, fmt.Errorf("unknown preview polyline kind: %v", kind)
-	}
-
-	if len(encoded) == 0 {
-		return nil, errPreviewPolylineMissing
 	}
 
 	pts, err := track.DecodeVarint(encoded)

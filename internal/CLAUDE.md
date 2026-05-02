@@ -151,10 +151,10 @@ Track points flow through the backend in three forms:
 
 1. **Original blob** — the uploaded GPX/FIT bytes, zstd-compressed in the
    `blobs` table. Deduplicated cross-user by SHA-256 (`blob.Create`,
-   `blob.Get`). Only re-parsed by the upload handler, the backfill job,
-   the road-closures endpoint, and the data export.
+   `blob.Get`). Only re-parsed by the upload handler, the road-closures
+   endpoint, and the data export.
 2. **Simplified varint polylines** stored on the `tracks` row as two
-   nullable BLOB columns:
+   `NOT NULL` BLOB columns:
    - `polyline_dp5m_varint` — Douglas-Peucker simplified at 5 m, used by
      `/tracks/{uuid}/points`, `/tracks/{uuid}/profile.svg`, and the
      `/tracks/polylines/5m` bulk listing.
@@ -170,21 +170,18 @@ Track points flow through the backend in three forms:
    `internal/pkg/track/simplify.go`) before responding. Hot paths never
    re-parse the original blob.
 
-The polylines are computed inline at upload time (`handleUploadTrack`)
-and lazily by the `track.backfillPreviewPolyline` job for pre-existing
-rows. The polyline columns are nullable today; endpoints return 500 with
-`errPreviewPolylineMissing` / `forecast.ErrPolylineMissing` when the
-column is empty. The plan is to backfill all rows and make the columns
-NOT NULL.
+The polylines are computed inline at upload time (`handleUploadTrack`).
 
 `/tracks/{uuid}/points` and `/tracks/{uuid}/forecast` use **distance-keyed**
 indexing (each response carries `distanceM` per point); the frontend
 interpolates by cumulative distance, not by array index, so the two
 endpoints can use independent point counts.
 
-When changing the varint format, both columns must be re-backfilled
-(see migration `00000000000019_track_preview_polyline_distance.sql` for
-the pattern).
+When changing the varint format, both columns must be repopulated for
+all existing rows in a migration (see migration
+`00000000000019_track_preview_polyline_distance.sql` for the pattern of
+nulling them out, paired with a one-shot backfill job that has since
+been removed).
 
 ## Job queue
 

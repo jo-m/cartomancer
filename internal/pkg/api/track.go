@@ -944,14 +944,13 @@ type trackPolylineEntry struct {
 }
 
 type listTrackPolylinesResponse struct {
-	Tracks       []trackPolylineEntry `json:"tracks"`
-	TotalCount   int                  `json:"totalCount"`
-	PendingCount int                  `json:"pendingCount"`
-	Limit        int                  `json:"limit"`
+	Tracks     []trackPolylineEntry `json:"tracks"`
+	TotalCount int                  `json:"totalCount"`
+	Limit      int                  `json:"limit"`
 }
 
-// trackPolylinesLimit caps how many polylines a single response carries. Tracks
-// in excess of this are reported via PendingCount/TotalCount so the client can
+// trackPolylinesLimit caps how many polylines a single response carries.
+// Tracks in excess of this are reported via TotalCount so the client can
 // surface a banner.
 const trackPolylinesLimit = 250
 
@@ -996,10 +995,9 @@ func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Reques
 	if user != nil {
 		viewerID = user.Uuid
 	}
-	eTag := fmt.Sprintf(`"%d-%d-%d-%s-%s-v2"`,
+	eTag := fmt.Sprintf(`"%d-%d-%s-%s-v3"`,
 		result.MaxUpdatedAt.UnixMilli(),
 		result.TotalCount,
-		result.PendingCount,
 		viewerID,
 		kindLabel,
 	)
@@ -1047,10 +1045,9 @@ func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Reques
 	w.Header().Set(headerCacheControl, "private, max-age=60")
 	w.Header().Set(headerETag, eTag)
 	writeJSON(w, http.StatusOK, listTrackPolylinesResponse{
-		Tracks:       entries,
-		TotalCount:   result.TotalCount,
-		PendingCount: result.PendingCount,
-		Limit:        trackPolylinesLimit,
+		Tracks:     entries,
+		TotalCount: result.TotalCount,
+		Limit:      trackPolylinesLimit,
 	})
 }
 

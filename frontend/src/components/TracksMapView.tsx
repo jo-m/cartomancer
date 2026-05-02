@@ -508,9 +508,6 @@ export default function TracksMapView({
               {data.tracks.length === 1 ? "" : "s"} (cap {data.limit}).
             </>
           )}
-          {data.pendingCount > 0 && (
-            <> {data.pendingCount} still being processed.</>
-          )}
         </div>
       )}
 

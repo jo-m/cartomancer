@@ -1,7 +1,6 @@
 package forecast
 
 import (
-	"errors"
 	"fmt"
 
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
@@ -18,12 +17,6 @@ const LiveStepM = 200.0
 // bounded when summarising the entire track corpus.
 const SummarizerStepM = 500.0
 
-// ErrPolylineMissing is returned by [InterpolatedTrackPoints] when the track
-// row has no precomputed 50 m preview polyline. The column is populated on
-// upload and by the backfill job, so an empty value indicates a track that
-// has not been backfilled yet.
-var ErrPolylineMissing = errors.New("forecast: polyline_dp50m_varint not backfilled")
-
 // InterpolatedTrackPoints decodes the track's 50 m preview polyline and
 // returns a sequence of points spaced at fixed stepM-metre intervals along
 // the track. The cumulative distance is set on each returned point.
@@ -33,12 +26,8 @@ var ErrPolylineMissing = errors.New("forecast: polyline_dp50m_varint not backfil
 // straight segments between consecutive vertices; sampling those directly
 // would alias the forecast time series.
 //
-// Returns [ErrPolylineMissing] when the column is empty. Returns nil with no
-// error when the polyline contains fewer than two points.
+// Returns nil with no error when the polyline contains fewer than two points.
 func InterpolatedTrackPoints(t db.Track, stepM float64) (track.Points, error) {
-	if len(t.PolylineDp50mVarint) == 0 {
-		return nil, ErrPolylineMissing
-	}
 	if stepM <= 0 {
 		return nil, fmt.Errorf("forecast: stepM must be positive, got %v", stepM)
 	}

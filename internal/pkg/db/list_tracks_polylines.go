@@ -10,8 +10,7 @@ import (
 )
 
 // PreviewPolylineKind selects which simplified preview polyline column
-// [DB.ListTracksWithPolylines] returns. The kind also drives the
-// "pending" check: rows whose chosen column is NULL are not returned.
+// [DB.ListTracksWithPolylines] returns.
 type PreviewPolylineKind int
 
 const (
@@ -62,26 +61,22 @@ type TrackPolyline struct {
 }
 
 // ListTracksWithPolylinesResult holds a page of tracks-with-polylines and
-// summary counts of the matched set.
+// the summary count of the matched set.
 type ListTracksWithPolylinesResult struct {
-	// Tracks holds the rendered tracks (those whose chosen polyline column
-	// is non-NULL, up to the requested limit).
+	// Tracks holds the rendered tracks, up to the requested limit.
 	Tracks []TrackPolyline
 	// TotalCount is the total number of tracks matching the filters
-	// (regardless of preview polyline state and limit).
+	// (regardless of limit).
 	TotalCount int
-	// PendingCount is the number of matching tracks whose chosen polyline
-	// column is still NULL (i.e. waiting on the backfill job).
-	PendingCount int
 	// MaxUpdatedAt is the most recent updated_at over the matched set, used
 	// for ETag computation. Zero if the set is empty.
 	MaxUpdatedAt time.Time
 }
 
-// ListTracksWithPolylines returns all tracks matching p (subject to limit)
-// whose chosen preview polyline column is non-NULL, alongside summary
-// counts. The returned slice is ordered by the configured sort columns
-// from p. Pagination on p is ignored; limit is applied after filtering.
+// ListTracksWithPolylines returns all tracks matching p (subject to limit),
+// alongside the total count of the matched set. The returned slice is
+// ordered by the configured sort columns from p. Pagination on p is
+// ignored; limit is applied after filtering.
 func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, kind PreviewPolylineKind, limit int) (ListTracksWithPolylinesResult, error) {
 	if limit < 1 {
 		limit = 1
@@ -134,25 +129,11 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, ki
 
 	baseArgs := append([]any{p.ViewerUserID, now}, b.args...)
 
-	// Total count over the entire matched set (including not-yet-backfilled).
+	// Total count over the entire matched set.
 	var total int
 	countSQL := "SELECT COUNT(*) FROM tracks" + joins + where
 	if err := d.ro.QueryRowContext(ctx, countSQL, baseArgs...).Scan(&total); err != nil {
 		return ListTracksWithPolylinesResult{}, fmt.Errorf("count tracks: %w", err)
-	}
-
-	// Pending count.
-	var pending int
-	pendingWhere := where
-	pendingClause := fmt.Sprintf("tracks.%s IS NULL", col) // #nosec G201
-	if pendingWhere == "" {
-		pendingWhere = " WHERE " + pendingClause
-	} else {
-		pendingWhere += " AND " + pendingClause
-	}
-	pendingSQL := "SELECT COUNT(*) FROM tracks" + joins + pendingWhere
-	if err := d.ro.QueryRowContext(ctx, pendingSQL, baseArgs...).Scan(&pending); err != nil {
-		return ListTracksWithPolylinesResult{}, fmt.Errorf("count pending tracks: %w", err)
 	}
 
 	// Max updated_at over the matched set, for ETag. The response embeds a
@@ -172,14 +153,6 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, ki
 		maxUpdatedMs = maxForecastsMs
 	}
 
-	// Data query: only rows whose chosen polyline column is non-NULL.
-	dataWhere := where
-	dataClause := fmt.Sprintf("tracks.%s IS NOT NULL", col) // #nosec G201
-	if dataWhere == "" {
-		dataWhere = " WHERE " + dataClause
-	} else {
-		dataWhere += " AND " + dataClause
-	}
 	dataSQL := fmt.Sprintf( // #nosec G201
 		"SELECT tracks.uuid, tracks.user_id, users.name AS user_name, tracks.name, "+
 			"tracks.total_distance_m, tracks.total_ascent_m, "+
@@ -190,7 +163,7 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, ki
 			"tf.forecast_reference_time, tf.start_time, tf.avg_temperature_c, tf.total_precipitation_mm, "+
 			"tf.wind_head_ms, tf.wind_right_ms, tf.wind_tail_ms, tf.wind_left_ms "+
 			"FROM tracks%s%s ORDER BY %s %s LIMIT ?",
-		col, joins, dataWhere, sortCol, sortDir,
+		col, joins, where, sortCol, sortDir,
 	)
 	dataArgs := append(append([]any{}, baseArgs...), int64(limit))
 
@@ -237,9 +210,8 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, ki
 	}
 
 	res := ListTracksWithPolylinesResult{
-		Tracks:       tracks,
-		TotalCount:   total,
-		PendingCount: pending,
+		Tracks:     tracks,
+		TotalCount: total,
 	}
 	if maxUpdatedMs.Valid {
 		res.MaxUpdatedAt = time.UnixMilli(maxUpdatedMs.Int64).UTC()

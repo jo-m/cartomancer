@@ -65,12 +65,3 @@ UPDATE tracks
 SET polyline_dp5m_varint = ?,
     polyline_dp50m_varint = ?
 WHERE uuid = ?;
-
--- name: CountTracksMissingPreviewPolylines :one
-SELECT COUNT(*) FROM tracks
-WHERE polyline_dp5m_varint IS NULL OR polyline_dp50m_varint IS NULL;
-
--- name: NextTrackMissingPreviewPolylines :one
-SELECT uuid FROM tracks
-WHERE polyline_dp5m_varint IS NULL OR polyline_dp50m_varint IS NULL
-ORDER BY uuid LIMIT 1;

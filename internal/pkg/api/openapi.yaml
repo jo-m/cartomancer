@@ -944,9 +944,8 @@ paths:
         tracks matching the same filters as listTracks (page/pageSize are
         ignored). Suitable for fullscreen rendering. Up to a fixed
         server-side limit of tracks is returned; clients should display a
-        banner when totalCount exceeds the result size. pendingCount
-        reports how many matching tracks still lack a backfilled polyline.
-        The response is ETagged so revalidation is cheap.
+        banner when totalCount exceeds the result size. The response is
+        ETagged so revalidation is cheap.
       parameters: &trackPolylinesParams
         - name: sortBy
           in: query
@@ -3536,7 +3535,6 @@ components:
       required:
         - tracks
         - totalCount
-        - pendingCount
         - limit
       properties:
         tracks:
@@ -3545,10 +3543,7 @@ components:
             $ref: "#/components/schemas/TrackPolylineEntry"
         totalCount:
           type: integer
-          description: Total tracks matching the filters, regardless of polyline state.
-        pendingCount:
-          type: integer
-          description: Matching tracks whose preview polyline has not yet been backfilled.
+          description: Total tracks matching the filters.
         limit:
           type: integer
           description: Maximum number of tracks returned in this response.

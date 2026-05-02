@@ -8,13 +8,6 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/track"
 )
 
-func TestInterpolatedTrackPoints_Missing(t *testing.T) {
-	tr := db.Track{}
-	got, err := InterpolatedTrackPoints(tr, LiveStepM)
-	require.ErrorIs(t, err, ErrPolylineMissing)
-	require.Nil(t, got)
-}
-
 func TestInterpolatedTrackPoints_InvalidStep(t *testing.T) {
 	encoded, err := track.EncodeVarint(track.Points{
 		{Lat: 46.0, Lon: 7.0},

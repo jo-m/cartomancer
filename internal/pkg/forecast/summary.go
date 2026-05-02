@@ -145,10 +145,6 @@ func (s *Summarizer) summarizeTrack(ctx context.Context, uuid string, refTime, s
 	}
 
 	pts, err := InterpolatedTrackPoints(t, SummarizerStepM)
-	if errors.Is(err, ErrPolylineMissing) {
-		logg.Debug(ctx, "track preview polyline not backfilled, skipping", "uuid", uuid)
-		return nil
-	}
 	if err != nil {
 		return fmt.Errorf("interpolate track points: %w", err)
 	}

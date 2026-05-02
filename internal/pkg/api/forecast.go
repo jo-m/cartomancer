@@ -84,11 +84,6 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	}
 
 	pts, err := forecast.InterpolatedTrackPoints(t, forecast.LiveStepM)
-	if errors.Is(err, forecast.ErrPolylineMissing) {
-		logg.Error(ctx, "track preview polyline not backfilled", "uuid", trackUUID)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
 	if err != nil {
 		logg.Error(ctx, "failed to load interpolated track points", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)

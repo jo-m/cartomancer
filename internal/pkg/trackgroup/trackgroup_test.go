@@ -68,19 +68,21 @@ func createTestTrack(t *testing.T, d *db.DB, ownerID string, gpx []byte, distM f
 
 	now := time.Now().UTC()
 	tr, err := d.QueryRW().CreateTrack(t.Context(), db.CreateTrackParams{
-		Uuid:             id.String(),
-		CreatedAt:        now,
-		UpdatedAt:        now,
-		UserID:           ownerID,
-		BlobID:           blob.ID,
-		FileFormat:       0,
-		OriginalFilename: "test.gpx",
-		Name:             "Test Track",
-		TotalDistanceM:   distM,
-		TotalAscentM:     0,
-		Public:           0,
-		StartLat:         sql.NullFloat64{Valid: true, Float64: 47.0},
-		StartLon:         sql.NullFloat64{Valid: true, Float64: 8.0},
+		Uuid:                id.String(),
+		CreatedAt:           now,
+		UpdatedAt:           now,
+		UserID:              ownerID,
+		BlobID:              blob.ID,
+		FileFormat:          0,
+		OriginalFilename:    "test.gpx",
+		Name:                "Test Track",
+		TotalDistanceM:      distM,
+		TotalAscentM:        0,
+		Public:              0,
+		StartLat:            sql.NullFloat64{Valid: true, Float64: 47.0},
+		StartLon:            sql.NullFloat64{Valid: true, Float64: 8.0},
+		PolylineDp5mVarint:  []byte{},
+		PolylineDp50mVarint: []byte{},
 	})
 	require.NoError(t, err)
 

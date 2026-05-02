@@ -323,18 +323,20 @@ func createTestTrack(ctx context.Context, t *testing.T, d *db.DB, pts []struct{ 
 		}
 
 		tr, txErr := tx.CreateTrack(ctx, db.CreateTrackParams{
-			Uuid:             "test-track-001",
-			CreatedAt:        time.Now(),
-			UpdatedAt:        time.Now(),
-			UserID:           "test-user",
-			BlobID:           b.ID,
-			FileFormat:       0,
-			OriginalFilename: "test.gpx",
-			Name:             "Test Track",
-			Sport:            0,
-			SubSport:         0,
-			TotalDistanceM:   totalDist,
-			TotalAscentM:     500,
+			Uuid:                "test-track-001",
+			CreatedAt:           time.Now(),
+			UpdatedAt:           time.Now(),
+			UserID:              "test-user",
+			BlobID:              b.ID,
+			FileFormat:          0,
+			OriginalFilename:    "test.gpx",
+			Name:                "Test Track",
+			Sport:               0,
+			SubSport:            0,
+			TotalDistanceM:      totalDist,
+			TotalAscentM:        500,
+			PolylineDp5mVarint:  []byte{},
+			PolylineDp50mVarint: []byte{},
 		})
 		if txErr != nil {
 			return txErr

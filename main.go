@@ -398,11 +398,6 @@ func main() {
 
 	jobs.MustRegisterJob(w, trackgroup.NewGrouper(d))
 
-	jobs.MustRegisterJob(w, jobs.NewBackfillPreviewPolyline(d, w.Submitter()))
-	if err := jobs.EnqueueBackfillPreviewPolylineIfNeeded(ctxJobs, d, w.Submitter()); err != nil {
-		logg.Error(ctxJobs, "enqueue preview polyline backfill", "err", err)
-	}
-
 	jobs.MustRegisterJob(w, segment.NewBuilder(d))
 
 	jobs.MustRegisterJob(w, roadclosures.NewDownloader(d))
