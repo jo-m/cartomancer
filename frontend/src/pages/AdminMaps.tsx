@@ -6,6 +6,7 @@ import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Toast from "../components/Toast"
+import CopyIdCell from "../components/CopyIdCell"
 
 /** Formats a byte count into a human-readable size string. */
 function formatBytes(bytes: number): string {
@@ -55,7 +56,7 @@ export default function AdminMaps() {
   const rows = builds ?? []
 
   return (
-    <PageContainer size="lg">
+    <PageContainer size="2xl">
       <div className="mb-6 flex items-center gap-4">
         <h1 className="text-2xl font-semibold text-text">Admin</h1>
         <Link
@@ -83,6 +84,7 @@ export default function AdminMaps() {
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-border text-xs font-medium text-text-muted">
+              <th className="px-4 py-3">ID</th>
               <th className="px-4 py-3">Build key</th>
               <th className="px-4 py-3">Version</th>
               <th className="px-4 py-3">Zoom</th>
@@ -99,10 +101,13 @@ export default function AdminMaps() {
                 key={b.uuid}
                 className={`border-b border-border last:border-0 ${b.markedForDeletion ? "opacity-50" : ""}`}
               >
-                <td
-                  className="px-4 py-3 font-mono text-xs text-text"
-                  title={b.uuid}
-                >
+                <td className="px-4 py-3">
+                  <CopyIdCell
+                    id={b.uuid}
+                    onCopied={() => showToast("Copied to clipboard", "success")}
+                  />
+                </td>
+                <td className="px-4 py-3 font-mono text-xs text-text">
                   {b.key}
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{b.version}</td>
@@ -147,7 +152,7 @@ export default function AdminMaps() {
             {rows.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="px-4 py-6 text-center text-sm text-text-muted"
                 >
                   No map builds found.

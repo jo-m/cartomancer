@@ -14,6 +14,7 @@ import Card from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Alert from "../components/ui/Alert"
 import Input from "../components/ui/Input"
+import CopyIdCell from "../components/CopyIdCell"
 
 const userSchema = z.object({
   email: z.string().min(1, "Required").email("Invalid email"),
@@ -136,7 +137,7 @@ export default function AdminUsers() {
   }
 
   return (
-    <PageContainer size="lg">
+    <PageContainer size="2xl">
       <div className="mb-6 flex items-center gap-4">
         <h1 className="text-2xl font-semibold text-text">Admin</h1>
         <Link
@@ -244,6 +245,7 @@ export default function AdminUsers() {
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-border text-xs font-medium text-text-muted">
+              <th className="px-4 py-3">ID</th>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Admin</th>
@@ -255,7 +257,7 @@ export default function AdminUsers() {
             {filtered.map((u) => (
               <tr key={u.uuid} className="border-b border-border last:border-0">
                 {editingUuid === u.uuid ? (
-                  <td colSpan={5} className="px-4 py-3">
+                  <td colSpan={6} className="px-4 py-3">
                     <form
                       onSubmit={editForm.handleSubmit(onEditUser)}
                       className="flex flex-wrap items-start gap-3"
@@ -297,6 +299,14 @@ export default function AdminUsers() {
                   </td>
                 ) : (
                   <>
+                    <td className="px-4 py-3">
+                      <CopyIdCell
+                        id={u.uuid}
+                        onCopied={() =>
+                          showToast("Copied to clipboard", "success")
+                        }
+                      />
+                    </td>
                     <td className="px-4 py-3 font-medium text-text">
                       {u.name}
                     </td>
@@ -383,7 +393,7 @@ export default function AdminUsers() {
             {filtered.length === 0 && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-4 py-6 text-center text-sm text-text-muted"
                 >
                   No users found.

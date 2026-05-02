@@ -2,10 +2,13 @@ import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { $api } from "../api/client"
 import useDocumentTitle from "../hooks/useDocumentTitle"
+import useToast from "../hooks/useToast"
 import { useUrlState, stringParam } from "../hooks/useUrlState"
 import PageContainer from "../components/ui/PageContainer"
 import Card from "../components/ui/Card"
 import Input from "../components/ui/Input"
+import Toast from "../components/Toast"
+import CopyIdCell from "../components/CopyIdCell"
 
 /** Formats a byte count into a human-readable size string. */
 function formatBytes(bytes: number): string {
@@ -17,6 +20,7 @@ function formatBytes(bytes: number): string {
 export default function AdminForecasts() {
   useDocumentTitle("Forecasts")
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const { toast, showToast, dismissToast } = useToast()
   const searchSchema = useMemo(() => ({ q: stringParam() }), [])
   const [urlState, setUrlState] = useUrlState(searchSchema)
   const search = urlState.q
@@ -32,7 +36,7 @@ export default function AdminForecasts() {
   )
 
   return (
-    <PageContainer size="lg">
+    <PageContainer size="2xl">
       <div className="mb-6 flex items-center gap-4">
         <h1 className="text-2xl font-semibold text-text">Admin</h1>
         <Link
@@ -71,6 +75,7 @@ export default function AdminForecasts() {
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-border text-xs font-medium text-text-muted">
+              <th className="px-4 py-3">ID</th>
               <th className="px-4 py-3">Reference time</th>
               <th className="px-4 py-3">Attribution</th>
               <th className="px-4 py-3">Bounds</th>
@@ -88,6 +93,14 @@ export default function AdminForecasts() {
 
               return (
                 <tr key={f.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3 align-top">
+                    <CopyIdCell
+                      id={f.id}
+                      onCopied={() =>
+                        showToast("Copied to clipboard", "success")
+                      }
+                    />
+                  </td>
                   <td colSpan={5} className="px-0 py-0">
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : f.id)}
@@ -126,6 +139,9 @@ export default function AdminForecasts() {
                           <thead>
                             <tr className="text-text-muted">
                               <th className="pb-1 pr-4 text-left font-medium">
+                                ID
+                              </th>
+                              <th className="pb-1 pr-4 text-left font-medium">
                                 Variable
                               </th>
                               <th className="pb-1 pr-4 text-left font-medium">
@@ -142,6 +158,17 @@ export default function AdminForecasts() {
                           <tbody>
                             {f.files.map((file) => (
                               <tr key={file.id}>
+                                <td className="py-0.5 pr-4">
+                                  <CopyIdCell
+                                    id={file.id}
+                                    onCopied={() =>
+                                      showToast(
+                                        "Copied to clipboard",
+                                        "success"
+                                      )
+                                    }
+                                  />
+                                </td>
                                 <td className="py-0.5 pr-4 text-text-secondary">
                                   {file.variable}
                                 </td>
@@ -171,7 +198,7 @@ export default function AdminForecasts() {
             {filtered.length === 0 && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-4 py-6 text-center text-sm text-text-muted"
                 >
                   No forecasts found.
@@ -181,6 +208,15 @@ export default function AdminForecasts() {
           </tbody>
         </table>
       </Card>
+
+      {toast && (
+        <Toast
+          key={toast.key}
+          message={toast.message}
+          variant={toast.variant}
+          onDismiss={dismissToast}
+        />
+      )}
     </PageContainer>
   )
 }
