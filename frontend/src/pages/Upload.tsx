@@ -93,11 +93,7 @@ export default function Upload() {
   const [bulkTags, setBulkTags] = useState<string[]>([])
   const [bulkSport, setBulkSport] = useState("")
   const [bulkSubSport, setBulkSubSport] = useState("")
-  const {
-    toast: toastError,
-    showToast: showError,
-    dismissToast: dismissError,
-  } = useToast()
+  const { toast, showToast, dismissToast } = useToast()
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { data: editingData, isLoading: editingLoading } = $api.useQuery(
@@ -209,9 +205,14 @@ export default function Upload() {
     )
   }
 
+  function trackWord(n: number): string {
+    return `${n} track${n === 1 ? "" : "s"}`
+  }
+
   function bulkSetTags() {
     const uuids = pendingTracks.map((t) => t.uuid)
     if (bulkTags.length === 0 || uuids.length === 0) return
+    const count = uuids.length
     bulkEditMutation.mutate(
       { body: { uuids, tags: bulkTags } },
       {
@@ -219,8 +220,9 @@ export default function Upload() {
           void queryClient.invalidateQueries({
             queryKey: ["get", "/tracks/editing"],
           })
+          showToast(`Tags applied to ${trackWord(count)}`, "success")
         },
-        onError: (e) => showError(e.message),
+        onError: (e) => showToast(e.message),
       }
     )
   }
@@ -228,6 +230,7 @@ export default function Upload() {
   function bulkSetVisibility(isPublic: boolean) {
     const uuids = pendingTracks.map((t) => t.uuid)
     if (uuids.length === 0) return
+    const count = uuids.length
     bulkEditMutation.mutate(
       { body: { uuids, public: isPublic } },
       {
@@ -235,8 +238,12 @@ export default function Upload() {
           void queryClient.invalidateQueries({
             queryKey: ["get", "/tracks/editing"],
           })
+          showToast(
+            `${trackWord(count)} set to ${isPublic ? "public" : "private"}`,
+            "success"
+          )
         },
-        onError: (e) => showError(e.message),
+        onError: (e) => showToast(e.message),
       }
     )
   }
@@ -244,6 +251,7 @@ export default function Upload() {
   function bulkSetSport() {
     const uuids = pendingTracks.map((t) => t.uuid)
     if (!bulkSport || uuids.length === 0) return
+    const count = uuids.length
     const body: Parameters<typeof bulkEditMutation.mutate>[0]["body"] = {
       uuids,
       sport: parseInt(bulkSport),
@@ -256,8 +264,9 @@ export default function Upload() {
           void queryClient.invalidateQueries({
             queryKey: ["get", "/tracks/editing"],
           })
+          showToast(`Sport applied to ${trackWord(count)}`, "success")
         },
-        onError: (e) => showError(e.message),
+        onError: (e) => showToast(e.message),
       }
     )
   }
@@ -540,12 +549,12 @@ export default function Upload() {
         </div>
       )}
 
-      {toastError && (
+      {toast && (
         <Toast
-          key={toastError.key}
-          message={toastError.message}
-          variant={toastError.variant}
-          onDismiss={dismissError}
+          key={toast.key}
+          message={toast.message}
+          variant={toast.variant}
+          onDismiss={dismissToast}
         />
       )}
     </PageContainer>

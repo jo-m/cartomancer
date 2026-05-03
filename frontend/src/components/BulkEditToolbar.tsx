@@ -16,6 +16,7 @@ export interface BulkEditToolbarProps {
   onSelectAll: () => void
   onClearSelection: () => void
   onError: (e: unknown) => void
+  onSuccess: (message: string) => void
 }
 
 /** Toolbar for bulk editing/deleting selected tracks. */
@@ -24,6 +25,7 @@ export default function BulkEditToolbar({
   onSelectAll,
   onClearSelection,
   onError,
+  onSuccess,
 }: BulkEditToolbarProps) {
   const queryClient = useQueryClient()
   const [bulkSport, setBulkSport] = useState("")
@@ -42,13 +44,21 @@ export default function BulkEditToolbar({
     setBulkTags([])
   }
 
+  function trackWord(n: number): string {
+    return `${n} track${n === 1 ? "" : "s"}`
+  }
+
   function bulkSetVisibility(isPublic: boolean) {
     if (selectedUuids.length === 0) return
+    const count = selectedUuids.length
     bulkEditMutation.mutate(
       { body: { uuids: selectedUuids, public: isPublic } },
       {
         onSuccess: () => {
           void queryClient.invalidateQueries({ queryKey: ["get", "/tracks"] })
+          onSuccess(
+            `${trackWord(count)} set to ${isPublic ? "public" : "private"}`
+          )
         },
         onError,
       }
@@ -57,11 +67,15 @@ export default function BulkEditToolbar({
 
   function bulkSetTrackType(trackType: number) {
     if (selectedUuids.length === 0) return
+    const count = selectedUuids.length
     bulkEditMutation.mutate(
       { body: { uuids: selectedUuids, trackType } },
       {
         onSuccess: () => {
           void queryClient.invalidateQueries({ queryKey: ["get", "/tracks"] })
+          onSuccess(
+            `${trackWord(count)} set to ${trackType === 2 ? "recorded" : "planned"}`
+          )
         },
         onError,
       }
@@ -70,6 +84,7 @@ export default function BulkEditToolbar({
 
   function bulkApplySport() {
     if (selectedUuids.length === 0 || !bulkSport) return
+    const count = selectedUuids.length
     const body: Parameters<typeof bulkEditMutation.mutate>[0]["body"] = {
       uuids: selectedUuids,
       sport: parseInt(bulkSport),
@@ -80,6 +95,7 @@ export default function BulkEditToolbar({
       {
         onSuccess: () => {
           void queryClient.invalidateQueries({ queryKey: ["get", "/tracks"] })
+          onSuccess(`Sport applied to ${trackWord(count)}`)
         },
         onError,
       }
@@ -88,11 +104,13 @@ export default function BulkEditToolbar({
 
   function bulkApplyTags() {
     if (selectedUuids.length === 0 || bulkTags.length === 0) return
+    const count = selectedUuids.length
     bulkEditMutation.mutate(
       { body: { uuids: selectedUuids, tags: bulkTags } },
       {
         onSuccess: () => {
           void queryClient.invalidateQueries({ queryKey: ["get", "/tracks"] })
+          onSuccess(`Tags applied to ${trackWord(count)}`)
         },
         onError,
       }
@@ -101,6 +119,7 @@ export default function BulkEditToolbar({
 
   async function bulkDelete() {
     if (selectedUuids.length === 0) return
+    const count = selectedUuids.length
     try {
       await fetchClient.POST("/tracks/bulk-delete", {
         body: { uuids: selectedUuids },
@@ -110,6 +129,7 @@ export default function BulkEditToolbar({
       await queryClient.invalidateQueries({
         queryKey: ["get", "/tracks/statistics"],
       })
+      onSuccess(`${trackWord(count)} deleted`)
     } catch (e) {
       onError(e)
     }

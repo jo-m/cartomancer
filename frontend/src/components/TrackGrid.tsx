@@ -276,6 +276,10 @@ export default function TrackGrid({ mode }: TrackGridProps) {
     showBulkToast((e as Error).message)
   }
 
+  function showBulkSuccess(message: string) {
+    showBulkToast(message, "success")
+  }
+
   function clearSelection() {
     setSelected(new Set())
     setLastClickedIndex(null)
@@ -429,6 +433,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
           }
           onClearSelection={clearSelection}
           onError={showBulkError}
+          onSuccess={showBulkSuccess}
         />
       )}
 
