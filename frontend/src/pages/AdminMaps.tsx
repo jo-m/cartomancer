@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom"
 import { $api } from "../api/client"
 import useDocumentTitle from "../hooks/useDocumentTitle"
 import useToast from "../hooks/useToast"
@@ -7,6 +6,12 @@ import Card from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Toast from "../components/Toast"
 import CopyIdCell from "../components/CopyIdCell"
+import AdminTabs from "../components/admin/AdminTabs"
+import AdminCard, {
+  AdminCardField,
+  AdminCardFooter,
+  AdminCardHeader,
+} from "../components/admin/AdminCard"
 
 /** Formats a byte count into a human-readable size string. */
 function formatBytes(bytes: number): string {
@@ -55,32 +60,21 @@ export default function AdminMaps() {
 
   const rows = builds ?? []
 
+  function renderStatus(b: (typeof rows)[0]) {
+    if (b.markedForDeletion) {
+      return <span className="text-xs text-error">Pending deletion</span>
+    }
+    if (b.ready) {
+      return <span className="text-xs text-success">Ready</span>
+    }
+    return <span className="text-xs text-text-muted">Not ready</span>
+  }
+
   return (
     <PageContainer size="2xl">
-      <div className="mb-6 flex items-center gap-4">
-        <h1 className="text-2xl font-semibold text-text">Admin</h1>
-        <Link
-          to="/admin/users"
-          className="pb-0.5 text-sm font-medium text-text-muted hover:text-text-secondary transition-colors"
-        >
-          Users
-        </Link>
-        <Link
-          to="/admin/forecasts"
-          className="pb-0.5 text-sm font-medium text-text-muted hover:text-text-secondary transition-colors"
-        >
-          Forecasts
-        </Link>
-        <Link
-          to="/admin/maps"
-          className="border-b-2 border-primary pb-0.5 text-sm font-medium text-text"
-          aria-current="page"
-        >
-          Maps
-        </Link>
-      </div>
+      <AdminTabs current="maps" />
 
-      <Card className="overflow-hidden">
+      <Card className="hidden overflow-x-auto md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-border text-xs font-medium text-text-muted">
@@ -123,15 +117,7 @@ export default function AdminMaps() {
                 <td className="px-4 py-3 text-text-muted">
                   {b.localSize != null ? formatBytes(b.localSize) : "--"}
                 </td>
-                <td className="px-4 py-3">
-                  {b.markedForDeletion ? (
-                    <span className="text-xs text-error">Pending deletion</span>
-                  ) : b.ready ? (
-                    <span className="text-xs text-success">Ready</span>
-                  ) : (
-                    <span className="text-xs text-text-muted">Not ready</span>
-                  )}
-                </td>
+                <td className="px-4 py-3">{renderStatus(b)}</td>
                 <td className="px-4 py-3 text-text-muted">
                   {b.createdAt.slice(0, 10)}
                 </td>
@@ -162,6 +148,59 @@ export default function AdminMaps() {
           </tbody>
         </table>
       </Card>
+
+      <div className="space-y-3 md:hidden">
+        {rows.map((b) => (
+          <AdminCard
+            key={b.uuid}
+            className={b.markedForDeletion ? "opacity-50" : ""}
+          >
+            <AdminCardHeader>
+              <span className="min-w-0 break-all font-mono text-xs text-text">
+                {b.key}
+              </span>
+              <CopyIdCell
+                id={b.uuid}
+                onCopied={() => showToast("Copied to clipboard", "success")}
+              />
+            </AdminCardHeader>
+            <AdminCardField label="Version">{b.version}</AdminCardField>
+            <AdminCardField label="Zoom">{b.maxZoom}</AdminCardField>
+            <AdminCardField label="Bbox">
+              {formatBbox(
+                b.bboxMinLon,
+                b.bboxMinLat,
+                b.bboxMaxLon,
+                b.bboxMaxLat
+              )}
+            </AdminCardField>
+            <AdminCardField label="Size">
+              {b.localSize != null ? formatBytes(b.localSize) : "--"}
+            </AdminCardField>
+            <AdminCardField label="Status">{renderStatus(b)}</AdminCardField>
+            <AdminCardField label="Created">
+              {b.createdAt.slice(0, 10)}
+            </AdminCardField>
+            {!b.markedForDeletion && (
+              <AdminCardFooter>
+                <Button
+                  variant="danger"
+                  onClick={() => handleMarkForDeletion(b.uuid, b.key)}
+                  disabled={markMutation.isPending}
+                  title="Mark for deletion on next cleanup"
+                >
+                  Delete
+                </Button>
+              </AdminCardFooter>
+            )}
+          </AdminCard>
+        ))}
+        {rows.length === 0 && (
+          <Card className="px-4 py-6 text-center text-sm text-text-muted">
+            No map builds found.
+          </Card>
+        )}
+      </div>
 
       {toast && (
         <Toast

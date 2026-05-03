@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react"
-import { Link } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -15,6 +14,12 @@ import Button from "../components/ui/Button"
 import Alert from "../components/ui/Alert"
 import Input from "../components/ui/Input"
 import CopyIdCell from "../components/CopyIdCell"
+import AdminTabs from "../components/admin/AdminTabs"
+import AdminCard, {
+  AdminCardField,
+  AdminCardFooter,
+  AdminCardHeader,
+} from "../components/admin/AdminCard"
 
 const userSchema = z.object({
   email: z.string().min(1, "Required").email("Invalid email"),
@@ -136,30 +141,132 @@ export default function AdminUsers() {
     }
   }
 
+  function renderEditForm() {
+    return (
+      <form
+        onSubmit={editForm.handleSubmit(onEditUser)}
+        className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-start"
+      >
+        <Input
+          type="text"
+          {...editForm.register("name")}
+          error={editForm.formState.errors.name?.message}
+        />
+        <Input
+          type="email"
+          {...editForm.register("email")}
+          error={editForm.formState.errors.email?.message}
+        />
+        <label className="flex items-center gap-1.5 py-1 text-sm text-text-secondary">
+          <input
+            type="checkbox"
+            {...editForm.register("admin")}
+            className="accent-primary"
+          />
+          Admin
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={editForm.formState.isSubmitting}
+            className="px-3 py-1"
+          >
+            Save
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setEditingUuid(null)}
+            className="px-3 py-1"
+          >
+            Cancel
+          </Button>
+        </div>
+      </form>
+    )
+  }
+
+  function renderActions(u: (typeof filtered)[0]) {
+    if (resetConfirm === u.uuid) {
+      return (
+        <>
+          <button
+            onClick={() => {
+              handleResetPassword(u.uuid)
+              setResetConfirm(null)
+            }}
+            className="cursor-pointer text-sm font-medium text-error transition-colors hover:text-error/80"
+          >
+            Confirm
+          </button>
+          <button
+            onClick={() => setResetConfirm(null)}
+            className="cursor-pointer text-sm text-text-muted transition-colors hover:text-text-secondary"
+          >
+            Cancel
+          </button>
+        </>
+      )
+    }
+    if (deleteConfirm === u.uuid) {
+      return (
+        <>
+          <button
+            onClick={() => handleDelete(u.uuid)}
+            className="cursor-pointer text-sm font-medium text-error transition-colors hover:text-error/80"
+          >
+            Confirm
+          </button>
+          <button
+            onClick={() => setDeleteConfirm(null)}
+            className="cursor-pointer text-sm text-text-muted transition-colors hover:text-text-secondary"
+          >
+            Cancel
+          </button>
+        </>
+      )
+    }
+    return (
+      <>
+        <button
+          onClick={() => startEdit(u)}
+          className="cursor-pointer text-sm text-text-secondary transition-colors hover:text-text"
+        >
+          Edit
+        </button>
+        {u.uuid !== currentUser?.uuid && (
+          <button
+            onClick={() => setResetConfirm(u.uuid)}
+            className="cursor-pointer text-sm text-text-secondary transition-colors hover:text-text"
+          >
+            Reset pw
+          </button>
+        )}
+        {u.hasPendingEmailVerification && (
+          <button
+            onClick={() => handleConfirmEmail(u.uuid)}
+            className="cursor-pointer text-sm text-text-secondary transition-colors hover:text-text"
+          >
+            Confirm email
+          </button>
+        )}
+        <button
+          onClick={() => setDeleteConfirm(u.uuid)}
+          className="cursor-pointer text-sm text-error transition-colors hover:text-error/80"
+        >
+          Delete
+        </button>
+      </>
+    )
+  }
+
+  function formatLastActive(value: string | null | undefined) {
+    return value ? value.slice(0, 16).replace("T", " ") : "--"
+  }
+
   return (
     <PageContainer size="2xl">
-      <div className="mb-6 flex items-center gap-4">
-        <h1 className="text-2xl font-semibold text-text">Admin</h1>
-        <Link
-          to="/admin/users"
-          className="border-b-2 border-primary pb-0.5 text-sm font-medium text-text"
-          aria-current="page"
-        >
-          Users
-        </Link>
-        <Link
-          to="/admin/forecasts"
-          className="pb-0.5 text-sm font-medium text-text-muted hover:text-text-secondary transition-colors"
-        >
-          Forecasts
-        </Link>
-        <Link
-          to="/admin/maps"
-          className="pb-0.5 text-sm font-medium text-text-muted hover:text-text-secondary transition-colors"
-        >
-          Maps
-        </Link>
-      </div>
+      <AdminTabs current="users" />
 
       {(initialPassword || resetPassword) && (
         <Alert variant="warning" className="mb-4">
@@ -168,7 +275,7 @@ export default function AdminUsers() {
               ? "User created. Initial password (shown once):"
               : "Password reset. New password (shown once):"}
           </p>
-          <code className="mt-1 block rounded bg-warning-light px-2 py-1 text-sm font-mono">
+          <code className="mt-1 block rounded bg-warning-light px-2 py-1 font-mono text-sm">
             {initialPassword ?? resetPassword}
           </code>
           <button
@@ -176,14 +283,14 @@ export default function AdminUsers() {
               setInitialPassword(null)
               setResetPassword(null)
             }}
-            className="mt-2 cursor-pointer text-sm underline hover:text-text transition-colors"
+            className="mt-2 cursor-pointer text-sm underline transition-colors hover:text-text"
           >
             Dismiss
           </button>
         </Alert>
       )}
 
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <Input
           type="text"
           placeholder="Search users..."
@@ -208,7 +315,7 @@ export default function AdminUsers() {
           <h3 className="mb-3 text-sm font-medium text-text">Create user</h3>
           <form
             onSubmit={createForm.handleSubmit(onCreateUser)}
-            className="flex flex-wrap items-start gap-3"
+            className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-start"
           >
             <Input
               type="email"
@@ -234,6 +341,7 @@ export default function AdminUsers() {
               type="submit"
               variant="primary"
               disabled={createForm.formState.isSubmitting}
+              className="self-start"
             >
               {createForm.formState.isSubmitting ? "Creating..." : "Create"}
             </Button>
@@ -241,7 +349,7 @@ export default function AdminUsers() {
         </Card>
       )}
 
-      <Card className="overflow-hidden">
+      <Card className="hidden overflow-x-auto md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-border text-xs font-medium text-text-muted">
@@ -259,44 +367,7 @@ export default function AdminUsers() {
               <tr key={u.uuid} className="border-b border-border last:border-0">
                 {editingUuid === u.uuid ? (
                   <td colSpan={7} className="px-4 py-3">
-                    <form
-                      onSubmit={editForm.handleSubmit(onEditUser)}
-                      className="flex flex-wrap items-start gap-3"
-                    >
-                      <Input
-                        type="text"
-                        {...editForm.register("name")}
-                        error={editForm.formState.errors.name?.message}
-                      />
-                      <Input
-                        type="email"
-                        {...editForm.register("email")}
-                        error={editForm.formState.errors.email?.message}
-                      />
-                      <label className="flex items-center gap-1.5 py-1 text-sm text-text-secondary">
-                        <input
-                          type="checkbox"
-                          {...editForm.register("admin")}
-                          className="accent-primary"
-                        />
-                        Admin
-                      </label>
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        disabled={editForm.formState.isSubmitting}
-                        className="px-3 py-1"
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => setEditingUuid(null)}
-                        className="px-3 py-1"
-                      >
-                        Cancel
-                      </Button>
-                    </form>
+                    {renderEditForm()}
                   </td>
                 ) : (
                   <>
@@ -319,76 +390,12 @@ export default function AdminUsers() {
                       {u.trackCount}
                     </td>
                     <td className="px-4 py-3 text-text-muted">
-                      {u.lastActiveAt
-                        ? u.lastActiveAt.slice(0, 16).replace("T", " ")
-                        : "--"}
+                      {formatLastActive(u.lastActiveAt)}
                     </td>
                     <td className="px-4 py-3">
-                      {resetConfirm === u.uuid ? (
-                        <span className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              handleResetPassword(u.uuid)
-                              setResetConfirm(null)
-                            }}
-                            className="cursor-pointer text-sm font-medium text-error hover:text-error/80 transition-colors"
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            onClick={() => setResetConfirm(null)}
-                            className="cursor-pointer text-sm text-text-muted hover:text-text-secondary transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </span>
-                      ) : deleteConfirm === u.uuid ? (
-                        <span className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleDelete(u.uuid)}
-                            className="cursor-pointer text-sm font-medium text-error hover:text-error/80 transition-colors"
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(null)}
-                            className="cursor-pointer text-sm text-text-muted hover:text-text-secondary transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-3">
-                          <button
-                            onClick={() => startEdit(u)}
-                            className="cursor-pointer text-sm text-text-secondary hover:text-text transition-colors"
-                          >
-                            Edit
-                          </button>
-                          {u.uuid !== currentUser?.uuid && (
-                            <button
-                              onClick={() => setResetConfirm(u.uuid)}
-                              className="cursor-pointer text-sm text-text-secondary hover:text-text transition-colors"
-                            >
-                              Reset pw
-                            </button>
-                          )}
-                          {u.hasPendingEmailVerification && (
-                            <button
-                              onClick={() => handleConfirmEmail(u.uuid)}
-                              className="cursor-pointer text-sm text-text-secondary hover:text-text transition-colors"
-                            >
-                              Confirm email
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setDeleteConfirm(u.uuid)}
-                            className="cursor-pointer text-sm text-error hover:text-error/80 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </span>
-                      )}
+                      <span className="flex items-center gap-3">
+                        {renderActions(u)}
+                      </span>
                     </td>
                   </>
                 )}
@@ -407,6 +414,40 @@ export default function AdminUsers() {
           </tbody>
         </table>
       </Card>
+
+      <div className="space-y-3 md:hidden">
+        {filtered.map((u) => (
+          <AdminCard key={u.uuid}>
+            {editingUuid === u.uuid ? (
+              renderEditForm()
+            ) : (
+              <>
+                <AdminCardHeader>
+                  <span className="font-medium text-text">{u.name}</span>
+                  <CopyIdCell
+                    id={u.uuid}
+                    onCopied={() => showToast("Copied to clipboard", "success")}
+                  />
+                </AdminCardHeader>
+                <AdminCardField label="Email">{u.email}</AdminCardField>
+                <AdminCardField label="Admin">
+                  {u.admin ? "Yes" : "No"}
+                </AdminCardField>
+                <AdminCardField label="Tracks">{u.trackCount}</AdminCardField>
+                <AdminCardField label="Last active">
+                  {formatLastActive(u.lastActiveAt)}
+                </AdminCardField>
+                <AdminCardFooter>{renderActions(u)}</AdminCardFooter>
+              </>
+            )}
+          </AdminCard>
+        ))}
+        {filtered.length === 0 && (
+          <Card className="px-4 py-6 text-center text-sm text-text-muted">
+            No users found.
+          </Card>
+        )}
+      </div>
 
       {toast && (
         <Toast
