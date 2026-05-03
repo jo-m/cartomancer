@@ -338,7 +338,7 @@ export default function Upload() {
             {failedUploads.length > 1 && (
               <button
                 onClick={dismissAllErrors}
-                className="cursor-pointer text-xs text-text-muted hover:text-text-secondary transition-colors"
+                className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary transition-colors"
               >
                 Dismiss all
               </button>
@@ -360,7 +360,7 @@ export default function Upload() {
                   <span className="shrink-0 text-error">{u.errorMsg}</span>
                   <button
                     onClick={() => dismiss(u.id)}
-                    className="shrink-0 cursor-pointer text-xs text-text-muted hover:text-text-secondary transition-colors"
+                    className="inline-flex min-h-11 shrink-0 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary transition-colors"
                   >
                     Dismiss
                   </button>
@@ -379,7 +379,7 @@ export default function Upload() {
               <button
                 onClick={dismissAllTracks}
                 disabled={dismissMutation.isPending}
-                className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
+                className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
               >
                 Dismiss all
               </button>
@@ -390,14 +390,14 @@ export default function Upload() {
               <button
                 onClick={() => bulkSetVisibility(true)}
                 disabled={bulkEditMutation.isPending}
-                className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
+                className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
               >
                 Set all public
               </button>
               <button
                 onClick={() => bulkSetVisibility(false)}
                 disabled={bulkEditMutation.isPending}
-                className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
+                className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
               >
                 Set all private
               </button>
@@ -408,7 +408,7 @@ export default function Upload() {
                   setBulkSport(e.target.value)
                   setBulkSubSport("")
                 }}
-                className="px-1.5 py-0.5 text-xs"
+                className="px-2 py-1"
               >
                 <option value="">Sport...</option>
                 {Object.entries(SPORT_LABELS).map(([id, label]) => (
@@ -421,7 +421,7 @@ export default function Upload() {
                 <Select
                   value={bulkSubSport}
                   onChange={(e) => setBulkSubSport(e.target.value)}
-                  className="px-1.5 py-0.5 text-xs"
+                  className="px-2 py-1"
                 >
                   <option value="">Sub-sport...</option>
                   {(SUB_SPORTS_BY_SPORT[parseInt(bulkSport)] ?? []).map(
@@ -436,7 +436,7 @@ export default function Upload() {
               <button
                 onClick={bulkSetSport}
                 disabled={!bulkSport || bulkEditMutation.isPending}
-                className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
+                className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
               >
                 Set sport on all
               </button>
@@ -446,7 +446,7 @@ export default function Upload() {
                 <button
                   onClick={() => void bulkSetTags()}
                   disabled={bulkTags.length === 0 || bulkEditMutation.isPending}
-                  className="shrink-0 cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
+                  className="inline-flex min-h-11 shrink-0 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
                 >
                   Set tags on all
                 </button>
@@ -506,7 +506,7 @@ export default function Upload() {
                     </div>
                     <button
                       onClick={() => dismissTrack(track.uuid)}
-                      className="shrink-0 cursor-pointer text-xs text-text-muted hover:text-text-secondary transition-colors"
+                      className="inline-flex min-h-11 shrink-0 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary transition-colors"
                     >
                       Dismiss
                     </button>

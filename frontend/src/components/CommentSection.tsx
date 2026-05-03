@@ -174,7 +174,7 @@ function CommentItem({ comment, trackUUID, onError }: CommentItemProps) {
                   setEditBody(comment.body)
                   setEditing(true)
                 }}
-                className="cursor-pointer text-xs text-text-muted hover:text-text-secondary transition-colors"
+                className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary transition-colors"
               >
                 Edit
               </button>
@@ -184,7 +184,7 @@ function CommentItem({ comment, trackUUID, onError }: CommentItemProps) {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleteMutation.isPending}
-                className="cursor-pointer text-xs text-text-muted hover:text-error transition-colors disabled:opacity-50"
+                className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-error transition-colors disabled:opacity-50"
               >
                 Delete
               </button>
@@ -206,14 +206,14 @@ function CommentItem({ comment, trackUUID, onError }: CommentItemProps) {
               variant="primary"
               onClick={handleSave}
               disabled={editMutation.isPending || !editBody.trim()}
-              className="text-xs px-3 py-1"
+              className="px-3"
             >
               Save
             </Button>
             <Button
               variant="ghost"
               onClick={() => setEditing(false)}
-              className="text-xs px-3 py-1"
+              className="px-3"
             >
               Cancel
             </Button>
@@ -274,7 +274,7 @@ function CommentForm({ trackUUID, onError }: CommentFormProps) {
           type="submit"
           variant="primary"
           disabled={createMutation.isPending || !body.trim()}
-          className="text-xs px-3 py-1"
+          className="px-3"
         >
           Comment
         </Button>

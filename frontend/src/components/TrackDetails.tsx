@@ -137,7 +137,7 @@ export default function TrackDetails({
   const editableClass = isOwner ? "editable-field" : ""
 
   const selectClass =
-    "rounded border border-border bg-panel px-2 py-1 text-sm text-text focus:border-primary focus:outline-none cursor-pointer transition-colors"
+    "min-h-11 rounded border border-border bg-panel px-2 py-1 text-sm text-text focus:border-primary focus:outline-none cursor-pointer transition-colors"
 
   const subSportOptions = SUB_SPORTS_BY_SPORT[track.sport] ?? [0]
   const showSubSport =

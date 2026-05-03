@@ -34,7 +34,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         id={inputId}
         aria-invalid={error ? "true" : undefined}
         aria-describedby={error && inputId ? `${inputId}-error` : undefined}
-        className={`w-full rounded border border-border bg-panel px-3 py-2 text-sm text-text placeholder-text-muted transition-colors focus:border-primary focus:outline-none ${error ? "border-error" : ""} ${className}`}
+        className={`min-h-11 w-full rounded border border-border bg-panel px-3 py-2 text-sm text-text placeholder-text-muted transition-colors focus:border-primary focus:outline-none ${error ? "border-error" : ""} ${className}`}
         {...props}
       />
       {error && (

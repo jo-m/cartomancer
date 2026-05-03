@@ -1,5 +1,8 @@
 import { useCallback, useRef } from "react"
 
+const THUMB_SIZE_PX = 24
+const HALF_THUMB_PX = THUMB_SIZE_PX / 2
+
 export interface DualRangeSliderProps {
   absoluteMin: number
   absoluteMax: number
@@ -32,7 +35,10 @@ export default function DualRangeSlider({
   function valueFromClientX(clientX: number): number {
     if (!outerRef.current) return absoluteMin
     const { left, width } = outerRef.current.getBoundingClientRect()
-    const p = Math.max(0, Math.min(1, (clientX - left - 8) / (width - 16)))
+    const p = Math.max(
+      0,
+      Math.min(1, (clientX - left - HALF_THUMB_PX) / (width - THUMB_SIZE_PX))
+    )
     return Math.round((absoluteMin + p * range) / step) * step
   }
 
@@ -100,14 +106,14 @@ export default function DualRangeSlider({
 
   function thumbLeft(v: number): string {
     const frac = (v - absoluteMin) / range
-    return `calc(${frac * 100}% + ${8 - frac * 16}px)`
+    return `calc(${frac * 100}% + ${HALF_THUMB_PX - frac * THUMB_SIZE_PX}px)`
   }
 
   const minFrac = (valueMin - absoluteMin) / range
   const maxFrac = (valueMax - absoluteMin) / range
   const highlightStyle = {
-    left: `calc(${minFrac * 100}% + ${8 - minFrac * 16}px)`,
-    right: `calc(${(1 - maxFrac) * 100}% + ${maxFrac * 16 - 8}px)`,
+    left: `calc(${minFrac * 100}% + ${HALF_THUMB_PX - minFrac * THUMB_SIZE_PX}px)`,
+    right: `calc(${(1 - maxFrac) * 100}% + ${maxFrac * THUMB_SIZE_PX - HALF_THUMB_PX}px)`,
   }
 
   const minActive = valueMin > absoluteMin
@@ -117,13 +123,13 @@ export default function DualRangeSlider({
     <div>
       <div
         ref={outerRef}
-        className="relative h-5 cursor-grab select-none active:cursor-grabbing"
+        className="relative h-7 cursor-grab select-none active:cursor-grabbing"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         role="group"
       >
-        <div className="absolute inset-x-2 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slider-track" />
+        <div className="absolute inset-x-3 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slider-track" />
         <div
           className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slider-fill"
           style={highlightStyle}
@@ -137,7 +143,7 @@ export default function DualRangeSlider({
           aria-valuenow={valueMin}
           aria-valuetext={formatValue(valueMin)}
           onKeyDown={(e) => handleKeyDown("min", e)}
-          className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-slider-thumb focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+          className="absolute top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-slider-thumb focus:outline-2 focus:outline-offset-2 focus:outline-primary"
           style={{
             left: thumbLeft(valueMin),
             borderColor: minActive
@@ -154,7 +160,7 @@ export default function DualRangeSlider({
           aria-valuenow={valueMax}
           aria-valuetext={formatValue(valueMax)}
           onKeyDown={(e) => handleKeyDown("max", e)}
-          className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-slider-thumb focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+          className="absolute top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-slider-thumb focus:outline-2 focus:outline-offset-2 focus:outline-primary"
           style={{
             left: thumbLeft(valueMax),
             borderColor: maxActive

@@ -44,6 +44,13 @@
   --color-track: #ec5927;
   --color-glow: rgba(200, 160, 32, 0.35);
   --color-card-inner: rgba(107, 58, 42, 0.12);
+  /*
+   * Override text-sm to 16px so form fields styled with text-sm do not
+   * trigger iOS Safari's auto-zoom on focus (which kicks in for any text
+   * input below 16px). This means visual spacing for text-sm reads tighter
+   * than stock Tailwind. Form inputs and selects throughout the app should
+   * stay at text-sm or larger — never text-xs — to preserve this.
+   */
   --text-sm: 1rem;
   --nav-height: 57px;
 }

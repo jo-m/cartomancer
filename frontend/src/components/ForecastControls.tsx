@@ -36,7 +36,7 @@ export default function ForecastControls({
               key={h}
               type="button"
               onClick={() => onChangeStart(h)}
-              className={`cursor-pointer rounded border px-1.5 py-1 text-xs transition-colors ${
+              className={`inline-flex min-h-11 cursor-pointer items-center rounded border px-2.5 py-1 text-xs transition-colors ${
                 startHoursOffset === h
                   ? "border-border-hover bg-surface font-medium text-text"
                   : "border-border text-text-secondary hover:bg-surface"
@@ -53,7 +53,7 @@ export default function ForecastControls({
               key={s}
               type="button"
               onClick={() => onChangeSpeed(s)}
-              className={`cursor-pointer rounded border px-1.5 py-1 text-xs transition-colors ${
+              className={`inline-flex min-h-11 cursor-pointer items-center rounded border px-2.5 py-1 text-xs transition-colors ${
                 speedKmh === s
                   ? "border-border-hover bg-surface font-medium text-text"
                   : "border-border text-text-secondary hover:bg-surface"

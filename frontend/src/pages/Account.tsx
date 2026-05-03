@@ -92,7 +92,7 @@ function LocationSearch({ value, onSelect, onClear }: LocationSearchProps) {
           <button
             type="button"
             onClick={onClear}
-            className="cursor-pointer text-sm text-text-muted transition-colors hover:text-text"
+            className="inline-flex min-h-11 cursor-pointer items-center px-2 text-sm text-text-muted transition-colors hover:text-text"
           >
             Clear
           </button>
@@ -111,7 +111,7 @@ function LocationSearch({ value, onSelect, onClear }: LocationSearchProps) {
         value={query}
         onChange={(e) => handleQueryChange(e.target.value)}
         placeholder="Search for a city..."
-        className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text-muted focus:border-primary focus:outline-none"
+        className="min-h-11 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text-muted focus:border-primary focus:outline-none"
       />
       {open && results.length > 0 && (
         <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border border-border bg-panel shadow-lg">
@@ -119,7 +119,7 @@ function LocationSearch({ value, onSelect, onClear }: LocationSearchProps) {
             <li key={r.id}>
               <button
                 type="button"
-                className="w-full cursor-pointer px-3 py-2 text-left text-sm text-text transition-colors hover:bg-surface"
+                className="flex min-h-11 w-full cursor-pointer items-center px-3 py-2 text-left text-sm text-text transition-colors hover:bg-surface"
                 onClick={() => {
                   onSelect({
                     name: formatGeonameLabel(r),

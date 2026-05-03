@@ -20,7 +20,7 @@ export default function Badge({
         <button
           type="button"
           onClick={onRemove}
-          className="cursor-pointer leading-none text-text-muted hover:text-text-secondary"
+          className="-mr-1 inline-flex h-6 w-6 cursor-pointer items-center justify-center leading-none text-text-muted hover:text-text-secondary"
           aria-label="Remove"
         >
           &times;

@@ -28,7 +28,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   return (
     <button
       ref={ref}
-      className={`cursor-pointer rounded px-4 py-2 text-sm font-medium transition-colors ${variantClasses[variant]} ${className}`}
+      className={`inline-flex min-h-11 cursor-pointer items-center justify-center rounded px-4 py-2 text-sm font-medium transition-colors ${variantClasses[variant]} ${className}`}
       {...props}
     >
       {children}

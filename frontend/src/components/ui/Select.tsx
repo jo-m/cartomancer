@@ -29,7 +29,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
       <select
         ref={ref}
         id={selectId}
-        className={`cursor-pointer rounded border border-border bg-panel px-3 py-2 text-sm text-text transition-colors focus:border-primary focus:outline-none ${className}`}
+        className={`min-h-11 cursor-pointer rounded border border-border bg-panel px-3 py-2 text-sm text-text transition-colors focus:border-primary focus:outline-none ${className}`}
         {...props}
       >
         {children}

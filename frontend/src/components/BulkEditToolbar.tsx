@@ -125,13 +125,13 @@ export default function BulkEditToolbar({
         </span>
         <button
           onClick={() => onSelectAll()}
-          className="cursor-pointer text-xs text-text-muted hover:text-text-secondary transition-colors"
+          className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary transition-colors"
         >
           Select all on page
         </button>
         <button
           onClick={clearAndReset}
-          className="cursor-pointer text-xs text-text-muted hover:text-text-secondary transition-colors"
+          className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary transition-colors"
         >
           Clear
         </button>
@@ -139,14 +139,14 @@ export default function BulkEditToolbar({
         <button
           onClick={() => bulkSetVisibility(true)}
           disabled={bulkEditMutation.isPending}
-          className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
+          className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
         >
           Set public
         </button>
         <button
           onClick={() => bulkSetVisibility(false)}
           disabled={bulkEditMutation.isPending}
-          className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
+          className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
         >
           Set private
         </button>
@@ -154,14 +154,14 @@ export default function BulkEditToolbar({
         <button
           onClick={() => bulkSetTrackType(2)}
           disabled={bulkEditMutation.isPending}
-          className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
+          className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
         >
           Set recorded
         </button>
         <button
           onClick={() => bulkSetTrackType(1)}
           disabled={bulkEditMutation.isPending}
-          className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
+          className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
         >
           Set planned
         </button>
@@ -172,7 +172,7 @@ export default function BulkEditToolbar({
             setBulkSport(e.target.value)
             setBulkSubSport("")
           }}
-          className="px-1.5 py-0.5 text-xs"
+          className="px-2 py-1"
         >
           <option value="">Sport...</option>
           {Object.entries(SPORT_LABELS).map(([id, label]) => (
@@ -185,7 +185,7 @@ export default function BulkEditToolbar({
           <Select
             value={bulkSubSport}
             onChange={(e) => setBulkSubSport(e.target.value)}
-            className="px-1.5 py-0.5 text-xs"
+            className="px-2 py-1"
           >
             <option value="">Sub-sport...</option>
             {(SUB_SPORTS_BY_SPORT[parseInt(bulkSport)] ?? []).map((id) => (
@@ -198,7 +198,7 @@ export default function BulkEditToolbar({
         <button
           onClick={bulkApplySport}
           disabled={!bulkSport || bulkEditMutation.isPending}
-          className="cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
+          className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
         >
           Set sport
         </button>
@@ -208,7 +208,7 @@ export default function BulkEditToolbar({
           <button
             onClick={bulkApplyTags}
             disabled={bulkTags.length === 0 || bulkEditMutation.isPending}
-            className="shrink-0 cursor-pointer text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
+            className="inline-flex min-h-11 shrink-0 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
           >
             Set tags
           </button>
@@ -224,13 +224,13 @@ export default function BulkEditToolbar({
             <Button
               variant="danger"
               onClick={() => void bulkDelete()}
-              className="px-2 py-0.5 text-xs"
+              className="px-3"
             >
               Confirm delete
             </Button>
             <button
               onClick={() => setConfirmDelete(false)}
-              className="cursor-pointer text-xs text-text-muted hover:text-text-secondary transition-colors"
+              className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary transition-colors"
             >
               Cancel
             </button>
@@ -239,7 +239,7 @@ export default function BulkEditToolbar({
           <Button
             variant="danger"
             onClick={() => setConfirmDelete(true)}
-            className="px-2 py-0.5 text-xs"
+            className="px-3"
           >
             Delete selected
           </Button>

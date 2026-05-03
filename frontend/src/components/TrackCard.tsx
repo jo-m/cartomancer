@@ -88,34 +88,44 @@ export default function TrackCard({
               e.stopPropagation()
               onSelect(e, track.uuid, index)
             }}
-            className={`absolute bottom-2 right-2 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border transition-colors ${
+            className={`absolute bottom-1 right-1 z-10 flex h-11 w-11 cursor-pointer items-center justify-center rounded transition-colors ${
               isSelected
-                ? "border-primary bg-primary text-primary-text"
-                : "border-border bg-panel/80 text-transparent hover:border-border-hover hover:text-text-muted"
+                ? "text-primary"
+                : "text-transparent hover:text-text-muted"
             }`}
             aria-label={isSelected ? "Deselect track" : "Select track"}
             aria-pressed={isSelected}
           >
-            <svg
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="h-3 w-3"
+            <span
+              className={`flex h-5 w-5 items-center justify-center rounded border ${
+                isSelected
+                  ? "border-primary bg-primary text-primary-text"
+                  : "border-border bg-panel/80"
+              }`}
             >
-              <path d="M3 8l3.5 3.5L13 4" />
-            </svg>
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="h-3 w-3"
+              >
+                <path d="M3 8l3.5 3.5L13 4" />
+              </svg>
+            </span>
           </button>
         )}
         {showStar && (
           <button
             onClick={(e) => onToggleStar(e, track.uuid, track.starred ?? false)}
-            className="absolute right-3 top-3 z-10 cursor-pointer rounded bg-panel/80 p-1 hover:bg-panel transition-colors"
+            className="absolute right-1 top-1 z-10 inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded hover:bg-panel/80 transition-colors"
             aria-label={track.starred ? "Unstar track" : "Star track"}
           >
-            <StarIcon
-              className={`h-4 w-4 ${track.starred ? "text-star" : "text-text-muted"}`}
-            />
+            <span className="rounded bg-panel/80 p-1">
+              <StarIcon
+                className={`h-4 w-4 ${track.starred ? "text-star" : "text-text-muted"}`}
+              />
+            </span>
           </button>
         )}
         <div className="aspect-square overflow-hidden bg-surface text-track">

@@ -42,7 +42,7 @@ export default function Toast({
       <span>{message}</span>
       <button
         onClick={onDismiss}
-        className="shrink-0 cursor-pointer text-primary-text/70 hover:text-primary-text transition-colors"
+        className="inline-flex min-h-11 shrink-0 cursor-pointer items-center px-2 text-primary-text/70 hover:text-primary-text transition-colors"
         aria-label="Dismiss notification"
       >
         Dismiss

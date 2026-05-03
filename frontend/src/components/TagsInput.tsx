@@ -80,7 +80,7 @@ export default function TagsInput({
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={value.length === 0 ? placeholder : ""}
-        className="min-w-16 flex-1 bg-transparent text-xs text-text placeholder-text-muted outline-none"
+        className="min-w-16 flex-1 bg-transparent text-sm text-text placeholder-text-muted outline-none"
         aria-label="Add tag"
       />
     </div>
