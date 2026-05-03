@@ -9,6 +9,7 @@ import TagsInput from "../components/TagsInput"
 import Toast from "../components/Toast"
 import useToast from "../hooks/useToast"
 import Badge from "../components/ui/Badge"
+import Button from "../components/ui/Button"
 import Card from "../components/ui/Card"
 import Select from "../components/ui/Select"
 import SectionHeading from "../components/ui/SectionHeading"
@@ -386,70 +387,91 @@ export default function Upload() {
             )}
           </div>
           {pendingTracks.length > 1 && (
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => bulkSetVisibility(true)}
-                disabled={bulkEditMutation.isPending}
-                className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
-              >
-                Set all public
-              </button>
-              <button
-                onClick={() => bulkSetVisibility(false)}
-                disabled={bulkEditMutation.isPending}
-                className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
-              >
-                Set all private
-              </button>
-              <span className="text-border">|</span>
-              <Select
-                value={bulkSport}
-                onChange={(e) => {
-                  setBulkSport(e.target.value)
-                  setBulkSubSport("")
-                }}
-                className="px-2 py-1"
-              >
-                <option value="">Sport...</option>
-                {Object.entries(SPORT_LABELS).map(([id, label]) => (
-                  <option key={id} value={id}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
-              {bulkSport !== "" && (
-                <Select
-                  value={bulkSubSport}
-                  onChange={(e) => setBulkSubSport(e.target.value)}
-                  className="px-2 py-1"
-                >
-                  <option value="">Sub-sport...</option>
-                  {(SUB_SPORTS_BY_SPORT[parseInt(bulkSport)] ?? []).map(
-                    (id) => (
-                      <option key={id} value={String(id)}>
-                        {SUB_SPORT_LABELS[id]}
+            <div className="mb-3 grid grid-cols-1 gap-3 rounded-lg border border-border bg-panel px-4 py-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="flex flex-col gap-1">
+                <SectionHeading>Visibility</SectionHeading>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => bulkSetVisibility(true)}
+                    disabled={bulkEditMutation.isPending}
+                    className="px-3 text-xs"
+                  >
+                    Set all public
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => bulkSetVisibility(false)}
+                    disabled={bulkEditMutation.isPending}
+                    className="px-3 text-xs"
+                  >
+                    Set all private
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <SectionHeading>Sport</SectionHeading>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select
+                    value={bulkSport}
+                    onChange={(e) => {
+                      setBulkSport(e.target.value)
+                      setBulkSubSport("")
+                    }}
+                    className="px-2 py-1"
+                  >
+                    <option value="">Sport...</option>
+                    {Object.entries(SPORT_LABELS).map(([id, label]) => (
+                      <option key={id} value={id}>
+                        {label}
                       </option>
-                    )
+                    ))}
+                  </Select>
+                  {bulkSport !== "" && (
+                    <Select
+                      value={bulkSubSport}
+                      onChange={(e) => setBulkSubSport(e.target.value)}
+                      className="px-2 py-1"
+                    >
+                      <option value="">Sub-sport...</option>
+                      {(SUB_SPORTS_BY_SPORT[parseInt(bulkSport)] ?? []).map(
+                        (id) => (
+                          <option key={id} value={String(id)}>
+                            {SUB_SPORT_LABELS[id]}
+                          </option>
+                        )
+                      )}
+                    </Select>
                   )}
-                </Select>
-              )}
-              <button
-                onClick={bulkSetSport}
-                disabled={!bulkSport || bulkEditMutation.isPending}
-                className="inline-flex min-h-11 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
-              >
-                Set sport on all
-              </button>
-              <span className="text-border">|</span>
-              <div className="flex min-w-48 flex-1 items-center gap-2">
-                <TagsInput value={bulkTags} onChange={setBulkTags} />
-                <button
-                  onClick={() => void bulkSetTags()}
-                  disabled={bulkTags.length === 0 || bulkEditMutation.isPending}
-                  className="inline-flex min-h-11 shrink-0 cursor-pointer items-center px-2 text-xs text-text-muted hover:text-text-secondary disabled:opacity-50 transition-colors"
-                >
-                  Set tags on all
-                </button>
+                  <Button
+                    variant="secondary"
+                    onClick={bulkSetSport}
+                    disabled={!bulkSport || bulkEditMutation.isPending}
+                    className="px-3 text-xs"
+                  >
+                    Apply to all
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <SectionHeading>Tags</SectionHeading>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+                    <TagsInput value={bulkTags} onChange={setBulkTags} />
+                  </div>
+                  <Button
+                    variant="secondary"
+                    onClick={() => void bulkSetTags()}
+                    disabled={
+                      bulkTags.length === 0 || bulkEditMutation.isPending
+                    }
+                    className="px-3 text-xs"
+                  >
+                    Apply to all
+                  </Button>
+                </div>
               </div>
             </div>
           )}
