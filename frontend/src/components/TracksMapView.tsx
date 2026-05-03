@@ -433,6 +433,10 @@ export default function TracksMapView({
       // While picking a start-location filter, suppress hover popovers and
       // let the picking effect manage the cursor.
       if (pickingStartNear) return
+      // Touch/pen drive the popover via tap (onClick), not via pointermove
+      // (which fires during touch drags but never on a discrete tap).
+      const orig = evt.originalEvent as PointerEvent | undefined
+      if (orig && orig.pointerType && orig.pointerType !== "mouse") return
       const pixel = evt.pixel as [number, number]
       let hovered: Feature | null = null
       map.forEachFeatureAtPixel(
@@ -473,7 +477,9 @@ export default function TracksMapView({
       map.getTargetElement().style.cursor = hovered ? "pointer" : ""
     }
 
-    const onLeave = () => {
+    const onLeave = (evt: PointerEvent) => {
+      // Touch lock persists; only mouse leaving dismisses the popover.
+      if (evt.pointerType && evt.pointerType !== "mouse") return
       if (hoveredFeatureRef.current) {
         const prev = hoveredFeatureRef.current
         const uuid = prev.get("trackUuid") as string
@@ -519,6 +525,9 @@ export default function TracksMapView({
         return
       }
       const pixel = evt.pixel as [number, number]
+      const orig = evt.originalEvent as PointerEvent | undefined
+      const isTouch =
+        orig?.pointerType === "touch" || orig?.pointerType === "pen"
       let hit = false
       map.forEachFeatureAtPixel(
         pixel,
@@ -531,6 +540,32 @@ export default function TracksMapView({
           if (selectionActive) {
             const me = evt.originalEvent as React.MouseEvent
             onSelect(me, uuid, idx)
+          } else if (
+            isTouch &&
+            hoveredFeatureRef.current?.get("trackUuid") !== uuid
+          ) {
+            // First touch tap on a polyline: show the popover instead of
+            // navigating, so the user can preview before committing. A
+            // second tap on the same polyline (or the popover link)
+            // navigates.
+            const prev = hoveredFeatureRef.current
+            if (prev) {
+              const prevUuid = prev.get("trackUuid") as string
+              prev.setStyle(
+                selected.has(prevUuid) ? selectedStyle : baseStyleFor(prevUuid)
+              )
+            }
+            feat.setStyle(hoverStyle)
+            hoveredFeatureRef.current = feat
+            setPopover({
+              uuid,
+              name: feat.get("trackName") as string,
+              userName: feat.get("trackUserName") as string,
+              totalDistanceM: feat.get("trackTotalDistanceM") as number,
+              totalAscentM: feat.get("trackTotalAscentM") as number,
+              forecast: feat.get("trackForecast") as PopoverForecast | null,
+              pixel,
+            })
           } else {
             navigate(`/tracks/${uuid}`)
           }

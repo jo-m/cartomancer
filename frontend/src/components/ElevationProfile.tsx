@@ -104,8 +104,8 @@ export default memo(function ElevationProfile({
     [data]
   )
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
+  const updateHoverFromEvent = useCallback(
+    (e: React.PointerEvent) => {
       const el = e.currentTarget as HTMLElement
       const rect = el.getBoundingClientRect()
       hoverStore.set(findNearest(e.clientX - rect.left, el.clientWidth))
@@ -113,9 +113,52 @@ export default memo(function ElevationProfile({
     [hoverStore, findNearest]
   )
 
-  const handleMouseLeave = useCallback(() => {
-    hoverStore.set(null)
-  }, [hoverStore])
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      const el = e.currentTarget as HTMLElement
+      el.setPointerCapture(e.pointerId)
+      const rect = el.getBoundingClientRect()
+      const idx = findNearest(e.clientX - rect.left, el.clientWidth)
+      // For touch/pen, tapping at the same locked index clears the marker.
+      if (
+        e.pointerType !== "mouse" &&
+        idx != null &&
+        hoverStore.get() === idx
+      ) {
+        hoverStore.set(null)
+      } else {
+        hoverStore.set(idx)
+      }
+    },
+    [hoverStore, findNearest]
+  )
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      // Mouse: hover-track without buttons. Touch/pen: only while captured (drag).
+      if (e.pointerType !== "mouse") {
+        const el = e.currentTarget as HTMLElement
+        if (!el.hasPointerCapture(e.pointerId)) return
+      }
+      updateHoverFromEvent(e)
+    },
+    [updateHoverFromEvent]
+  )
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    const el = e.currentTarget as HTMLElement
+    if (el.hasPointerCapture(e.pointerId)) {
+      el.releasePointerCapture(e.pointerId)
+    }
+  }, [])
+
+  const handlePointerLeave = useCallback(
+    (e: React.PointerEvent) => {
+      // Touch lock persists; mouse leaving clears the marker.
+      if (e.pointerType === "mouse") hoverStore.set(null)
+    },
+    [hoverStore]
+  )
 
   // Imperatively update hover line and label from store changes.
   useEffect(() => {
@@ -190,9 +233,12 @@ export default memo(function ElevationProfile({
           </AreaChart>
         </ResponsiveContainer>
         <div
-          className="absolute inset-0 cursor-crosshair"
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
+          className="absolute inset-0 cursor-crosshair touch-pan-y"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onPointerLeave={handlePointerLeave}
         />
         <div
           ref={lineRef}

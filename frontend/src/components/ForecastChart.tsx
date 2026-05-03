@@ -288,33 +288,73 @@ export default function ForecastChart({
     [trackDistancesM]
   )
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
+  /** Returns the track index nearest to a pointer x within an overlay element. */
+  const idxFromEvent = useCallback(
+    (e: React.PointerEvent): number | null => {
+      if (data.length < 2) return null
       const el = e.currentTarget as HTMLElement
       const rect = el.getBoundingClientRect()
       const mouseX = e.clientX - rect.left
       const cw = el.clientWidth
-      if (data.length < 2) return
       const plotLeft = CHART_MARGIN.left + Y_AXIS_WIDTH
       const plotRight = cw - CHART_MARGIN.right
-      if (mouseX < plotLeft || mouseX > plotRight) {
-        hoverStore.set(null)
-        return
-      }
+      if (mouseX < plotLeft || mouseX > plotRight) return null
       const fraction = (mouseX - plotLeft) / (plotRight - plotLeft)
       const minDKm = data[0].dKm
       const maxDKm = data[data.length - 1].dKm
       const dKm = minDKm + fraction * (maxDKm - minDKm)
-      const idx = trackIdxForDKm(dKm)
-      if (idx == null) return
-      hoverStore.set(idx)
+      return trackIdxForDKm(dKm)
     },
-    [hoverStore, data, trackIdxForDKm]
+    [data, trackIdxForDKm]
   )
 
-  const handleMouseLeave = useCallback(() => {
-    hoverStore.set(null)
-  }, [hoverStore])
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      const el = e.currentTarget as HTMLElement
+      el.setPointerCapture(e.pointerId)
+      const idx = idxFromEvent(e)
+      if (
+        e.pointerType !== "mouse" &&
+        idx != null &&
+        hoverStore.get() === idx
+      ) {
+        hoverStore.set(null)
+      } else {
+        hoverStore.set(idx)
+      }
+    },
+    [hoverStore, idxFromEvent]
+  )
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.pointerType !== "mouse") {
+        const el = e.currentTarget as HTMLElement
+        if (!el.hasPointerCapture(e.pointerId)) return
+      }
+      const idx = idxFromEvent(e)
+      if (idx == null && e.pointerType === "mouse") {
+        hoverStore.set(null)
+        return
+      }
+      if (idx != null) hoverStore.set(idx)
+    },
+    [hoverStore, idxFromEvent]
+  )
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    const el = e.currentTarget as HTMLElement
+    if (el.hasPointerCapture(e.pointerId)) {
+      el.releasePointerCapture(e.pointerId)
+    }
+  }, [])
+
+  const handlePointerLeave = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.pointerType === "mouse") hoverStore.set(null)
+    },
+    [hoverStore]
+  )
 
   const [minTemp, maxTemp] = useMemo(() => {
     const temps = data
@@ -507,9 +547,12 @@ export default function ForecastChart({
             </ComposedChart>
           </ResponsiveContainer>
           <div
-            className="absolute inset-0 cursor-crosshair"
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+            className="absolute inset-0 cursor-crosshair touch-pan-y"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onPointerLeave={handlePointerLeave}
           />
           <div
             ref={tempLineRef}
@@ -581,9 +624,12 @@ export default function ForecastChart({
             </ComposedChart>
           </ResponsiveContainer>
           <div
-            className="absolute inset-0 cursor-crosshair"
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
+            className="absolute inset-0 cursor-crosshair touch-pan-y"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onPointerLeave={handlePointerLeave}
           />
           <div
             ref={precipLineRef}
@@ -675,9 +721,12 @@ export default function ForecastChart({
               </ComposedChart>
             </ResponsiveContainer>
             <div
-              className="absolute inset-0 cursor-crosshair"
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
+              className="absolute inset-0 cursor-crosshair touch-pan-y"
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              onPointerLeave={handlePointerLeave}
             />
             <div
               ref={windLineRef}
@@ -743,9 +792,12 @@ export default function ForecastChart({
               </ComposedChart>
             </ResponsiveContainer>
             <div
-              className="absolute inset-0 cursor-crosshair"
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
+              className="absolute inset-0 cursor-crosshair touch-pan-y"
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              onPointerLeave={handlePointerLeave}
             />
             <div
               ref={windLineRef}

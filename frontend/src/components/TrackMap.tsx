@@ -362,20 +362,36 @@ export default memo(function TrackMap({
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onPointerMove = (evt: any) => {
+      // OL fires pointermove during touch drags too; ignore those so a tap
+      // (handled below via "click") drives the marker on touch devices.
+      const orig = evt.originalEvent as PointerEvent | undefined
+      if (orig && orig.pointerType && orig.pointerType !== "mouse") return
       const idx = findNearest(evt.pixel as number[])
       hoverStore.set(idx)
     }
 
-    const onPointerLeave = () => {
+    const onPointerLeave = (evt: PointerEvent) => {
+      // Touch lock persists; only mouse leaving clears the marker.
+      if (evt.pointerType && evt.pointerType !== "mouse") return
       hoverStore.set(null)
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onClick = (evt: any) => {
+      // For touch/pen, a tap locks (or clears, when tapping empty) the marker.
+      const orig = evt.originalEvent as PointerEvent | undefined
+      if (orig && orig.pointerType === "mouse") return
+      hoverStore.set(findNearest(evt.pixel as number[]))
+    }
+
     map.on("pointermove" as never, onPointerMove)
+    map.on("click", onClick)
     const viewport = map.getViewport()
     viewport.addEventListener("pointerleave", onPointerLeave)
 
     return () => {
       map.un("pointermove" as never, onPointerMove)
+      map.un("click", onClick)
       viewport.removeEventListener("pointerleave", onPointerLeave)
     }
   }, [points, findNearest, hoverStore])
@@ -432,11 +448,10 @@ export default memo(function TrackMap({
 
     let highlightedFeature: Feature | null = null
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const onMove = (evt: any) => {
-      const pixel = evt.pixel as number[]
+    /** Highlights the closure feature under `pixel` and shows its tooltip. */
+    const showAt = (pixel: number[]): boolean => {
       const overlay = overlayRef.current
-      if (!overlay) return
+      if (!overlay) return false
 
       // Restore previous highlight.
       if (highlightedFeature) {
@@ -472,9 +487,26 @@ export default memo(function TrackMap({
         overlay.setPosition(undefined)
         setTooltip(null)
       }
+      return found
     }
 
-    const onLeave = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onMove = (evt: any) => {
+      // Skip touch/pen; those drive the tooltip via tap (onClick) instead.
+      const orig = evt.originalEvent as PointerEvent | undefined
+      if (orig && orig.pointerType && orig.pointerType !== "mouse") return
+      showAt(evt.pixel as number[])
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onClick = (evt: any) => {
+      const orig = evt.originalEvent as PointerEvent | undefined
+      if (orig && orig.pointerType === "mouse") return
+      showAt(evt.pixel as number[])
+    }
+
+    const onLeave = (evt: PointerEvent) => {
+      if (evt.pointerType && evt.pointerType !== "mouse") return
       if (highlightedFeature) {
         const prev = highlightedFeature.get("closure") as
           | RoadClosure
@@ -489,11 +521,13 @@ export default memo(function TrackMap({
     }
 
     map.on("pointermove" as never, onMove)
+    map.on("click", onClick)
     const viewport = map.getViewport()
     viewport.addEventListener("pointerleave", onLeave)
 
     return () => {
       map.un("pointermove" as never, onMove)
+      map.un("click", onClick)
       viewport.removeEventListener("pointerleave", onLeave)
     }
   }, [closures])
