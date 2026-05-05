@@ -260,7 +260,7 @@ export default function Track() {
         onSuccess={(msg) => showToast(msg, "success")}
       />
 
-      <div className="mt-6">
+      <div className="mt-6 -mx-4 lg:mx-0">
         {trackPoints && trackPoints.length > 0 ? (
           <div className="relative">
             <TrackMap
@@ -269,6 +269,7 @@ export default function Track() {
               color={trackColor}
               closures={closures}
               layer={mapLayer}
+              className="relative h-[400px] w-full border-y border-border lg:rounded-lg lg:border"
             />
             <MapHoverOverlay
               hoverStore={hoverStore}
@@ -296,7 +297,7 @@ export default function Track() {
             />
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border bg-surface text-track">
+          <div className="overflow-hidden border-y border-border bg-surface text-track lg:rounded-lg lg:border">
             <SvgPreview
               src={`/api/tracks/${data.uuid}/preview.svg?size=512`}
               alt="Track preview"

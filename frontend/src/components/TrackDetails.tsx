@@ -145,7 +145,7 @@ export default function TrackDetails({
 
   return (
     <>
-      <dl className="mt-4 grid grid-cols-3 gap-x-6 gap-y-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
         <div>
           <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-text-muted">
             <SvgIcon svg={distanceSvg} className="h-3.5 w-3.5" />
