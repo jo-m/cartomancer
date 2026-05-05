@@ -2,8 +2,6 @@
 
 **This file is ONLY FOR HUMANS. AI agents MUST IGNORE IT.**
 
-copilot --allow-tool='write' --allow-tool='shell(go:*)' --allow-tool='shell(npm:*)' --allow-tool='shell(make:*)'
-
 ## Short term
 
 - [x] Rename

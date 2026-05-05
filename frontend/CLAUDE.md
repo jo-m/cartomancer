@@ -27,36 +27,37 @@ frontend/
 
 ## Development
 
-```bash
-cd frontend
-npm run dev
-npm run lint
-npm run build
-```
+To format files, you MUST run `npm run format` instead of calling tools manually.
+After every change, `npm run lint` MUST run successfully.
+Vite build outputs to `../static/` (embedded in Go binary from there).
 
 ## API client
 
-Types are generated from `internal/pkg/api/openapi.yaml` via `openapi-typescript`.
-Run `npm run gen` (already done in `dev`/`build`) to regenerate `src/api/schema.gen.ts`.
-`src/api/schema.gen.ts` is NOT committed.
+Types are generated from internal/pkg/api/openapi.yaml via openapi-typescript.
+Run npm run gen (already done in dev/build scripts) to regenerate src/api/schema.gen.ts.
+src/api/schema.gen.ts is NOT committed.
 All API interactions MUST use the generated client.
 
-`src/api/client.ts` exports:
-- `fetchClient` — `openapi-fetch` client with base URL `/api`. Has a middleware that converts API error bodies `{ msg }` into thrown `Error` instances. Use for direct calls (e.g. in `SessionContext`).
-- `$api` — `openapi-react-query` wrapper around `fetchClient`. Use in components.
-- `User` — convenience type re-export.
+src/api/client.ts exports:
+- fetchClient: openapi-fetch client with base URL /api.
+  Has a middleware that converts API error bodies { msg } into thrown Error instances.
+  Use for direct calls (e.g. in SessionContext).
+- $api: openapi-react-query wrapper around fetchClient. Use in components.
+- User: convenience type re-export.
 
 ### Data fetching in components
 
-Use `$api.useQuery` for reads and `$api.useMutation` for writes:
+Use $api.useQuery for reads and $api.useMutation for writes:
 
-```ts
+```
 const { data, isLoading, error } = $api.useQuery("get", "/some-resource")
 const mutation = $api.useMutation("post", "/some-resource")
 // mutation.isPending, mutation.isSuccess, mutation.error
 ```
 
-Errors from mutations/queries are `Error` instances (the `Register` interface in `client.ts` sets `defaultError: Error`). Access `.message` directly: `mutation.error.message`. In catch blocks where the error is `unknown`, use `(err as Error).message`.
+Errors from mutations/queries are `Error` instances (the `Register` interface in `client.ts` sets `defaultError: Error`).
+Access `.message` directly: `mutation.error.message`.
+In catch blocks where the error is `unknown`, use `(err as Error).message`.
 
 ### Forms
 
@@ -97,68 +98,74 @@ Key color tokens: `surface`, `panel`, `primary`, `border`, `text`, `text-seconda
 ### Shared UI components
 
 Reusable themed components live in `src/components/ui/`:
-- `Button` — 4 variants (primary, secondary, danger, ghost), uses `forwardRef`
-- `Input` — labeled input with error display and ARIA attributes, uses `forwardRef`
-- `Select` — labeled select dropdown, uses `forwardRef`
-- `Card` — themed container with border and background
-- `Badge` — tag/chip with optional `onRemove`
-- `ToggleGroup` — segmented toggle with `role="radiogroup"`
-- `SectionHeading` — uppercase tracking-wide label
-- `Alert` — 4 variants (info, warning, error, success) with `role="alert"`
-- `PageContainer` — page wrapper with size variants (sm, md, lg, xl). Default vertical padding is `py-8`; do not override with per-page `py-*` classes.
-- `DualRangeSlider` — dual-thumb range slider for numeric range filtering
+- Button: 4 variants (primary, secondary, danger, ghost), uses forwardRef
+- Input: labeled input with error display and ARIA attributes, uses forwardRef
+- Select: labeled select dropdown, uses forwardRef
+- Card: themed container with border and background
+- Badge: tag/chip with optional onRemove
+- ToggleGroup: segmented toggle with role="radiogroup"
+- SectionHeading: uppercase tracking-wide label
+- Alert: 4 variants (info, warning, error, success) with role="alert"
+- PageContainer: page wrapper with size variants (sm, md, lg, xl). Default vertical padding is py-8; do not override with per-page py-* classes.
+- DualRangeSlider: dual-thumb range slider for numeric range filtering
 
-Always use these components instead of repeating raw Tailwind classes. All interactive elements must have `cursor-pointer` and `transition-colors`.
+ALWAYS use these components instead of repeating raw Tailwind classes.
+ALL interactive elements MUST have cursor-pointer and transition-colors.
 
 ### Track page components
 
-The track detail page (`pages/Track.tsx`) delegates to focused sub-components:
-- `ForecastControls` — start time / speed selector buttons
-- `TrackDetails` — metadata display (stats, tags, similar tracks, download)
-- `TrackEditForm` — edit form with delete confirmation
-- `FullscreenMapDialog` — fullscreen map modal
-- `MapHoverOverlay` — map hover info overlay (shared by normal and fullscreen map)
+The track detail page pages/Track.tsx delegates to focused sub-components:
+- ForecastControls: start time / speed selector buttons
+- TrackDetails: metadata display (stats, tags, similar tracks, download)
+- TrackEditForm: edit form with delete confirmation
+- FullscreenMapDialog: fullscreen map modal
+- MapHoverOverlay: map hover info overlay (shared by normal and fullscreen map)
 
 ### Track grid components
 
-The track grid (`components/TrackGrid.tsx`) delegates to:
-- `TrackFilters` — filter panel (search, toggles, sliders, sport/tag filters, sorting)
-- `TrackCard` — single track card with preview, stats, forecast, selection/star
-- `BulkEditToolbar` — bulk edit/delete toolbar for selected tracks
-- `MiniWindRose` — mini 4-sector wind rose SVG
+The track grid components/TrackGrid.tsx delegates to:
+- TrackFilters: filter panel (search, toggles, sliders, sport/tag filters, sorting)
+- TrackCard: single track card with preview, stats, forecast, selection/star
+- BulkEditToolbar: bulk edit/delete toolbar for selected tracks
+- MiniWindRose: mini 4-sector wind rose SVG
 
 ### Custom hooks
 
-Hooks in `src/hooks/`:
-- `useUrlState` — sync component state with URL search params
-- `useHoverSync` — shared hover index store for coordinated chart/map hover
-- `useDocumentTitle` — sets `document.title` to `"Title | Cartomancer"`. Call with no argument for the base title alone. Every page component must call this hook. For pages with dynamic data (e.g. Track), pass the data field (e.g. `data?.name`) so the title updates when data loads.
-- `useToast` — toast notification state with re-trigger support via incrementing key. Returns `{ toast, showToast, dismissToast }`
-- `useForecast` — forecast data fetching and state management for a single track
+Hooks in src/hooks/:
+- useUrlState: sync component state with URL search params
+- useHoverSync: shared hover index store for coordinated chart/map hover
+- useDocumentTitle: sets document.title to `"Title | Cartomancer"`.
+  Call with no argument for the base title alone. 
+  Every page component must call this hook.
+  For pages with dynamic data (e.g. Track), pass the data field (e.g. `data?.name`) so the title updates when data loads.
+- useToast: toast notification state with re-trigger support via incrementing key. Returns { toast, showToast, dismissToast }
+- useForecast: forecast data fetching and state management for a single track
 
 ### Shared lib modules
 
-Utility modules in `src/lib/`:
-- `format` — `formatDistance(m)` and `formatAscent(m)` for human-readable track stats. Use these instead of inlining formatting logic.
-- `proj` — registers the Swiss LV95 projection (EPSG:2056) with OpenLayers via proj4. Exports `lv95`. Import this instead of calling `proj4.defs()` / `register()` directly.
-- `sports` — sport/sub-sport label maps
-- `time` — time formatting helpers
-- `externalUrl` — builds `/leaving` interstitial URLs for external links
-- `trackColor` — track color utilities
+Utility modules in src/lib/:
+- format: formatDistance(m) and formatAscent(m) for human-readable track stats. Use these instead of inlining formatting logic.
+- proj: registers the Swiss LV95 projection (EPSG:2056) with OpenLayers via proj4.
+  Exports lv95. Import this instead of calling proj4.defs() / register() directly.
+- sports: sport/sub-sport label maps
+- time: time formatting helpers
+- externalUrl: builds /leaving interstitial URLs for external links
+- trackColor: track color utilities
 
 ### SVG assets
 
-SVGs in `src/assets/` must use `currentColor` (not hardcoded colors like `#000`) for fill/stroke so they inherit text color and respond to dark mode. Import SVGs with `?raw` (Vite raw import) and render inline via `dangerouslySetInnerHTML` when they need to inherit CSS color. Set the parent's `text-*` class to control the SVG color.
+SVGs in `src/assets/` must use `currentColor` (not hardcoded colors like `#000`) for fill/stroke so they inherit text color and respond to dark mode.
+Import SVGs with `?raw` (Vite raw import) and render inline via `dangerouslySetInnerHTML` when they need to inherit CSS color.
+Set the parent's `text-*` class to control the SVG color.
 
 ### Accessibility
 
-- All interactive elements must have appropriate ARIA attributes (`role`, `aria-label`, `aria-pressed`, `aria-expanded`, etc.)
-- Error messages use `role="alert"`
+- All interactive elements MUST have appropriate ARIA attributes (role, aria-label, aria-pressed, aria-expanded etc.)
+- Error messages use role="alert"
 - Navigation uses proper `<a>` elements via React Router `<Link>`
 
-## Conventions
+## General Conventions
 
-- Vite build outputs to `../static/` (embedded in Go binary from there).
 - All data views/tables must always be searchable/paginatable/filterable.
 - All links, including nav etc. must be proper `<a>` links such that right click, open in new tab etc. work as expected.
 - URL paths used in the router should generally roughly mirror those from the API. E.g. the tracks upload page (POST /api/tracks) should be at /tracks/uploads.
@@ -166,7 +173,3 @@ SVGs in `src/assets/` must use `currentColor` (not hardcoded colors like `#000`)
 - External links: Any `href` sourced from the API or database (e.g. track author links, attribution URLs) must NOT link directly to the external site. Instead, route them through the `/leaving` interstitial page using the `externalUrl()`. Links hardcoded in the backend are exempt.
 - NEVER must any assets in the frontend be loaded from a third party domain. All assets must be included in the build.
 - A Content-Security-Policy meta tag is injected at build time by the `cspPlugin` in `vite.config.ts`. If a new external origin is added (e.g. a tile server, API, or font CDN), the `cspContent` directives in that plugin must be updated to allow it.
-
-## Linting
-
-After every change, `npm run lint` MUST run successfully.
