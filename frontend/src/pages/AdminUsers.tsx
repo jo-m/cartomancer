@@ -20,6 +20,7 @@ import AdminCard, {
   AdminCardFooter,
   AdminCardHeader,
 } from "../components/admin/AdminCard"
+import TimeAgo from "../components/TimeAgo"
 
 const userSchema = z.object({
   email: z.string().min(1, "Required").email("Invalid email"),
@@ -260,10 +261,6 @@ export default function AdminUsers() {
     )
   }
 
-  function formatLastActive(value: string | null | undefined) {
-    return value ? value.slice(0, 16).replace("T", " ") : "--"
-  }
-
   return (
     <PageContainer size="2xl">
       <AdminTabs current="users" />
@@ -358,6 +355,7 @@ export default function AdminUsers() {
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Admin</th>
               <th className="px-4 py-3">Tracks</th>
+              <th className="px-4 py-3">Created</th>
               <th className="px-4 py-3">Last active</th>
               <th className="px-4 py-3">Actions</th>
             </tr>
@@ -366,7 +364,7 @@ export default function AdminUsers() {
             {filtered.map((u) => (
               <tr key={u.uuid} className="border-b border-border last:border-0">
                 {editingUuid === u.uuid ? (
-                  <td colSpan={7} className="px-4 py-3">
+                  <td colSpan={8} className="px-4 py-3">
                     {renderEditForm()}
                   </td>
                 ) : (
@@ -390,7 +388,10 @@ export default function AdminUsers() {
                       {u.trackCount}
                     </td>
                     <td className="px-4 py-3 text-text-muted">
-                      {formatLastActive(u.lastActiveAt)}
+                      <TimeAgo iso={u.createdAt} />
+                    </td>
+                    <td className="px-4 py-3 text-text-muted">
+                      {u.lastActiveAt ? <TimeAgo iso={u.lastActiveAt} /> : "--"}
                     </td>
                     <td className="px-4 py-3">
                       <span className="flex items-center gap-3">
@@ -404,7 +405,7 @@ export default function AdminUsers() {
             {filtered.length === 0 && (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="px-4 py-6 text-center text-sm text-text-muted"
                 >
                   No users found.
@@ -434,8 +435,11 @@ export default function AdminUsers() {
                   {u.admin ? "Yes" : "No"}
                 </AdminCardField>
                 <AdminCardField label="Tracks">{u.trackCount}</AdminCardField>
+                <AdminCardField label="Created">
+                  <TimeAgo iso={u.createdAt} />
+                </AdminCardField>
                 <AdminCardField label="Last active">
-                  {formatLastActive(u.lastActiveAt)}
+                  {u.lastActiveAt ? <TimeAgo iso={u.lastActiveAt} /> : "--"}
                 </AdminCardField>
                 <AdminCardFooter>{renderActions(u)}</AdminCardFooter>
               </>

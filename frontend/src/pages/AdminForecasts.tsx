@@ -14,6 +14,8 @@ import AdminCard, {
   AdminCardFooter,
   AdminCardHeader,
 } from "../components/admin/AdminCard"
+import TimeAgo from "../components/TimeAgo"
+import { fmtAbsolute, fmtDateTime } from "../lib/time"
 
 /** Formats a byte count into a human-readable size string. */
 function formatBytes(bytes: number): string {
@@ -30,10 +32,6 @@ function formatBounds(
 ) {
   if (!bounds) return "--"
   return `${bounds.min.lat.toFixed(1)}, ${bounds.min.lon.toFixed(1)} - ${bounds.max.lat.toFixed(1)}, ${bounds.max.lon.toFixed(1)}`
-}
-
-function formatDateTime(value: string) {
-  return value.slice(0, 16).replace("T", " ")
 }
 
 export default function AdminForecasts() {
@@ -103,8 +101,11 @@ export default function AdminForecasts() {
                       onClick={() => setExpandedId(isExpanded ? null : f.id)}
                       className="flex w-full cursor-pointer items-center text-left"
                     >
-                      <span className="w-1/5 px-4 py-3 text-text">
-                        {formatDateTime(f.referenceTime)}
+                      <span
+                        className="w-1/5 px-4 py-3 text-text"
+                        title={fmtAbsolute(f.referenceTime)}
+                      >
+                        {fmtDateTime(f.referenceTime)}
                       </span>
                       <span className="w-1/5 px-4 py-3 text-text-secondary">
                         <a
@@ -124,7 +125,7 @@ export default function AdminForecasts() {
                         {f.files.length} ({formatBytes(totalSize)})
                       </span>
                       <span className="w-1/5 px-4 py-3 text-text-muted">
-                        {f.createdAt.slice(0, 10)}
+                        <TimeAgo iso={f.createdAt} />
                       </span>
                     </button>
 
@@ -162,11 +163,17 @@ export default function AdminForecasts() {
                                 <td className="py-0.5 pr-4 text-text-secondary">
                                   {file.variable}
                                 </td>
-                                <td className="py-0.5 pr-4 text-text-muted">
-                                  {formatDateTime(file.validTime)}
+                                <td
+                                  className="py-0.5 pr-4 text-text-muted"
+                                  title={fmtAbsolute(file.validTime)}
+                                >
+                                  {fmtDateTime(file.validTime)}
                                 </td>
-                                <td className="py-0.5 pr-4 text-text-muted">
-                                  {formatDateTime(file.validUntilTime)}
+                                <td
+                                  className="py-0.5 pr-4 text-text-muted"
+                                  title={fmtAbsolute(file.validUntilTime)}
+                                >
+                                  {fmtDateTime(file.validUntilTime)}
                                 </td>
                                 <td className="py-0.5 text-text-muted">
                                   {formatBytes(file.fileSize)}
@@ -206,8 +213,11 @@ export default function AdminForecasts() {
           return (
             <AdminCard key={f.id}>
               <AdminCardHeader>
-                <span className="font-medium text-text">
-                  {formatDateTime(f.referenceTime)}
+                <span
+                  className="font-medium text-text"
+                  title={fmtAbsolute(f.referenceTime)}
+                >
+                  {fmtDateTime(f.referenceTime)}
                 </span>
                 <CopyIdCell id={f.id} onCopied={copyToast} />
               </AdminCardHeader>
@@ -228,7 +238,7 @@ export default function AdminForecasts() {
                 {f.files.length} ({formatBytes(totalSize)})
               </AdminCardField>
               <AdminCardField label="Created">
-                {f.createdAt.slice(0, 10)}
+                <TimeAgo iso={f.createdAt} />
               </AdminCardField>
               {f.files.length > 0 && (
                 <AdminCardFooter>
@@ -256,9 +266,12 @@ export default function AdminForecasts() {
                         </span>
                         <CopyIdCell id={file.id} onCopied={copyToast} />
                       </div>
-                      <div className="text-text-muted">
-                        Valid: {formatDateTime(file.validTime)} -{" "}
-                        {formatDateTime(file.validUntilTime)}
+                      <div
+                        className="text-text-muted"
+                        title={`Valid ${fmtAbsolute(file.validTime)} - ${fmtAbsolute(file.validUntilTime)}`}
+                      >
+                        Valid: {fmtDateTime(file.validTime)} -{" "}
+                        {fmtDateTime(file.validUntilTime)}
                       </div>
                       <div className="text-text-muted">
                         Size: {formatBytes(file.fileSize)}

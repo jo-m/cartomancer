@@ -12,6 +12,7 @@ import AdminCard, {
   AdminCardFooter,
   AdminCardHeader,
 } from "../components/admin/AdminCard"
+import TimeAgo from "../components/TimeAgo"
 
 /** Formats a byte count into a human-readable size string. */
 function formatBytes(bytes: number): string {
@@ -119,7 +120,7 @@ export default function AdminMaps() {
                 </td>
                 <td className="px-4 py-3">{renderStatus(b)}</td>
                 <td className="px-4 py-3 text-text-muted">
-                  {b.createdAt.slice(0, 10)}
+                  <TimeAgo iso={b.createdAt} />
                 </td>
                 <td className="px-4 py-3">
                   {!b.markedForDeletion && (
@@ -179,7 +180,7 @@ export default function AdminMaps() {
             </AdminCardField>
             <AdminCardField label="Status">{renderStatus(b)}</AdminCardField>
             <AdminCardField label="Created">
-              {b.createdAt.slice(0, 10)}
+              <TimeAgo iso={b.createdAt} />
             </AdminCardField>
             {!b.markedForDeletion && (
               <AdminCardFooter>

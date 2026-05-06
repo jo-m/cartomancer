@@ -62,7 +62,7 @@
   - [ ] New approach for finding junctions: Iterate through all tracks, with cells, and for each cell keep the (interpolated) GPX track points. Then do negative filtering based on that.
 - [ ] Track grouping: treat recorded vs. planned tracks differently
 - [x] Frontend polishing
-  - [ ] Unified display of dates/times in frontend (iso and 24h format, "x ago")
+  - [x] Unified display of dates/times in frontend (iso and 24h format, "x ago")
   - [x] Shared components
   - [x] New tagline (also update repo desc)
   - [x] Theming

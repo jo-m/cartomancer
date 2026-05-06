@@ -10,6 +10,7 @@ import rainSvg from "../assets/rain.svg?raw"
 import cardCornerSvg from "../assets/card-corner.svg?raw"
 import MiniWindRose from "./MiniWindRose"
 import { formatDistance, formatAscent } from "../lib/format"
+import { fmtAbsolute } from "../lib/time"
 
 interface TrackForecast {
   forecastReferenceTime: string
@@ -167,7 +168,7 @@ export default function TrackCard({
           {track.forecast && (
             <div
               className="mt-1.5 flex items-center gap-x-2 text-xs"
-              title={`Forecast: ${new Date(track.forecast.forecastReferenceTime).toLocaleString()}\nStart: ${new Date(track.forecast.startTime).toLocaleString()}`}
+              title={`Forecast: ${fmtAbsolute(track.forecast.forecastReferenceTime)}\nStart: ${fmtAbsolute(track.forecast.startTime)}`}
             >
               {track.forecast.avgTemperatureC != null && (
                 <span className="flex items-center gap-0.5 text-error">

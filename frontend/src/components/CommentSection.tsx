@@ -2,19 +2,9 @@ import { useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { $api } from "../api/client"
 import { useSession } from "../context/SessionContext"
+import { fmtAbsolute } from "../lib/time"
 import Button from "./ui/Button"
-
-/** Formats a date-time string as a short human-readable date. */
-function formatCommentDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  })
-}
+import TimeAgo from "./TimeAgo"
 
 interface Comment {
   uuid: string
@@ -127,6 +117,11 @@ function CommentItem({ comment, trackUUID, onError }: CommentItemProps) {
     }
   }
 
+  const edited = comment.updatedAt !== comment.createdAt
+  const timestampTitle = edited
+    ? `Posted ${fmtAbsolute(comment.createdAt)}\nEdited ${fmtAbsolute(comment.updatedAt)}`
+    : undefined
+
   if (comment.deleted) {
     return (
       <div className="rounded-lg border border-border bg-surface px-4 py-3">
@@ -138,7 +133,7 @@ function CommentItem({ comment, trackUUID, onError }: CommentItemProps) {
           />
           <span>{comment.user.name}</span>
           <span>-</span>
-          <span>{formatCommentDate(comment.createdAt)}</span>
+          <TimeAgo iso={comment.createdAt} />
         </div>
         <p className="mt-2 text-sm text-text-muted italic">
           This comment was deleted.
@@ -160,9 +155,11 @@ function CommentItem({ comment, trackUUID, onError }: CommentItemProps) {
             {comment.user.name}
           </span>
           <span>-</span>
-          <span>{formatCommentDate(comment.createdAt)}</span>
-          {comment.updatedAt !== comment.createdAt && (
-            <span className="text-xs">(edited)</span>
+          <TimeAgo iso={comment.createdAt} title={timestampTitle} />
+          {edited && (
+            <span className="text-xs" title={timestampTitle}>
+              (edited)
+            </span>
           )}
         </div>
         {(comment.canEdit || comment.canDelete) && !editing && (

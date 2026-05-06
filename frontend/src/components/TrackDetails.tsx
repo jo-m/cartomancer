@@ -16,6 +16,7 @@ import Badge from "./ui/Badge"
 import Button from "./ui/Button"
 import TagsInput from "./TagsInput"
 import { formatDistance, formatAscent } from "../lib/format"
+import TimeAgo from "./TimeAgo"
 
 const TRACK_TYPE_LABELS: Record<number, string> = {
   0: "Unknown",
@@ -26,14 +27,6 @@ const TRACK_TYPE_LABELS: Record<number, string> = {
 const FILE_FORMAT_LABELS: Record<number, string> = {
   0: "GPX",
   1: "FIT",
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  })
 }
 
 interface SimilarTrack {
@@ -307,7 +300,7 @@ export default function TrackDetails({
               Activity date
             </dt>
             <dd className="mt-0.5 text-sm text-text">
-              {formatDate(track.originalCreatedAt)}
+              <TimeAgo iso={track.originalCreatedAt} />
             </dd>
           </div>
         )}
@@ -317,7 +310,7 @@ export default function TrackDetails({
             Uploaded
           </dt>
           <dd className="mt-0.5 text-sm text-text">
-            {formatDate(track.createdAt)}
+            <TimeAgo iso={track.createdAt} />
           </dd>
         </div>
 

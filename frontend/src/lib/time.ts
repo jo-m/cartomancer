@@ -7,13 +7,74 @@ export function fmtElapsed(ms: number): string {
   return `${h}h ${m.toString().padStart(2, "0")}min`
 }
 
-/** Formats a timestamp as HH:MM in 24-hour format. */
-export function fmtClock(ts: number): string {
+/**
+ * Formats a timestamp as HH:MM in 24-hour format. Accepts either an epoch
+ * millisecond value or an ISO 8601 string.
+ */
+export function fmtClock(value: number | string): string {
+  const ts = typeof value === "string" ? new Date(value).getTime() : value
   return new Date(ts).toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   })
+}
+
+/** Formats an ISO timestamp as a short calendar date, e.g. "5 Jan 2025". */
+export function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
+}
+
+/** Formats an ISO timestamp as a date with HH:MM, e.g. "5 Jan 2025, 14:30". */
+export function fmtDateTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+}
+
+/**
+ * Formats an ISO timestamp as a long absolute string suitable for tooltips,
+ * including seconds and the user's timezone abbreviation.
+ */
+export function fmtAbsolute(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZoneName: "short",
+    hour12: false,
+  })
+}
+
+const RTF = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" })
+
+/**
+ * Formats an ISO timestamp as a coarse relative phrase like "3 min ago" or
+ * "in 2 hours". Falls back to fmtDate for offsets beyond one week.
+ */
+export function fmtRelative(iso: string): string {
+  const deltaMs = new Date(iso).getTime() - Date.now()
+  const absSec = Math.abs(deltaMs) / 1000
+  if (absSec < 45) return RTF.format(Math.round(deltaMs / 1000), "second")
+  if (absSec < 60 * 60)
+    return RTF.format(Math.round(deltaMs / 60_000), "minute")
+  if (absSec < 24 * 60 * 60)
+    return RTF.format(Math.round(deltaMs / 3_600_000), "hour")
+  if (absSec < 7 * 24 * 60 * 60)
+    return RTF.format(Math.round(deltaMs / 86_400_000), "day")
+  return fmtDate(iso)
 }
 
 /**
