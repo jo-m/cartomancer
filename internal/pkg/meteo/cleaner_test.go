@@ -105,6 +105,47 @@ func TestCleaner_AllFutureFiles_NoOp(t *testing.T) {
 	require.NoError(t, err, "future files must not be deleted")
 }
 
+func TestCleaner_DeletesEmptyOldForecasts(t *testing.T) {
+	d := forecastdb.GetTestDB(t)
+	defer d.Close()
+
+	ctx := logg.WithTestLogger(t.Context(), t)
+	now := time.Now()
+
+	// Forecast older than 1 day with no files - must be deleted.
+	oldEmptyRef := now.Add(-25 * time.Hour)
+	ensureForecast(t, d, oldEmptyRef)
+
+	// Forecast older than 1 day but still has a future file - must be kept.
+	oldWithFileRef := now.Add(-26 * time.Hour)
+	oldWithFileID := ensureForecast(t, d, oldWithFileRef)
+	_, err := d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
+		ValidTime:      now.Add(2 * time.Hour),
+		ValidUntilTime: now.Add(3 * time.Hour),
+		Variable:       vars.VarU10m.Name,
+		File:           []byte("grib"),
+		ForecastID:     oldWithFileID,
+	})
+	require.NoError(t, err)
+
+	// Recent forecast with no files - must be kept (not yet 1 day old).
+	recentEmptyRef := now.Add(-1 * time.Hour)
+	ensureForecast(t, d, recentEmptyRef)
+
+	cleaner := NewCleaner(d)
+	err = cleaner.Run(ctx, cleanerArgs{})
+	require.NoError(t, err)
+
+	_, err = d.QueryRO().GetForecastByReferenceTime(ctx, oldEmptyRef)
+	require.ErrorIs(t, err, sql.ErrNoRows, "old empty forecast must be deleted")
+
+	_, err = d.QueryRO().GetForecastByReferenceTime(ctx, oldWithFileRef)
+	require.NoError(t, err, "old forecast with files must be kept")
+
+	_, err = d.QueryRO().GetForecastByReferenceTime(ctx, recentEmptyRef)
+	require.NoError(t, err, "recent empty forecast must be kept")
+}
+
 func TestCleaner_AllPastFiles(t *testing.T) {
 	d := forecastdb.GetTestDB(t)
 	defer d.Close()

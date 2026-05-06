@@ -23,9 +23,13 @@ func CleanerArgs() cleanerArgs {
 	return cleanerArgs{}
 }
 
-// Cleaner removes forecast_files rows (and their associated blobs) whose
-// reference_time is older than the most recent forecast run in the database.
-// Use [NewCleaner] to create an instance.
+// emptyForecastMaxAge is the minimum age a forecast row must reach before it
+// is eligible for deletion when it has no associated forecast_files.
+const emptyForecastMaxAge = 24 * time.Hour
+
+// Cleaner removes forecast_files rows whose valid_time has passed, and any
+// forecasts rows that no longer have associated files and are older than
+// [emptyForecastMaxAge]. Use [NewCleaner] to create an instance.
 type Cleaner struct {
 	d *forecastdb.DB
 }
@@ -38,17 +42,30 @@ func NewCleaner(d *forecastdb.DB) *Cleaner {
 var _ jobs.Job[cleanerArgs] = (*Cleaner)(nil)
 
 // Run implements [jobs.Job].
-// It deletes all forecast_files rows whose valid_time is in the past.
+// It deletes all forecast_files rows whose valid_time is in the past, then
+// deletes any forecasts rows that have no remaining files and whose
+// reference_time is older than [emptyForecastMaxAge].
 func (c *Cleaner) Run(ctx context.Context, _ cleanerArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	n, err := c.d.QueryRW().DeleteOutdatedForecastFiles(ctx, time.Now())
+	now := time.Now()
+
+	nFiles, err := c.d.QueryRW().DeleteOutdatedForecastFiles(ctx, now)
 	if err != nil {
 		return err
 	}
-	if n > 0 {
-		logg.Info(ctx, "cleaned up outdated forecast files", "count", n)
+	if nFiles > 0 {
+		logg.Info(ctx, "cleaned up outdated forecast files", "count", nFiles)
 	}
+
+	nForecasts, err := c.d.QueryRW().DeleteEmptyForecastsOlderThan(ctx, now.Add(-emptyForecastMaxAge))
+	if err != nil {
+		return err
+	}
+	if nForecasts > 0 {
+		logg.Info(ctx, "cleaned up empty old forecasts", "count", nForecasts)
+	}
+
 	return nil
 }

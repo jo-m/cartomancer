@@ -16,6 +16,15 @@ LIMIT 1;
 DELETE FROM forecast_files
 WHERE datetime(valid_time) < datetime(sqlc.arg(cutoff));
 
+-- name: DeleteEmptyForecastsOlderThan :execrows
+-- Deletes forecasts that have no associated forecast_files and whose
+-- reference_time is before the given cutoff.
+DELETE FROM forecasts
+WHERE datetime(reference_time) < datetime(sqlc.arg(cutoff))
+  AND NOT EXISTS (
+    SELECT 1 FROM forecast_files WHERE forecast_id = forecasts.id
+  );
+
 -- name: ListForecastFilesForWindow :many
 -- Returns forecast_files rows for the requested time window and bbox.
 -- For each (variable, valid_time) pair, returns the file from the newest
