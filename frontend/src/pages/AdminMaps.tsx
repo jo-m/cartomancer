@@ -37,7 +37,11 @@ export default function AdminMaps() {
   useDocumentTitle("Maps")
   const { toast, showToast, dismissToast } = useToast()
 
-  const { data: builds, refetch } = $api.useQuery("get", "/admin/maps", {})
+  const {
+    data: builds,
+    isLoading,
+    refetch,
+  } = $api.useQuery("get", "/admin/maps", {})
   const markMutation = $api.useMutation(
     "post",
     "/admin/maps/{uuid}/mark-for-deletion"
@@ -142,7 +146,7 @@ export default function AdminMaps() {
                   colSpan={9}
                   className="px-4 py-6 text-center text-sm text-text-muted"
                 >
-                  No map builds found.
+                  {isLoading ? "Loading..." : "No map builds found."}
                 </td>
               </tr>
             )}
@@ -198,7 +202,7 @@ export default function AdminMaps() {
         ))}
         {rows.length === 0 && (
           <Card className="px-4 py-6 text-center text-sm text-text-muted">
-            No map builds found.
+            {isLoading ? "Loading..." : "No map builds found."}
           </Card>
         )}
       </div>

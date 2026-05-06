@@ -52,7 +52,11 @@ export default function AdminUsers() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const { toast, showToast, dismissToast } = useToast()
 
-  const { data: users, refetch } = $api.useQuery("get", "/admin/users")
+  const {
+    data: users,
+    isLoading,
+    refetch,
+  } = $api.useQuery("get", "/admin/users")
 
   const createForm = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
@@ -408,7 +412,7 @@ export default function AdminUsers() {
                   colSpan={8}
                   className="px-4 py-6 text-center text-sm text-text-muted"
                 >
-                  No users found.
+                  {isLoading ? "Loading..." : "No users found."}
                 </td>
               </tr>
             )}
@@ -448,7 +452,7 @@ export default function AdminUsers() {
         ))}
         {filtered.length === 0 && (
           <Card className="px-4 py-6 text-center text-sm text-text-muted">
-            No users found.
+            {isLoading ? "Loading..." : "No users found."}
           </Card>
         )}
       </div>

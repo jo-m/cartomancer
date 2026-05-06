@@ -43,7 +43,7 @@ export default function AdminForecasts() {
   const search = urlState.q
   const setSearch = (v: string) => setUrlState({ q: v })
 
-  const { data } = $api.useQuery("get", "/admin/forecasts", {})
+  const { data, isLoading } = $api.useQuery("get", "/admin/forecasts", {})
   const forecasts = data?.forecasts ?? []
 
   const filtered = forecasts.filter(
@@ -194,7 +194,7 @@ export default function AdminForecasts() {
                   colSpan={6}
                   className="px-4 py-6 text-center text-sm text-text-muted"
                 >
-                  No forecasts found.
+                  {isLoading ? "Loading..." : "No forecasts found."}
                 </td>
               </tr>
             )}
@@ -285,7 +285,7 @@ export default function AdminForecasts() {
         })}
         {filtered.length === 0 && (
           <Card className="px-4 py-6 text-center text-sm text-text-muted">
-            No forecasts found.
+            {isLoading ? "Loading..." : "No forecasts found."}
           </Card>
         )}
       </div>
