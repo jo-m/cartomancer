@@ -22,7 +22,8 @@ frontend/
 
 ## Development
 
-- `npm run format` for formatting (NEVER call tools manually).
+NEVER call tools manually, use the npm scripts.
+- `npm run format` for formatting. Call it BEFORE linting.
 - After every change, `npm run lint` MUST succeed.
 - Vite build outputs to `../static/` (embedded in the Go binary).
 

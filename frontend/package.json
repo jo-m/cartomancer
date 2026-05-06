@@ -7,9 +7,9 @@
     "gen": "openapi-typescript ../internal/pkg/api/openapi.yaml -o src/api/schema.gen.ts",
     "dev": "npm run gen && vite",
     "build": "npm run gen && vite build",
-    "lint": "prettier --check . && tsc && eslint .",
+    "lint": "prettier --log-level silent --check . && tsc && eslint .",
     "lint:fix": "eslint --fix .",
-    "format": "prettier --write ."
+    "format": "prettier --log-level silent --write ."
   },
   "dependencies": {
     "@fontsource/crimson-text": "^5.2.7",
