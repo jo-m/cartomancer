@@ -567,6 +567,22 @@ func TestRunJobsBackoff(t *testing.T) {
 	w.RunInBackground(ctx)
 
 	delays := slurp(j.c, time.Second*8)
-	delaysS := durationsToS(delays)
-	assert.Equal(t, []int{0, 1, 3, 7}, delaysS)
+	require.Len(t, delays, 4)
+
+	// Assert on gaps between consecutive attempts rather than absolute delays
+	// from T0. SQLite's Datetime() truncates to second precision, so the
+	// absolute fire time of each attempt depends on where the row's created_at
+	// falls within a second. Gaps are determined by the worker's 1 s idle-poll
+	// cycle and are stable, modulo small jitter.
+	// Expected gaps for factor=1s: factor*(2^n - 1) deltas yield 1, 2, 4.
+	gaps := []time.Duration{
+		delays[1] - delays[0],
+		delays[2] - delays[1],
+		delays[3] - delays[2],
+	}
+	expectedGaps := []time.Duration{time.Second, 2 * time.Second, 4 * time.Second}
+	for i, want := range expectedGaps {
+		assert.InDeltaf(t, float64(want), float64(gaps[i]), float64(time.Second/2),
+			"gap[%d->%d] = %s, want ~%s", i, i+1, gaps[i], want)
+	}
 }
