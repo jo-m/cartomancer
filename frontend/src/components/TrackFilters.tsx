@@ -19,7 +19,7 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: "total_ascent_m", label: "Ascent" },
 ]
 
-const SPORT_IDS = [1, 2] as const
+const SPORT_IDS = [1, 2, 0] as const
 
 export interface LiveFilters {
   search: string
@@ -104,13 +104,7 @@ export default function TrackFilters({
   const availableSubSports =
     live.sports.length === 0
       ? []
-      : [
-          ...new Set(
-            live.sports.flatMap((s) =>
-              (SUB_SPORTS_BY_SPORT[s] ?? []).filter((ss) => ss !== 0)
-            )
-          ),
-        ]
+      : [...new Set(live.sports.flatMap((s) => SUB_SPORTS_BY_SPORT[s] ?? []))]
 
   const tagSource = mode === "public" ? "public" : "user"
   const userTagsQuery = $api.useQuery(
