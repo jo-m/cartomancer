@@ -22,6 +22,7 @@ import GroupDetail from "./pages/GroupDetail"
 import Segments from "./pages/Segments"
 import SegmentDetail from "./pages/SegmentDetail"
 import AdminUsers from "./pages/AdminUsers"
+import AdminJobs from "./pages/AdminJobs"
 import AdminForecasts from "./pages/AdminForecasts"
 import AdminMaps from "./pages/AdminMaps"
 import About from "./pages/About"
@@ -139,6 +140,14 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminUsers />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/jobs"
+                element={
+                  <AdminRoute>
+                    <AdminJobs />
                   </AdminRoute>
                 }
               />

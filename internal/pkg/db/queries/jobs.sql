@@ -89,3 +89,30 @@ SELECT EXISTS(
 
 -- name: GetJobRunnerPIDs :many
 SELECT * FROM job_runner_pid;
+
+-- name: AdminListJobs :many
+SELECT * FROM jobs
+WHERE
+  (@kind = '' OR kind = @kind)
+  AND (@status = '' OR status = @status)
+  AND (@errorOnly = 0 OR error IS NOT NULL)
+ORDER BY id DESC
+LIMIT @limit;
+
+-- name: AdminCountJobsByStatus :many
+SELECT status, COUNT(*) AS count
+FROM jobs
+GROUP BY status;
+
+-- name: AdminListJobKinds :many
+SELECT
+  kind,
+  COUNT(*) AS total,
+  CAST(COALESCE(SUM(CASE WHEN status = 'C' THEN 1 ELSE 0 END), 0) AS INTEGER) AS created,
+  CAST(COALESCE(SUM(CASE WHEN status = 'R' THEN 1 ELSE 0 END), 0) AS INTEGER) AS running,
+  CAST(COALESCE(SUM(CASE WHEN status = 'S' THEN 1 ELSE 0 END), 0) AS INTEGER) AS succeeded,
+  CAST(COALESCE(SUM(CASE WHEN status = 'E' THEN 1 ELSE 0 END), 0) AS INTEGER) AS errored,
+  CAST(COALESCE(SUM(CASE WHEN status = 'A' THEN 1 ELSE 0 END), 0) AS INTEGER) AS aborted
+FROM jobs
+GROUP BY kind
+ORDER BY kind;

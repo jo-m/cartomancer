@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
 
-export type AdminTab = "users" | "forecasts" | "maps"
+export type AdminTab = "users" | "jobs" | "forecasts" | "maps"
 
 interface AdminTabsProps {
   /** Identifier of the currently active admin tab. */
@@ -9,6 +9,7 @@ interface AdminTabsProps {
 
 const tabs: ReadonlyArray<{ id: AdminTab; label: string; href: string }> = [
   { id: "users", label: "Users", href: "/admin/users" },
+  { id: "jobs", label: "Jobs", href: "/admin/jobs" },
   { id: "forecasts", label: "Forecasts", href: "/admin/forecasts" },
   { id: "maps", label: "Maps", href: "/admin/maps" },
 ]

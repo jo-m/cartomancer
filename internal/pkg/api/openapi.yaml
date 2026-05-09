@@ -2839,6 +2839,78 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /admin/jobs:
+    get:
+      summary: List recent jobs and queue statistics
+      description: >
+        Returns the live job runner PIDs, a global histogram of job statuses,
+        a per-kind summary, and the most recent job rows matching the optional
+        filters. Auto-cleanup means succeeded and exhausted jobs disappear from
+        the table shortly after they finish.
+      operationId: adminListJobs
+      tags: [Admin]
+      parameters:
+        - name: kind
+          in: query
+          description: Filter by exact job kind.
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: >
+            Filter by job status code: C (created), R (running), A (aborted),
+            E (errored), S (succeeded).
+          required: false
+          schema:
+            type: string
+            enum: [C, R, A, E, S]
+        - name: errorOnly
+          in: query
+          description: Only return rows with a non-null error column.
+          required: false
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          description: Maximum number of rows to return (capped at 1000).
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+      responses:
+        "200":
+          description: Job queue snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminJobsResponse"
+        "400":
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /admin/maps/{uuid}/mark-for-deletion:
     post:
       summary: Mark a map build for deletion
@@ -3645,6 +3717,143 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AdminForecast"
+
+    AdminJob:
+      type: object
+      required:
+        - id
+        - kind
+        - status
+        - createdAt
+        - attempts
+        - maxAttempts
+        - delayS
+        - backoffFactorS
+        - argsJson
+      properties:
+        id:
+          type: integer
+          format: int64
+        kind:
+          type: string
+        status:
+          type: string
+          enum: [C, R, A, E, S]
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        nextAttemptAt:
+          type: string
+          format: date-time
+        runnerId:
+          type: string
+          description: >
+            Random worker process identifier that is currently running this
+            job. Returned as a string so JavaScript clients do not lose
+            precision (the underlying value is a random int64).
+        attempts:
+          type: integer
+          format: int64
+        maxAttempts:
+          type: integer
+          format: int64
+        delayS:
+          type: integer
+          format: int64
+        backoffFactorS:
+          type: integer
+          format: int64
+        argsJson:
+          type: string
+        error:
+          type: string
+
+    AdminJobStatusCount:
+      type: object
+      required:
+        - status
+        - count
+      properties:
+        status:
+          type: string
+          enum: [C, R, A, E, S]
+        count:
+          type: integer
+          format: int64
+
+    AdminJobKind:
+      type: object
+      required:
+        - kind
+        - total
+        - created
+        - running
+        - succeeded
+        - errored
+        - aborted
+      properties:
+        kind:
+          type: string
+        total:
+          type: integer
+          format: int64
+        created:
+          type: integer
+          format: int64
+        running:
+          type: integer
+          format: int64
+        succeeded:
+          type: integer
+          format: int64
+        errored:
+          type: integer
+          format: int64
+        aborted:
+          type: integer
+          format: int64
+
+    AdminJobsResponse:
+      type: object
+      required:
+        - runnerIds
+        - statusCounts
+        - byKind
+        - jobs
+        - limit
+        - truncated
+      properties:
+        runnerIds:
+          type: array
+          description: >
+            Random worker process identifiers currently registered. Under
+            normal operation this list contains exactly one entry. Returned as
+            strings to avoid JavaScript number-precision loss.
+          items:
+            type: string
+        statusCounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminJobStatusCount"
+        byKind:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminJobKind"
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminJob"
+        limit:
+          type: integer
+          format: int64
+        truncated:
+          type: boolean
 
     TrackGroupEntry:
       type: object

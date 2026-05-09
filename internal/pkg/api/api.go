@@ -155,6 +155,8 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 
 		r.Get("/admin/forecasts", sv.handleAdminListForecasts)
 
+		r.Get("/admin/jobs", sv.handleAdminListJobs)
+
 		r.Get("/admin/maps", sv.handleAdminListMapBuilds)
 		r.Post("/admin/maps/{uuid}/mark-for-deletion", sv.handleAdminMarkMapForDeletion)
 	})
