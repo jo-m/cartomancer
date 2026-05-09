@@ -43,13 +43,14 @@ RETURNING
   AS next_attempt_at
 ;
 
--- name: SetJobsAborted :execrows
+-- name: SetJobsAborted :many
 UPDATE jobs
 SET status = 'A', finished_at = ?, pid = NULL, error = "Aborted"
 WHERE
   status = 'R'
   AND pid IS NOT NULL
-  AND pid != @ourPID;
+  AND pid != @ourPID
+RETURNING id, kind;
 
 -- name: CleanupJobs :execrows
 DELETE FROM jobs

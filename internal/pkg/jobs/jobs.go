@@ -90,14 +90,15 @@ func NewWorkers(ctx context.Context, d *db.DB, c JobsConfig) (*Workers, error) {
 		return nil, err
 	}
 
-	n, err := d.QueryRW().SetJobsAborted(ctx, db.SetJobsAbortedParams{
+	aborted, err := d.QueryRW().SetJobsAborted(ctx, db.SetJobsAbortedParams{
 		FinishedAt: sqlTimeNow(),
 		OurPID:     sql.NullInt64{Valid: true, Int64: randomID},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to mark aborted jobs: %w", err)
-	} else if n > 0 {
-		logg.Warn(ctx, "aborted jobs from previous proc", "count", n)
+	}
+	for _, j := range aborted {
+		logg.Info(ctx, "aborted job from previous proc", "jobId", j.ID, "kind", j.Kind)
 	}
 
 	w := &Workers{
@@ -250,11 +251,12 @@ func (w *Workers) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
 
 	// Run job.
 	logger := logg.GetLogger(ctx).With("jobId", job.ID).With("kind", job.Kind)
+	logger.Info("job started")
 	jobErr := w.runJob(logg.WithLogger(ctx, logger), job)
 
 	// Submit result.
 	if jobErr == nil {
-		logger.Debug("Job succeeded")
+		logger.Info("job finished")
 		return true, db.EnsureOneRowChanged(
 			w.d.QueryRW().SetJobSuccess(ctx, db.SetJobSuccessParams{
 				FinishedAt: sqlTimeNow(),
@@ -267,7 +269,7 @@ func (w *Workers) getAndRunAndUpdateNextJob(ctx context.Context) (bool, error) {
 		Error:      sql.NullString{Valid: true, String: jobErr.Error()},
 		ID:         job.ID,
 	})
-	logger.Error("Job failed", "err", jobErr, "next", next)
+	logger.Error("job finished with error", "err", jobErr, "next", next)
 	return true, err
 
 }
