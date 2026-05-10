@@ -80,13 +80,16 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 	mux.Get("/users/{uuid}/avatar", sv.handleGetUserAvatar)
 	mux.Get("/users/{uuid}/stars", sv.handleGetUserStars)
 
+	authRateLimit := rateLimit(appConfig.RateLimitAuthRPS)
+	emailSendRateLimit := rateLimit(appConfig.RateLimitEmailSendRPS)
+
 	mux.Group(func(r chi.Router) {
-		r.Post("/register", sv.handleRegister)
-		r.Post("/confirm-email", sv.handleConfirmEmail)
+		r.With(emailSendRateLimit).Post("/register", sv.handleRegister)
+		r.With(authRateLimit).Post("/confirm-email", sv.handleConfirmEmail)
 	})
 
 	mux.Group(func(r chi.Router) {
-		r.Post("/sessions/login", sv.handleLogin)
+		r.With(authRateLimit).Post("/sessions/login", sv.handleLogin)
 		r.Post("/sessions/logout", sv.handleLogout)
 		r.Get("/sessions", sv.handleGetSession)
 	})

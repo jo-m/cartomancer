@@ -490,6 +490,57 @@ func TestAdminConfirmEmail_NonAdmin(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, status)
 }
 
+func TestRegister_RateLimit(t *testing.T) {
+	// Configure rate limit at 1 rps with burst 1.
+	e := newTestEnvWithAppConfig(t, app.AppConfig{
+		InstanceName:          "test",
+		EmailJWTSecret:        api.TestEmailJWTSecret,
+		RegistrationEnabled:   true,
+		RateLimitEmailSendRPS: 1,
+	})
+	client := e.newClient()
+
+	// First registration consumes the single burst token.
+	status, _ := e.do(client, http.MethodPost, "/register", map[string]string{
+		"email":    "first@example.com",
+		"name":     "First",
+		"password": "secret11",
+	}, nil)
+	require.Equal(t, http.StatusCreated, status)
+
+	// Immediate second request must be rate-limited regardless of validity.
+	status, _ = e.do(client, http.MethodPost, "/register", map[string]string{
+		"email":    "second@example.com",
+		"name":     "Second",
+		"password": "secret11",
+	}, nil)
+	assert.Equal(t, http.StatusTooManyRequests, status)
+}
+
+func TestLogin_RateLimit(t *testing.T) {
+	// Configure rate limit at 2 rps -> burst 2 across login + confirm-email.
+	e := newTestEnvWithAppConfig(t, app.AppConfig{
+		InstanceName:     "test",
+		EmailJWTSecret:   api.TestEmailJWTSecret,
+		RateLimitAuthRPS: 2,
+	})
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+
+	loginBody := map[string]string{"email": "alice@example.com", "password": "secret11"}
+
+	// First two requests fit the burst and must succeed.
+	for range 2 {
+		client := e.newClient()
+		status, _ := e.do(client, http.MethodPost, "/sessions/login", loginBody, nil)
+		require.Equal(t, http.StatusOK, status)
+	}
+
+	// Third immediate request must be rate-limited.
+	client := e.newClient()
+	status, _ := e.do(client, http.MethodPost, "/sessions/login", loginBody, nil)
+	assert.Equal(t, http.StatusTooManyRequests, status)
+}
+
 func TestChangeEmail_SecondRequestSupersedes(t *testing.T) {
 	e := newTestEnv(t)
 	e.createUser("alice@example.com", "Alice", "secret11", false)

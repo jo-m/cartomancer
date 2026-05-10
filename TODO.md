@@ -144,7 +144,7 @@
 - [x] Periodically delete user accounts which have never had their email confirmed
 - [x] Improve email messages sent to users
 - [ ] Self serve password reset flow for users
-- [ ] Rate limiting for sensitive endpoints (login etc), or hint for deployment
+- [x] Rate limiting for sensitive endpoints (login etc), or hint for deployment
 - [x] Self-serve full data export for users
 - [ ] TOTP login for users
 - [x] Decide on what can be seen by anon/non logged in users.

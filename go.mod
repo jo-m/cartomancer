@@ -35,6 +35,7 @@ require (
 	github.com/wneessen/go-mail v0.7.2
 	golang.org/x/crypto v0.49.0
 	golang.org/x/text v0.35.0
+	golang.org/x/time v0.15.0
 	gonum.org/v1/gonum v0.17.0
 	modernc.org/sqlite v1.47.0
 )
@@ -240,7 +241,6 @@ require (
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 // indirect
 	golang.org/x/term v0.41.0 // indirect
-	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
 	golang.org/x/vuln v1.1.4 // indirect
 	golang.org/x/xerrors v0.0.0-20240716161551-93cc26a95ae9 // indirect

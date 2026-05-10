@@ -51,6 +51,14 @@ type AppConfig struct {
 	// A .demo suffix is appended to the database path to prevent accidental overwrites.
 	// Cannot be active together with DevelopmentMode.
 	DemoMode bool `arg:"--app-demo-mode,env:APP_DEMO_MODE" default:"false" help:"Enable demo mode (locks users, periodically deletes tracks, uses .demo DB suffix)"`
+	// RateLimitAuthRPS is the global rate limit applied to the authentication endpoints
+	// (/sessions/login, /confirm-email), in requests per second.
+	// Zero disables the limit.
+	RateLimitAuthRPS float64 `arg:"--app-rate-limit-auth-rps,env:APP_RATE_LIMIT_AUTH_RPS" default:"10" help:"Global rate limit for auth endpoints (requests/second, 0 to disable)" placeholder:"N"`
+	// RateLimitEmailSendRPS is the global rate limit applied to endpoints that trigger
+	// sending an email (/register), in requests per second.
+	// Zero disables the limit.
+	RateLimitEmailSendRPS float64 `arg:"--app-rate-limit-email-send-rps,env:APP_RATE_LIMIT_EMAIL_SEND_RPS" default:"1" help:"Global rate limit for endpoints triggering email sends (requests/second, 0 to disable)" placeholder:"N"`
 }
 
 // Validate checks for basic configuration errors.
@@ -68,6 +76,12 @@ func (c *AppConfig) Validate() error {
 	}
 	if c.DemoMode && c.DevelopmentMode {
 		return errors.New("--app-demo-mode / APP_DEMO_MODE and --app-dev-mode / APP_DEV_MODE cannot both be enabled")
+	}
+	if c.RateLimitAuthRPS < 0 {
+		return errors.New("--app-rate-limit-auth-rps / APP_RATE_LIMIT_AUTH_RPS must be non-negative")
+	}
+	if c.RateLimitEmailSendRPS < 0 {
+		return errors.New("--app-rate-limit-email-send-rps / APP_RATE_LIMIT_EMAIL_SEND_RPS must be non-negative")
 	}
 	return nil
 }

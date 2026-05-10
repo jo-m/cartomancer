@@ -35,6 +35,10 @@ Global options:
   --app-init-admin-email EMAIL
                          Email for the initial admin account created on first startup [env: APP_INIT_ADMIN_EMAIL]
   --app-demo-mode        Enable demo mode (locks users, periodically deletes tracks, uses .demo DB suffix) [default: false, env: APP_DEMO_MODE]
+  --app-rate-limit-auth-rps N
+                         Global rate limit for auth endpoints (requests/second, 0 to disable) [default: 10, env: APP_RATE_LIMIT_AUTH_RPS]
+  --app-rate-limit-email-send-rps N
+                         Global rate limit for endpoints triggering email sends (requests/second, 0 to disable) [default: 1, env: APP_RATE_LIMIT_EMAIL_SEND_RPS]
   --session-idle-timeout DUR
                          Session idle timeout [default: 24h, env: SESSION_IDLE_TIMEOUT]
   --session-abs-timeout DUR

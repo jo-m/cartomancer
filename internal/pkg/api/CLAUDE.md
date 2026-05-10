@@ -11,6 +11,8 @@
 - `sess.Middleware` - auto-creates/loads session for every request
 - `chi.middleware.Recoverer`
 
+Per-route: `rateLimit(rps)` (api.go) applies a global token-bucket limit (429 on overflow, no-op if rps<=0) to `/sessions/login`, `/confirm-email`, and `/register`.
+
 ### Context access in handlers
 
 ```

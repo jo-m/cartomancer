@@ -56,4 +56,23 @@ func TestValidate(t *testing.T) {
 		c.EmailJWTSecret = ""
 		require.NoError(t, c.Validate())
 	})
+
+	t.Run("negative auth rate limit", func(t *testing.T) {
+		c := validConfig()
+		c.RateLimitAuthRPS = -1
+		require.ErrorContains(t, c.Validate(), "APP_RATE_LIMIT_AUTH_RPS")
+	})
+
+	t.Run("negative email-send rate limit", func(t *testing.T) {
+		c := validConfig()
+		c.RateLimitEmailSendRPS = -1
+		require.ErrorContains(t, c.Validate(), "APP_RATE_LIMIT_EMAIL_SEND_RPS")
+	})
+
+	t.Run("zero rate limits allowed", func(t *testing.T) {
+		c := validConfig()
+		c.RateLimitAuthRPS = 0
+		c.RateLimitEmailSendRPS = 0
+		require.NoError(t, c.Validate())
+	})
 }
