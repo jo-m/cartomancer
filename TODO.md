@@ -171,6 +171,11 @@
 - [ ] Let users configure their location and then show their loc on maps, and allow to filter tracks by relative location
 - [x] Show road closures, construction (entered manually, or sourced somewhere)
 - [ ] Download road closures from more sources (e.g. https://www.geocat.ch/geonetwork/srv/ger/catalog.search#/search?any=Baustellen)
+  - [x] ZH: https://maps.zh.ch/wfs/TbaBaustellenZHWFS?Service=WFS&Request=GetCapabilities
+  - [ ] SG: https://data.geo.sg.ch/s/RMgBWPofwkaCawf?dir=/Geod*aten/3%20-%20Bev%C3%B6lkerung%20und%20Wirtschaft/P%20-%20Verkehr/Strassenbaustellen
+  - [ ] SZ: https://www.geocat.ch/geonetwork/srv/ger/catalog.search#/metadata/7dfb53d9-9639-4b4a-a677-b00780dd1558
+  - [ ] https://map.geo.sz.ch/mapserv_proxy?ogcserver=source%20for%20image%2Fpng&request=GetMetadata&layer=ch.sz.a083a.baustellen
+  - [ ] ~~TG: https://map.geo.tg.ch/apps/mf-geoadmin3/?lang=de&topic=ech&layers_opacity=0.9&layers=baustellen-baustelle&bgLayer=basemap_farbig&E=2708163.70&N=1268316.77&zoom=5~~
 - [ ] Download country shapes, and issue a warning if a track includes a border crossing
 - [x] Map view, showing all tracks and their starting points
 - [x] Potentially cache track blob -> track.Track{} for performance.
