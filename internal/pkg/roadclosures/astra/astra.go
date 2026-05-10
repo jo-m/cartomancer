@@ -1,6 +1,7 @@
-// Package roadclosures provides types and a client for fetching bike road
-// closures and detours from the geo.admin.ch MapServer find endpoint.
-package roadclosures
+// Package astra provides a client and async job for fetching bike road
+// closures and detours from the geo.admin.ch MapServer find endpoint
+// (layer ch.astra.veloland-sperrungen_umleitungen).
+package astra
 
 import (
 	"context"
@@ -37,8 +38,7 @@ func getURL() string {
 	return fmt.Sprintf("%s?%s", baseURL, params.Encode())
 }
 
-// DataAttribution is the TASL attribution for MeteoSwiss ICON-CH1-EPS forecast data.
-// Verified by TestOnlineStacLicense.
+// DataAttribution is the TASL attribution for the ASTRA road closures feed.
 var DataAttribution = attribute.Attribution{
 	What:       "Road Closures (Switzerland)",
 	Title:      "Closures / Diversions \"Cycling in Switzerland\"",

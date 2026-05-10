@@ -8,7 +8,8 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/geonames"
 	"jo-m.ch/go/cartomancer/internal/pkg/maps"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo"
-	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures"
+	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/astra"
+	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/zh"
 )
 
 // buildVersion overrides the version reported by the /version endpoint.
@@ -50,7 +51,8 @@ func (sv *server) handleGetVersion(w http.ResponseWriter, _ *http.Request) {
 		Attributions: []attribute.Attribution{
 			meteo.DataAttribution,
 			geonames.DataAttribution,
-			roadclosures.DataAttribution,
+			astra.DataAttribution,
+			zh.DataAttribution,
 			maps.DataAttribution,
 		},
 	}

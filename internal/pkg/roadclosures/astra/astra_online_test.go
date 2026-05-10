@@ -1,19 +1,19 @@
 //go:build online
 
-package roadclosures_test
+package astra_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures"
+	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/astra"
 )
 
 func TestOnlineFetchRoadClosures(t *testing.T) {
 	ctx := context.Background()
 
-	resp, err := roadclosures.Fetch(ctx)
+	resp, err := astra.Fetch(ctx)
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.Results, "expected at least one road closure result")
 
