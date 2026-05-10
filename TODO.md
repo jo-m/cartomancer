@@ -60,6 +60,7 @@
   - [ ] Ensure the segmenting job gets triggered reliably in all scenarios
   - [ ] Re-enable the segmenting job
   - [ ] New approach for finding junctions: Iterate through all tracks, with cells, and for each cell keep the (interpolated) GPX track points. Then do negative filtering based on that.
+  - [ ] Find a solution for segments extraction privacy
 - [ ] Track grouping: treat recorded vs. planned tracks differently
 - [x] Frontend polishing
   - [x] Unified display of dates/times in frontend (iso and 24h format, "x ago")
@@ -95,8 +96,8 @@
   - [x] Show all maps in the Admin section, incl. size of the map file, and add a new endpoint where admins can manually set the deletion flag on a map.
   - [x] Review all the map related code
   - [x] Update CLAUDE.md
-- [ ] Filtering
-  - [ ] Unknown sport or subsport
+- [x] Filtering
+  - [x] Unknown sport or subsport
   - [x] By start location (1km radius?)
 - [x] Make minRefreshAge for maps etc. a public const and use it also for job scheduling
 - [x] Does our current way of using eTags even make sense, if we are not actually checking for them when the clients sends them? If not, remove them.
@@ -139,7 +140,6 @@
 
 ## Before enabling public signup
 
-- [ ] Find a solution for segments extraction privacy
 - [ ] Add privacy policy, imprint, admin contact (https://notermsnoconditions.com/)
 - [x] Periodically delete user accounts which have never had their email confirmed
 - [x] Improve email messages sent to users
@@ -157,8 +157,6 @@
 
 - [ ] Check in the generated files
 - [x] Update to Vite 8
-- [ ] https://brandur.org/two-phase-render
-- [ ] Skills/subagents
 - [ ] Load/show GPX wpts, see `internal/pkg/load/testdata/COURSE_436298480.gpx`
 - [x] Reverse geocoding via https://download.geonames.org/export/dump/
 - [ ] Calculate/fit model of bike ride speed dep. on terrain, from personal data
@@ -167,8 +165,6 @@
 - [ ] Allow to show meteo forecast in map overlay
 - [x] Improve the tracks geoname labelling algorithm
 - [ ] Extract all (some) of the hardcoded consts/limits into app settings
-- [ ] Explore by tags page
-- [ ] Make tags on track view page clickable and go to list view, with filter applied
 - [ ] Correct elevation on upload
 - [x] Periodically compute wind rose and average temp for all tracks
 - [ ] Share link to private track with signed link (limited time)
