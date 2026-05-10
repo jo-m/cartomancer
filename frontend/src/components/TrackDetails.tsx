@@ -14,6 +14,7 @@ import elevationSvg from "../assets/elevation.svg?raw"
 import SectionHeading from "./ui/SectionHeading"
 import Badge from "./ui/Badge"
 import Button from "./ui/Button"
+import ToggleGroup from "./ui/ToggleGroup"
 import TagsInput from "./TagsInput"
 import { formatDistance, formatAscent } from "../lib/format"
 import TimeAgo from "./TimeAgo"
@@ -315,23 +316,26 @@ export default function TrackDetails({
         </div>
 
         {isOwner && (
-          <div>
+          <div className="col-span-2">
             <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
               Visibility
             </dt>
             <dd className="mt-0.5 text-sm text-text">
-              <label className="editable-field inline-flex items-center gap-1.5">
-                <input
-                  type="checkbox"
-                  checked={track.public ?? false}
-                  onChange={(e) => saveField({ public: e.target.checked })}
-                  className="rounded border-border accent-primary cursor-pointer"
-                  disabled={editMutation.isPending}
-                />
-                <span className="text-text-secondary">
-                  {track.public ? "Public" : "Private"}
-                </span>
-              </label>
+              <ToggleGroup
+                options={[
+                  { value: "private", label: "Private" },
+                  { value: "public", label: "Public" },
+                ]}
+                value={track.public ? "public" : "private"}
+                onChange={(v) => {
+                  const next = v === "public"
+                  if (next !== (track.public ?? false)) {
+                    saveField({ public: next })
+                  }
+                }}
+                ariaLabel="Track visibility"
+                className="w-fit"
+              />
             </dd>
           </div>
         )}
