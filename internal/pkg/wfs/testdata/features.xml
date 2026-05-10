@@ -1,0 +1,110 @@
+<?xml version='1.0' encoding="UTF-8" ?>
+<wfs:FeatureCollection
+   xmlns:ms="http://mapserver.gis.umn.edu/mapserver"
+   xmlns:gml="http://www.opengis.net/gml/3.2"
+   xmlns:wfs="http://www.opengis.net/wfs/2.0"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://mapserver.gis.umn.edu/mapserver https://maps.zh.ch/wfs/TbaBaustellenZHWFS?SERVICE=WFS&amp;VERSION=2.0.0&amp;REQUEST=DescribeFeatureType&amp;TYPENAME=ms:baustellen-uebersicht&amp;OUTPUTFORMAT=application%2Fgml%2Bxml%3B%20version%3D3.2 http://www.opengis.net/wfs/2.0 http://schemas.opengis.net/wfs/2.0/wfs.xsd http://www.opengis.net/gml/3.2 http://schemas.opengis.net/gml/3.2.1/gml.xsd"
+   timeStamp="2026-05-10T22:00:12" numberMatched="unknown" numberReturned="3"
+   next="https://maps.zh.ch/wfs/TbaBaustellenZHWFS?service=WFS&amp;version=2.0.0&amp;request=GetFeature&amp;typeNames=ms%3Abaustellen-uebersicht&amp;count=3&amp;STARTINDEX=3">
+      <wfs:boundedBy>
+      	<gml:Envelope srsName="urn:ogc:def:crs:EPSG::2056">
+      		<gml:lowerCorner>2675828.738154 1231525.972950</gml:lowerCorner>
+      		<gml:upperCorner>2699872.389786 1252179.040950</gml:upperCorner>
+      	</gml:Envelope>
+      </wfs:boundedBy>
+    <wfs:member>
+      <ms:baustellen-uebersicht gml:id="baustellen-uebersicht.2744">
+        <gml:boundedBy>
+        	<gml:Envelope srsName="urn:ogc:def:crs:EPSG::2056">
+        		<gml:lowerCorner>2693650.338213 1231525.972950</gml:lowerCorner>
+        		<gml:upperCorner>2693650.338213 1231525.972950</gml:upperCorner>
+        	</gml:Envelope>
+        </gml:boundedBy>
+        <ms:geometry>
+          <gml:Point gml:id="baustellen-uebersicht.2744.1" srsName="urn:ogc:def:crs:EPSG::2056">
+            <gml:pos>2693650.338213 1231525.972950</gml:pos>
+          </gml:Point>
+        </ms:geometry>
+        <ms:strassenbez>3</ms:strassenbez>
+        <ms:kmvon>28.380</ms:kmvon>
+        <ms:kmbis>27.930</ms:kmbis>
+        <ms:strassenname>Seestrasse zwischen SOB Bahnübergang bis Bahnhof Kreisel</ms:strassenname>
+        <ms:gemeindename>Wädenswil</ms:gemeindename>
+        <ms:ansprechperson>Robert Grob</ms:ansprechperson>
+        <ms:oe>Unterhaltsbezirk 5</ms:oe>
+        <ms:telefonnummer>+41 43 257 92 40</ms:telefonnummer>
+        <ms:beschreibung>Werleitutungsarbeiten (Wasser, Fernwärme, EKZ) Stadt Wädenswil.</ms:beschreibung>
+        <ms:verkehrsfuehrung>Verkehrsführung mit Einbahnverkehr und Lichtsignalanlage. Teilweise Verkehrsdienst. Bauweise in Etappen.</ms:verkehrsfuehrung>
+        <ms:status_baustelle>zukünftig (Bauzeit in Zukunft)</ms:status_baustelle>
+        <ms:datum_baubeginn gml:id="baustellen-uebersicht.2744.datum_baubeginn"><gml:timePosition>2026-06-01T14:22:18Z</gml:timePosition></ms:datum_baubeginn>
+        <ms:datum_bauende gml:id="baustellen-uebersicht.2744.datum_bauende"><gml:timePosition>2026-11-20T15:22:34Z</gml:timePosition></ms:datum_bauende>
+        <ms:lmutdat gml:id="baustellen-uebersicht.2744.lmutdat"><gml:timePosition>2026-05-08T09:18:56Z</gml:timePosition></ms:lmutdat>
+        <ms:link1></ms:link1>
+        <ms:weiteregemeinden></ms:weiteregemeinden>
+      </ms:baustellen-uebersicht>
+    </wfs:member>
+    <wfs:member>
+      <ms:baustellen-uebersicht gml:id="baustellen-uebersicht.2746">
+        <gml:boundedBy>
+        	<gml:Envelope srsName="urn:ogc:def:crs:EPSG::2056">
+        		<gml:lowerCorner>2675828.738154 1252179.040950</gml:lowerCorner>
+        		<gml:upperCorner>2675828.738154 1252179.040950</gml:upperCorner>
+        	</gml:Envelope>
+        </gml:boundedBy>
+        <ms:geometry>
+          <gml:Point gml:id="baustellen-uebersicht.2746.1" srsName="urn:ogc:def:crs:EPSG::2056">
+            <gml:pos>2675828.738154 1252179.040950</gml:pos>
+          </gml:Point>
+        </ms:geometry>
+        <ms:strassenbez>295</ms:strassenbez>
+        <ms:kmvon>5.370</ms:kmvon>
+        <ms:kmbis>5.700</ms:kmbis>
+        <ms:strassenname>Umfahrungs-/Zürcherstrasse</ms:strassenname>
+        <ms:gemeindename>Weiningen (ZH)</ms:gemeindename>
+        <ms:ansprechperson>Stephan Odermatt</ms:ansprechperson>
+        <ms:oe>Unterhaltsbezirk 3</ms:oe>
+        <ms:telefonnummer>+41 43 257 91 60</ms:telefonnummer>
+        <ms:beschreibung>Erneuerung des Strassenbelages, Neubau einer Lichtsignalanlage.</ms:beschreibung>
+        <ms:verkehrsfuehrung>Teilsperrung. Eine Umleitung ist signalisiert.</ms:verkehrsfuehrung>
+        <ms:status_baustelle>aktiv (Bauzeit)</ms:status_baustelle>
+        <ms:datum_baubeginn gml:id="baustellen-uebersicht.2746.datum_baubeginn"><gml:timePosition>2021-04-12T00:00:00Z</gml:timePosition></ms:datum_baubeginn>
+        <ms:datum_bauende gml:id="baustellen-uebersicht.2746.datum_bauende"><gml:timePosition>2026-12-31T00:00:00Z</gml:timePosition></ms:datum_bauende>
+        <ms:lmutdat gml:id="baustellen-uebersicht.2746.lmutdat"><gml:timePosition>2021-04-08T10:50:57Z</gml:timePosition></ms:lmutdat>
+        <ms:link1></ms:link1>
+        <ms:weiteregemeinden></ms:weiteregemeinden>
+      </ms:baustellen-uebersicht>
+    </wfs:member>
+    <wfs:member>
+      <ms:baustellen-uebersicht gml:id="baustellen-uebersicht.2747">
+        <gml:boundedBy>
+        	<gml:Envelope srsName="urn:ogc:def:crs:EPSG::2056">
+        		<gml:lowerCorner>2699872.389786 1240790.323300</gml:lowerCorner>
+        		<gml:upperCorner>2699872.389786 1240790.323300</gml:upperCorner>
+        	</gml:Envelope>
+        </gml:boundedBy>
+        <ms:geometry>
+          <gml:Point gml:id="baustellen-uebersicht.2747.1" srsName="urn:ogc:def:crs:EPSG::2056">
+            <gml:pos>2699872.389786 1240790.323300</gml:pos>
+          </gml:Point>
+        </ms:geometry>
+        <ms:strassenbez>734</ms:strassenbez>
+        <ms:kmvon>4.742</ms:kmvon>
+        <ms:kmbis>4.808</ms:kmbis>
+        <ms:strassenname>Bertschikerstrasse</ms:strassenname>
+        <ms:gemeindename>Gossau (ZH)</ms:gemeindename>
+        <ms:ansprechperson>Michael Maag </ms:ansprechperson>
+        <ms:oe>Unterhaltsbezirk 12</ms:oe>
+        <ms:telefonnummer>+41 43 257 94 40</ms:telefonnummer>
+        <ms:beschreibung>Privat: Neubau Hausanschluss</ms:beschreibung>
+        <ms:verkehrsfuehrung>Der Verkehr wird mit einer Lichtsignalanlage einspurig durch den Baubereich geführt. Die Fussgängerinnen und Fussgänger werden jeweils auf einer Seite durch den Baustellenperimeter geführt.</ms:verkehrsfuehrung>
+        <ms:status_baustelle>aktiv (Bauzeit)</ms:status_baustelle>
+        <ms:datum_baubeginn gml:id="baustellen-uebersicht.2747.datum_baubeginn"><gml:timePosition>2026-05-04T06:01:40Z</gml:timePosition></ms:datum_baubeginn>
+        <ms:datum_bauende gml:id="baustellen-uebersicht.2747.datum_bauende"><gml:timePosition>2026-05-19T06:01:50Z</gml:timePosition></ms:datum_bauende>
+        <ms:lmutdat gml:id="baustellen-uebersicht.2747.lmutdat"><gml:timePosition>2026-04-16T06:24:23Z</gml:timePosition></ms:lmutdat>
+        <ms:link1></ms:link1>
+        <ms:weiteregemeinden></ms:weiteregemeinden>
+      </ms:baustellen-uebersicht>
+    </wfs:member>
+</wfs:FeatureCollection>
+
