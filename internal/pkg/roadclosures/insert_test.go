@@ -23,10 +23,10 @@ func TestInsert_NilGeometryRejected(t *testing.T) {
 
 	err := d.WithTx(ctx, func(tx *db.Queries) error {
 		return roadclosures.Insert(ctx, tx, roadclosures.ClosureInsert{
-			SourceID:   "no-geom",
-			InsertedBy: "test",
-			Type:       "closed_way",
-			Title:      "no geometry",
+			SourceID:    "no-geom",
+			InsertedBy:  "test",
+			Type:        "closed_way",
+			Title:       "no geometry",
 			Attribution: attribute.Attribution{Author: "x", Source: "y"},
 		}, now)
 	})
