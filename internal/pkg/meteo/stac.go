@@ -22,7 +22,7 @@ const (
 	// attribution is the data attribution label for MeteoSwiss forecast data.
 	attribution = "MeteoSwiss (CC-BY)"
 	// attributionHref is the URL for MeteoSwiss attribution.
-	attributionHref = "https://www.meteoswiss.admin.ch/"
+	attributionHref = "https://www.meteoschweiz.admin.ch/service-und-publikationen/service/open-data.html"
 
 	// collectionHorizon is used to compute the latest reference time from the
 	// collection temporal extent.
@@ -42,7 +42,7 @@ var DataAttribution = attribute.Attribution{
 	Title:      "ICON-CH1-EPS Forecast Data",
 	Author:     "MeteoSwiss",
 	Source:     attributionHref,
-	License:    "CC-BY",
+	License:    "CC-BY 4.0",
 	LicenseURL: "https://creativecommons.org/licenses/by/4.0/",
 }
 
