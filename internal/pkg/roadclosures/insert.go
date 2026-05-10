@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,6 +14,11 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
 )
+
+// ErrNilGeometry is returned by [Insert] when called with a nil geometry.
+// Closures without a geometry can never be matched against tracks, so they
+// are refused at the boundary; callers should skip such features upstream.
+var ErrNilGeometry = errors.New("roadclosures: nil geometry")
 
 // ClosureInsert is the per-source data needed to record a road closure.
 // It is the shared shape produced by each source-specific downloader
@@ -37,8 +43,8 @@ type ClosureInsert struct {
 	Description     sql.NullString
 	ContentProvider sql.NullString
 
-	// Geometry is the closure footprint in WGS84. May be nil, in which case
-	// no H3 cells are stored and the closure cannot be matched against tracks.
+	// Geometry is the closure footprint in WGS84. Must be non-nil;
+	// [Insert] returns [ErrNilGeometry] otherwise.
 	Geometry *geojson.Geometry
 
 	// Attribution is the data source credit shown to end users.
@@ -49,20 +55,22 @@ type ClosureInsert struct {
 // the transaction and the current time so that an entire refresh cycle shares
 // the same created_at value.
 //
-// Returns an error if the geometry cannot be marshalled or any DB insert fails.
-// When c.Geometry is nil, the cell inserts are skipped but the row is still written.
+// Returns [ErrNilGeometry] if c.Geometry is nil; the row is not written in
+// that case. Otherwise returns any error from marshalling the geometry or
+// from the underlying DB inserts.
 func Insert(ctx context.Context, tx *db.Queries, c ClosureInsert, now time.Time) error {
+	if c.Geometry == nil {
+		return ErrNilGeometry
+	}
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return fmt.Errorf("generate uuid: %w", err)
 	}
 
-	var geomJSON []byte
-	if c.Geometry != nil {
-		geomJSON, err = json.Marshal(c.Geometry)
-		if err != nil {
-			return fmt.Errorf("marshal geometry: %w", err)
-		}
+	geomJSON, err := json.Marshal(c.Geometry)
+	if err != nil {
+		return fmt.Errorf("marshal geometry: %w", err)
 	}
 
 	err = tx.InsertRoadClosure(ctx, db.InsertRoadClosureParams{
@@ -83,10 +91,6 @@ func Insert(ctx context.Context, tx *db.Queries, c ClosureInsert, now time.Time)
 	})
 	if err != nil {
 		return fmt.Errorf("insert road closure: %w", err)
-	}
-
-	if c.Geometry == nil {
-		return nil
 	}
 
 	cells := geometryCells(c.Geometry.Geometry(), CellResolution)

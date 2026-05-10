@@ -88,13 +88,19 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		}
 		logg.Info(ctx, "deleted old zh road closures", "count", deleted)
 
+		var inserted, skipped int
 		for _, f := range kept {
+			if f.Geometry == nil {
+				skipped++
+				continue
+			}
 			if err := insertFeature(ctx, tx, f, now); err != nil {
 				return fmt.Errorf("insert feature %s: %w", f.GMLID, err)
 			}
+			inserted++
 		}
 
-		logg.Info(ctx, "inserted zh road closures", "count", len(kept))
+		logg.Info(ctx, "inserted zh road closures", "count", inserted, "skippedNoGeometry", skipped)
 		return nil
 	})
 }

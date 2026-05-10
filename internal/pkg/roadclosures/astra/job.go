@@ -84,13 +84,19 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		}
 		logg.Info(ctx, "deleted old astra road closures", "count", deleted)
 
+		var inserted, skipped int
 		for _, f := range resp.Results {
+			if f.Geometry == nil {
+				skipped++
+				continue
+			}
 			if err := insertFeature(ctx, tx, f, now); err != nil {
 				return fmt.Errorf("insert feature %d: %w", f.FeatureID, err)
 			}
+			inserted++
 		}
 
-		logg.Info(ctx, "inserted astra road closures", "count", len(resp.Results))
+		logg.Info(ctx, "inserted astra road closures", "count", inserted, "skippedNoGeometry", skipped)
 		return nil
 	})
 }
