@@ -1,4 +1,4 @@
-package roadclosures
+package astra
 
 import "github.com/paulmach/orb/geojson"
 
