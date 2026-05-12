@@ -1,10 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { fetchClient } from "../api/client"
-import type {
-  ForecastPoint,
-  ForecastUnits,
-  SunEvent,
-} from "../components/ForecastChart"
+import type { ForecastPoint, ForecastUnits, SunEvent } from "../types/forecast"
 import { buildForecastTimes } from "../lib/time"
 
 function getStartTime(hoursOffset: number): Date {
