@@ -24,7 +24,6 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/muktihari/fit v0.27.2
 	github.com/paulmach/orb v0.12.0
-	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.27.0
 	github.com/protomaps/go-pmtiles v1.30.2
 	github.com/russross/blackfriday/v2 v2.1.0
@@ -87,7 +86,6 @@ require (
 	github.com/bep/golibsass v1.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
-	github.com/boombuler/barcode v1.1.0 // indirect
 	github.com/ccojocar/zxcvbn-go v1.0.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect

@@ -1,3 +1,4 @@
+// Package users deals with users.
 package users
 
 import (
