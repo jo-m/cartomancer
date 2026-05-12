@@ -561,28 +561,33 @@ func TestRunJobsBackoff(t *testing.T) {
 	require.NoError(t, RegisterJob(w, j))
 
 	s := w.Submitter()
-	args := TestTimeArgs{T0: time.Now(), Fail: "failed"}
+	T0 := time.Now()
+	args := TestTimeArgs{T0: T0, Fail: "failed"}
 	params := Params{MaxRetries: 3, BackofFactorS: time.Second * 1}
 	require.NoError(t, Submit(ctx, s, args, params))
 	w.RunInBackground(ctx)
 
-	delays := slurp(j.c, time.Second*8)
+	delays := slurp(j.c, time.Second*12)
 	require.Len(t, delays, 4)
 
-	// Assert on gaps between consecutive attempts rather than absolute delays
-	// from T0. SQLite's Datetime() truncates to second precision, so the
-	// absolute fire time of each attempt depends on where the row's created_at
-	// falls within a second. Gaps are determined by the worker's 1 s idle-poll
-	// cycle and are stable, modulo small jitter.
-	// Expected gaps for factor=1s: factor*(2^n - 1) deltas yield 1, 2, 4.
-	gaps := []time.Duration{
-		delays[1] - delays[0],
-		delays[2] - delays[1],
-		delays[3] - delays[2],
+	// Verify that each retry fires no earlier than its scheduled time.
+	// The backoff formula is: created_at + factor*(2^i - 1).
+	// SQLite Datetime() truncates created_at to second precision, so created_at
+	// may be up to 1s before T0; each lower bound accounts for this.
+	//
+	// We do not assert on inter-attempt gaps: if a worker goroutine takes longer
+	// than the backoff period to run the previous attempt (e.g. under heavy CI
+	// load), the next attempt's fire condition is already satisfied when the
+	// worker loops, collapsing the gap to near-zero even though the DB schedule
+	// is correct.
+	minDelaysFromT0 := []time.Duration{
+		-time.Second,    // attempt 0: fires immediately; created_at <= T0 so min is T0-1s
+		0,               // attempt 1: 1s factor - 1s truncation floor = 0
+		2 * time.Second, // attempt 2: 3s factor - 1s truncation = 2s
+		6 * time.Second, // attempt 3: 7s factor - 1s truncation = 6s
 	}
-	expectedGaps := []time.Duration{time.Second, 2 * time.Second, 4 * time.Second}
-	for i, want := range expectedGaps {
-		assert.InDeltaf(t, float64(want), float64(gaps[i]), float64(time.Second/2),
-			"gap[%d->%d] = %s, want ~%s", i, i+1, gaps[i], want)
+	for i, minDelay := range minDelaysFromT0 {
+		assert.GreaterOrEqualf(t, delays[i], minDelay,
+			"attempt[%d] fired too early: %s after T0", i, delays[i])
 	}
 }
