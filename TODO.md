@@ -3,7 +3,7 @@
 **This file is ONLY FOR HUMANS. AI agents MUST IGNORE IT.**
 
 ## Short term
-- [ ] Upgrade to Go 1.26.3 and enable govulncheck again
+- [x] Upgrade to Go 1.26.3 and enable govulncheck again
 - [x] Rename
 - [x] Track/forecast view
   - [x] Hide data from the forecast charts if no forecast data available.
@@ -191,6 +191,7 @@
   - [ ] Remove unused code
 - [ ] `go fix ./...`
 - [ ] Bump dependencies
-  - [ ] Backend
-  - [ ] Frontend
   - [ ] CI
+  - [ ] Flake
+  - [ ] Go
+  - [ ] NPM

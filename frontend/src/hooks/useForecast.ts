@@ -119,6 +119,7 @@ export function useForecast(
 
   useEffect(() => {
     if (uuid) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchForecast(startHoursOffset, speedKmh)
     }
   }, [uuid]) // eslint-disable-line react-hooks/exhaustive-deps

@@ -41,7 +41,7 @@
       sourceRoot = "source/frontend";
 
       # To update: replace with pkgs.lib.fakeHash, run `nix build .#frontend`, copy the expected hash from the error message.
-      npmDepsHash = "sha256-/4J/kb7ZIdEDZ8Dk1bTGq5xSkBnqGBFGJfjpeLEwJII=";
+      npmDepsHash = "sha256-7hm1ERb7NcA5+xwuiQTnZdJZURednyj47IoxClutRuI=";
 
       # npm run build invokes `npm run gen` which reads
       # ../internal/pkg/api/openapi.yaml. vite writes output to
@@ -86,7 +86,7 @@
         src = ./.;
 
         # To update: replace with pkgs.lib.fakeHash, run `nix build`, copy the expected hash from the error message.
-        vendorHash = "sha256-15q4zEl+ELG5cyHpwyQZOSx20tP9jC5jRo1fBjxoToI=";
+        vendorHash = "sha256-muK2yMxxFPhnUs5hvwGxQy2Ss5jj2gcK9qwcNfykT5k=";
 
         # proxyVendor is required because `go generate` uses `go tool sqlc` which needs access to the full module graph, not just imported packages.
         proxyVendor = true;
