@@ -7,7 +7,7 @@ import {
 } from "@headlessui/react"
 import { XMarkIcon } from "@heroicons/react/24/outline"
 import TrackMap from "./TrackMap"
-import type { RoadClosure } from "./TrackMap"
+import type { RoadClosure } from "../types/map"
 import { useHoverStore } from "../hooks/useHoverSync"
 import MapHoverOverlay from "./MapHoverOverlay"
 import type { MapLayer } from "../lib/mapLayer"
