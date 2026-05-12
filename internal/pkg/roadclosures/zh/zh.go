@@ -10,6 +10,7 @@ import (
 
 	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
 	"jo-m.ch/go/cartomancer/internal/pkg/wfs"
+	"jo-m.ch/go/cartomancer/internal/pkg/wfs/gml"
 )
 
 const (
@@ -70,7 +71,7 @@ func decodeFeature(raw wfs.Feature) (Feature, error) {
 		return Feature{}, fmt.Errorf("decode properties: %w", err)
 	}
 
-	geom, err := decodeGeometry(props.Geometry.InnerXML)
+	geom, err := gml.DecodeGeometry(props.Geometry.InnerXML)
 	if err != nil {
 		return Feature{}, fmt.Errorf("decode geometry: %w", err)
 	}

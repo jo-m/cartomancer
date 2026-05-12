@@ -1,4 +1,16 @@
-package zh
+// Package gml decodes GML 3.2 geometry payloads (as returned inside WFS
+// 2.0 GetFeature responses) into GeoJSON geometries.
+//
+// The decoder operates on the raw inner XML of a property element (for
+// example ms:geometry or ms:geom). It locates the first element in the
+// GML namespace and parses it. The output is always (lon, lat) GeoJSON,
+// regardless of the source CRS's native axis order: when the source uses
+// the EPSG URN form for EPSG:4326 the decoder swaps lat/lon coordinates;
+// for projected CRSes the raw (x, y) order is kept.
+//
+// Supported elements: gml:Point, gml:LineString, gml:Polygon and their
+// gml:MultiPoint / gml:MultiCurve / gml:MultiSurface containers.
+package gml
 
 import (
 	"encoding/xml"
@@ -28,20 +40,21 @@ func wrapGML(inner []byte) string {
 	return b.String()
 }
 
-// decodeGeometry turns the inner XML of an ms:geometry element into a
-// GeoJSON geometry in WGS84 (lon, lat order). The input may include the
-// surrounding ms:geometry element, or be its bare inner contents; in
-// either case the decoder finds the first GML element and decodes it.
+// DecodeGeometry turns the inner XML of a property element (for example
+// ms:geometry or ms:geom) into a GeoJSON geometry in WGS84 (lon, lat) axis
+// order. The input may include the surrounding property element, or be its
+// bare inner contents; in either case the decoder finds the first element
+// in the GML namespace and decodes it.
 //
 // The endpoint emits coordinates in the order advertised by the element's
 // srsName attribute; when that attribute is the EPSG URN
 // urn:ogc:def:crs:EPSG::4326 the order is lat/lon and the decoder swaps
-// them on the way out. For the Swiss LV95 EPSG:2056 fallback (only used
-// in unit tests) the raw (x, y) order is kept.
+// them on the way out. For projected CRSes such as Swiss LV95
+// (urn:ogc:def:crs:EPSG::2056) the raw (x, y) order is kept.
 //
-// Supported elements: gml:Point, gml:LineString, gml:Polygon and their
-// gml:MultiPoint / gml:MultiCurve / gml:MultiSurface containers.
-func decodeGeometry(inner []byte) (*geojson.Geometry, error) {
+// Returns (nil, nil) when inner is empty, so callers can pass through
+// missing geometries without special-casing them.
+func DecodeGeometry(inner []byte) (*geojson.Geometry, error) {
 	if len(inner) == 0 {
 		return nil, nil
 	}
