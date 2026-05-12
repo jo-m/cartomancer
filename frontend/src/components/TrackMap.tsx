@@ -84,6 +84,84 @@ const endStyle = new Style({
   }),
 })
 
+/** Target screen-space spacing between direction arrows, in CSS pixels. */
+const ARROW_SCREEN_SPACING_PX = 280
+
+/** Logical pixel size of the square chevron icon (in CSS pixels). */
+const ARROW_CANVAS_SIZE = 18
+
+/**
+ * Chevron stroke widths relative to the track line. Drawing the chevron a bit
+ * thinner than the track keeps the arrows visually subordinate to the route.
+ */
+const ARROW_STROKE_SCALE = 0.75
+
+/**
+ * Traces the chevron path on `ctx` in CSS-pixel coordinates: two arms meeting
+ * at an apex near the top of the canvas (= "north" when the icon is unrotated).
+ * Symmetric around the vertical centerline so anchoring at [0.5, 0.5] places
+ * the chevron's geometric center on the track point.
+ */
+function traceArrowPath(ctx: CanvasRenderingContext2D): void {
+  const size = ARROW_CANVAS_SIZE
+  const cx = size / 2
+  const apexY = TRACK_LINE_HALO_WIDTH / 2 + 1
+  const armY = size - TRACK_LINE_HALO_WIDTH / 2 - 1
+  const armDx = 5
+  ctx.beginPath()
+  ctx.moveTo(cx - armDx, armY)
+  ctx.lineTo(cx, apexY)
+  ctx.lineTo(cx + armDx, armY)
+}
+
+/**
+ * Creates a high-DPR canvas sized `ARROW_CANVAS_SIZE` CSS pixels with the
+ * drawing transform pre-scaled by `dpr`, so subsequent path commands use
+ * logical (CSS) coordinates and rasterize at full device resolution. Pair with
+ * `scale: 1 / dpr` on the OL `Icon` to display crisp pixels on hi-DPI screens.
+ */
+function createArrowCanvas(dpr: number): HTMLCanvasElement {
+  const canvas = document.createElement("canvas")
+  canvas.width = ARROW_CANVAS_SIZE * dpr
+  canvas.height = ARROW_CANVAS_SIZE * dpr
+  const ctx = canvas.getContext("2d")!
+  ctx.scale(dpr, dpr)
+  ctx.lineCap = "round"
+  ctx.lineJoin = "round"
+  return canvas
+}
+
+/**
+ * Builds the chevron halo (white outer stroke) sprite. Rendered on its own
+ * layer below the colored inner stroke so all white halos in the scene (track
+ * + every chevron) compose into one continuous silhouette rather than crossing
+ * each other.
+ */
+function buildArrowHaloCanvas(dpr: number): HTMLCanvasElement {
+  const canvas = createArrowCanvas(dpr)
+  const ctx = canvas.getContext("2d")!
+  ctx.lineWidth = TRACK_LINE_HALO_WIDTH * ARROW_STROKE_SCALE
+  ctx.strokeStyle = "#ffffff"
+  traceArrowPath(ctx)
+  ctx.stroke()
+  return canvas
+}
+
+/**
+ * Builds the chevron inner (colored) sprite. Drawn on top of all halos so it
+ * matches the track inner stroke and blends through the chevron apex into the
+ * track line.
+ */
+function buildArrowInnerCanvas(color: string, dpr: number): HTMLCanvasElement {
+  const canvas = createArrowCanvas(dpr)
+  const ctx = canvas.getContext("2d")!
+  ctx.lineWidth = TRACK_LINE_INNER_WIDTH * ARROW_STROKE_SCALE
+  ctx.strokeStyle = color
+  traceArrowPath(ctx)
+  ctx.stroke()
+  return canvas
+}
+
 interface TrackPoint {
   lat: number
   lon: number
@@ -221,17 +299,24 @@ export default memo(function TrackMap({
     const coords = points.map((p) => projectPoint(p.lon, p.lat, layer.type))
     coordsRef.current = coords
 
-    const trackFeature = new Feature({
+    // Split track polyline into separate halo and inner features so the halo
+    // can be drawn under the chevron halos and the colored inner over them.
+    const trackHaloFeature = new Feature({
       geometry: new LineString(coords),
     })
-    trackFeature.setStyle([
+    trackHaloFeature.setStyle(
       new Style({
         stroke: new Stroke({ color: "#ffffff", width: TRACK_LINE_HALO_WIDTH }),
-      }),
+      })
+    )
+    const trackInnerFeature = new Feature({
+      geometry: new LineString(coords),
+    })
+    trackInnerFeature.setStyle(
       new Style({
         stroke: new Stroke({ color, width: TRACK_LINE_INNER_WIDTH }),
-      }),
-    ])
+      })
+    )
 
     const startFeature = new Feature({ geometry: new Point(coords[0]) })
     startFeature.setStyle(startStyle)
@@ -240,8 +325,10 @@ export default memo(function TrackMap({
     })
     endFeature.setStyle(endStyle)
 
-    const vectorSource = new VectorSource({
-      features: [trackFeature, startFeature, endFeature],
+    const trackHaloSource = new VectorSource({ features: [trackHaloFeature] })
+    const trackInnerSource = new VectorSource({ features: [trackInnerFeature] })
+    const endpointSource = new VectorSource({
+      features: [startFeature, endFeature],
     })
 
     const marker = new Feature({ geometry: new Point(coords[0]) })
@@ -286,6 +373,15 @@ export default memo(function TrackMap({
     const closureLayer = new VectorLayer({ source: closureSource })
     closureLayerRef.current = closureLayer
 
+    // Render chevron sprites at device pixel resolution and shrink them back
+    // via Icon `scale: 1/dpr` so they're as crisp as the OL-drawn track line.
+    const dpr = window.devicePixelRatio || 1
+    const arrowIconScale = 1 / dpr
+    const arrowHaloImg = buildArrowHaloCanvas(dpr)
+    const arrowInnerImg = buildArrowInnerCanvas(color, dpr)
+    const arrowHaloSource = new VectorSource()
+    const arrowInnerSource = new VectorSource()
+
     const overlay = new Overlay({
       element: tooltipRef.current!,
       positioning: "bottom-center",
@@ -294,9 +390,16 @@ export default memo(function TrackMap({
     })
     overlayRef.current = overlay
 
+    // Layer order: all white halos first (track + chevrons) so they compose
+    // into one silhouette, then all colored inners on top, then closures and
+    // endpoint markers above the line, hover marker on top.
     mapLayers.push(
-      new VectorLayer({ source: vectorSource }),
+      new VectorLayer({ source: trackHaloSource }),
+      new VectorLayer({ source: arrowHaloSource }),
+      new VectorLayer({ source: trackInnerSource }),
+      new VectorLayer({ source: arrowInnerSource }),
       closureLayer,
+      new VectorLayer({ source: endpointSource }),
       new VectorLayer({ source: mSource })
     )
 
@@ -312,14 +415,90 @@ export default memo(function TrackMap({
       view,
     })
 
-    const extent = vectorSource.getExtent()
+    const extent = trackHaloSource.getExtent()
     if (extent && !extentIsEmpty(extent)) {
       map.getView().fit(extent, { padding: [40, 40, 40, 40], maxZoom: 16 })
     }
 
     mapInstance.current = map
 
+    const rebuildArrows = () => {
+      arrowHaloSource.clear()
+      arrowInnerSource.clear()
+      const cs = coordsRef.current
+      if (cs.length < 2) return
+      const resolution = map.getView().getResolution()
+      if (!resolution || !Number.isFinite(resolution)) return
+      const spacing = resolution * ARROW_SCREEN_SPACING_PX
+
+      // Cumulative segment lengths in projected map units.
+      const cum: number[] = new Array(cs.length)
+      cum[0] = 0
+      for (let i = 1; i < cs.length; i++) {
+        const dx = cs[i][0] - cs[i - 1][0]
+        const dy = cs[i][1] - cs[i - 1][1]
+        cum[i] = cum[i - 1] + Math.hypot(dx, dy)
+      }
+      const total = cum[cs.length - 1]
+      // Skip when the visible track is too short to fit even one arrow comfortably.
+      if (total < spacing * 1.2) return
+
+      // Keep arrows away from the start/end markers.
+      const margin = Math.min(spacing * 0.6, total * 0.1)
+      const haloFeatures: Feature[] = []
+      const innerFeatures: Feature[] = []
+      let segIdx = 1
+      for (let target = margin; target < total - margin; target += spacing) {
+        while (segIdx < cum.length && cum[segIdx] < target) segIdx++
+        if (segIdx >= cum.length) break
+        const a = cs[segIdx - 1]
+        const b = cs[segIdx]
+        const segLen = cum[segIdx] - cum[segIdx - 1]
+        const t = segLen > 0 ? (target - cum[segIdx - 1]) / segLen : 0
+        const dx = b[0] - a[0]
+        const dy = b[1] - a[1]
+        if (dx === 0 && dy === 0) continue
+        const point: [number, number] = [a[0] + t * dx, a[1] + t * dy]
+        // OL Icon rotation is clockwise from the icon's natural orientation
+        // (canvas top = north on an unrotated view); atan2(dx, dy) gives the
+        // clockwise angle from north for a (dx, dy) step in projected coords.
+        const rotation = Math.atan2(dx, dy)
+        const haloFeature = new Feature({ geometry: new Point(point) })
+        haloFeature.setStyle(
+          new Style({
+            image: new Icon({
+              img: arrowHaloImg,
+              anchor: [0.5, 0.5],
+              rotation,
+              rotateWithView: true,
+              scale: arrowIconScale,
+            }),
+          })
+        )
+        const innerFeature = new Feature({ geometry: new Point(point) })
+        innerFeature.setStyle(
+          new Style({
+            image: new Icon({
+              img: arrowInnerImg,
+              anchor: [0.5, 0.5],
+              rotation,
+              rotateWithView: true,
+              scale: arrowIconScale,
+            }),
+          })
+        )
+        haloFeatures.push(haloFeature)
+        innerFeatures.push(innerFeature)
+      }
+      arrowHaloSource.addFeatures(haloFeatures)
+      arrowInnerSource.addFeatures(innerFeatures)
+    }
+
+    rebuildArrows()
+    map.on("moveend", rebuildArrows)
+
     return () => {
+      map.un("moveend", rebuildArrows)
       map.setTarget(undefined)
       mapInstance.current = null
       markerFeature.current = null
