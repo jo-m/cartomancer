@@ -8,18 +8,9 @@ import {
   Suspense,
 } from "react"
 import { $api } from "../api/client"
-import {
-  useUrlState,
-  stringParam,
-  numberParam,
-  boolParam,
-  numArrayParam,
-  strArrayParam,
-  rangeParam,
-  enumParam,
-} from "../hooks/useUrlState"
-import type { ParamDef } from "../hooks/useUrlState"
 import { useSession } from "../context/SessionContext"
+import { DEFAULT_PAGE_SIZE, useTrackGridUrl } from "../hooks/useTrackGridUrl"
+import type { ViewMode } from "../types/trackGrid"
 import Toast from "./Toast"
 import useToast from "../hooks/useToast"
 import Button from "./ui/Button"
@@ -34,137 +25,10 @@ import BulkEditToolbar from "./BulkEditToolbar"
 
 const TracksMapView = lazy(() => import("./TracksMapView"))
 
-const DEFAULT_PAGE_SIZE = 24
 const PAGE_SIZE_OPTIONS = [12, 24, 48, 96]
-
-/**
- * Allowed radius values (in meters) for the "start near" filter. The user
- * picks one of these in the map toolbar; the API uses the chosen value as
- * `startNearRadiusM`.
- */
-export const START_NEAR_RADII_M = [100, 200, 500, 1000] as const
-
-/** Default radius used when a start-location pin is first dropped. */
-export const DEFAULT_START_NEAR_RADIUS_M = 500
-
-export type SortBy = "created_at" | "total_distance_m" | "total_ascent_m"
-export type SortOrder = "asc" | "desc"
-export type ViewMode = "list" | "map"
-
-/**
- * URL parameter definition for the "start near" filter. Serialized as
- * "lat,lon,radiusM" with six decimals on lat/lon (~10 cm); null when
- * absent. Two-part legacy values default to DEFAULT_START_NEAR_RADIUS_M.
- * Any radius outside the allowed set is snapped to the default.
- */
-function nearParam(): ParamDef<{
-  lat: number
-  lon: number
-  radiusM: number
-} | null> {
-  return {
-    defaultValue: null,
-    parse: (raw) => {
-      const parts = raw.split(",").map(Number)
-      if (parts.length < 2 || !parts.every(Number.isFinite)) return null
-      const [lat, lon] = parts
-      if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null
-      const rawRadius = parts[2]
-      const radiusM = (START_NEAR_RADII_M as readonly number[]).includes(
-        rawRadius
-      )
-        ? rawRadius
-        : DEFAULT_START_NEAR_RADIUS_M
-      return { lat, lon, radiusM }
-    },
-    serialize: (value) =>
-      value
-        ? `${value.lat.toFixed(6)},${value.lon.toFixed(6)},${value.radiusM}`
-        : "",
-    equals: (a, b) => {
-      if (a === null && b === null) return true
-      if (a === null || b === null) return false
-      return a.lat === b.lat && a.lon === b.lon && a.radiusM === b.radiusM
-    },
-  }
-}
 
 export interface TrackGridProps {
   mode: "public" | "user"
-}
-
-const urlSchema = {
-  q: stringParam(),
-  dist: rangeParam(),
-  ascent: rangeParam(),
-  vis: enumParam("all" as const, ["all", "public", "private"] as const),
-  type: enumParam("all" as const, ["all", "recorded", "planned"] as const),
-  starred: boolParam(),
-  sports: numArrayParam(),
-  subsports: numArrayParam(),
-  tags: strArrayParam(),
-  tagsAnd: boolParam(),
-  sort: enumParam(
-    "created_at" as SortBy,
-    ["created_at", "total_distance_m", "total_ascent_m"] as const
-  ),
-  order: enumParam("desc" as SortOrder, ["asc", "desc"] as const),
-  page: numberParam(1),
-  pageSize: numberParam(DEFAULT_PAGE_SIZE),
-  view: enumParam("list" as ViewMode, ["list", "map"] as const),
-  near: nearParam(),
-}
-
-/** Converts URL state to LiveFilters. */
-function urlToFilters(url: {
-  q: string
-  dist: [number, number] | null
-  ascent: [number, number] | null
-  vis: "all" | "public" | "private"
-  type: "all" | "recorded" | "planned"
-  starred: boolean
-  sports: number[]
-  subsports: number[]
-  tags: string[]
-  tagsAnd: boolean
-  sort: SortBy
-  order: SortOrder
-  near: { lat: number; lon: number; radiusM: number } | null
-}): LiveFilters {
-  return {
-    search: url.q,
-    distRange: url.dist,
-    ascentRange: url.ascent,
-    visibility: url.vis,
-    trackType: url.type,
-    onlyStarred: url.starred,
-    sports: url.sports,
-    subSports: url.subsports,
-    tags: url.tags,
-    tagsAnd: url.tagsAnd,
-    sortBy: url.sort,
-    sortOrder: url.order,
-    startNear: url.near,
-  }
-}
-
-/** Converts LiveFilters to URL state params. */
-function filtersToUrl(f: LiveFilters) {
-  return {
-    q: f.search,
-    dist: f.distRange,
-    ascent: f.ascentRange,
-    vis: f.visibility,
-    type: f.trackType,
-    starred: f.onlyStarred,
-    sports: f.sports,
-    subsports: f.subSports,
-    tags: f.tags,
-    tagsAnd: f.tagsAnd,
-    sort: f.sortBy,
-    order: f.sortOrder,
-    near: f.startNear,
-  }
 }
 
 /** TrackGrid renders a filterable, paginated grid of track cards. */
@@ -186,10 +50,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
       ? Math.ceil(stats.totalAscentM.max / 10) * 10
       : 0
 
-  const schema = useMemo(() => urlSchema, [])
-  const [urlState, setUrlState] = useUrlState(schema)
-
-  const applied = useMemo(() => urlToFilters(urlState), [urlState])
+  const { urlState, setUrlState, applied, commitFilters } = useTrackGridUrl()
   const [live, setLive] = useState<LiveFilters>(() => applied)
   const page = urlState.page
   const pageSize = urlState.pageSize
@@ -215,7 +76,7 @@ export default function TrackGrid({ mode }: TrackGridProps) {
     if (prevLiveRef.current === live) return
     prevLiveRef.current = live
     const timer = setTimeout(() => {
-      setUrlState({ ...filtersToUrl(live), page: 1 })
+      commitFilters(live)
     }, 200)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps

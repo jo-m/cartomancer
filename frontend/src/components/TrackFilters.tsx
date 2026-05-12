@@ -11,7 +11,7 @@ import Input from "./ui/Input"
 import Select from "./ui/Select"
 import ToggleGroup from "./ui/ToggleGroup"
 import SectionHeading from "./ui/SectionHeading"
-import type { SortBy } from "./TrackGrid"
+import type { SortBy } from "../types/trackGrid"
 
 const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: "created_at", label: "Uploaded at" },

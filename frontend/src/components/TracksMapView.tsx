@@ -17,7 +17,10 @@ import { getLV95TileGrid, getLV95ViewConfig } from "@swissgeo/coordinates/ol"
 import { PMTilesVectorSource } from "ol-pmtiles"
 import { $api } from "../api/client"
 import { lv95, projectPoint, proj4 } from "../lib/proj"
-import { DEFAULT_START_NEAR_RADIUS_M, START_NEAR_RADII_M } from "./TrackGrid"
+import {
+  DEFAULT_START_NEAR_RADIUS_M,
+  START_NEAR_RADII_M,
+} from "../types/trackGrid"
 import { selectMapLayer, unionBbox } from "../lib/mapLayer"
 import type { Bbox, MapLayer } from "../lib/mapLayer"
 import { createPmtilesStyleFn } from "../lib/pmtilesStyle"
