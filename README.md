@@ -9,12 +9,11 @@ The gpx track library with a touch of magic.
 There are a bazillion route planning and activity tracking apps, but none of them is good at managing a library of existing tracks[^1].
 This one tries to be.
 
-**⚠️ Note**: This is a work in progress.
-
 ## Features
 
-- Live weather forecasts and road closures (Switzerland only), reverse geocoding.
+- Live weather forecasts and road closures (Switzerland only).
 - Filtering, search, tagging, mark favorites.
+- Automatic reverse geocoding of tracks for search.
 - Map view: [SwissTopo](https://map.geo.admin.ch/).
   - Fallback to self-hosted [pmtiles/protomaps](https://docs.protomaps.com/) in areas not covered.
 - Does not use any 3rd party live APIs. Instead, will download data in the background and query that locally (meteo and geo names).
