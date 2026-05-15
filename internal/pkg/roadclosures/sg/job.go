@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
@@ -56,6 +57,8 @@ var _ jobs.Job[DownloaderArgs] = (*Downloader)(nil)
 //
 // The SG feed has no status field, so all features returned by the WFS are
 // inserted; the shared DB query filters by ends_at when serving the API.
+// Type is derived from the feature text: features containing "sperrung" or
+// "gesperrt" are classified as closed_way; all others as detour.
 func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, jobTimeout)
 	defer cancel()
@@ -113,7 +116,7 @@ func insertFeature(ctx context.Context, tx *db.Queries, f Feature, now time.Time
 	c := roadclosures.ClosureInsert{
 		SourceID:        f.SourceID,
 		InsertedBy:      jobKind,
-		Type:            "closed_way",
+		Type:            closureTypeFromText(title, f.Adresse),
 		StartsAt:        nullTime(f.Beginn),
 		EndsAt:          nullTime(f.Ende),
 		Title:           title,
@@ -123,6 +126,17 @@ func insertFeature(ctx context.Context, tx *db.Queries, f Feature, now time.Time
 		Attribution:     DataAttribution,
 	}
 	return roadclosures.Insert(ctx, tx, c, now)
+}
+
+// closureTypeFromText derives the closure type from the combined title and
+// description text. If the lowercased concatenation contains "sperrung" or
+// "gesperrt", the feature is classified as closed_way; otherwise detour.
+func closureTypeFromText(title, description string) string {
+	combined := strings.ToLower(title + " " + description)
+	if strings.Contains(combined, "sperrung") || strings.Contains(combined, "gesperrt") {
+		return "closed_way"
+	}
+	return "detour"
 }
 
 // nullTime wraps a time.Time as sql.NullTime, treating the zero time as NULL.

@@ -21,8 +21,9 @@ Closure geometries are interpolated between vertices at half the hex edge length
 - `astra/` - geo.admin.ch MapServer `find`, layer `ch.astra.veloland-sperrungen_umleitungen`. JSON. Job kind `roadclosures.astra.downloader`. `Type` taken from `sperrungen_type` (`detour` / `closed_way`).
 - `zh/`    - Canton Zurich WFS (`maps.zh.ch/wfs/TbaBaustellenZHWFS`, layer `ms:baustellen-detailansicht`). GML 3.2 decoded via the shared `internal/pkg/wfs/gml` package. Job kind `roadclosures.zh.downloader`. Filtered to `aktiv*` / `zukünftig*` statuses (the source carries a `status_baustelle` field). `Type` hardcoded to `closed_way`.
 - `sz/`    - Canton Schwyz WFS (`map.geo.sz.ch/mapserv_proxy`, layer `ms:ch.sz.a083a.baustellen`). GML 3.2 via the same shared decoder. Job kind `roadclosures.sz.downloader`. No status field upstream, so every feature returned by the WFS is kept. Dates (`baubeginn_ui`, `inbetriebnahme`) are display strings in German; `date.go` parses both word-month and `DD.MM.YYYY` forms best-effort and stores NULL when parsing fails. Features have no `gml:id`, so `sourceID()` derives a stable SHA-1 fingerprint from feature text + first geometry vertex. `Type` hardcoded to `closed_way`.
+- `sg/`    - Canton St. Gallen WFS (`stgallen.opendatasoft.com`, dataset `baustellenkoordination`). GML via the shared decoder. Job kind `roadclosures.sg.downloader`. No status field; all WFS features are kept. `Type` derived from the feature's title (`bew`) + description (`adresse`) concatenated and lowercased: contains "sperrung" or "gesperrt" -> `closed_way`, otherwise `detour`.
 
-All three downloaders share the same structure: `Fetch(ctx)` client + `Downloader` job with `MinRefreshAge = 23h` early-return guard on `GetLatestRoadClosureCreatedAt(jobKind)`, registered as periodic in `main.go`.
+All four downloaders share the same structure: `Fetch(ctx)` client + `Downloader` job with `MinRefreshAge = 23h` early-return guard on `GetLatestRoadClosureCreatedAt(jobKind)`, registered as periodic in `main.go`.
 
 ### Adding a new source
 

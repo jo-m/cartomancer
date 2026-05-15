@@ -119,3 +119,25 @@ func TestDecodeFeatureMissingDates(t *testing.T) {
 	require.True(t, f.Ende.IsZero())
 	require.NotNil(t, f.Geometry)
 }
+
+func TestClosureTypeFromText(t *testing.T) {
+	cases := []struct {
+		title       string
+		description string
+		want        string
+	}{
+		{"Vollsperrung Hauptstrasse", "", "closed_way"},
+		{"Baustelle", "Strasse gesperrt", "closed_way"},
+		{"SPERRUNG", "some road", "closed_way"},
+		{"Teilsperrung", "", "closed_way"},
+		{"road Gesperrt", "", "closed_way"},
+		{"Umleitung Kantonsstrasse", "Umleitung via Nebenstrasse", "detour"},
+		{"Baustelle Feldweg", "", "detour"},
+		{"", "", "detour"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.title+"|"+tc.description, func(t *testing.T) {
+			require.Equal(t, tc.want, closureTypeFromText(tc.title, tc.description))
+		})
+	}
+}
