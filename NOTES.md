@@ -4,13 +4,20 @@
 
 ## Rate Limiting
 
-Applied to three endpoints: `/sessions/login`, `/confirm-email` (auth limiter), and `/register` (email-send limiter). Each limiter is independent -- hits on login do not drain the register bucket.
+Two IP-based limiters and two per-user limiters are applied:
+
+- Auth limiter (per-IP): `/sessions/login`, `/confirm-email`
+- Email-send limiter (per-IP): `/register`
+- Auth limiter (per-user): `/account/change-password`
+- Email-send limiter (per-user): `/account/change-email`
+
+Each limiter is independent -- hits on one endpoint do not drain another's bucket.
 
 ### How it works
 
 Each limiter maintains a `map[string]*tokenBucket` keyed by client IP (or IPv6 prefix). Incoming requests extract the client IP, normalize it to a map key, then call `Allow()` on that IP's bucket. A 429 is returned if the bucket is empty.
 
-The map is bounded to `APP_RATE_LIMIT_MAX_IPS` entries (default 100 000). When the cap is reached, new IPs are **allowed through** (fail-open) rather than rejected -- this prevents a flood of unique IPs from causing OOM while avoiding false positives for legitimate users. A background goroutine evicts entries idle for more than 5 minutes (runs every minute).
+The map is bounded to `APP_RATE_LIMIT_MAX_IPS` entries (default 100 000). When the cap is reached, new IPs are **rejected with 429** (fail-closed) -- this prevents an attacker from bypassing the limiter by flooding with distinct source addresses. A background goroutine evicts entries idle for more than 5 minutes (runs every minute), freeing space for new keys.
 
 ### Token bucket parameters
 
@@ -42,7 +49,7 @@ IPv6 addresses are masked to a configurable prefix length (`APP_RATE_LIMIT_IPV6_
 | `APP_RATE_LIMIT_EMAIL_SEND_BURST` | `1` | Email-send limiter burst (0=auto) |
 | `APP_RATE_LIMIT_TRUSTED_PROXIES` | `0` | Trusted reverse proxy count |
 | `APP_RATE_LIMIT_IPV6_PREFIX_LEN` | `64` | IPv6 prefix length for bucketing |
-| `APP_RATE_LIMIT_MAX_IPS` | `100000` | Max tracked IPs per limiter (fail-open above) |
+| `APP_RATE_LIMIT_MAX_IPS` | `100000` | Max tracked keys per limiter (fail-closed above) |
 
 ## ETag Usage
 
