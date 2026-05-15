@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"unicode"
@@ -14,6 +15,10 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
+
+// maxTagsPerTrack is the maximum number of tags that can be assigned to a
+// single track in one request.
+const maxTagsPerTrack = 50
 
 // normalizeTag returns the NFC-normalized form of the tag so that differently
 // encoded but semantically equal inputs (for example "a"+U+0308 vs. the single
@@ -44,6 +49,11 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 	var tags []string
 	if err := decodeJSON(r, &tags); err != nil {
 		writeDecodeError(w, err)
+		return
+	}
+
+	if len(tags) > maxTagsPerTrack {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("at most %d tags allowed per track", maxTagsPerTrack))
 		return
 	}
 

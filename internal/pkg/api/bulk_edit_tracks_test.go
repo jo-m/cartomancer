@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -204,4 +205,21 @@ func TestBulkEditTracks_NoFieldsProvided(t *testing.T) {
 		"uuids": []string{trackUUID},
 	}, nil)
 	assert.Equal(t, http.StatusNoContent, status)
+}
+
+func TestBulkEditTracks_TooManyUUIDs(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret11")
+
+	uuids := make([]string, 501)
+	for i := range uuids {
+		uuids[i] = fmt.Sprintf("fake-uuid-%d", i)
+	}
+
+	status, _ := e.do(client, http.MethodPatch, "/tracks", map[string]any{
+		"uuids": uuids,
+	}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
 }

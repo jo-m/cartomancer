@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -400,4 +401,21 @@ func TestSuggestTags_OtherUserTagsNotVisible(t *testing.T) {
 	tags, ok := resp["tags"].([]any)
 	require.True(t, ok)
 	assert.Empty(t, tags)
+}
+
+func TestSetTrackTags_TooManyTags(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret11")
+	trackUUID := e.uploadAndGetUUID(client)
+
+	// Build a slice of 51 valid tags (each 4 chars: "t000" through "t050").
+	tags := make([]string, 51)
+	for i := range tags {
+		tags[i] = fmt.Sprintf("t%03d", i)
+	}
+
+	status, _ := e.do(client, http.MethodPut, "/tracks/"+trackUUID+"/tags", tags, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
 }

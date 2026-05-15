@@ -1053,7 +1053,7 @@ func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Reques
 	})
 }
 
-const maxBulkEditUUIDs = 10000
+const maxBulkEditUUIDs = 500
 
 type bulkEditTracksRequest struct {
 	UUIDs         []string  `json:"uuids"`

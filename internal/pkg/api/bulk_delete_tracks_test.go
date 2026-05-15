@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -90,4 +91,21 @@ func TestBulkDeleteTracks_Success(t *testing.T) {
 
 	status, _ = e.do(client, http.MethodGet, "/tracks/"+uuid2, nil, nil)
 	assert.Equal(t, http.StatusNotFound, status)
+}
+
+func TestBulkDeleteTracks_TooManyUUIDs(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret11")
+
+	uuids := make([]string, 501)
+	for i := range uuids {
+		uuids[i] = fmt.Sprintf("fake-uuid-%d", i)
+	}
+
+	status, _ := e.do(client, http.MethodPost, "/tracks/bulk-delete", map[string]any{
+		"uuids": uuids,
+	}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
 }
