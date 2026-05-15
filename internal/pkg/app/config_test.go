@@ -18,6 +18,8 @@ func validConfig() AppConfig {
 		ExternalBaseURL:         "https://example.com",
 		EmailJWTSecret:          testJWTSecret,
 		EmailVerificationExpiry: 2 * time.Hour,
+		RateLimitIPv6PrefixLen:  64,
+		RateLimitMaxIPs:         100000,
 	}
 }
 
@@ -74,5 +76,29 @@ func TestValidate(t *testing.T) {
 		c.RateLimitAuthRPS = 0
 		c.RateLimitEmailSendRPS = 0
 		require.NoError(t, c.Validate())
+	})
+
+	t.Run("negative trusted proxies", func(t *testing.T) {
+		c := validConfig()
+		c.RateLimitTrustedProxies = -1
+		require.ErrorContains(t, c.Validate(), "APP_RATE_LIMIT_TRUSTED_PROXIES")
+	})
+
+	t.Run("ipv6 prefix len zero", func(t *testing.T) {
+		c := validConfig()
+		c.RateLimitIPv6PrefixLen = 0
+		require.ErrorContains(t, c.Validate(), "APP_RATE_LIMIT_IPV6_PREFIX_LEN")
+	})
+
+	t.Run("ipv6 prefix len over 128", func(t *testing.T) {
+		c := validConfig()
+		c.RateLimitIPv6PrefixLen = 129
+		require.ErrorContains(t, c.Validate(), "APP_RATE_LIMIT_IPV6_PREFIX_LEN")
+	})
+
+	t.Run("max ips zero", func(t *testing.T) {
+		c := validConfig()
+		c.RateLimitMaxIPs = 0
+		require.ErrorContains(t, c.Validate(), "APP_RATE_LIMIT_MAX_IPS")
 	})
 }

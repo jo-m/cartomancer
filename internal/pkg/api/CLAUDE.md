@@ -11,7 +11,7 @@
 - `sess.Middleware` - auto-creates/loads session for every request
 - `chi.middleware.Recoverer`
 
-Per-route: `rateLimit(rps)` (api.go) applies a global token-bucket limit (429 on overflow, no-op if rps<=0) to `/sessions/login`, `/confirm-email`, and `/register`.
+Per-route: `rateLimitByIP(rps, trustedProxies, ipv6PrefixLen, maxEntries)` (api.go) applies a per-IP token-bucket limit (429 on overflow, no-op if rps<=0) to `/sessions/login`, `/confirm-email`, and `/register`. IPv6 addresses are grouped by prefix. New IPs beyond `maxEntries` are allowed through (fail-open). Client IP is extracted from `X-Forwarded-For` when `trustedProxies > 0`.
 
 ### Context access in handlers
 

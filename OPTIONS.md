@@ -36,9 +36,15 @@ Global options:
                          Email for the initial admin account created on first startup [env: APP_INIT_ADMIN_EMAIL]
   --app-demo-mode        Enable demo mode (locks users, periodically deletes tracks, uses .demo DB suffix) [default: false, env: APP_DEMO_MODE]
   --app-rate-limit-auth-rps N
-                         Global rate limit for auth endpoints (requests/second, 0 to disable) [default: 10, env: APP_RATE_LIMIT_AUTH_RPS]
+                         Per-IP rate limit for auth endpoints (requests/second, 0 to disable) [default: 10, env: APP_RATE_LIMIT_AUTH_RPS]
   --app-rate-limit-email-send-rps N
-                         Global rate limit for endpoints triggering email sends (requests/second, 0 to disable) [default: 1, env: APP_RATE_LIMIT_EMAIL_SEND_RPS]
+                         Per-IP rate limit for endpoints triggering email sends (requests/second, 0 to disable) [default: 1, env: APP_RATE_LIMIT_EMAIL_SEND_RPS]
+  --app-rate-limit-trusted-proxies N
+                         Number of trusted reverse proxies; 0 = use direct connection IP [default: 0, env: APP_RATE_LIMIT_TRUSTED_PROXIES]
+  --app-rate-limit-ipv6-prefix-len N
+                         IPv6 prefix length for grouping addresses into one rate limit bucket (1-128) [default: 64, env: APP_RATE_LIMIT_IPV6_PREFIX_LEN]
+  --app-rate-limit-max-ips N
+                         Max distinct IPs tracked per rate limiter (fail-open when exceeded) [default: 100000, env: APP_RATE_LIMIT_MAX_IPS]
   --session-idle-timeout DUR
                          Session idle timeout [default: 24h, env: SESSION_IDLE_TIMEOUT]
   --session-abs-timeout DUR

@@ -51,14 +51,27 @@ type AppConfig struct {
 	// A .demo suffix is appended to the database path to prevent accidental overwrites.
 	// Cannot be active together with DevelopmentMode.
 	DemoMode bool `arg:"--app-demo-mode,env:APP_DEMO_MODE" default:"false" help:"Enable demo mode (locks users, periodically deletes tracks, uses .demo DB suffix)"`
-	// RateLimitAuthRPS is the global rate limit applied to the authentication endpoints
+	// RateLimitAuthRPS is the per-IP rate limit applied to the authentication endpoints
 	// (/sessions/login, /confirm-email), in requests per second.
 	// Zero disables the limit.
-	RateLimitAuthRPS float64 `arg:"--app-rate-limit-auth-rps,env:APP_RATE_LIMIT_AUTH_RPS" default:"10" help:"Global rate limit for auth endpoints (requests/second, 0 to disable)" placeholder:"N"`
-	// RateLimitEmailSendRPS is the global rate limit applied to endpoints that trigger
+	RateLimitAuthRPS float64 `arg:"--app-rate-limit-auth-rps,env:APP_RATE_LIMIT_AUTH_RPS" default:"10" help:"Per-IP rate limit for auth endpoints (requests/second, 0 to disable)" placeholder:"N"`
+	// RateLimitEmailSendRPS is the per-IP rate limit applied to endpoints that trigger
 	// sending an email (/register), in requests per second.
 	// Zero disables the limit.
-	RateLimitEmailSendRPS float64 `arg:"--app-rate-limit-email-send-rps,env:APP_RATE_LIMIT_EMAIL_SEND_RPS" default:"1" help:"Global rate limit for endpoints triggering email sends (requests/second, 0 to disable)" placeholder:"N"`
+	RateLimitEmailSendRPS float64 `arg:"--app-rate-limit-email-send-rps,env:APP_RATE_LIMIT_EMAIL_SEND_RPS" default:"1" help:"Per-IP rate limit for endpoints triggering email sends (requests/second, 0 to disable)" placeholder:"N"`
+	// RateLimitTrustedProxies is the number of trusted reverse proxies in front of the
+	// application. 0 means the direct TCP peer is used as the client IP. When > 0, the
+	// real client IP is read from the X-Forwarded-For header by skipping that many
+	// rightmost entries (which were appended by trusted proxies).
+	RateLimitTrustedProxies int `arg:"--app-rate-limit-trusted-proxies,env:APP_RATE_LIMIT_TRUSTED_PROXIES" default:"0" help:"Number of trusted reverse proxies; 0 = use direct connection IP" placeholder:"N"`
+	// RateLimitIPv6PrefixLen is the prefix length used to group IPv6 addresses for
+	// rate limiting. All addresses within the same prefix share one token bucket.
+	// Valid range: 1-128.
+	RateLimitIPv6PrefixLen int `arg:"--app-rate-limit-ipv6-prefix-len,env:APP_RATE_LIMIT_IPV6_PREFIX_LEN" default:"64" help:"IPv6 prefix length for grouping addresses into one rate limit bucket (1-128)" placeholder:"N"`
+	// RateLimitMaxIPs is the maximum number of distinct IP keys held simultaneously in
+	// the per-IP limiter maps. When the cap is reached, new IPs are allowed through
+	// (fail-open) until the periodic cleanup evicts stale entries.
+	RateLimitMaxIPs int `arg:"--app-rate-limit-max-ips,env:APP_RATE_LIMIT_MAX_IPS" default:"100000" help:"Max distinct IPs tracked per rate limiter (fail-open when exceeded)" placeholder:"N"`
 }
 
 // Validate checks for basic configuration errors.
@@ -82,6 +95,15 @@ func (c *AppConfig) Validate() error {
 	}
 	if c.RateLimitEmailSendRPS < 0 {
 		return errors.New("--app-rate-limit-email-send-rps / APP_RATE_LIMIT_EMAIL_SEND_RPS must be non-negative")
+	}
+	if c.RateLimitTrustedProxies < 0 {
+		return errors.New("--app-rate-limit-trusted-proxies / APP_RATE_LIMIT_TRUSTED_PROXIES must be non-negative")
+	}
+	if c.RateLimitIPv6PrefixLen < 1 || c.RateLimitIPv6PrefixLen > 128 {
+		return errors.New("--app-rate-limit-ipv6-prefix-len / APP_RATE_LIMIT_IPV6_PREFIX_LEN must be between 1 and 128")
+	}
+	if c.RateLimitMaxIPs < 1 {
+		return errors.New("--app-rate-limit-max-ips / APP_RATE_LIMIT_MAX_IPS must be at least 1")
 	}
 	return nil
 }

@@ -493,10 +493,12 @@ func TestAdminConfirmEmail_NonAdmin(t *testing.T) {
 func TestRegister_RateLimit(t *testing.T) {
 	// Configure rate limit at 1 rps with burst 1.
 	e := newTestEnvWithAppConfig(t, app.AppConfig{
-		InstanceName:          "test",
-		EmailJWTSecret:        api.TestEmailJWTSecret,
-		RegistrationEnabled:   true,
-		RateLimitEmailSendRPS: 1,
+		InstanceName:           "test",
+		EmailJWTSecret:         api.TestEmailJWTSecret,
+		RegistrationEnabled:    true,
+		RateLimitEmailSendRPS:  1,
+		RateLimitIPv6PrefixLen: 64,
+		RateLimitMaxIPs:        100000,
 	})
 	client := e.newClient()
 
@@ -520,9 +522,11 @@ func TestRegister_RateLimit(t *testing.T) {
 func TestLogin_RateLimit(t *testing.T) {
 	// Configure rate limit at 2 rps -> burst 2 across login + confirm-email.
 	e := newTestEnvWithAppConfig(t, app.AppConfig{
-		InstanceName:     "test",
-		EmailJWTSecret:   api.TestEmailJWTSecret,
-		RateLimitAuthRPS: 2,
+		InstanceName:           "test",
+		EmailJWTSecret:         api.TestEmailJWTSecret,
+		RateLimitAuthRPS:       2,
+		RateLimitIPv6PrefixLen: 64,
+		RateLimitMaxIPs:        100000,
 	})
 	e.createUser("alice@example.com", "Alice", "secret11", false)
 

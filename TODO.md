@@ -189,6 +189,9 @@
   - [ ] Review all the panic()s (main.go, tests, and some special cases are ok)
   - [ ] Review any SQL queries which are not in sqlc
   - [ ] Remove unused code
+  - [ ] Endpoints missing rate limiting
+  - [ ] Anything in the backend that allows for unbounded growth/size (hard limits everywhere)
+  - [ ] Frontend: Accessibility, Mobile friendlyness, Responsiveness
 - [ ] `go fix ./...`
 - [ ] Bump dependencies
   - [ ] CI
