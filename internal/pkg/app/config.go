@@ -76,10 +76,12 @@ type AppConfig struct {
 	// rate limiting. All addresses within the same prefix share one token bucket.
 	// Valid range: 1-128.
 	RateLimitIPv6PrefixLen int `arg:"--app-rate-limit-ipv6-prefix-len,env:APP_RATE_LIMIT_IPV6_PREFIX_LEN" default:"64" help:"IPv6 prefix length for grouping addresses into one rate limit bucket (1-128)" placeholder:"N"`
-	// RateLimitMaxIPs is the maximum number of distinct IP keys held simultaneously in
-	// the per-IP limiter maps. When the cap is reached, new IPs are allowed through
-	// (fail-open) until the periodic cleanup evicts stale entries.
-	RateLimitMaxIPs int `arg:"--app-rate-limit-max-ips,env:APP_RATE_LIMIT_MAX_IPS" default:"100000" help:"Max distinct IPs tracked per rate limiter (fail-open when exceeded)" placeholder:"N"`
+	// RateLimitMaxIPs is the maximum number of distinct keys held simultaneously in
+	// each rate limiter map (used by both the per-IP and per-UID limiters). When the
+	// cap is reached, new keys are rejected (fail-closed) until the periodic cleanup
+	// evicts idle entries. Sized to be large enough to comfortably hold legitimate
+	// traffic so that legitimate users are not turned away.
+	RateLimitMaxIPs int `arg:"--app-rate-limit-max-ips,env:APP_RATE_LIMIT_MAX_IPS" default:"100000" help:"Max distinct keys tracked per rate limiter (fail-closed when exceeded)" placeholder:"N"`
 }
 
 // Validate checks for basic configuration errors.

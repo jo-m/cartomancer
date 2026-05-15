@@ -156,22 +156,30 @@ func TestRateLimitByIP_TrustedProxiesXFF(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 }
 
-func TestRateLimitByIP_FailsOpenAtCap(t *testing.T) {
+func TestRateLimitByIP_FailsClosedAtCap(t *testing.T) {
 	// maxEntries=2: after two distinct IPs fill the map, a third new IP must be
-	// allowed through (fail-open) rather than rejected.
+	// rejected (fail-closed) so that an attacker cannot bypass the limiter by
+	// flooding it with distinct source addresses.
 	handler := rateLimitByIP(1, 0, 0, 64, 2)(noopHandler())
 
-	// Fill the map by exhausting two IPs' bursts (so they are in the map).
+	// Fill the map by inserting two IPs (their burst tokens are consumed but the
+	// entries remain).
 	for _, addr := range []string{"1.1.1.1:1", "2.2.2.2:2"} {
 		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, newReq(addr, ""))
 		require.Equal(t, http.StatusOK, rec.Code)
 	}
 
-	// Third new IP: map is full, must fail-open (200).
+	// Third new IP: map is full, must fail-closed (429).
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, newReq("3.3.3.3:3", ""))
-	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, http.StatusTooManyRequests, rec.Code)
+
+	// An IP already in the map is unaffected by the cap and is still rate-limited
+	// per its own bucket (which has already burned its burst, so this 429s too).
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, newReq("1.1.1.1:1", ""))
+	require.Equal(t, http.StatusTooManyRequests, rec.Code)
 }
 
 func TestClientIP_DirectConnection(t *testing.T) {
@@ -309,9 +317,10 @@ func TestRateLimitByUID_NoUserFailsOpen(t *testing.T) {
 	}
 }
 
-func TestRateLimitByUID_FailsOpenAtCap(t *testing.T) {
+func TestRateLimitByUID_FailsClosedAtCap(t *testing.T) {
 	// maxEntries=2: after two users fill the map, a third new user must be
-	// allowed through (fail-open) rather than rejected.
+	// rejected (fail-closed) so that an attacker cannot bypass the limiter by
+	// churning through user keys.
 	lim := rateLimitByUID(1, 0, 2)
 	inner := lim(noopHandler())
 
@@ -323,10 +332,10 @@ func TestRateLimitByUID_FailsOpenAtCap(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code)
 	}
 
-	// Third user: map is full, must fail-open (200).
+	// Third user: map is full, must fail-closed (429).
 	rec := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodPost, "/", nil)
 	r = r.WithContext(session.TestWithUser(r.Context(), "user-c"))
 	inner.ServeHTTP(rec, r)
-	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, http.StatusTooManyRequests, rec.Code)
 }

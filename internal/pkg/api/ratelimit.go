@@ -69,8 +69,9 @@ func (l *ipRateLimiter) cleanup() {
 }
 
 // allow reports whether the request from the given IP should be allowed through.
-// When the entry map is full and a new IP arrives, allow returns true (fail-open)
-// so that a flood of unique IPs degrades the limiter rather than blocking everyone.
+// When the entry map is full and a new IP arrives, allow returns false (fail-closed)
+// so that an attacker filling the map with distinct keys cannot bypass the limiter.
+// The map is bounded by maxEntries and drained by the periodic cleanup goroutine.
 func (l *ipRateLimiter) allow(r *http.Request) bool {
 	key := normalizeIP(clientIP(r, l.trustedProxies), l.ipv6PrefixLen)
 
@@ -79,7 +80,7 @@ func (l *ipRateLimiter) allow(r *http.Request) bool {
 	if !ok {
 		if len(l.entries) >= l.maxEntries {
 			l.mu.Unlock()
-			return true // fail-open: map is full, do not allocate
+			return false // fail-closed: map is full, refuse new keys
 		}
 		entry = &rateLimitEntry{lim: rate.NewLimiter(l.rps, l.burst)}
 		l.entries[key] = entry
@@ -145,7 +146,8 @@ func normalizeIP(ip net.IP, ipv6PrefixLen int) string {
 //   - burst: maximum burst; 0 means auto (max(int(rps), 1)).
 //   - trustedProxies: see [clientIP].
 //   - ipv6PrefixLen: see [normalizeIP].
-//   - maxEntries: cap on tracked IPs; new IPs beyond the cap are allowed through.
+//   - maxEntries: cap on tracked IPs; new IPs beyond the cap are rejected
+//     (fail-closed) until the cleanup goroutine evicts idle entries.
 func rateLimitByIP(rps float64, burst, trustedProxies, ipv6PrefixLen, maxEntries int) func(http.Handler) http.Handler {
 	if rps <= 0 {
 		return func(next http.Handler) http.Handler { return next }
@@ -214,14 +216,15 @@ func (l *uidRateLimiter) cleanup() {
 }
 
 // allow reports whether the request from the given user UUID should be allowed through.
-// When the entry map is full and a new UID arrives, allow returns true (fail-open).
+// When the entry map is full and a new UID arrives, allow returns false (fail-closed)
+// so that an attacker cannot bypass the limiter by churning through user keys.
 func (l *uidRateLimiter) allow(uid string) bool {
 	l.mu.Lock()
 	entry, ok := l.entries[uid]
 	if !ok {
 		if len(l.entries) >= l.maxEntries {
 			l.mu.Unlock()
-			return true // fail-open: map is full, do not allocate
+			return false // fail-closed: map is full, refuse new keys
 		}
 		entry = &uidRateLimitEntry{lim: rate.NewLimiter(l.rps, l.burst)}
 		l.entries[uid] = entry
@@ -237,12 +240,14 @@ func (l *uidRateLimiter) allow(uid string) bool {
 // token-bucket rate limit of rps requests per second. When rps is zero or
 // negative the returned middleware is a no-op pass-through. On overflow the
 // middleware responds with HTTP 429. If the context carries no authenticated
-// user, the request is allowed through (fail-open).
+// user, the request is allowed through (fail-open); pair this middleware with
+// an auth middleware (e.g. requireUser) that runs first.
 //
 // Parameters:
 //   - rps: token refill rate; 0 or negative disables the limit.
 //   - burst: maximum burst; 0 means auto (max(int(rps), 1)).
-//   - maxEntries: cap on tracked user entries; new users beyond the cap are allowed through.
+//   - maxEntries: cap on tracked user entries; new users beyond the cap are
+//     rejected (fail-closed) until the cleanup goroutine evicts idle entries.
 func rateLimitByUID(rps float64, burst, maxEntries int) func(http.Handler) http.Handler {
 	if rps <= 0 {
 		return func(next http.Handler) http.Handler { return next }
