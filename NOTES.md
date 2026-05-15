@@ -2,6 +2,48 @@
 
 **This file is ONLY FOR HUMANS. AI agents MUST IGNORE IT.**
 
+## Rate Limiting
+
+Applied to three endpoints: `/sessions/login`, `/confirm-email` (auth limiter), and `/register` (email-send limiter). Each limiter is independent -- hits on login do not drain the register bucket.
+
+### How it works
+
+Each limiter maintains a `map[string]*tokenBucket` keyed by client IP (or IPv6 prefix). Incoming requests extract the client IP, normalize it to a map key, then call `Allow()` on that IP's bucket. A 429 is returned if the bucket is empty.
+
+The map is bounded to `APP_RATE_LIMIT_MAX_IPS` entries (default 100 000). When the cap is reached, new IPs are **allowed through** (fail-open) rather than rejected -- this prevents a flood of unique IPs from causing OOM while avoiding false positives for legitimate users. A background goroutine evicts entries idle for more than 5 minutes (runs every minute).
+
+### Token bucket parameters
+
+Each bucket refills at `RPS` tokens per second and can hold up to `Burst` tokens. To express a longer window, use a fractional RPS with an explicit burst:
+
+| Goal | RPS | Burst |
+|------|-----|-------|
+| 5 req/s | `5` | `0` (auto=5) |
+| 10 req/min | `0.1667` | `10` |
+| 1 req/min, initial burst 3 | `0.01667` | `3` |
+
+Burst `0` auto-selects `max(int(rps), 1)`.
+
+### IPv6
+
+IPv6 addresses are masked to a configurable prefix length (`APP_RATE_LIMIT_IPV6_PREFIX_LEN`, default `/64`) before being used as the map key. All addresses within the same prefix share one bucket, preventing trivial rotation through the `/128` space.
+
+### Reverse proxy / IP extraction
+
+`APP_RATE_LIMIT_TRUSTED_PROXIES` (default `0`) controls how many rightmost `X-Forwarded-For` entries to skip when extracting the real client IP. Set to the number of reverse proxies in front of the app (e.g. `1` for a single nginx). When `0`, the TCP peer address is used directly.
+
+### Env vars
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `APP_RATE_LIMIT_AUTH_RPS` | `0.1` | Auth limiter refill rate (req/s) |
+| `APP_RATE_LIMIT_AUTH_BURST` | `5` | Auth limiter burst (0=auto) |
+| `APP_RATE_LIMIT_EMAIL_SEND_RPS` | `0.1` | Email-send limiter refill rate (req/s) |
+| `APP_RATE_LIMIT_EMAIL_SEND_BURST` | `1` | Email-send limiter burst (0=auto) |
+| `APP_RATE_LIMIT_TRUSTED_PROXIES` | `0` | Trusted reverse proxy count |
+| `APP_RATE_LIMIT_IPV6_PREFIX_LEN` | `64` | IPv6 prefix length for bucketing |
+| `APP_RATE_LIMIT_MAX_IPS` | `100000` | Max tracked IPs per limiter (fail-open above) |
+
 ## ETag Usage
 
 ### How it works today

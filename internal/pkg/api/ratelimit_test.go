@@ -25,9 +25,9 @@ func newReq(remoteAddr, xff string) *http.Request {
 	return r
 }
 
-// defaultParams returns sensible test defaults: no proxies, /64 IPv6, large cap.
+// newLimiter creates a limiter with auto burst, no proxies, /64 IPv6, large cap.
 func newLimiter(rps float64) func(http.Handler) http.Handler {
-	return rateLimitByIP(rps, 0, 64, 100000)
+	return rateLimitByIP(rps, 0, 0, 64, 100000)
 }
 
 func TestRateLimitByIP_DisabledWhenZero(t *testing.T) {
@@ -90,9 +90,25 @@ func TestRateLimitByIP_DifferentIPsAreIndependent(t *testing.T) {
 	}
 }
 
+func TestRateLimitByIP_ExplicitBurst(t *testing.T) {
+	// rps=1/60 (~0.0167) with explicit burst=3: first 3 requests pass, fourth is rejected.
+	handler := rateLimitByIP(1.0/60, 3, 0, 64, 100000)(noopHandler())
+	req := newReq("1.2.3.4:1234", "")
+
+	for i := range 3 {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		require.Equalf(t, http.StatusOK, rec.Code, "request %d should succeed", i)
+	}
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusTooManyRequests, rec.Code)
+}
+
 func TestRateLimitByIP_IPv6PrefixGrouping(t *testing.T) {
 	// /64 prefix: two addresses in the same /64 share a bucket (burst=1).
-	handler := rateLimitByIP(1, 0, 64, 100000)(noopHandler())
+	handler := rateLimitByIP(1, 0, 0, 64, 100000)(noopHandler())
 
 	samePrefix1 := "2001:db8::1:1"
 	samePrefix2 := "2001:db8::1:2"
@@ -117,7 +133,7 @@ func TestRateLimitByIP_IPv6PrefixGrouping(t *testing.T) {
 func TestRateLimitByIP_TrustedProxiesXFF(t *testing.T) {
 	// trustedProxies=1: real client IP is the second-from-right XFF entry.
 	// RemoteAddr is the proxy; the limiter must key on the XFF client IP.
-	handler := rateLimitByIP(1, 1, 64, 100000)(noopHandler())
+	handler := rateLimitByIP(1, 0, 1, 64, 100000)(noopHandler())
 
 	clientA := "10.0.0.1"
 	clientB := "10.0.0.2"
@@ -142,7 +158,7 @@ func TestRateLimitByIP_TrustedProxiesXFF(t *testing.T) {
 func TestRateLimitByIP_FailsOpenAtCap(t *testing.T) {
 	// maxEntries=2: after two distinct IPs fill the map, a third new IP must be
 	// allowed through (fail-open) rather than rejected.
-	handler := rateLimitByIP(1, 0, 64, 2)(noopHandler())
+	handler := rateLimitByIP(1, 0, 0, 64, 2)(noopHandler())
 
 	// Fill the map by exhausting two IPs' bursts (so they are in the map).
 	for _, addr := range []string{"1.1.1.1:1", "2.2.2.2:2"} {

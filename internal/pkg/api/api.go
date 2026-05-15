@@ -80,8 +80,8 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 	mux.Get("/users/{uuid}/avatar", sv.handleGetUserAvatar)
 	mux.Get("/users/{uuid}/stars", sv.handleGetUserStars)
 
-	authRateLimit := rateLimitByIP(appConfig.RateLimitAuthRPS, appConfig.RateLimitTrustedProxies, appConfig.RateLimitIPv6PrefixLen, appConfig.RateLimitMaxIPs)
-	emailSendRateLimit := rateLimitByIP(appConfig.RateLimitEmailSendRPS, appConfig.RateLimitTrustedProxies, appConfig.RateLimitIPv6PrefixLen, appConfig.RateLimitMaxIPs)
+	authRateLimit := rateLimitByIP(appConfig.RateLimitAuthRPS, appConfig.RateLimitAuthBurst, appConfig.RateLimitTrustedProxies, appConfig.RateLimitIPv6PrefixLen, appConfig.RateLimitMaxIPs)
+	emailSendRateLimit := rateLimitByIP(appConfig.RateLimitEmailSendRPS, appConfig.RateLimitEmailSendBurst, appConfig.RateLimitTrustedProxies, appConfig.RateLimitIPv6PrefixLen, appConfig.RateLimitMaxIPs)
 
 	mux.Group(func(r chi.Router) {
 		r.With(emailSendRateLimit).Post("/register", sv.handleRegister)

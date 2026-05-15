@@ -51,14 +51,22 @@ type AppConfig struct {
 	// A .demo suffix is appended to the database path to prevent accidental overwrites.
 	// Cannot be active together with DevelopmentMode.
 	DemoMode bool `arg:"--app-demo-mode,env:APP_DEMO_MODE" default:"false" help:"Enable demo mode (locks users, periodically deletes tracks, uses .demo DB suffix)"`
-	// RateLimitAuthRPS is the per-IP rate limit applied to the authentication endpoints
-	// (/sessions/login, /confirm-email), in requests per second.
+	// RateLimitAuthRPS is the per-IP token refill rate applied to the authentication
+	// endpoints (/sessions/login, /confirm-email), in requests per second.
+	// Fractional values are allowed (e.g. 0.1667 for 10 per minute).
 	// Zero disables the limit.
-	RateLimitAuthRPS float64 `arg:"--app-rate-limit-auth-rps,env:APP_RATE_LIMIT_AUTH_RPS" default:"10" help:"Per-IP rate limit for auth endpoints (requests/second, 0 to disable)" placeholder:"N"`
-	// RateLimitEmailSendRPS is the per-IP rate limit applied to endpoints that trigger
-	// sending an email (/register), in requests per second.
+	RateLimitAuthRPS float64 `arg:"--app-rate-limit-auth-rps,env:APP_RATE_LIMIT_AUTH_RPS" default:"0.1" help:"Per-IP token refill rate for auth endpoints (requests/second, 0 to disable)" placeholder:"N"`
+	// RateLimitAuthBurst is the maximum burst for the auth rate limiter.
+	// Zero means auto: max(int(RateLimitAuthRPS), 1).
+	RateLimitAuthBurst int `arg:"--app-rate-limit-auth-burst,env:APP_RATE_LIMIT_AUTH_BURST" default:"5" help:"Max burst for auth rate limiter (0 = auto: max(int(rps),1))" placeholder:"N"`
+	// RateLimitEmailSendRPS is the per-IP token refill rate applied to endpoints that
+	// trigger sending an email (/register), in requests per second.
+	// Fractional values are allowed (e.g. 0.1667 for 10 per minute).
 	// Zero disables the limit.
-	RateLimitEmailSendRPS float64 `arg:"--app-rate-limit-email-send-rps,env:APP_RATE_LIMIT_EMAIL_SEND_RPS" default:"1" help:"Per-IP rate limit for endpoints triggering email sends (requests/second, 0 to disable)" placeholder:"N"`
+	RateLimitEmailSendRPS float64 `arg:"--app-rate-limit-email-send-rps,env:APP_RATE_LIMIT_EMAIL_SEND_RPS" default:"0.1" help:"Per-IP token refill rate for endpoints triggering email sends (requests/second, 0 to disable)" placeholder:"N"`
+	// RateLimitEmailSendBurst is the maximum burst for the email-send rate limiter.
+	// Zero means auto: max(int(RateLimitEmailSendRPS), 1).
+	RateLimitEmailSendBurst int `arg:"--app-rate-limit-email-send-burst,env:APP_RATE_LIMIT_EMAIL_SEND_BURST" default:"1" help:"Max burst for email-send rate limiter (0 = auto: max(int(rps),1))" placeholder:"N"`
 	// RateLimitTrustedProxies is the number of trusted reverse proxies in front of the
 	// application. 0 means the direct TCP peer is used as the client IP. When > 0, the
 	// real client IP is read from the X-Forwarded-For header by skipping that many
@@ -93,8 +101,14 @@ func (c *AppConfig) Validate() error {
 	if c.RateLimitAuthRPS < 0 {
 		return errors.New("--app-rate-limit-auth-rps / APP_RATE_LIMIT_AUTH_RPS must be non-negative")
 	}
+	if c.RateLimitAuthBurst < 0 {
+		return errors.New("--app-rate-limit-auth-burst / APP_RATE_LIMIT_AUTH_BURST must be non-negative")
+	}
 	if c.RateLimitEmailSendRPS < 0 {
 		return errors.New("--app-rate-limit-email-send-rps / APP_RATE_LIMIT_EMAIL_SEND_RPS must be non-negative")
+	}
+	if c.RateLimitEmailSendBurst < 0 {
+		return errors.New("--app-rate-limit-email-send-burst / APP_RATE_LIMIT_EMAIL_SEND_BURST must be non-negative")
 	}
 	if c.RateLimitTrustedProxies < 0 {
 		return errors.New("--app-rate-limit-trusted-proxies / APP_RATE_LIMIT_TRUSTED_PROXIES must be non-negative")

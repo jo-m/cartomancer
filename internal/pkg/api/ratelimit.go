@@ -31,14 +31,18 @@ type ipRateLimiter struct {
 // that evicts entries idle for more than 5 minutes.
 //
 // Parameters:
-//   - rps: token refill rate (requests per second); burst equals max(int(rps), 1).
+//   - rps: token refill rate (requests per second).
+//   - burst: maximum token accumulation; 0 means auto (max(int(rps), 1)).
 //   - trustedProxies: number of trusted reverse proxies; 0 uses the direct peer address.
 //   - ipv6PrefixLen: IPv6 prefix length (1-128) used to group addresses into one bucket.
 //   - maxEntries: cap on the number of distinct IP keys held at once.
-func newIPRateLimiter(rps float64, trustedProxies, ipv6PrefixLen, maxEntries int) *ipRateLimiter {
+func newIPRateLimiter(rps float64, burst, trustedProxies, ipv6PrefixLen, maxEntries int) *ipRateLimiter {
+	if burst <= 0 {
+		burst = max(int(rps), 1)
+	}
 	l := &ipRateLimiter{
 		rps:            rate.Limit(rps),
-		burst:          max(int(rps), 1),
+		burst:          burst,
 		trustedProxies: trustedProxies,
 		ipv6PrefixLen:  ipv6PrefixLen,
 		maxEntries:     maxEntries,
@@ -131,20 +135,21 @@ func normalizeIP(ip net.IP, ipv6PrefixLen int) string {
 }
 
 // rateLimitByIP returns middleware that enforces a per-IP (or per-IPv6-prefix)
-// token-bucket rate limit of rps requests per second. Burst capacity equals
-// max(int(rps), 1). When rps is zero or negative the returned middleware is a
-// no-op pass-through. On overflow the middleware responds with HTTP 429.
+// token-bucket rate limit of rps requests per second. When rps is zero or
+// negative the returned middleware is a no-op pass-through. On overflow the
+// middleware responds with HTTP 429.
 //
 // Parameters:
 //   - rps: token refill rate; 0 or negative disables the limit.
+//   - burst: maximum burst; 0 means auto (max(int(rps), 1)).
 //   - trustedProxies: see [clientIP].
 //   - ipv6PrefixLen: see [normalizeIP].
 //   - maxEntries: cap on tracked IPs; new IPs beyond the cap are allowed through.
-func rateLimitByIP(rps float64, trustedProxies, ipv6PrefixLen, maxEntries int) func(http.Handler) http.Handler {
+func rateLimitByIP(rps float64, burst, trustedProxies, ipv6PrefixLen, maxEntries int) func(http.Handler) http.Handler {
 	if rps <= 0 {
 		return func(next http.Handler) http.Handler { return next }
 	}
-	lim := newIPRateLimiter(rps, trustedProxies, ipv6PrefixLen, maxEntries)
+	lim := newIPRateLimiter(rps, burst, trustedProxies, ipv6PrefixLen, maxEntries)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !lim.allow(r) {

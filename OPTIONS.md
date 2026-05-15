@@ -36,9 +36,13 @@ Global options:
                          Email for the initial admin account created on first startup [env: APP_INIT_ADMIN_EMAIL]
   --app-demo-mode        Enable demo mode (locks users, periodically deletes tracks, uses .demo DB suffix) [default: false, env: APP_DEMO_MODE]
   --app-rate-limit-auth-rps N
-                         Per-IP rate limit for auth endpoints (requests/second, 0 to disable) [default: 10, env: APP_RATE_LIMIT_AUTH_RPS]
+                         Per-IP token refill rate for auth endpoints (requests/second, 0 to disable) [default: 0.1, env: APP_RATE_LIMIT_AUTH_RPS]
+  --app-rate-limit-auth-burst N
+                         Max burst for auth rate limiter (0 = auto: max(int(rps),1)) [default: 5, env: APP_RATE_LIMIT_AUTH_BURST]
   --app-rate-limit-email-send-rps N
-                         Per-IP rate limit for endpoints triggering email sends (requests/second, 0 to disable) [default: 1, env: APP_RATE_LIMIT_EMAIL_SEND_RPS]
+                         Per-IP token refill rate for endpoints triggering email sends (requests/second, 0 to disable) [default: 0.1, env: APP_RATE_LIMIT_EMAIL_SEND_RPS]
+  --app-rate-limit-email-send-burst N
+                         Max burst for email-send rate limiter (0 = auto: max(int(rps),1)) [default: 1, env: APP_RATE_LIMIT_EMAIL_SEND_BURST]
   --app-rate-limit-trusted-proxies N
                          Number of trusted reverse proxies; 0 = use direct connection IP [default: 0, env: APP_RATE_LIMIT_TRUSTED_PROXIES]
   --app-rate-limit-ipv6-prefix-len N

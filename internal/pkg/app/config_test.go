@@ -78,6 +78,18 @@ func TestValidate(t *testing.T) {
 		require.NoError(t, c.Validate())
 	})
 
+	t.Run("negative auth burst", func(t *testing.T) {
+		c := validConfig()
+		c.RateLimitAuthBurst = -1
+		require.ErrorContains(t, c.Validate(), "APP_RATE_LIMIT_AUTH_BURST")
+	})
+
+	t.Run("negative email-send burst", func(t *testing.T) {
+		c := validConfig()
+		c.RateLimitEmailSendBurst = -1
+		require.ErrorContains(t, c.Validate(), "APP_RATE_LIMIT_EMAIL_SEND_BURST")
+	})
+
 	t.Run("negative trusted proxies", func(t *testing.T) {
 		c := validConfig()
 		c.RateLimitTrustedProxies = -1
