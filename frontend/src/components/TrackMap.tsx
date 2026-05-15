@@ -26,6 +26,7 @@ import {
   ARROW_SCREEN_SPACING_PX,
   buildArrowHaloCanvas,
   buildArrowInnerCanvas,
+  buildDetourSignCanvas,
   buildEndStyleCanvas,
 } from "../lib/mapArrows"
 import type { HoverStore } from "../hooks/useHoverSync"
@@ -60,10 +61,24 @@ interface TrackPoint {
 
 const detourStyle = new Style({
   stroke: new Stroke({ color: "rgba(245, 158, 11, 0.7)", width: 10 }),
+  image: new Icon({
+    img: buildDetourSignCanvas(
+      "rgba(245, 158, 11, 0.85)",
+      "rgba(255, 255, 255, 1)"
+    ),
+    anchor: [0.5, 0.5],
+  }),
 })
 
 const detourStyleHover = new Style({
   stroke: new Stroke({ color: "rgba(245, 158, 11, 0.9)", width: 10 }),
+  image: new Icon({
+    img: buildDetourSignCanvas(
+      "rgba(245, 158, 11, 0.9)",
+      "rgba(255, 255, 255, 1)"
+    ),
+    anchor: [0.5, 0.5],
+  }),
 })
 
 const closureStyle = [
@@ -74,6 +89,11 @@ const closureStyle = [
       lineDash: [14, 14],
       lineCap: "butt",
     }),
+    image: new Circle({
+      radius: 11,
+      fill: new Fill({ color: "rgba(220, 38, 38, 0.7)" }),
+      stroke: new Stroke({ color: "rgba(255, 255, 255, 1)", width: 1 }),
+    }),
   }),
   new Style({
     stroke: new Stroke({
@@ -82,6 +102,11 @@ const closureStyle = [
       lineDash: [14, 14],
       lineDashOffset: 14,
       lineCap: "butt",
+    }),
+    // White inner dot gives point closures a Durchfahrt-verboten look.
+    image: new Circle({
+      radius: 6,
+      fill: new Fill({ color: "rgba(255, 255, 255, 1)" }),
     }),
   }),
 ]
@@ -94,6 +119,11 @@ const closureStyleHover = [
       lineDash: [14, 14],
       lineCap: "butt",
     }),
+    image: new Circle({
+      radius: 11,
+      fill: new Fill({ color: "rgba(220, 38, 38, 0.9)" }),
+      stroke: new Stroke({ color: "rgba(255, 255, 255, 1)", width: 1 }),
+    }),
   }),
   new Style({
     stroke: new Stroke({
@@ -102,6 +132,10 @@ const closureStyleHover = [
       lineDash: [14, 14],
       lineDashOffset: 14,
       lineCap: "butt",
+    }),
+    image: new Circle({
+      radius: 6,
+      fill: new Fill({ color: "rgba(255, 255, 255, 1)" }),
     }),
   }),
 ]

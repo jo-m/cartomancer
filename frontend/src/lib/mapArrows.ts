@@ -126,3 +126,41 @@ export function buildArrowInnerCanvas(
   ctx.stroke()
   return canvas
 }
+
+/**
+ * Builds a canvas icon shaped like a Swiss detour (Umleitung) sign: a
+ * rectangle with a triangular point on the right end, like a directional arrow.
+ *
+ * @param fill - CSS color for the sign body.
+ * @param border - CSS color for the sign outline.
+ */
+export function buildDetourSignCanvas(
+  fill: string,
+  border: string
+): HTMLCanvasElement {
+  const w = 28
+  const h = 14
+  const canvas = document.createElement("canvas")
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext("2d")!
+
+  // Pentagon: rectangle body on the left, triangular point on the right.
+  const bodyEnd = 20
+  ctx.beginPath()
+  ctx.moveTo(0, 0)
+  ctx.lineTo(bodyEnd, 0)
+  ctx.lineTo(w, h / 2)
+  ctx.lineTo(bodyEnd, h)
+  ctx.lineTo(0, h)
+  ctx.closePath()
+
+  ctx.fillStyle = fill
+  ctx.fill()
+  ctx.strokeStyle = border
+  ctx.lineWidth = 1.5
+  ctx.lineJoin = "round"
+  ctx.stroke()
+
+  return canvas
+}
