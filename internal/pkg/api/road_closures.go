@@ -88,9 +88,10 @@ func (sv *server) handleGetTrackRoadClosures(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Fine filter: check actual intersection at res-12.
+	trackCells := roadclosures.BuildTrackCells(lats, lons)
 	var result []roadClosureResponse
 	for _, rc := range candidates {
-		if !roadclosures.Intersects(rc.Geometry, lats, lons) {
+		if !roadclosures.IntersectsCells(rc.Geometry, trackCells) {
 			continue
 		}
 		result = append(result, roadClosureResponse{
