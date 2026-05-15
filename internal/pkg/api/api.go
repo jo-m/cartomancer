@@ -82,6 +82,8 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 
 	authRateLimit := rateLimitByIP(appConfig.RateLimitAuthRPS, appConfig.RateLimitAuthBurst, appConfig.RateLimitTrustedProxies, appConfig.RateLimitIPv6PrefixLen, appConfig.RateLimitMaxIPs)
 	emailSendRateLimit := rateLimitByIP(appConfig.RateLimitEmailSendRPS, appConfig.RateLimitEmailSendBurst, appConfig.RateLimitTrustedProxies, appConfig.RateLimitIPv6PrefixLen, appConfig.RateLimitMaxIPs)
+	changePasswordRateLimit := rateLimitByUID(appConfig.RateLimitAuthRPS, appConfig.RateLimitAuthBurst, appConfig.RateLimitMaxIPs)
+	changeEmailRateLimit := rateLimitByUID(appConfig.RateLimitEmailSendRPS, appConfig.RateLimitEmailSendBurst, appConfig.RateLimitMaxIPs)
 
 	mux.Group(func(r chi.Router) {
 		r.With(emailSendRateLimit).Post("/register", sv.handleRegister)
@@ -136,8 +138,8 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 
 		r.Patch("/account", sv.handleUpdateAccount)
 		r.Delete("/account", sv.handleDeleteAccount)
-		r.Post("/account/change-password", sv.handleChangePassword)
-		r.Post("/account/change-email", sv.handleChangeEmail)
+		r.With(changePasswordRateLimit).Post("/account/change-password", sv.handleChangePassword)
+		r.With(changeEmailRateLimit).Post("/account/change-email", sv.handleChangeEmail)
 		r.Post("/account/rotate-avatar", sv.handleRotateAvatar)
 		r.Get("/account/export", sv.handleExportData)
 	})

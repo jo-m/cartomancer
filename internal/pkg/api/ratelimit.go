@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"golang.org/x/time/rate"
+	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
 // rateLimitEntry holds a per-IP token-bucket limiter and the time it was last used.
@@ -153,6 +154,108 @@ func rateLimitByIP(rps float64, burst, trustedProxies, ipv6PrefixLen, maxEntries
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !lim.allow(r) {
+				writeStatusError(w, http.StatusTooManyRequests)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// uidRateLimitEntry holds a per-user token-bucket limiter and the time it was last used.
+type uidRateLimitEntry struct {
+	lim      *rate.Limiter
+	lastSeen time.Time
+}
+
+// uidRateLimiter enforces a per-user-UUID token-bucket rate limit with a bounded map.
+type uidRateLimiter struct {
+	rps        rate.Limit
+	burst      int
+	maxEntries int
+	mu         sync.Mutex
+	entries    map[string]*uidRateLimitEntry
+}
+
+// newUIDRateLimiter creates a uidRateLimiter and starts a background cleanup goroutine
+// that evicts entries idle for more than 5 minutes.
+//
+// Parameters:
+//   - rps: token refill rate (requests per second).
+//   - burst: maximum token accumulation; 0 means auto (max(int(rps), 1)).
+//   - maxEntries: cap on the number of distinct user keys held at once.
+func newUIDRateLimiter(rps float64, burst, maxEntries int) *uidRateLimiter {
+	if burst <= 0 {
+		burst = max(int(rps), 1)
+	}
+	l := &uidRateLimiter{
+		rps:        rate.Limit(rps),
+		burst:      burst,
+		maxEntries: maxEntries,
+		entries:    make(map[string]*uidRateLimitEntry),
+	}
+	go l.cleanup()
+	return l
+}
+
+// cleanup runs forever, evicting entries that have not been seen for 5 minutes.
+func (l *uidRateLimiter) cleanup() {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		l.mu.Lock()
+		for key, entry := range l.entries {
+			if time.Since(entry.lastSeen) > 5*time.Minute {
+				delete(l.entries, key)
+			}
+		}
+		l.mu.Unlock()
+	}
+}
+
+// allow reports whether the request from the given user UUID should be allowed through.
+// When the entry map is full and a new UID arrives, allow returns true (fail-open).
+func (l *uidRateLimiter) allow(uid string) bool {
+	l.mu.Lock()
+	entry, ok := l.entries[uid]
+	if !ok {
+		if len(l.entries) >= l.maxEntries {
+			l.mu.Unlock()
+			return true // fail-open: map is full, do not allocate
+		}
+		entry = &uidRateLimitEntry{lim: rate.NewLimiter(l.rps, l.burst)}
+		l.entries[uid] = entry
+	}
+	entry.lastSeen = time.Now()
+	lim := entry.lim
+	l.mu.Unlock()
+
+	return lim.Allow()
+}
+
+// rateLimitByUID returns middleware that enforces a per-authenticated-user
+// token-bucket rate limit of rps requests per second. When rps is zero or
+// negative the returned middleware is a no-op pass-through. On overflow the
+// middleware responds with HTTP 429. If the context carries no authenticated
+// user, the request is allowed through (fail-open).
+//
+// Parameters:
+//   - rps: token refill rate; 0 or negative disables the limit.
+//   - burst: maximum burst; 0 means auto (max(int(rps), 1)).
+//   - maxEntries: cap on tracked user entries; new users beyond the cap are allowed through.
+func rateLimitByUID(rps float64, burst, maxEntries int) func(http.Handler) http.Handler {
+	if rps <= 0 {
+		return func(next http.Handler) http.Handler { return next }
+	}
+	lim := newUIDRateLimiter(rps, burst, maxEntries)
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user := session.GetUser(r.Context())
+			if user == nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+			if !lim.allow(user.Uuid) {
 				writeStatusError(w, http.StatusTooManyRequests)
 				return
 			}

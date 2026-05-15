@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
 // noopHandler returns 200 OK without writing a body.
@@ -218,4 +219,114 @@ func TestNormalizeIP_IPv6Prefix(t *testing.T) {
 
 func TestNormalizeIP_Nil(t *testing.T) {
 	require.Equal(t, "unknown", normalizeIP(nil, 64))
+}
+
+// newUIDHandler wraps noopHandler() with a rateLimitByUID middleware and, when uid
+// is non-empty, injects a fake db.User into the request context.
+func newUIDHandler(rps float64, burst int, uid string) http.Handler {
+	mw := rateLimitByUID(rps, burst, 100000)
+	inner := mw(noopHandler())
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if uid != "" {
+			r = r.WithContext(session.TestWithUser(r.Context(), uid))
+		}
+		inner.ServeHTTP(w, r)
+	})
+}
+
+func TestRateLimitByUID_DisabledWhenZero(t *testing.T) {
+	handler := newUIDHandler(0, 0, "user-1")
+
+	for range 50 {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
+		require.Equal(t, http.StatusOK, rec.Code)
+	}
+}
+
+func TestRateLimitByUID_DisabledWhenNegative(t *testing.T) {
+	handler := newUIDHandler(-1, 0, "user-1")
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
+	require.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestRateLimitByUID_AllowsBurstThenRejects(t *testing.T) {
+	// rps=5 gives burst=5; first 5 requests pass, sixth is rejected.
+	handler := newUIDHandler(5, 0, "user-1")
+
+	for i := range 5 {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
+		require.Equalf(t, http.StatusOK, rec.Code, "request %d should succeed", i)
+	}
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
+	require.Equal(t, http.StatusTooManyRequests, rec.Code)
+}
+
+func TestRateLimitByUID_ExplicitBurst(t *testing.T) {
+	// rps=1/60 (~0.0167) with explicit burst=3: first 3 requests pass, fourth is rejected.
+	handler := newUIDHandler(1.0/60, 3, "user-1")
+
+	for i := range 3 {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
+		require.Equalf(t, http.StatusOK, rec.Code, "request %d should succeed", i)
+	}
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
+	require.Equal(t, http.StatusTooManyRequests, rec.Code)
+}
+
+func TestRateLimitByUID_DifferentUsersAreIndependent(t *testing.T) {
+	// rps=2 gives burst=2 per user; two distinct users each get their own bucket.
+	lim := rateLimitByUID(2, 0, 100000)
+	inner := lim(noopHandler())
+
+	for _, uid := range []string{"user-a", "user-b"} {
+		for i := range 2 {
+			rec := httptest.NewRecorder()
+			r := httptest.NewRequest(http.MethodPost, "/", nil)
+			r = r.WithContext(session.TestWithUser(r.Context(), uid))
+			inner.ServeHTTP(rec, r)
+			require.Equalf(t, http.StatusOK, rec.Code, "user %s request %d should succeed", uid, i)
+		}
+	}
+}
+
+func TestRateLimitByUID_NoUserFailsOpen(t *testing.T) {
+	// No user in context: should be allowed through regardless.
+	handler := rateLimitByUID(1, 1, 100000)(noopHandler())
+
+	for range 5 {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
+		require.Equal(t, http.StatusOK, rec.Code)
+	}
+}
+
+func TestRateLimitByUID_FailsOpenAtCap(t *testing.T) {
+	// maxEntries=2: after two users fill the map, a third new user must be
+	// allowed through (fail-open) rather than rejected.
+	lim := rateLimitByUID(1, 0, 2)
+	inner := lim(noopHandler())
+
+	for _, uid := range []string{"user-a", "user-b"} {
+		rec := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/", nil)
+		r = r.WithContext(session.TestWithUser(r.Context(), uid))
+		inner.ServeHTTP(rec, r)
+		require.Equal(t, http.StatusOK, rec.Code)
+	}
+
+	// Third user: map is full, must fail-open (200).
+	rec := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodPost, "/", nil)
+	r = r.WithContext(session.TestWithUser(r.Context(), "user-c"))
+	inner.ServeHTTP(rec, r)
+	require.Equal(t, http.StatusOK, rec.Code)
 }

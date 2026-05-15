@@ -61,6 +61,12 @@ func MustGet(ctx context.Context) db.Session {
 	return db.Session{} // unreachable
 }
 
+// TestWithUser returns a context with a minimal db.User (only Uuid set) attached,
+// for use in tests that need an authenticated context without a real session.
+func TestWithUser(ctx context.Context, uuid string) context.Context {
+	return withUser(ctx, db.User{Uuid: uuid})
+}
+
 type ctxKeyRequest struct{}
 type requestCtx struct {
 	w http.ResponseWriter
