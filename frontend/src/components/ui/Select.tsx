@@ -1,4 +1,4 @@
-import { forwardRef } from "react"
+import { forwardRef, useId } from "react"
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   /** Label text displayed above the select. */
@@ -13,8 +13,8 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   { label, id, className = "", children, ...props },
   ref
 ) {
-  const selectId =
-    id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined)
+  const generatedId = useId()
+  const selectId = id || generatedId
 
   return (
     <div>

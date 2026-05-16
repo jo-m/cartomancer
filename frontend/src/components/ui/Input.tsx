@@ -1,4 +1,4 @@
-import { forwardRef } from "react"
+import { forwardRef, useId } from "react"
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   /** Label text displayed above the input. */
@@ -16,8 +16,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { label, error, id, className = "", ...props },
   ref
 ) {
-  const inputId =
-    id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined)
+  const generatedId = useId()
+  const inputId = id || generatedId
 
   return (
     <div>
@@ -33,13 +33,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         ref={ref}
         id={inputId}
         aria-invalid={error ? "true" : undefined}
-        aria-describedby={error && inputId ? `${inputId}-error` : undefined}
+        aria-describedby={error ? `${inputId}-error` : undefined}
         className={`min-h-11 w-full rounded border border-border bg-panel px-3 py-2 text-sm text-text placeholder-text-muted transition-colors focus:border-primary focus:outline-none ${error ? "border-error" : ""} ${className}`}
         {...props}
       />
       {error && (
         <p
-          id={inputId ? `${inputId}-error` : undefined}
+          id={`${inputId}-error`}
           role="alert"
           className="mt-1 text-sm text-error"
         >
