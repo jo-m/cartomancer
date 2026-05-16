@@ -30,7 +30,7 @@ NEVER call tools manually, use the npm scripts.
 ## API client
 
 - Types are generated from `internal/pkg/api/openapi.yaml` via openapi-typescript.
-- `npm run gen` regenerates `src/api/schema.gen.ts` (already wired into dev/build). Not committed.
+- `npm run gen` regenerates `src/api/schema.gen.ts`. Wired into `dev` and `build`, but NOT into `lint`. If `openapi.yaml` has changed since the last `dev`/`build`, run `npm run gen` before `npm run lint` or the linter may report stale errors against an out-of-date schema. Not committed.
 - All API calls MUST use the generated client.
 
 `src/api/client.ts` exports:
@@ -86,7 +86,7 @@ Key tokens: `surface`, `panel`, `primary`, `border`, `text`, `text-secondary`, `
 
 ### Shared UI components (`src/components/ui/`)
 
-ALWAYS use these instead of repeating raw Tailwind classes. ALL interactive elements MUST have `cursor-pointer` and `transition-colors`.
+ALWAYS use these instead of repeating raw Tailwind classes. Interactive elements should have `cursor-pointer` and `transition-colors`; the shared `Button` and similar components already include both, which is the main reason to prefer them over hand-rolled markup. A handful of one-off controls (e.g. the mobile menu toggle in `Layout.tsx`) are bare `<button>` elements and may omit `transition-colors` where the hover effect is purely an icon color change.
 
 - Button: 4 variants (primary, secondary, danger, ghost), forwardRef.
 - Input: labeled input with error display + ARIA, forwardRef.
@@ -96,7 +96,7 @@ ALWAYS use these instead of repeating raw Tailwind classes. ALL interactive elem
 - ToggleGroup: segmented toggle, `role="radiogroup"`.
 - SectionHeading: uppercase tracking-wide label.
 - Alert: 4 variants (info, warning, error, success), `role="alert"`.
-- PageContainer: page wrapper with size variants (sm, md, lg, xl). Default vertical padding `py-8`; do not override per-page.
+- PageContainer: page wrapper with size variants (sm, md, lg, xl). Default vertical padding `py-8`; prefer the default for content pages. Marketing/landing pages (e.g. `Welcome.tsx`) may override with a larger value like `py-16`.
 - DualRangeSlider: dual-thumb numeric range slider.
 
 ### Track page components
