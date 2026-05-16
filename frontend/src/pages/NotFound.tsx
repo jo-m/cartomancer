@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom"
 import useDocumentTitle from "../hooks/useDocumentTitle"
 import Button from "../components/ui/Button"
 
@@ -11,9 +10,9 @@ export default function NotFound() {
         <p className="mt-4 text-lg text-text-secondary">
           The page you are looking for does not exist.
         </p>
-        <Link to="/" className="mt-6 inline-block">
-          <Button variant="primary">Back to home</Button>
-        </Link>
+        <Button to="/" variant="primary" className="mt-6">
+          Back to home
+        </Button>
       </div>
     </div>
   )

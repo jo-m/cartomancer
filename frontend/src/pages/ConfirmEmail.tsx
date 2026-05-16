@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useSearchParams, Link } from "react-router-dom"
+import { useSearchParams } from "react-router-dom"
 import { useSession } from "../context/SessionContext"
 import { fetchClient } from "../api/client"
 import useDocumentTitle from "../hooks/useDocumentTitle"
@@ -52,9 +52,9 @@ export default function ConfirmEmail() {
           <p className="mb-4 text-sm text-text-secondary">
             Your email has been confirmed. Please log in to continue.
           </p>
-          <Link to="/login">
-            <Button variant="primary">Go to login</Button>
-          </Link>
+          <Button to="/login" variant="primary">
+            Go to login
+          </Button>
         </Card>
       </div>
     )

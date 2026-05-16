@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom"
 import { useAppConfig } from "../api/client"
 import { useSession } from "../context/SessionContext"
 import useDocumentTitle from "../hooks/useDocumentTitle"
@@ -22,25 +21,25 @@ export default function Welcome() {
       <div className="flex gap-4">
         {user ? (
           <>
-            <Link to="/tracks">
-              <Button variant="primary">Public tracks</Button>
-            </Link>
-            <Link to="/account/tracks">
-              <Button variant="secondary">My tracks</Button>
-            </Link>
+            <Button to="/tracks" variant="primary">
+              Public tracks
+            </Button>
+            <Button to="/account/tracks" variant="secondary">
+              My tracks
+            </Button>
           </>
         ) : (
           <>
-            <Link to="/tracks">
-              <Button variant="primary">Browse tracks</Button>
-            </Link>
-            <Link to="/login">
-              <Button variant="secondary">Log in</Button>
-            </Link>
+            <Button to="/tracks" variant="primary">
+              Browse tracks
+            </Button>
+            <Button to="/login" variant="secondary">
+              Log in
+            </Button>
             {appConfig?.registrationEnabled && (
-              <Link to="/register">
-                <Button variant="secondary">Create account</Button>
-              </Link>
+              <Button to="/register" variant="secondary">
+                Create account
+              </Button>
             )}
           </>
         )}

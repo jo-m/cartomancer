@@ -49,9 +49,9 @@ export default function Leaving() {
         <Button variant="secondary" onClick={() => navigate(-1)}>
           Go back
         </Button>
-        <a href={target} rel="noopener noreferrer">
-          <Button variant="primary">Continue to site</Button>
-        </a>
+        <Button href={target} rel="noopener noreferrer" variant="primary">
+          Continue to site
+        </Button>
       </div>
     </div>
   )
