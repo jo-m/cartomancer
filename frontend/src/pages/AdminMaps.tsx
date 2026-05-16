@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { $api } from "../api/client"
 import useDocumentTitle from "../hooks/useDocumentTitle"
 import useToast from "../hooks/useToast"
@@ -36,6 +37,7 @@ function formatBbox(
 export default function AdminMaps() {
   useDocumentTitle("Maps")
   const { toast, showToast, dismissToast } = useToast()
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   const {
     data: builds,
@@ -48,14 +50,9 @@ export default function AdminMaps() {
   )
 
   async function handleMarkForDeletion(uuid: string, key: string) {
-    if (
-      !window.confirm(
-        `Mark ${key} for deletion? The file will be removed on the next cleanup run.`
-      )
-    )
-      return
     try {
       await markMutation.mutateAsync({ params: { path: { uuid } } })
+      setDeleteConfirm(null)
       showToast(`Marked ${key} for deletion`, "success")
       refetch()
     } catch (err) {
@@ -73,6 +70,39 @@ export default function AdminMaps() {
       return <span className="text-xs text-success">Ready</span>
     }
     return <span className="text-xs text-text-muted">Not ready</span>
+  }
+
+  function renderActions(b: (typeof rows)[0]) {
+    if (b.markedForDeletion) return null
+    if (deleteConfirm === b.uuid) {
+      return (
+        <>
+          <Button
+            variant="danger"
+            onClick={() => handleMarkForDeletion(b.uuid, b.key)}
+            disabled={markMutation.isPending}
+          >
+            Confirm delete
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setDeleteConfirm(null)}
+            disabled={markMutation.isPending}
+          >
+            Cancel
+          </Button>
+        </>
+      )
+    }
+    return (
+      <Button
+        variant="danger"
+        onClick={() => setDeleteConfirm(b.uuid)}
+        title="Mark for deletion on next cleanup"
+      >
+        Delete
+      </Button>
+    )
   }
 
   return (
@@ -127,16 +157,9 @@ export default function AdminMaps() {
                   <TimeAgo iso={b.createdAt} />
                 </td>
                 <td className="px-4 py-3">
-                  {!b.markedForDeletion && (
-                    <Button
-                      variant="danger"
-                      onClick={() => handleMarkForDeletion(b.uuid, b.key)}
-                      disabled={markMutation.isPending}
-                      title="Mark for deletion on next cleanup"
-                    >
-                      Delete
-                    </Button>
-                  )}
+                  <span className="flex flex-wrap items-center gap-2">
+                    {renderActions(b)}
+                  </span>
                 </td>
               </tr>
             ))}
@@ -187,16 +210,7 @@ export default function AdminMaps() {
               <TimeAgo iso={b.createdAt} />
             </AdminCardField>
             {!b.markedForDeletion && (
-              <AdminCardFooter>
-                <Button
-                  variant="danger"
-                  onClick={() => handleMarkForDeletion(b.uuid, b.key)}
-                  disabled={markMutation.isPending}
-                  title="Mark for deletion on next cleanup"
-                >
-                  Delete
-                </Button>
-              </AdminCardFooter>
+              <AdminCardFooter>{renderActions(b)}</AdminCardFooter>
             )}
           </AdminCard>
         ))}
