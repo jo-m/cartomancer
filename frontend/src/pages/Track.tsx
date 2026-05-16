@@ -157,9 +157,9 @@ export default function Track() {
   if (error || !data) {
     return (
       <PageContainer size="lg">
-        <p role="alert" className="text-error">
+        <Alert variant="error">
           {(error as Error | null)?.message ?? "Track not found."}
-        </p>
+        </Alert>
       </PageContainer>
     )
   }

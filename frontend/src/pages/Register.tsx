@@ -5,10 +5,12 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { $api } from "../api/client"
 import useDocumentTitle from "../hooks/useDocumentTitle"
+import useToast from "../hooks/useToast"
 import Alert from "../components/ui/Alert"
 import Card from "../components/ui/Card"
 import Input from "../components/ui/Input"
 import Button from "../components/ui/Button"
+import Toast from "../components/Toast"
 
 const schema = z
   .object({
@@ -27,6 +29,7 @@ type FormData = z.infer<typeof schema>
 export default function Register() {
   useDocumentTitle("Register")
   const [success, setSuccess] = useState(false)
+  const { toast, showToast, dismissToast } = useToast()
   const { data: appConfig, isLoading: configLoading } = $api.useQuery(
     "get",
     "/app_config"
@@ -46,8 +49,8 @@ export default function Register() {
         body: { email: data.email, name: data.name, password: data.password },
       })
       setSuccess(true)
-    } catch {
-      // error displayed via mutation.error
+    } catch (err) {
+      showToast((err as Error).message)
     }
   }
 
@@ -73,6 +76,14 @@ export default function Register() {
 
   return (
     <div className="flex min-h-[calc(100vh-var(--nav-height))] items-center justify-center px-4">
+      {toast && (
+        <Toast
+          key={toast.key}
+          message={toast.message}
+          variant={toast.variant}
+          onDismiss={dismissToast}
+        />
+      )}
       <Card className="w-full max-w-sm p-8 shadow-sm">
         <h1 className="mb-6 text-xl font-semibold text-text">
           Create an account
@@ -110,11 +121,6 @@ export default function Register() {
             Your email address will always stay private. Your name will be
             visible publicly.
           </Alert>
-          {mutation.error && (
-            <p role="alert" className="text-sm text-error">
-              {mutation.error.message}
-            </p>
-          )}
           <Button
             type="submit"
             variant="primary"

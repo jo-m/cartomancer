@@ -5,10 +5,12 @@ import { z } from "zod"
 import { useSession } from "../context/SessionContext"
 import { useAppConfig, ApiError } from "../api/client"
 import useDocumentTitle from "../hooks/useDocumentTitle"
+import useToast from "../hooks/useToast"
 import Card from "../components/ui/Card"
 import Input from "../components/ui/Input"
 import Button from "../components/ui/Button"
 import Alert from "../components/ui/Alert"
+import Toast from "../components/Toast"
 
 const schema = z.object({
   email: z.string().min(1, "Required").email("Invalid email"),
@@ -22,10 +24,10 @@ export default function Login() {
   const { login } = useSession()
   const { data: appConfig } = useAppConfig()
   const navigate = useNavigate()
+  const { toast, showToast, dismissToast } = useToast()
   const {
     register,
     handleSubmit,
-    setError,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
@@ -40,12 +42,20 @@ export default function Login() {
           : err instanceof Error
             ? err.message
             : "Login failed"
-      setError("root", { message })
+      showToast(message)
     }
   }
 
   return (
     <div className="flex min-h-[calc(100vh-var(--nav-height))] items-center justify-center px-4">
+      {toast && (
+        <Toast
+          key={toast.key}
+          message={toast.message}
+          variant={toast.variant}
+          onDismiss={dismissToast}
+        />
+      )}
       <Card className="w-full max-w-sm p-8 shadow-sm">
         <h1 className="mb-6 text-xl font-semibold text-text">Sign in</h1>
         {appConfig?.demoMode && appConfig.demoEmail && (
@@ -77,11 +87,6 @@ export default function Login() {
             error={errors.password?.message}
             {...register("password")}
           />
-          {errors.root && (
-            <p role="alert" className="text-sm text-error">
-              {errors.root.message}
-            </p>
-          )}
           <Button
             type="submit"
             variant="primary"
