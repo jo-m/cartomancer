@@ -31,6 +31,7 @@ import {
 } from "../lib/mapArrows"
 import type { HoverStore } from "../hooks/useHoverSync"
 import type { RoadClosure } from "../types/map"
+import { fmtDate } from "../lib/time"
 import MapAttribution from "./MapAttribution"
 
 import "ol/ol.css"
@@ -657,7 +658,9 @@ export default memo(function TrackMap({
             )}
             {(tooltip.startsAt || tooltip.endsAt) && (
               <p className="mt-0.5 text-text-muted">
-                {tooltip.startsAt ?? "?"} &ndash; {tooltip.endsAt ?? "?"}
+                {tooltip.startsAt ? fmtDate(tooltip.startsAt) : "?"}
+                {" – "}
+                {tooltip.endsAt ? fmtDate(tooltip.endsAt) : "?"}
               </p>
             )}
             {tooltip.description && (
