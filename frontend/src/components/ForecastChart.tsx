@@ -19,6 +19,7 @@ import {
   windDirLabel,
 } from "../lib/forecast"
 import type { ForecastPoint, ForecastUnits, SunEvent } from "../types/forecast"
+import { findNearestIndex } from "../lib/nearest"
 import WindRose from "./WindRose"
 
 interface ChartDatum {
@@ -219,16 +220,8 @@ export default function ForecastChart({
         return null
       }
       const targetKm = trackDistancesM[trackIdx] / 1000
-      let best = 0
-      let bestDist = Math.abs(data[0].dKm - targetKm)
-      for (let i = 1; i < data.length; i++) {
-        const dist = Math.abs(data[i].dKm - targetKm)
-        if (dist < bestDist) {
-          bestDist = dist
-          best = i
-        }
-      }
-      return data[best]
+      const idx = findNearestIndex(data, targetKm, (d) => d.dKm)
+      return idx >= 0 ? data[idx] : null
     },
     [data, trackDistancesM]
   )
@@ -238,16 +231,7 @@ export default function ForecastChart({
     (dKm: number): number | null => {
       if (!trackDistancesM || trackDistancesM.length === 0) return null
       const targetM = dKm * 1000
-      let best = 0
-      let bestDist = Math.abs(trackDistancesM[0] - targetM)
-      for (let i = 1; i < trackDistancesM.length; i++) {
-        const dist = Math.abs(trackDistancesM[i] - targetM)
-        if (dist < bestDist) {
-          bestDist = dist
-          best = i
-        }
-      }
-      return best
+      return findNearestIndex(trackDistancesM, targetM, (m) => m)
     },
     [trackDistancesM]
   )

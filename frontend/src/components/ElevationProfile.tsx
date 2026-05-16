@@ -8,6 +8,7 @@ import {
   CartesianGrid,
 } from "recharts"
 import type { HoverStore } from "../hooks/useHoverSync"
+import { findNearestIndex } from "../lib/nearest"
 
 interface TrackPoint {
   lat: number
@@ -90,16 +91,7 @@ export default memo(function ElevationProfile({
       const minDKm = data[0].dKm
       const maxDKm = data[data.length - 1].dKm
       const dKm = minDKm + fraction * (maxDKm - minDKm)
-      let best = 0
-      let bestDist = Math.abs(data[0].dKm - dKm)
-      for (let i = 1; i < data.length; i++) {
-        const dist = Math.abs(data[i].dKm - dKm)
-        if (dist < bestDist) {
-          bestDist = dist
-          best = i
-        }
-      }
-      return best
+      return findNearestIndex(data, dKm, (d) => d.dKm)
     },
     [data]
   )
