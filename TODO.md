@@ -192,6 +192,7 @@
   - [ ] Endpoints missing rate limiting
   - [ ] Anything in the backend that allows for unbounded growth/size (hard limits everywhere)
   - [ ] Frontend: Accessibility, Mobile friendlyness, Responsiveness
+  - [ ] Any 3rd party stuff in the repo without license or data sources without attribution
 - [ ] `go fix ./...`
 - [ ] Bump dependencies
   - [ ] CI

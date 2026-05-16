@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { Link, Outlet, useNavigate } from "react-router-dom"
 import { ChevronDownIcon } from "@heroicons/react/20/solid"
 import { useSession } from "../context/SessionContext"
@@ -95,12 +95,6 @@ export default function Layout() {
   const tracksMenu = useDropdown()
   const userMenu = useDropdown()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  useEffect(() => {
-    if (appConfig?.instanceName) {
-      document.title = appConfig.instanceName
-    }
-  }, [appConfig?.instanceName])
 
   async function handleLogout() {
     userMenu.close()

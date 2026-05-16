@@ -504,7 +504,9 @@ export default memo(function TrackMap({
     })
   }, [hoverStore, markerVisibleStyle])
 
-  // Render road closure geometries on the map.
+  // Render road closure geometries on the map. `points` is in deps because
+  // the main map-setup effect rebuilds the closure layer when points change;
+  // we must re-add the features into that fresh layer.
   useEffect(() => {
     const closureLayer = closureLayerRef.current
     if (!closureLayer) return
@@ -528,7 +530,7 @@ export default memo(function TrackMap({
         console.error(`Failed to parse closure geometry (${c.uuid}):`, err)
       }
     }
-  }, [closures, layer])
+  }, [closures, layer, points])
 
   // Closure hover: show tooltip and highlight on pointer move over closure features.
   useEffect(() => {

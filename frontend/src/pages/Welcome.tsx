@@ -7,7 +7,7 @@ import Button from "../components/ui/Button"
 
 /** Welcome landing page shown to all visitors at the root route. */
 export default function Welcome() {
-  useDocumentTitle()
+  useDocumentTitle("")
   const { data: appConfig } = useAppConfig()
   const { user } = useSession()
 

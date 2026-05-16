@@ -33,10 +33,12 @@ export default function CommentSection({
 }: CommentSectionProps) {
   const { user } = useSession()
 
-  const { data, isLoading } = $api.useQuery("get", "/tracks/{uuid}/comments", {
-    params: { path: { uuid: trackUUID } },
-    enabled: isPublicOrOwner,
-  })
+  const { data, isLoading } = $api.useQuery(
+    "get",
+    "/tracks/{uuid}/comments",
+    { params: { path: { uuid: trackUUID } } },
+    { enabled: isPublicOrOwner }
+  )
 
   const comments = (data?.comments ?? []) as Comment[]
 

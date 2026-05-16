@@ -120,7 +120,7 @@ ALWAYS use these instead of repeating raw Tailwind classes. ALL interactive elem
 
 - useUrlState - sync component state with URL search params.
 - useHoverSync - shared hover index for coordinated chart/map hover.
-- useDocumentTitle - sets `document.title` to `"Title | Cartomancer"`. No arg = base title alone. Every page MUST call this. For dynamic pages (e.g. Track), pass the data field (e.g. `data?.name`) so the title updates when data loads.
+- useDocumentTitle - sets `document.title` to `"Title | Cartomancer"`. Pass `""` for the base title alone, or `undefined` to skip (used by dynamic pages while data is still loading). Every page MUST call this. For dynamic pages (e.g. Track), pass the data field (e.g. `data?.name`) so the title updates when data loads without flickering.
 - useToast - toast state with re-trigger via incrementing key. Returns `{ toast, showToast, dismissToast }`.
 - useForecast - forecast fetching/state for a single track.
 
