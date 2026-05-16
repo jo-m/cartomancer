@@ -31,6 +31,24 @@ interface MapBuildInfo {
   bboxMinLat?: number | null
   bboxMaxLon?: number | null
   bboxMaxLat?: number | null
+  /** ISO 8601 datetime when the build was uploaded. */
+  uploaded?: string | null
+}
+
+/**
+ * Returns the area of the build's declared bbox, or Infinity when no bbox
+ * is set (treated as global coverage and therefore lowest detail among ties).
+ */
+function buildBboxArea(m: MapBuildInfo): number {
+  if (
+    m.bboxMinLon == null ||
+    m.bboxMinLat == null ||
+    m.bboxMaxLon == null ||
+    m.bboxMaxLat == null
+  ) {
+    return Infinity
+  }
+  return (m.bboxMaxLon - m.bboxMinLon) * (m.bboxMaxLat - m.bboxMinLat)
 }
 
 /** Returns true if outer fully contains inner. */
@@ -120,8 +138,18 @@ export function selectMapLayer(
 
   if (covering.length === 0) return { type: "none" }
 
-  const best = [...covering].sort(
-    (a, b) => (b.maxZoom ?? 0) - (a.maxZoom ?? 0)
-  )[0]
+  // Pick the build with the highest maxZoom. Break ties by smaller bbox area
+  // (more detail per tile), then by newer upload time, then by uuid so the
+  // result is fully deterministic regardless of input order or sort stability.
+  const best = [...covering].sort((a, b) => {
+    const zoomDiff = (b.maxZoom ?? 0) - (a.maxZoom ?? 0)
+    if (zoomDiff !== 0) return zoomDiff
+    const areaDiff = buildBboxArea(a) - buildBboxArea(b)
+    if (areaDiff !== 0) return areaDiff
+    const uploadedA = a.uploaded ?? ""
+    const uploadedB = b.uploaded ?? ""
+    if (uploadedA !== uploadedB) return uploadedB.localeCompare(uploadedA)
+    return a.uuid.localeCompare(b.uuid)
+  })[0]
   return { type: "pmtiles", url: `/api/maps/${best.uuid}` }
 }
