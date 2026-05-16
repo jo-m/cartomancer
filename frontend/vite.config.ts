@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig, type Plugin } from "vite"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
@@ -54,5 +55,11 @@ export default defineConfig({
       "/api": "http://localhost:8080",
       "/robots.txt": "http://localhost:8080",
     },
+  },
+  // Default to node for fast pure-logic tests. Files that need DOM/React
+  // (e.g. hook tests using `renderHook`) opt in with the file-level directive
+  //   // @vitest-environment jsdom
+  test: {
+    environment: "node",
   },
 })

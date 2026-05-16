@@ -41,7 +41,7 @@
       sourceRoot = "source/frontend";
 
       # To update: replace with pkgs.lib.fakeHash, run `nix build .#frontend`, copy the expected hash from the error message.
-      npmDepsHash = "sha256-w/qQpe/LabkN/om0AOv6xMN2+iPbXHPgnZ1EGsytm3Y=";
+      npmDepsHash = "sha256-tViFwxQflEH7wJ6FjKeXDcyTnzdb/2ws7UpjzsItkPk=";
 
       # npm run build invokes `npm run gen` which reads
       # ../internal/pkg/api/openapi.yaml. vite writes output to

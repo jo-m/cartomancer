@@ -30,12 +30,22 @@ NEVER call tools manually, use the npm scripts.
 
 ## Testing
 
-Vitest (reuses `vite.config.ts`, no extra config). For headless logic only — no
-DOM/jsdom or React component tests. Test files live next to the source as
-`<module>.test.ts` and use explicit imports: `import { describe, it, expect } from "vitest"`.
-Good targets: pure functions in `src/lib/` (formatters, math, deterministic
-helpers). Avoid: components, hooks, anything touching `document`/`window`, and
-locale-dependent formatters (`fmtClock`/`fmtDate`/`fmtRelative`).
+Vitest (config lives in `vite.config.ts`). Default environment is `node` for
+fast pure-logic tests. Test files live next to the source as `<module>.test.ts`
+and use explicit imports: `import { describe, it, expect } from "vitest"`.
+
+- Pure logic (preferred): test files run under node. Good targets: pure
+  functions in `src/lib/` (formatters, math, deterministic helpers).
+- Hooks: opt in to jsdom per file with the directive
+  `// @vitest-environment jsdom` on the first line, then use `renderHook` /
+  `act` from `@testing-library/react`. See
+  `src/hooks/useToast.test.ts` for an example.
+
+Avoid: React component tests, anything touching browser APIs beyond
+`document`/`window` basics (no canvas, no OpenLayers), and locale-dependent
+formatters (`fmtClock`/`fmtDate`/`fmtRelative`). Hooks that depend on the
+router, React Query, or backend fetches (`useUrlState`, `useTrackGridUrl`,
+`useForecast`) need wrappers/mocks and are out of scope for now.
 
 ## API client
 
