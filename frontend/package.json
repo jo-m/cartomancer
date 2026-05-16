@@ -9,7 +9,8 @@
     "build": "npm run gen && vite build",
     "lint": "prettier --log-level silent --check . && tsc && eslint .",
     "lint:fix": "eslint --fix .",
-    "format": "prettier --log-level silent --write ."
+    "format": "prettier --log-level silent --write .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@fontsource/crimson-text": "^5.2.7",
@@ -50,6 +51,7 @@
     "tailwindcss": "^4.2.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
-    "vite": "^8"
+    "vite": "^8",
+    "vitest": "^4.1.6"
   }
 }

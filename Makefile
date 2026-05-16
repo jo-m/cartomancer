@@ -31,6 +31,10 @@ lint:
 test:
 	go test ./...
 
+.PHONY: test_frontend
+test_frontend:
+	cd frontend && npm ci && npm test
+
 .PHONY: test_online
 test_online:
 	go test -v -timeout 5m -count=1 -run=TestOnline --tags=online ./...
@@ -43,6 +47,7 @@ bench:
 check: gen lint
 	go build ./...
 	@go test ./... | { grep -vE '^(ok|\?)' || true; }
+	@cd frontend && npm ci && npm run test -- --silent --reporter=dot
 
 .PHONY: clean
 clean:

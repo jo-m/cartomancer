@@ -19,6 +19,15 @@ jobs:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - run: nix develop --command bash -c 'cd frontend && npm ci && npm run gen && npm run lint'
 
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nix develop --command bash -c 'cd frontend && npm ci && npm test'
+
   go-lint:
     runs-on: ubuntu-latest
     steps:

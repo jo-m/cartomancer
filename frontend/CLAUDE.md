@@ -25,7 +25,17 @@ frontend/
 NEVER call tools manually, use the npm scripts.
 - `npm run format` for formatting. Call it BEFORE linting.
 - After every change, `npm run lint` MUST succeed.
+- `npm test` runs the Vitest suite once; `npm run test:watch` for watch mode.
 - Vite build outputs to `../static/` (embedded in the Go binary).
+
+## Testing
+
+Vitest (reuses `vite.config.ts`, no extra config). For headless logic only — no
+DOM/jsdom or React component tests. Test files live next to the source as
+`<module>.test.ts` and use explicit imports: `import { describe, it, expect } from "vitest"`.
+Good targets: pure functions in `src/lib/` (formatters, math, deterministic
+helpers). Avoid: components, hooks, anything touching `document`/`window`, and
+locale-dependent formatters (`fmtClock`/`fmtDate`/`fmtRelative`).
 
 ## API client
 
