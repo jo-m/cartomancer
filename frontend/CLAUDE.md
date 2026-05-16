@@ -30,27 +30,17 @@ NEVER call tools manually, use the npm scripts.
 
 ## Testing
 
-Vitest (config lives in `vite.config.ts`). Default environment is `node` for
-fast pure-logic tests. Test files live next to the source as `<module>.test.ts`
-and use explicit imports: `import { describe, it, expect } from "vitest"`.
+Vitest, config in `vite.config.ts`. Default env `node`. Test files next to source as `<module>.test.ts` with explicit `import { describe, it, expect } from "vitest"`.
 
-- Pure logic (preferred): test files run under node. Good targets: pure
-  functions in `src/lib/` (formatters, math, deterministic helpers).
-- Hooks: opt in to jsdom per file with the directive
-  `// @vitest-environment jsdom` on the first line, then use `renderHook` /
-  `act` from `@testing-library/react`. See
-  `src/hooks/useToast.test.ts` for an example.
+- Pure logic (preferred): pure fns in `src/lib/` (formatters, math, deterministic helpers).
+- Hooks: opt in to jsdom per file with `// @vitest-environment jsdom` on line 1, then `renderHook`/`act` from `@testing-library/react`. See `src/hooks/useToast.test.ts`.
 
-Avoid: React component tests, anything touching browser APIs beyond
-`document`/`window` basics (no canvas, no OpenLayers), and locale-dependent
-formatters (`fmtClock`/`fmtDate`/`fmtRelative`). Hooks that depend on the
-router, React Query, or backend fetches (`useUrlState`, `useTrackGridUrl`,
-`useForecast`) need wrappers/mocks and are out of scope for now.
+Avoid: React component tests, browser APIs beyond `document`/`window` basics (no canvas, no OpenLayers), locale-dependent formatters (`fmtClock`/`fmtDate`/`fmtRelative`), and hooks depending on router/React Query/backend fetches (`useUrlState`, `useTrackGridUrl`, `useForecast`).
 
 ## API client
 
-- Types are generated from `internal/pkg/api/openapi.yaml` via openapi-typescript.
-- `npm run gen` regenerates `src/api/schema.gen.ts`. Wired into `dev` and `build`, but NOT into `lint`. If `openapi.yaml` has changed since the last `dev`/`build`, run `npm run gen` before `npm run lint` or the linter may report stale errors against an out-of-date schema. Not committed.
+- Types generated from `internal/pkg/api/openapi.yaml` via openapi-typescript.
+- `npm run gen` regenerates `src/api/schema.gen.ts` (wired into `dev`/`build`, NOT into `lint`; run manually before lint if `openapi.yaml` changed). Not committed.
 - All API calls MUST use the generated client.
 
 `src/api/client.ts` exports:
@@ -68,7 +58,7 @@ const mutation = $api.useMutation("post", "/some-resource")
 // mutation.isPending, mutation.isSuccess, mutation.error
 ```
 
-Errors from mutations/queries are `Error` instances (the `Register` interface in `client.ts` sets `defaultError: Error`). Access `.message` directly: `mutation.error.message`. In `catch (err: unknown)`, use `(err as Error).message`.
+Errors from mutations/queries are `Error` instances (`Register` interface in `client.ts` sets `defaultError: Error`). Access `mutation.error.message` directly; in `catch (err: unknown)`, use `(err as Error).message`.
 
 ### Forms
 
@@ -106,7 +96,7 @@ Key tokens: `surface`, `panel`, `primary`, `border`, `text`, `text-secondary`, `
 
 ### Shared UI components (`src/components/ui/`)
 
-ALWAYS use these instead of repeating raw Tailwind classes. Interactive elements should have `cursor-pointer` and `transition-colors`; the shared `Button` and similar components already include both, which is the main reason to prefer them over hand-rolled markup. A handful of one-off controls (e.g. the mobile menu toggle in `Layout.tsx`) are bare `<button>` elements and may omit `transition-colors` where the hover effect is purely an icon color change.
+ALWAYS use these instead of repeating raw Tailwind classes. Interactive elements need `cursor-pointer` and `transition-colors`; the shared components already include both. One-off icon-only controls (e.g. mobile menu toggle in `Layout.tsx`) may omit `transition-colors`.
 
 - Button: 4 variants (primary, secondary, danger, ghost), forwardRef.
 - Input: labeled input with error display + ARIA, forwardRef.
@@ -116,7 +106,7 @@ ALWAYS use these instead of repeating raw Tailwind classes. Interactive elements
 - ToggleGroup: segmented toggle, `role="radiogroup"`.
 - SectionHeading: uppercase tracking-wide label.
 - Alert: 4 variants (info, warning, error, success), `role="alert"`.
-- PageContainer: page wrapper with size variants (sm, md, lg, xl). Default vertical padding `py-8`; prefer the default for content pages. Marketing/landing pages (e.g. `Welcome.tsx`) may override with a larger value like `py-16`.
+- PageContainer: page wrapper with size variants (sm, md, lg, xl). Default `py-8`; marketing/landing pages may override (e.g. `py-16`).
 - DualRangeSlider: dual-thumb numeric range slider.
 
 ### Track page components
@@ -140,7 +130,7 @@ ALWAYS use these instead of repeating raw Tailwind classes. Interactive elements
 
 - useUrlState - sync component state with URL search params.
 - useHoverSync - shared hover index for coordinated chart/map hover.
-- useDocumentTitle - sets `document.title` to `"Title | Cartomancer"`. Pass `""` for the base title alone, or `undefined` to skip (used by dynamic pages while data is still loading). Every page MUST call this. For dynamic pages (e.g. Track), pass the data field (e.g. `data?.name`) so the title updates when data loads without flickering.
+- useDocumentTitle - sets `document.title` to `"Title | Cartomancer"`. Pass `""` for base title, `undefined` to skip (dynamic pages while loading). Every page MUST call this; for dynamic pages pass `data?.name` so the title updates without flickering.
 - useToast - toast state with re-trigger via incrementing key. Returns `{ toast, showToast, dismissToast }`.
 - useForecast - forecast fetching/state for a single track.
 
@@ -155,7 +145,7 @@ ALWAYS use these instead of repeating raw Tailwind classes. Interactive elements
 
 ### SVG assets
 
-SVGs in `src/assets/` MUST use `currentColor` (not `#000`) so they inherit text color and respond to dark mode. Import with `?raw` (Vite raw import) and render inline via `dangerouslySetInnerHTML` when they need to inherit CSS color. Set the parent's `text-*` class to control SVG color.
+SVGs in `src/assets/` MUST use `currentColor` (not `#000`) to inherit text color and respond to dark mode. Import with `?raw` and render inline via `dangerouslySetInnerHTML` when CSS color inheritance is needed; set the parent's `text-*` class to control color.
 
 ### Accessibility
 
@@ -168,7 +158,7 @@ SVGs in `src/assets/` MUST use `currentColor` (not `#000`) so they inherit text 
 - All data views/tables MUST be searchable, paginatable, filterable.
 - All links (incl. nav) MUST be real `<a>` so right-click / open-in-new-tab works.
 - Router URL paths should roughly mirror the API. E.g. tracks upload page (POST `/api/tracks`) lives at `/tracks/uploads`.
-- Error/success feedback: use `useToast` (`src/hooks/useToast.ts`) + `Toast` component. `showToast(message)` for errors, `showToast(message, "success")` for success. Render `{toast && <Toast key={toast.key} message={toast.message} variant={toast.variant} onDismiss={dismissToast} />}`. The `key` prop ensures repeated identical messages re-trigger the auto-dismiss timer. Avoid inline `<p>` success/error elements that persist.
+- Error/success feedback: use `useToast` + `Toast`. `showToast(message)` for errors, `showToast(message, "success")` for success. Render `{toast && <Toast key={toast.key} message={toast.message} variant={toast.variant} onDismiss={dismissToast} />}` - the `key` prop re-triggers the auto-dismiss timer on repeats. Avoid persistent inline `<p>` error/success elements.
 - External links: any `href` from API/DB (track author links, attribution URLs) MUST go through the `/leaving` interstitial via `externalUrl()`. Backend-hardcoded links are exempt.
 - NEVER load assets from a third-party domain; all assets MUST be in the build.
 - A CSP meta tag is injected at build time by `cspPlugin` in `vite.config.ts`. When adding a new external origin (tile server, API, font CDN), update `cspContent` directives in that plugin.
