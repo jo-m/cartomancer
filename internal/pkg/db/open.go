@@ -182,14 +182,21 @@ func (d *DB) Close() error {
 // and a read/write "pool" with only one connection in it.
 // You should maintain only a single [*DB] object per SQLite file at a time in your application.
 // You must call [*DB.Close] when the conn is no longer needed.
+//
 // Optional pragmaOverrides replace matching keys in the default pragma set.
+// At most two maps may be passed: the first is applied to both the RW and RO
+// connection DSNs; the optional second is applied to the RW DSN only. Use the
+// RW-only slot for pragmas that mutate the SQLite database header (such as
+// page_size and auto_vacuum), since modernc.org/sqlite re-issues every
+// _pragma= entry as a SET statement on each connection open, and SET pragmas
+// targeting the header would error on the read-only connection.
 //
 // Parameters:
 //   - ctx: context for logging and migration execution.
 //   - path: filesystem path for the SQLite database file.
 //   - migrationsFS: embedded filesystem containing migration SQL files.
 //   - migrationsDir: subdirectory within migrationsFS that holds the migration files.
-//   - pragmaOverrides: optional map of SQLite pragma overrides (at most one).
+//   - pragmaOverrides: optional map(s) of SQLite pragma overrides (at most two).
 func Open(ctx context.Context, path string, migrationsFS embed.FS, migrationsDir string, pragmaOverrides ...map[string]string) (db *DB, err error) {
 	dir := filepath.Dir(path)
 	err = os.MkdirAll(dir, 0750)
@@ -199,20 +206,30 @@ func Open(ctx context.Context, path string, migrationsFS embed.FS, migrationsDir
 		}
 	}
 
-	var overrides map[string]string
+	if len(pragmaOverrides) > 2 {
+		return nil, fmt.Errorf("at most two pragmaOverrides maps are accepted, got %d", len(pragmaOverrides))
+	}
+	var sharedOverrides, rwOnlyOverrides map[string]string
 	if len(pragmaOverrides) > 0 {
-		overrides = pragmaOverrides[0]
+		sharedOverrides = pragmaOverrides[0]
+	}
+	if len(pragmaOverrides) > 1 {
+		rwOnlyOverrides = pragmaOverrides[1]
 	}
 
+	rwOverrides := make(map[string]string, len(sharedOverrides)+len(rwOnlyOverrides))
+	maps.Copy(rwOverrides, sharedOverrides)
+	maps.Copy(rwOverrides, rwOnlyOverrides)
+
 	// Open read/write conn.
-	rw, err := sql.Open(driver, buildDSN(path, false, time.Second*5, overrides))
+	rw, err := sql.Open(driver, buildDSN(path, false, time.Second*5, rwOverrides))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db (rw): %w", err)
 	}
 	rw.SetMaxOpenConns(1)
 
 	// Open read only conn.
-	ro, err := sql.Open(driver, buildDSN(path, true, time.Second*5, overrides))
+	ro, err := sql.Open(driver, buildDSN(path, true, time.Second*5, sharedOverrides))
 	if err != nil {
 		_ = rw.Close()
 		return nil, fmt.Errorf("failed to open db (ro): %w", err)
