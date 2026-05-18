@@ -5,7 +5,7 @@
 Three separate SQLite DBs in `--data-dir`:
 - `db.sqlite`         - main (users, tracks, sessions, jobs).
 - `geonamesdb.sqlite` - geonames data. Regenerable, do not back up.
-- `forecast.sqlite`   - weather forecast data. Regenerable, do not back up.
+- `forecasts2.sqlite` - weather forecast data. Regenerable, do not back up.
 
 Each has its own pkg under `internal/pkg/db/` with independent migrations and sqlc config. Independent write locks mean bulk imports on geonames/forecasts do not block the main DB.
 

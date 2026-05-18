@@ -1,10 +1,16 @@
--- name: CreateForecastFile :one
+-- name: CreateForecastFileMeta :one
+-- Inserts the metadata row for a forecast file. The associated blob must be
+-- written separately via CreateForecastFileBlob, ideally in the same tx.
 INSERT INTO forecast_files (
-    valid_time, valid_until_time, variable, file, forecast_id
+    valid_time, valid_until_time, variable, file_size, forecast_id
 ) VALUES (
     ?, ?, ?, ?, ?
 )
 RETURNING *;
+
+-- name: CreateForecastFileBlob :exec
+-- Inserts the GRIB2 payload for a previously-created forecast_files row.
+INSERT INTO forecast_file_blobs (forecast_file_id, file) VALUES (?, ?);
 
 -- name: GetLatestForecastReferenceTime :one
 SELECT f.reference_time FROM forecasts f
@@ -26,10 +32,16 @@ WHERE datetime(reference_time) < datetime(sqlc.arg(cutoff))
   );
 
 -- name: ListForecastFilesForWindow :many
--- Returns forecast_files rows for the requested time window and bbox.
--- For each (variable, valid_time) pair, returns the file from the newest
--- forecast run that has it, falling back to older runs to fill gaps.
-SELECT mf.* FROM forecast_files mf
+-- Returns forecast_files metadata joined with their blob payload for the
+-- requested time window and bbox. For each (variable, valid_time) pair,
+-- returns the file from the newest forecast run that has it, falling back
+-- to older runs to fill gaps.
+SELECT
+    mf.id, mf.valid_time, mf.valid_until_time, mf.variable,
+    mf.file_size, mf.forecast_id,
+    b.file
+FROM forecast_files mf
+JOIN forecast_file_blobs b ON b.forecast_file_id = mf.id
 WHERE datetime(mf.valid_until_time) > datetime(sqlc.arg(start))
   AND datetime(mf.valid_time) <= datetime(sqlc.arg(end))
   AND mf.forecast_id = (
@@ -68,7 +80,7 @@ ORDER BY mf.variable, mf.valid_time;
 
 -- name: GetForecastFileBlob :one
 -- Returns the GRIB2 blob for a single forecast file by ID.
-SELECT file FROM forecast_files WHERE id = ?;
+SELECT file FROM forecast_file_blobs WHERE forecast_file_id = ?;
 
 -- name: CreateForecast :one
 -- Inserts a new forecast row for the given reference time.
@@ -113,13 +125,14 @@ ORDER BY variable, valid_time;
 
 -- name: ListForecastsWithFiles :many
 -- Returns all forecasts LEFT JOINed with their files (excluding blobs).
--- Forecasts without files appear with NULL file columns.
+-- Forecasts without files appear with NULL file columns. Reads only the
+-- metadata table, so no blob pages are touched.
 SELECT
     f.id AS forecast_id, f.created_at, f.reference_time,
     f.bounds_min_lat, f.bounds_min_lon, f.bounds_max_lat, f.bounds_max_lon,
     f.attribution, f.attribution_href,
     mf.id AS file_id, mf.valid_time, mf.valid_until_time, mf.variable,
-    length(mf.file) AS file_size
+    mf.file_size
 FROM forecasts f
 LEFT JOIN forecast_files mf ON mf.forecast_id = f.id
 ORDER BY f.reference_time DESC, mf.variable, mf.valid_time;
