@@ -298,7 +298,7 @@ func main() {
 
 	dbPath := filepath.Join(dataDir, "db.sqlite")
 	geonamesDBPath := filepath.Join(dataDir, "geonames.sqlite")
-	forecastDBPath := filepath.Join(dataDir, "forecast.sqlite")
+	forecastDBPath := filepath.Join(dataDir, "forecasts2.sqlite")
 
 	// Open main database.
 	d, err := db.Open(ctx, dbPath, db.EmbedMigrations, db.MigrationsDir)

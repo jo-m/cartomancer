@@ -55,4 +55,4 @@ clean:
 
 .PHONY: reset_data
 reset_data:
-	rm -f data/db.sqlite data/geonames.sqlite data/forecast.sqlite
+	rm -f data/db.sqlite data/geonames.sqlite data/forecasts2.sqlite
