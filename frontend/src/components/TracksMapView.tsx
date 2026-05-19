@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { keepPreviousData } from "@tanstack/react-query"
 import OlMap from "ol/Map"
 import OlView from "ol/View"
 import TileLayer from "ol/layer/Tile"
@@ -233,26 +234,45 @@ export default function TracksMapView({
     "/tracks/polylines/50m",
     {
       params: { query },
-    }
+    },
+    // Keep the previous response while a new filter is being fetched so that
+    // the union bbox (and therefore the selected base map layer) does not
+    // briefly fall back to "none". Without this, switching filters destroys
+    // and rebuilds the OpenLayers map with a default viewport, which then
+    // overwrites the persisted m= URL parameter and blanks the base map.
+    { placeholderData: keepPreviousData }
   )
 
   const { data: mapsData } = $api.useQuery("get", "/maps")
 
-  // Compute union bbox of all returned tracks so we can pick the best layer.
+  // Compute union bbox of all returned tracks (plus the start-near pin, if
+  // set) so we can pick the best layer. Including startNear ensures the
+  // layer choice remains stable when a narrow filter momentarily returns no
+  // tracks: without it, unionedBbox would briefly fall back to null and the
+  // map would be rebuilt with type "none", blanking the base layer.
   const unionedBbox = useMemo<Bbox | null>(() => {
-    if (!data) return null
     let acc: Bbox | null = null
-    for (const t of data.tracks) {
-      if (!t.bounds) continue
+    if (data) {
+      for (const t of data.tracks) {
+        if (!t.bounds) continue
+        acc = unionBbox(acc, {
+          minLat: t.bounds.min.lat,
+          maxLat: t.bounds.max.lat,
+          minLon: t.bounds.min.lon,
+          maxLon: t.bounds.max.lon,
+        })
+      }
+    }
+    if (startNear) {
       acc = unionBbox(acc, {
-        minLat: t.bounds.min.lat,
-        maxLat: t.bounds.max.lat,
-        minLon: t.bounds.min.lon,
-        maxLon: t.bounds.max.lon,
+        minLat: startNear.lat,
+        maxLat: startNear.lat,
+        minLon: startNear.lon,
+        maxLon: startNear.lon,
       })
     }
     return acc
-  }, [data])
+  }, [data, startNear])
 
   const layer: MapLayer = useMemo(() => {
     if (!unionedBbox) return { type: "none" }
