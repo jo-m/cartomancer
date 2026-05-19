@@ -53,16 +53,20 @@ func buildDSN(path string, readOnly bool, busyTimeout time.Duration, pragmaOverr
 		query.Add("_txlock", "immediate")
 	}
 	query.Add("_time_format", "sqlite")
-	query.Add("_busy_timeout", fmt.Sprint(busyTimeout.Milliseconds()))
 	if readOnly {
 		query.Add("mode", "ro")
 	} else {
 		query.Add("mode", "rwc")
 	}
 
-	pragmas := make(map[string]string, len(defaultPragmas))
+	pragmas := make(map[string]string, len(defaultPragmas)+1)
 	maps.Copy(pragmas, defaultPragmas)
 	maps.Copy(pragmas, pragmaOverrides)
+	// busy_timeout is passed via _pragma rather than as a top-level DSN
+	// parameter: modernc.org/sqlite does not recognize a _busy_timeout query
+	// key, but its applyQueryParams sorts a _pragma=busy_timeout=... entry to
+	// be applied first on every new connection.
+	pragmas["busy_timeout"] = fmt.Sprint(busyTimeout.Milliseconds())
 	for k, v := range pragmas {
 		query.Add("_pragma", k+"="+v)
 	}
