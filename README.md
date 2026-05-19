@@ -83,6 +83,15 @@ npm run dev
 open http://localhost:5173
 ```
 
+### Git hooks
+
+A pre-push hook that rejects fixup/squash commits is provided in `.githooks/`.
+Install it once after cloning:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ### Commands
 
 ```bash
