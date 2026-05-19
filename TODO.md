@@ -173,6 +173,7 @@
   - [ ] AG?
 - [ ] Download country shapes, and issue a warning if a track includes a border crossing
 - [x] Map view, showing all tracks and their starting points
+- [ ] Social link sharing preview
 - [x] Potentially cache track blob -> track.Track{} for performance.
 - [ ] Go through the periodic TODOs
 
