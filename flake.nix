@@ -86,7 +86,7 @@
         src = ./.;
 
         # To update: replace with pkgs.lib.fakeHash, run `nix build`, copy the expected hash from the error message.
-        vendorHash = "sha256-muK2yMxxFPhnUs5hvwGxQy2Ss5jj2gcK9qwcNfykT5k=";
+        vendorHash = "sha256-RqvhwSJ/h3J8OPpT57TRWkJIXR/0Kvm49JpoozfUTcM=";
 
         # proxyVendor is required because `go generate` uses `go tool sqlc` which needs access to the full module graph, not just imported packages.
         proxyVendor = true;
