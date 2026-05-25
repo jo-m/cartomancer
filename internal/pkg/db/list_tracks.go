@@ -239,6 +239,7 @@ func scanTrackWithStarAndForecast(rows *sql.Rows) (TrackWithStarred, error) {
 		&fc.WindRightMs,
 		&fc.WindTailMs,
 		&fc.WindLeftMs,
+		&fc.UVDoseSED,
 		&tags,
 	)
 	return TrackWithStarred{
@@ -482,7 +483,7 @@ func (d *DB) ListTracks(ctx context.Context, p ListTracksParams) (ListTracksResu
 		return ListTracksResult{}, fmt.Errorf("count tracks: %w", err)
 	}
 
-	const forecastCols = ", tf.forecast_reference_time, tf.start_time, tf.avg_temperature_c, tf.total_precipitation_mm, tf.wind_head_ms, tf.wind_right_ms, tf.wind_tail_ms, tf.wind_left_ms"
+	const forecastCols = ", tf.forecast_reference_time, tf.start_time, tf.avg_temperature_c, tf.total_precipitation_mm, tf.wind_head_ms, tf.wind_right_ms, tf.wind_tail_ms, tf.wind_left_ms, tf.uv_dose_sed"
 	const tagSubquery = ", COALESCE((SELECT json_group_array(tgs.tag) FROM track_tags ttt JOIN tags tgs ON tgs.id = ttt.tag_id WHERE ttt.track_id = tracks.uuid ORDER BY tgs.tag), '[]') AS tags"
 
 	offset := (p.Page - 1) * p.PageSize
@@ -560,6 +561,9 @@ type TrackForecastSummary struct {
 	WindRightMs           sql.NullFloat64
 	WindTailMs            sql.NullFloat64
 	WindLeftMs            sql.NullFloat64
+	// UVDoseSED is the estimated erythemal UV dose collected over the ride in
+	// Standard Erythema Doses (SED). Approximate; see internal/pkg/forecast/uv.go.
+	UVDoseSED sql.NullFloat64
 }
 
 // HasData reports whether the summary contains any forecast data.

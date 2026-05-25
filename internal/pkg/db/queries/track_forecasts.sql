@@ -2,8 +2,9 @@
 INSERT INTO track_forecasts (
     track_uuid, created_at, forecast_reference_time, start_time,
     avg_temperature_c, total_precipitation_mm,
-    wind_head_ms, wind_right_ms, wind_tail_ms, wind_left_ms
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    wind_head_ms, wind_right_ms, wind_tail_ms, wind_left_ms,
+    uv_dose_sed
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(track_uuid) DO UPDATE SET
     created_at = excluded.created_at,
     forecast_reference_time = excluded.forecast_reference_time,
@@ -13,7 +14,8 @@ ON CONFLICT(track_uuid) DO UPDATE SET
     wind_head_ms = excluded.wind_head_ms,
     wind_right_ms = excluded.wind_right_ms,
     wind_tail_ms = excluded.wind_tail_ms,
-    wind_left_ms = excluded.wind_left_ms;
+    wind_left_ms = excluded.wind_left_ms,
+    uv_dose_sed = excluded.uv_dose_sed;
 
 -- name: GetTrackForecast :one
 SELECT * FROM track_forecasts WHERE track_uuid = ?;

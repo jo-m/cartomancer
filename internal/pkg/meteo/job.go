@@ -22,7 +22,12 @@ const (
 )
 
 // DownloadVariables is the list of forecast variables stored by the downloader job.
-var DownloadVariables = []vars.Variable{vars.VarU10m, vars.VarV10m, vars.VarTotPr, vars.VarT2m}
+// VarAswdirS + VarAswdifdS together give downward shortwave at the surface,
+// which the summarizer uses to estimate erythemal UV exposure along a track.
+var DownloadVariables = []vars.Variable{
+	vars.VarU10m, vars.VarV10m, vars.VarTotPr, vars.VarT2m,
+	vars.VarAswdirS, vars.VarAswdifdS,
+}
 
 // DownloaderArgs are the arguments for the forecast downloader job.
 // No configuration fields are needed; behaviour is fixed at registration time.

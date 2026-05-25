@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { formatDistance, formatAscent } from "./format"
+import { formatDistance, formatAscent, formatUVDoseSED } from "./format"
 
 describe("formatDistance", () => {
   it("renders meters as kilometers with one decimal", () => {
@@ -25,5 +25,24 @@ describe("formatAscent", () => {
 
   it("handles zero", () => {
     expect(formatAscent(0)).toBe("0 m")
+  })
+})
+
+describe("formatUVDoseSED", () => {
+  it("renders very small doses as low", () => {
+    expect(formatUVDoseSED(0)).toBe("low")
+    expect(formatUVDoseSED(0.4)).toBe("low")
+  })
+
+  it("renders single-digit doses with one decimal", () => {
+    expect(formatUVDoseSED(0.5)).toBe("0.5 SED")
+    expect(formatUVDoseSED(1.23)).toBe("1.2 SED")
+    expect(formatUVDoseSED(9.94)).toBe("9.9 SED")
+  })
+
+  it("renders larger doses as rounded integers", () => {
+    expect(formatUVDoseSED(10)).toBe("10 SED")
+    expect(formatUVDoseSED(12.4)).toBe("12 SED")
+    expect(formatUVDoseSED(12.6)).toBe("13 SED")
   })
 })

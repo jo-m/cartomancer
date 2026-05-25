@@ -3511,6 +3511,13 @@ components:
           type: number
           format: double
           description: Average left crosswind speed in m/s.
+        uvDoseSed:
+          type: number
+          format: double
+          description: |
+            Estimated erythemal UV dose collected over the ride in Standard
+            Erythema Doses (SED, 1 SED = 100 J/m^2). Derived from broadband
+            downward shortwave radiation; approximate (~+/-30%).
 
     SimilarTrackEntry:
       type: object
