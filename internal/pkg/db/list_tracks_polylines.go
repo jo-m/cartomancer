@@ -161,7 +161,7 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, ki
 			"CASE WHEN ts.track_id IS NOT NULL THEN 1 ELSE 0 END AS starred, "+
 			"tracks.updated_at, "+
 			"tf.forecast_reference_time, tf.start_time, tf.avg_temperature_c, tf.total_precipitation_mm, "+
-			"tf.wind_head_ms, tf.wind_right_ms, tf.wind_tail_ms, tf.wind_left_ms, tf.uv_dose_sed "+
+			"tf.wind_head_ms, tf.wind_right_ms, tf.wind_tail_ms, tf.wind_left_ms "+
 			"FROM tracks%s%s ORDER BY %s %s LIMIT ?",
 		col, joins, where, sortCol, sortDir,
 	)
@@ -199,7 +199,6 @@ func (d *DB) ListTracksWithPolylines(ctx context.Context, p ListTracksParams, ki
 			&tp.Forecast.WindRightMs,
 			&tp.Forecast.WindTailMs,
 			&tp.Forecast.WindLeftMs,
-			&tp.Forecast.UVDoseSED,
 		); err != nil {
 			return ListTracksWithPolylinesResult{}, fmt.Errorf("scan track polyline: %w", err)
 		}

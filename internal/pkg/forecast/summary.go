@@ -190,7 +190,6 @@ func (s *Summarizer) summarizeTrack(ctx context.Context, uuid string, refTime, s
 		WindRightMs:           nullFloat(summary.windRightMs),
 		WindTailMs:            nullFloat(summary.windTailMs),
 		WindLeftMs:            nullFloat(summary.windLeftMs),
-		UvDoseSed:             nullFloat(summary.uvDoseSED),
 	})
 }
 
@@ -202,9 +201,6 @@ type trackSummary struct {
 	windRightMs   float64
 	windTailMs    float64
 	windLeftMs    float64
-	// uvDoseSED is the integrated erythemal UV exposure over the ride, in
-	// Standard Erythema Doses. See internal/pkg/forecast/uv.go for the model.
-	uvDoseSED float64
 }
 
 // computeSummary samples the forecast at each point along the track and
@@ -216,7 +212,6 @@ func computeSummary(h *Handle, pts track.Points, bearings []float64, startTime t
 		tempCount int
 
 		totalPrecipMm float64
-		uvDoseSED     float64
 
 		windSum   [4]float64
 		windCount [4]int
@@ -235,16 +230,6 @@ func computeSummary(h *Handle, pts track.Points, bearings []float64, startTime t
 		if !math.IsNaN(float64(precipRate)) && i < len(pts)-1 {
 			segDurationS := (pts[i+1].Distance - pts[i].Distance) / speedMs
 			totalPrecipMm += float64(precipRate) * segDurationS
-		}
-
-		if i < len(pts)-1 {
-			direct := h.SampleIntervalMean(vars.VarAswdirS.Name, pointTime, i)
-			diffuse := h.SampleIntervalMean(vars.VarAswdifdS.Name, pointTime, i)
-			eryUV := ErythemalUVFromSW(float64(direct), float64(diffuse))
-			if !math.IsNaN(eryUV) {
-				segDurationS := (pts[i+1].Distance - pts[i].Distance) / speedMs
-				uvDoseSED += UVDoseSEDStep(eryUV, segDurationS)
-			}
 		}
 
 		uWind := h.Sample(vars.VarU10m.Name, pointTime, i)
@@ -269,7 +254,6 @@ func computeSummary(h *Handle, pts track.Points, bearings []float64, startTime t
 		windRightMs:   math.NaN(),
 		windTailMs:    math.NaN(),
 		windLeftMs:    math.NaN(),
-		uvDoseSED:     uvDoseSED,
 	}
 
 	if tempCount > 0 {

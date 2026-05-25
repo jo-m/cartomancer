@@ -7,10 +7,9 @@ import distanceSvg from "../assets/distance.svg?raw"
 import elevationSvg from "../assets/elevation.svg?raw"
 import temperatureSvg from "../assets/temperature.svg?raw"
 import rainSvg from "../assets/rain.svg?raw"
-import sunSvg from "../assets/sun.svg?raw"
 import cardCornerSvg from "../assets/card-corner.svg?raw"
 import MiniWindRose from "./MiniWindRose"
-import { formatDistance, formatAscent, formatUVDoseSED } from "../lib/format"
+import { formatDistance, formatAscent } from "../lib/format"
 import { fmtAbsolute } from "../lib/time"
 
 interface TrackForecast {
@@ -22,7 +21,6 @@ interface TrackForecast {
   windRightMs?: number
   windTailMs?: number
   windLeftMs?: number
-  uvDoseSed?: number | null
 }
 
 interface TrackData {
@@ -185,15 +183,6 @@ export default function TrackCard({
                   {track.forecast.totalPrecipitationMm < 0.1
                     ? "dry"
                     : `${track.forecast.totalPrecipitationMm.toFixed(1)} mm`}
-                </span>
-              )}
-              {track.forecast.uvDoseSed != null && (
-                <span
-                  className="flex items-center gap-0.5 text-star"
-                  title="Estimated erythemal UV dose over the ride (1 SED = 100 J/m^2). Approximate."
-                >
-                  <SvgIcon svg={sunSvg} className="inline h-3 w-3" />
-                  {formatUVDoseSED(track.forecast.uvDoseSed)}
                 </span>
               )}
               <MiniWindRose

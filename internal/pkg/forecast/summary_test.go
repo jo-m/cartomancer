@@ -50,7 +50,6 @@ func TestComputeSummary_EmptyHandle(t *testing.T) {
 	require.True(t, math.IsNaN(s.avgTempC), "expected NaN for temperature with no data")
 	require.True(t, math.IsNaN(s.windHeadMs), "expected NaN for wind with no data")
 	require.Equal(t, 0.0, s.totalPrecipMm)
-	require.Equal(t, 0.0, s.uvDoseSED, "expected zero UV dose with no data")
 }
 
 func TestNullFloat(t *testing.T) {

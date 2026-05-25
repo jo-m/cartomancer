@@ -70,7 +70,6 @@ type trackForecastResponse struct {
 	WindRightMs           *float64 `json:"windRightMs,omitempty"`
 	WindTailMs            *float64 `json:"windTailMs,omitempty"`
 	WindLeftMs            *float64 `json:"windLeftMs,omitempty"`
-	UVDoseSED             *float64 `json:"uvDoseSed,omitempty"`
 }
 
 type similarTrackEntry struct {
@@ -183,7 +182,6 @@ func trackResponseFromDB(tw db.TrackWithStarred, tags []string, similar []db.Get
 			WindRightMs:           nullFloat64Ptr(tw.Forecast.WindRightMs),
 			WindTailMs:            nullFloat64Ptr(tw.Forecast.WindTailMs),
 			WindLeftMs:            nullFloat64Ptr(tw.Forecast.WindLeftMs),
-			UVDoseSED:             nullFloat64Ptr(tw.Forecast.UVDoseSED),
 		}
 	}
 	return resp
@@ -1042,7 +1040,6 @@ func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Reques
 				WindRightMs:           nullFloat64Ptr(t.Forecast.WindRightMs),
 				WindTailMs:            nullFloat64Ptr(t.Forecast.WindTailMs),
 				WindLeftMs:            nullFloat64Ptr(t.Forecast.WindLeftMs),
-				UVDoseSED:             nullFloat64Ptr(t.Forecast.UVDoseSED),
 			}
 		}
 	}

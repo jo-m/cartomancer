@@ -23,11 +23,6 @@ type Handle struct {
 	// The inner float32 slice has one entry per registered location.
 	values map[string][]timedValues
 
-	// ReferenceTime is the model run initialisation time of the underlying
-	// forecast. Used by [Handle.SampleIntervalMean] to de-average variables
-	// stored as cumulative means from the reference time.
-	ReferenceTime time.Time
-
 	// Attribution is the human-readable data source credit.
 	Attribution string
 	// AttributionHref is the URL for the data source.
@@ -135,7 +130,6 @@ func Load(ctx context.Context, d *forecastdb.DB, start, end time.Time, bbox BBox
 
 	h := &Handle{
 		values:          values,
-		ReferenceTime:   forecastRow.ReferenceTime,
 		Attribution:     forecastRow.Attribution,
 		AttributionHref: forecastRow.AttributionHref,
 	}
@@ -197,67 +191,4 @@ func (h *Handle) Sample(variable string, t time.Time, locationIdx int) float32 {
 	}
 
 	return entries[idx].vals[locationIdx]
-}
-
-// SampleIntervalMean returns the mean value over the forecast file's
-// [validTime, validUntilTime) interval for a variable whose stored values are
-// cumulative means from the reference time (TemporalAggregation = "Average"
-// with AggregationStart = "Reference Time", e.g. ASWDIR_S, ASWDIFD_S).
-//
-// The stored value at horizon h is c(h) = mean_{[ref, ref+h]} of the
-// underlying flux. The interval mean over [h_prev, h] is recovered as
-// (h*c(h) - h_prev*c(h_prev)) / (h - h_prev), using zero as the implicit
-// value at h=0 when no earlier entry exists.
-//
-// Behaviour matches [Handle.Sample] for unknown variables, out-of-range
-// times, and out-of-range location indices: NaN is returned.
-func (h *Handle) SampleIntervalMean(variable string, t time.Time, locationIdx int) float32 {
-	entries, ok := h.values[variable]
-	if !ok || len(entries) == 0 {
-		return float32(math.NaN())
-	}
-
-	idx := sort.Search(len(entries), func(i int) bool {
-		return entries[i].validTime.After(t)
-	}) - 1
-	if idx < 0 {
-		return float32(math.NaN())
-	}
-	if !t.Before(entries[idx].validUntilTime) {
-		return float32(math.NaN())
-	}
-	if locationIdx < 0 || locationIdx >= len(entries[idx].vals) {
-		return float32(math.NaN())
-	}
-
-	cur := entries[idx]
-	hNow := cur.validTime.Sub(h.ReferenceTime).Hours()
-	cNow := float64(cur.vals[locationIdx])
-	if math.IsNaN(cNow) {
-		return float32(math.NaN())
-	}
-	if hNow <= 0 {
-		// validTime equals the reference time: cumulative mean is undefined,
-		// fall back to the stored value (typically zero for radiation).
-		return float32(cNow)
-	}
-
-	hPrev := 0.0
-	cPrev := 0.0
-	if idx > 0 {
-		prev := entries[idx-1]
-		if locationIdx < len(prev.vals) {
-			pv := float64(prev.vals[locationIdx])
-			if !math.IsNaN(pv) {
-				hPrev = prev.validTime.Sub(h.ReferenceTime).Hours()
-				cPrev = pv
-			}
-		}
-	}
-
-	dur := hNow - hPrev
-	if dur <= 0 {
-		return float32(cNow)
-	}
-	return float32((hNow*cNow - hPrev*cPrev) / dur)
 }
