@@ -85,8 +85,12 @@ open http://localhost:5173
 
 ### Git hooks
 
-A pre-push hook that rejects fixup/squash commits is provided in `.githooks/`.
-Install it once after cloning:
+Hooks provided in `.githooks/`:
+
+- `commit-msg`: enforces `component: message` or `comp1/comp2: message` subjects.
+- `pre-push`: rejects pushes containing `fixup!`/`squash!` commits.
+
+Install once after cloning:
 
 ```bash
 git config core.hooksPath .githooks

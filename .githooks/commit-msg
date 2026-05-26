@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Enforce commit subject format: "component: message" or
+# "component1/component2[/...]: message" where each component
+# is in the allowlist below.
+#
+# To regenerate the allowlist suggestion from history:
+#   git log --format='%s' | awk -F':' '/^[a-zA-Z0-9._\/-]+:/ {print $1}' \
+#       | tr '/' '\n' | sort | uniq -c | sort -rn
+
+set -eu
+
+ALLOWED=(
+    backend
+    frontend
+    ci
+    tooling
+    docs
+)
+
+msg_file="${1:?usage: commit-msg <message-file>}"
+
+# Find the first non-blank, non-comment line: the subject.
+subject=""
+while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+        '#'*|'') continue ;;
+    esac
+    subject="$line"
+    break
+done < "$msg_file"
+
+# Skip enforcement for empty (git will reject anyway) and special commits.
+case "$subject" in
+    '') exit 0 ;;
+    'Merge '*|'Revert '*|'fixup! '*|'squash! '*|'amend! '*) exit 0 ;;
+esac
+
+if [[ ! "$subject" =~ ^([a-zA-Z0-9._/-]+):[[:space:]]+.+$ ]]; then
+    {
+        echo "error: commit subject must match 'component: message'"
+        echo "       or 'component1/component2: message'"
+        echo "       got: $subject"
+        echo "       allowed components: ${ALLOWED[*]}"
+    } >&2
+    exit 1
+fi
+
+prefix="${BASH_REMATCH[1]}"
+
+declare -A allowed_set=()
+for c in "${ALLOWED[@]}"; do
+    allowed_set["$c"]=1
+done
+
+IFS='/' read -ra parts <<< "$prefix"
+for part in "${parts[@]}"; do
+    if [ -z "$part" ]; then
+        echo "error: empty component in prefix '$prefix'" >&2
+        exit 1
+    fi
+    if [ -z "${allowed_set[$part]:-}" ]; then
+        {
+            echo "error: unknown component '$part' in commit subject"
+            echo "       allowed components: ${ALLOWED[*]}"
+        } >&2
+        exit 1
+    fi
+done
+
+exit 0
