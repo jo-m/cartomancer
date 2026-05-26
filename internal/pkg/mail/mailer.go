@@ -132,5 +132,5 @@ func (m *Mailer) Run(ctx context.Context, args Args) error {
 	msg.Subject(args.Subject)
 	msg.SetBodyString(mail.TypeTextPlain, args.Body)
 
-	return client.DialAndSend(msg)
+	return client.DialAndSendWithContext(ctx, msg)
 }
