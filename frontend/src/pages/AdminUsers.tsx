@@ -20,6 +20,7 @@ import AdminCard, {
   AdminCardFooter,
   AdminCardHeader,
 } from "../components/admin/AdminCard"
+import AdminSendEmailDialog from "../components/admin/AdminSendEmailDialog"
 import TimeAgo from "../components/TimeAgo"
 
 const userSchema = z.object({
@@ -50,6 +51,10 @@ export default function AdminUsers() {
   const [resetPassword, setResetPassword] = useState<string | null>(null)
   const [resetConfirm, setResetConfirm] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [emailRecipient, setEmailRecipient] = useState<{
+    uuid: string
+    email: string
+  } | null>(null)
   const { toast, showToast, dismissToast } = useToast()
 
   const {
@@ -256,6 +261,12 @@ export default function AdminUsers() {
           </button>
         )}
         <button
+          onClick={() => setEmailRecipient({ uuid: u.uuid, email: u.email })}
+          className="cursor-pointer text-sm text-text-secondary transition-colors hover:text-text"
+        >
+          Send email
+        </button>
+        <button
           onClick={() => setDeleteConfirm(u.uuid)}
           className="cursor-pointer text-sm text-error transition-colors hover:text-error/80"
         >
@@ -456,6 +467,17 @@ export default function AdminUsers() {
           </Card>
         )}
       </div>
+
+      <AdminSendEmailDialog
+        userUuid={emailRecipient?.uuid ?? null}
+        userEmail={emailRecipient?.email ?? null}
+        onClose={() => setEmailRecipient(null)}
+        onSent={() => {
+          setEmailRecipient(null)
+          showToast("Email queued for delivery.", "success")
+        }}
+        onError={(msg) => showToast(msg)}
+      />
 
       {toast && (
         <Toast

@@ -2,8 +2,10 @@ package api_test
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"net/http"
 	"net/http/cookiejar"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -470,4 +472,134 @@ func TestAdminUpdateUser_EmailChange_OldEmailInvalidated(t *testing.T) {
 		"password": "secret11",
 	}, nil)
 	assert.Equal(t, http.StatusOK, status)
+}
+
+func TestAdminSendEmail_Success(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users/"+aliceUUID+"/send-email", map[string]any{
+		"subject": "Hello",
+		"body":    "Greetings from the admin.",
+	}, nil)
+	assert.Equal(t, http.StatusAccepted, status)
+
+	// Verify that a mail job was enqueued with the expected payload.
+	rows, err := e.d.QueryRW().GetJobs(t.Context())
+	require.NoError(t, err)
+	var mailJobs []map[string]any
+	for _, j := range rows {
+		if j.Kind != "main.mailer" {
+			continue
+		}
+		var args map[string]any
+		require.NoError(t, json.Unmarshal([]byte(j.ArgsJson), &args))
+		mailJobs = append(mailJobs, args)
+	}
+	require.Len(t, mailJobs, 1)
+	assert.Equal(t, "Hello", mailJobs[0]["Subject"])
+	assert.Equal(t, "Greetings from the admin.", mailJobs[0]["Body"])
+	to, ok := mailJobs[0]["To"].([]any)
+	require.True(t, ok)
+	require.Len(t, to, 1)
+	assert.Equal(t, "alice@example.com", to[0])
+}
+
+func TestAdminSendEmail_MissingSubject(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users/"+aliceUUID+"/send-email", map[string]any{
+		"subject": "   ",
+		"body":    "non-empty",
+	}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
+}
+
+func TestAdminSendEmail_MissingBody(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users/"+aliceUUID+"/send-email", map[string]any{
+		"subject": "Hello",
+		"body":    "",
+	}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
+}
+
+func TestAdminSendEmail_RejectsHeaderInjection(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users/"+aliceUUID+"/send-email", map[string]any{
+		"subject": "Hello\r\nBcc: attacker@example.com",
+		"body":    "Greetings.",
+	}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
+}
+
+func TestAdminSendEmail_SubjectTooLong(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users/"+aliceUUID+"/send-email", map[string]any{
+		"subject": strings.Repeat("a", 257),
+		"body":    "Greetings.",
+	}, nil)
+	assert.Equal(t, http.StatusBadRequest, status)
+}
+
+func TestAdminSendEmail_UserNotFound(t *testing.T) {
+	e := newTestEnv(t)
+	e.createUser("admin@example.com", "Admin", "adminpass", true)
+	client := e.newClient()
+	e.login(client, "admin@example.com", "adminpass")
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users/no-such-uuid/send-email", map[string]any{
+		"subject": "Hello",
+		"body":    "Body.",
+	}, nil)
+	assert.Equal(t, http.StatusNotFound, status)
+}
+
+func TestAdminSendEmail_Forbidden(t *testing.T) {
+	e := newTestEnv(t)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
+	bobUUID := e.createUser("bob@example.com", "Bob", "secret22", false)
+	_ = aliceUUID
+	client := e.newClient()
+	e.login(client, "alice@example.com", "secret11")
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users/"+bobUUID+"/send-email", map[string]any{
+		"subject": "Hello",
+		"body":    "Body.",
+	}, nil)
+	assert.Equal(t, http.StatusForbidden, status)
+}
+
+func TestAdminSendEmail_Unauthenticated(t *testing.T) {
+	e := newTestEnv(t)
+	aliceUUID := e.createUser("alice@example.com", "Alice", "secret11", false)
+	client := e.newClient()
+
+	status, _ := e.do(client, http.MethodPost, "/admin/users/"+aliceUUID+"/send-email", map[string]any{
+		"subject": "Hello",
+		"body":    "Body.",
+	}, nil)
+	assert.Equal(t, http.StatusUnauthorized, status)
 }

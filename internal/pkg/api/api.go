@@ -153,6 +153,7 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 		r.Delete("/admin/users/{uuid}", sv.handleAdminDeleteUser)
 		r.Post("/admin/users/{uuid}/reset-password", sv.handleAdminResetUserPassword)
 		r.Post("/admin/users/{uuid}/confirm-email", sv.handleAdminConfirmEmail)
+		r.Post("/admin/users/{uuid}/send-email", sv.handleAdminSendEmail)
 
 		r.Get("/admin/segments", sv.handleListSegments)
 		r.Get("/admin/segments/{uuid}", sv.handleGetSegment)

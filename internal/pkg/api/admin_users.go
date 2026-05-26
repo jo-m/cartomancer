@@ -11,9 +11,17 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/mail"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
+)
+
+// Limits for the admin "send arbitrary email" endpoint.
+const (
+	adminEmailSubjectMaxLen = 256
+	adminEmailBodyMaxLen    = 16 * 1024
 )
 
 type adminUserResponse struct {
@@ -552,4 +560,77 @@ func (sv *server) handleAdminConfirmEmail(w http.ResponseWriter, r *http.Request
 	}
 
 	writeJSON(w, http.StatusOK, adminUserResponseFromDB(updatedUser))
+}
+
+// adminSendEmailRequest is the body for [server.handleAdminSendEmail].
+type adminSendEmailRequest struct {
+	Subject string `json:"subject"`
+	Body    string `json:"body"`
+}
+
+// containsLineBreak reports whether s contains a CR or LF character.
+// Used to reject header injection attempts in the email subject.
+func containsLineBreak(s string) bool {
+	return strings.ContainsAny(s, "\r\n")
+}
+
+// handleAdminSendEmail sends an arbitrary plain-text email to a single registered user.
+// The email is dispatched via the [mail.Mailer] job queue; this endpoint returns 202
+// once the job has been submitted, not after delivery.
+func (sv *server) handleAdminSendEmail(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userUUID := chi.URLParam(r, "uuid")
+
+	var req adminSendEmailRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeDecodeError(w, err)
+		return
+	}
+
+	req.Subject = strings.TrimSpace(req.Subject)
+	if req.Subject == "" {
+		writeError(w, http.StatusBadRequest, "subject is required")
+		return
+	}
+	if len(req.Subject) > adminEmailSubjectMaxLen {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("subject must be at most %d characters", adminEmailSubjectMaxLen))
+		return
+	}
+	if containsLineBreak(req.Subject) {
+		writeError(w, http.StatusBadRequest, "subject must not contain line breaks")
+		return
+	}
+	if req.Body == "" {
+		writeError(w, http.StatusBadRequest, "body is required")
+		return
+	}
+	if len(req.Body) > adminEmailBodyMaxLen {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("body must be at most %d characters", adminEmailBodyMaxLen))
+		return
+	}
+
+	u, err := sv.d.QueryRO().GetUser(ctx, userUUID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "user not found")
+			return
+		}
+		logg.Error(ctx, "failed to get user", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	err = jobs.Submit(ctx, sv.jobSubmitter, mail.Args{
+		To:      []string{u.Email},
+		Subject: req.Subject,
+		Body:    req.Body,
+	}, jobs.Params{MaxRetries: 3})
+	if err != nil {
+		logg.Error(ctx, "failed to submit admin email job", "err", err)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusAccepted, msgResponse{Msg: "email queued for delivery"})
 }

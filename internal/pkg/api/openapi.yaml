@@ -2423,6 +2423,65 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /admin/users/{uuid}/send-email:
+    post:
+      summary: Send an arbitrary plain-text email to a user
+      description: >
+        Submits an email job to the queue. Returns 202 once queued; delivery
+        happens asynchronously and is not guaranteed if mail sending is not
+        configured server-side.
+      operationId: adminSendUserEmail
+      tags: [Admin]
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminSendEmailRequest"
+      responses:
+        "202":
+          description: Email queued for delivery
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MsgResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /account:
     patch:
       summary: Update current user's profile
@@ -3307,6 +3366,23 @@ components:
         password:
           type: string
           description: The new generated password (display once)
+
+    AdminSendEmailRequest:
+      type: object
+      required:
+        - subject
+        - body
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Email subject; must not contain line breaks
+        body:
+          type: string
+          minLength: 1
+          maxLength: 16384
+          description: Plain-text email body
 
     TrackResponse:
       type: object

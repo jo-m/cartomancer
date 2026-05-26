@@ -22,6 +22,7 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
 	"jo-m.ch/go/cartomancer/internal/pkg/logg"
+	"jo-m.ch/go/cartomancer/internal/pkg/mail"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 	"jo-m.ch/go/cartomancer/internal/pkg/utl"
@@ -63,6 +64,12 @@ func newTestEnvWithAppConfig(t *testing.T, appConf app.AppConfig) *testEnv {
 
 	workers, err := jobs.NewWorkers(logg.WithLogger(t.Context(), logger), d, jobs.JobsConfig{MaxParallel: 1})
 	require.NoError(t, err)
+
+	// Register the mailer job kind so handlers can enqueue email jobs.
+	// The mailer is left unconfigured (Enabled() == false), so any job that runs
+	// will log a warning and drop the email. Workers are not started here, so
+	// queued jobs simply persist in the DB and can be asserted on in tests.
+	jobs.MustRegisterJob(workers, mail.NewMailer(mail.MailerConfig{}))
 
 	sessConf := session.SessionConfig{
 		IdleTimeout:     time.Hour,
