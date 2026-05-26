@@ -1,12 +1,16 @@
 package api
 
 import (
+	"bytes"
+	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
@@ -315,6 +319,92 @@ func TestRateLimitByUID_NoUserFailsOpen(t *testing.T) {
 		handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/", nil))
 		require.Equal(t, http.StatusOK, rec.Code)
 	}
+}
+
+// captureTraceLogs returns a context whose logger writes JSON records (down to
+// trace level) into the returned buffer.
+func captureTraceLogs(t *testing.T) (*bytes.Buffer, context.Context) {
+	t.Helper()
+	var buf bytes.Buffer
+	h := slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: logg.LevelTrace})
+	return &buf, logg.WithLogger(t.Context(), slog.New(h))
+}
+
+func TestRateLimitByIP_TraceLogsDecisionAndClientIP(t *testing.T) {
+	// trustedProxies=1 with a single proxy: the trace log must show the real
+	// client IP (10.0.0.1), the raw XFF, the trustedProxies count, and the
+	// allowed=true decision for a fresh bucket.
+	buf, ctx := captureTraceLogs(t)
+
+	handler := rateLimitByIP(1, 0, 1, 64, 100000)(noopHandler())
+	r := newReq("192.168.1.1:9999", "10.0.0.1, 192.168.1.1").WithContext(ctx)
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, r)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	out := buf.String()
+	require.Contains(t, out, `"msg":"ip rate limit decision"`)
+	require.Contains(t, out, `"remoteAddr":"192.168.1.1:9999"`)
+	require.Contains(t, out, `"xff":"10.0.0.1, 192.168.1.1"`)
+	require.Contains(t, out, `"trustedProxies":1`)
+	require.Contains(t, out, `"clientIP":"10.0.0.1"`)
+	require.Contains(t, out, `"key":"10.0.0.1"`)
+	require.Contains(t, out, `"allowed":true`)
+}
+
+func TestRateLimitByIP_TraceLogsDeniedDecision(t *testing.T) {
+	// burst=1: the second request from the same IP must log allowed=false.
+	buf, ctx := captureTraceLogs(t)
+
+	handler := rateLimitByIP(1, 0, 0, 64, 100000)(noopHandler())
+	req := newReq("1.2.3.4:1234", "").WithContext(ctx)
+
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+	buf.Reset()
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+
+	require.Contains(t, buf.String(), `"allowed":false`)
+}
+
+func TestRateLimitByIP_TraceLogsMapFull(t *testing.T) {
+	// maxEntries=1: a second distinct IP must trigger the fail-closed trace log.
+	buf, ctx := captureTraceLogs(t)
+
+	handler := rateLimitByIP(1, 0, 0, 64, 1)(noopHandler())
+	handler.ServeHTTP(httptest.NewRecorder(), newReq("1.1.1.1:1", "").WithContext(ctx))
+	buf.Reset()
+	handler.ServeHTTP(httptest.NewRecorder(), newReq("2.2.2.2:2", "").WithContext(ctx))
+
+	require.Contains(t, buf.String(), `"msg":"ip rate limit map full, fail-closed"`)
+	require.Contains(t, buf.String(), `"clientIP":"2.2.2.2"`)
+}
+
+func TestRateLimitByUID_TraceLogsDecision(t *testing.T) {
+	buf, ctx := captureTraceLogs(t)
+
+	mw := rateLimitByUID(5, 0, 100000)
+	inner := mw(noopHandler())
+
+	r := httptest.NewRequest(http.MethodPost, "/", nil).WithContext(
+		session.TestWithUser(ctx, "user-trace"),
+	)
+	inner.ServeHTTP(httptest.NewRecorder(), r)
+
+	out := buf.String()
+	require.Contains(t, out, `"msg":"uid rate limit decision"`)
+	require.Contains(t, out, `"uid":"user-trace"`)
+	require.Contains(t, out, `"allowed":true`)
+}
+
+func TestRateLimitByUID_TraceLogsFailOpen(t *testing.T) {
+	buf, ctx := captureTraceLogs(t)
+
+	handler := rateLimitByUID(1, 1, 100000)(noopHandler())
+	r := httptest.NewRequest(http.MethodPost, "/", nil).WithContext(ctx)
+	handler.ServeHTTP(httptest.NewRecorder(), r)
+
+	require.Contains(t, buf.String(), `"msg":"uid rate limit fail-open, no user in context"`)
 }
 
 func TestRateLimitByUID_FailsClosedAtCap(t *testing.T) {

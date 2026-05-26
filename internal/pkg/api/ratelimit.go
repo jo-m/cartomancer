@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"golang.org/x/time/rate"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
@@ -73,13 +74,21 @@ func (l *ipRateLimiter) cleanup() {
 // so that an attacker filling the map with distinct keys cannot bypass the limiter.
 // The map is bounded by maxEntries and drained by the periodic cleanup goroutine.
 func (l *ipRateLimiter) allow(r *http.Request) bool {
-	key := normalizeIP(clientIP(r, l.trustedProxies), l.ipv6PrefixLen)
+	ip := clientIP(r, l.trustedProxies)
+	key := normalizeIP(ip, l.ipv6PrefixLen)
 
 	l.mu.Lock()
 	entry, ok := l.entries[key]
 	if !ok {
 		if len(l.entries) >= l.maxEntries {
 			l.mu.Unlock()
+			logg.Trace(r.Context(), "ip rate limit map full, fail-closed",
+				"remoteAddr", r.RemoteAddr,
+				"xff", r.Header.Get("X-Forwarded-For"),
+				"trustedProxies", l.trustedProxies,
+				"clientIP", ip.String(),
+				"key", key,
+			)
 			return false // fail-closed: map is full, refuse new keys
 		}
 		entry = &rateLimitEntry{lim: rate.NewLimiter(l.rps, l.burst)}
@@ -89,7 +98,16 @@ func (l *ipRateLimiter) allow(r *http.Request) bool {
 	lim := entry.lim
 	l.mu.Unlock()
 
-	return lim.Allow()
+	allowed := lim.Allow()
+	logg.Trace(r.Context(), "ip rate limit decision",
+		"remoteAddr", r.RemoteAddr,
+		"xff", r.Header.Get("X-Forwarded-For"),
+		"trustedProxies", l.trustedProxies,
+		"clientIP", ip.String(),
+		"key", key,
+		"allowed", allowed,
+	)
+	return allowed
 }
 
 // clientIP extracts the client IP from r, honouring trustedProxies.
@@ -257,10 +275,16 @@ func rateLimitByUID(rps float64, burst, maxEntries int) func(http.Handler) http.
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user := session.GetUser(r.Context())
 			if user == nil {
+				logg.Trace(r.Context(), "uid rate limit fail-open, no user in context")
 				next.ServeHTTP(w, r)
 				return
 			}
-			if !lim.allow(user.Uuid) {
+			allowed := lim.allow(user.Uuid)
+			logg.Trace(r.Context(), "uid rate limit decision",
+				"uid", user.Uuid,
+				"allowed", allowed,
+			)
+			if !allowed {
 				writeStatusError(w, http.StatusTooManyRequests)
 				return
 			}
