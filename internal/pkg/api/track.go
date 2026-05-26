@@ -1460,14 +1460,14 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 	// Schedule geoname labeling in the background.
 	if submitErr := jobs.Submit(ctx, sv.jobSubmitter, geonames.LabelerArgs{
 		TrackID: created.Uuid,
-	}, jobs.Params{MaxRetries: 2}); submitErr != nil {
+	}, jobs.Params{MaxRetries: 2, BackofFactorS: 5 * time.Minute}); submitErr != nil {
 		logg.Error(ctx, "failed to submit labeler job", "err", submitErr)
 	}
 
 	// Schedule forecast computation for the new track.
 	if submitErr := jobs.Submit(ctx, sv.jobSubmitter, forecast.SummarizerArgs{
 		TrackUUID: created.Uuid,
-	}, jobs.Params{MaxRetries: 2}); submitErr != nil {
+	}, jobs.Params{MaxRetries: 2, BackofFactorS: 5 * time.Minute}); submitErr != nil {
 		logg.Error(ctx, "failed to submit forecast summarizer job", "err", submitErr)
 	}
 

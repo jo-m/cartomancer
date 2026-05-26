@@ -625,7 +625,7 @@ func (sv *server) handleAdminSendEmail(w http.ResponseWriter, r *http.Request) {
 		To:      []string{u.Email},
 		Subject: req.Subject,
 		Body:    req.Body,
-	}, jobs.Params{MaxRetries: 3})
+	}, jobs.Params{MaxRetries: 5, BackofFactorS: 60 * time.Second})
 	if err != nil {
 		logg.Error(ctx, "failed to submit admin email job", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)

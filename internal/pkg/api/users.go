@@ -323,7 +323,7 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 		To:      []string{req.NewEmail},
 		Subject: "Confirm your new email address for " + sv.appConfig.InstanceName,
 		Body:    fmt.Sprintf("You recently requested to change the email address on your %s account.\n\nTo confirm this change, please visit the link below:\n\n%s\n\nIf you did not request this change, you can safely ignore this message. Your current email address will remain unchanged.\n", sv.appConfig.InstanceName, confirmURL),
-	}, jobs.Params{MaxRetries: 3})
+	}, jobs.Params{MaxRetries: 5, BackofFactorS: 60 * time.Second})
 	if err != nil {
 		logg.Error(ctx, "failed to submit email change confirmation job", "err", err)
 	}

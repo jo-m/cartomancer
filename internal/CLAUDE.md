@@ -48,7 +48,7 @@ Async jobs persisted in SQLite, executed by a worker pool (`internal/pkg/jobs/`)
 3. `jobs.MustRegisterJob(workers, &MyHandler{})`.
 4. `jobs.Submit(ctx, submitter, MyArgs{...}, jobs.Params{})`.
 
-At-least-once semantics; configure retries via `jobs.Params{MaxRetries: N}`.
+At-least-once semantics; configure retries via `jobs.Params{MaxRetries: N, BackofFactorS: M}`. Without BackofFactorS, retries run immediately which makes usually no sense (formula: `created_at + delay_s + backoff_factor_s * (2^attempts - 1)`). Mail jobs (`mail.Args`) use `jobs.Params{MaxRetries: 5, BackofFactorS: 60 * time.Second}`; reuse those values for any new mail submissions.
 
 ## Linting and code quality
 
