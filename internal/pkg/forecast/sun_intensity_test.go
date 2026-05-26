@@ -1,0 +1,120 @@
+package forecast
+
+import (
+	"math"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/cartomancer/internal/pkg/meteo/vars"
+	"jo-m.ch/go/cartomancer/internal/pkg/track"
+)
+
+// constHandle builds a Handle that returns constant direct/diffuse irradiance
+// values at all sample times and location indices, for testing the integrator
+// without a full forecast database.
+func constHandle(direct, diffuse float32, start time.Time, dur time.Duration, nLocs int) *Handle {
+	makeEntries := func(v float32) []timedValues {
+		vals := make([]float32, nLocs)
+		for i := range vals {
+			vals[i] = v
+		}
+		return []timedValues{{
+			validTime:      start.Add(-time.Hour),
+			validUntilTime: start.Add(dur).Add(time.Hour),
+			vals:           vals,
+		}}
+	}
+	return &Handle{
+		values: map[string][]timedValues{
+			vars.VarAswdirS.Name:  makeEntries(direct),
+			vars.VarAswdifdS.Name: makeEntries(diffuse),
+		},
+	}
+}
+
+// linePoints returns a straight line of n points spaced stepM metres apart,
+// with cumulative distance populated.
+func linePoints(n int, stepM float64) track.Points {
+	pts := make(track.Points, n)
+	for i := range pts {
+		pts[i] = track.Point{
+			Lat:      46.0,
+			Lon:      8.0 + float64(i)*0.001,
+			Distance: float64(i) * stepM,
+		}
+	}
+	return pts
+}
+
+func TestComputeSunIntensityIndex_ClearSky(t *testing.T) {
+	start := fixedTime()
+	pts := linePoints(20, 200) // 20 points, 200 m apart -> ~3.8 km total
+	speedMs := 7.78            // ~28 km/h, full ride ~488 s
+
+	h := constHandle(800, 200, start, time.Hour, len(pts))
+	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
+	require.False(t, math.IsNaN(got))
+	// 1000 W/m^2 * ~488 s = ~488000 J/m^2; scale 1/1.5e6 -> ~0.325 -> clamped to 1.
+	require.Equal(t, sunIntensityMin, got)
+}
+
+func TestComputeSunIntensityIndex_LongClearSkyRide(t *testing.T) {
+	start := fixedTime()
+	// 200 points 1 km apart -> 199 km, at 28 km/h -> ~7.1 h.
+	pts := linePoints(200, 1000)
+	speedMs := 7.78
+
+	h := constHandle(800, 200, start, 12*time.Hour, len(pts))
+	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
+	require.False(t, math.IsNaN(got))
+	// 1000 W/m^2 * (199000/7.78) s = ~2.56e7 J/m^2, scale gives ~17 -> clamped to 10.
+	require.Equal(t, sunIntensityMax, got)
+}
+
+func TestComputeSunIntensityIndex_BelowThreshold(t *testing.T) {
+	start := fixedTime()
+	pts := linePoints(20, 1000)
+	speedMs := 7.78
+
+	// Total SW = 50 + 50 = 100 W/m^2 < threshold (150). Contributes 0 to dose.
+	h := constHandle(50, 50, start, time.Hour, len(pts))
+	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
+	require.False(t, math.IsNaN(got))
+	require.Equal(t, sunIntensityMin, got, "below-threshold samples should yield the floor")
+}
+
+func TestComputeSunIntensityIndex_NoData(t *testing.T) {
+	start := fixedTime()
+	pts := linePoints(10, 500)
+	speedMs := 7.78
+
+	h := &Handle{values: map[string][]timedValues{}}
+	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
+	require.True(t, math.IsNaN(got), "expected NaN when no irradiance data is available")
+}
+
+func TestComputeSunIntensityIndex_GuardsInvalidInputs(t *testing.T) {
+	start := fixedTime()
+	pts := linePoints(10, 500)
+	h := constHandle(800, 200, start, time.Hour, len(pts))
+
+	require.True(t, math.IsNaN(ComputeSunIntensityIndex(nil, pts, start, 7.78)))
+	require.True(t, math.IsNaN(ComputeSunIntensityIndex(h, pts[:1], start, 7.78)))
+	require.True(t, math.IsNaN(ComputeSunIntensityIndex(h, pts, start, 0)))
+	require.True(t, math.IsNaN(ComputeSunIntensityIndex(h, pts, start, -1)))
+}
+
+func TestComputeSunIntensityIndex_AlwaysWithinBounds(t *testing.T) {
+	start := fixedTime()
+	speedMs := 7.78
+
+	for _, sw := range []float32{0, 100, 200, 500, 1000, 1500} {
+		pts := linePoints(50, 1000)
+		h := constHandle(sw*0.8, sw*0.2, start, 12*time.Hour, len(pts))
+		got := ComputeSunIntensityIndex(h, pts, start, speedMs)
+		require.False(t, math.IsNaN(got))
+		require.GreaterOrEqual(t, got, sunIntensityMin)
+		require.LessOrEqual(t, got, sunIntensityMax)
+	}
+}

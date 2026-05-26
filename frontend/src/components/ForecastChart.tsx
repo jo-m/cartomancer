@@ -21,6 +21,7 @@ import {
 import type { ForecastPoint, ForecastUnits, SunEvent } from "../types/forecast"
 import { findNearestIndex } from "../lib/nearest"
 import WindRose from "./WindRose"
+import SunIntensity from "./SunIntensity"
 
 interface ChartDatum {
   ts: number
@@ -40,6 +41,7 @@ interface Props {
   trackDistancesM?: number[]
   attribution?: { text: string; href: string }
   sunEvents?: SunEvent[]
+  sunIntensityIndex?: number | null
 }
 
 const Y_AXIS_WIDTH = 44
@@ -150,6 +152,7 @@ export default function ForecastChart({
   trackDistancesM,
   attribution,
   sunEvents,
+  sunIntensityIndex,
 }: Props) {
   const tempLineRef = useRef<HTMLDivElement>(null)
   const tempLabelRef = useRef<HTMLDivElement>(null)
@@ -761,26 +764,33 @@ export default function ForecastChart({
         </div>
       )}
 
-      {hasRelativeWind && (
+      {(hasRelativeWind || sunIntensityIndex != null) && (
         <div className="flex flex-wrap gap-6">
-          <WindRose
-            points={points}
-            config={{
-              directionKey: "relativeWindDirectionDeg",
-              labels: RELATIVE_ROSE_LABELS,
-              sectorColor: relativeSectorColor,
-              title: "Relative wind",
-            }}
-          />
-          <WindRose
-            points={points}
-            config={{
-              directionKey: "windDirectionDeg",
-              labels: COMPASS_ROSE_LABELS,
-              sectorColor: compassSectorColor,
-              title: "Compass wind",
-            }}
-          />
+          {hasRelativeWind && (
+            <>
+              <WindRose
+                points={points}
+                config={{
+                  directionKey: "relativeWindDirectionDeg",
+                  labels: RELATIVE_ROSE_LABELS,
+                  sectorColor: relativeSectorColor,
+                  title: "Relative wind",
+                }}
+              />
+              <WindRose
+                points={points}
+                config={{
+                  directionKey: "windDirectionDeg",
+                  labels: COMPASS_ROSE_LABELS,
+                  sectorColor: compassSectorColor,
+                  title: "Compass wind",
+                }}
+              />
+            </>
+          )}
+          {sunIntensityIndex != null && (
+            <SunIntensity value={sunIntensityIndex} />
+          )}
         </div>
       )}
 

@@ -20,6 +20,7 @@ const DEFAULT_FORECAST_UNITS: ForecastUnits = {
 export interface UseForecastResult {
   forecastPoints: ForecastPoint[] | null
   sunEvents: SunEvent[]
+  sunIntensityIndex: number | null
   forecastLoading: boolean
   forecastStatus: string | null
   forecastAttribution: { text: string; href: string } | undefined
@@ -46,6 +47,9 @@ export function useForecast(
     null
   )
   const [sunEvents, setSunEvents] = useState<SunEvent[]>([])
+  const [sunIntensityIndex, setSunIntensityIndex] = useState<number | null>(
+    null
+  )
   const [forecastLoading, setForecastLoading] = useState(false)
   const [forecastStatus, setForecastStatus] = useState<string | null>(null)
   const [forecastAttribution, setForecastAttribution] = useState<
@@ -104,6 +108,7 @@ export function useForecast(
         }
         setForecastPoints(result.points as ForecastPoint[])
         setSunEvents((result.sunEvents as SunEvent[]) ?? [])
+        setSunIntensityIndex(result.sunIntensityIndex ?? null)
       } catch (err) {
         onError((err as Error).message)
       } finally {
@@ -123,6 +128,7 @@ export function useForecast(
   return {
     forecastPoints,
     sunEvents,
+    sunIntensityIndex,
     forecastLoading,
     forecastStatus,
     forecastAttribution,

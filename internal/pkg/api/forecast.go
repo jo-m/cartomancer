@@ -41,11 +41,12 @@ type sunEventResponse struct {
 }
 
 type forecastResponse struct {
-	ForecastStatus string                  `json:"forecastStatus"`
-	Attribution    attributionResponse     `json:"attribution"`
-	Units          forecastUnits           `json:"units"`
-	Points         []forecastPointResponse `json:"points"`
-	SunEvents      []sunEventResponse      `json:"sunEvents"`
+	ForecastStatus    string                  `json:"forecastStatus"`
+	Attribution       attributionResponse     `json:"attribution"`
+	Units             forecastUnits           `json:"units"`
+	Points            []forecastPointResponse `json:"points"`
+	SunEvents         []sunEventResponse      `json:"sunEvents"`
+	SunIntensityIndex *float64                `json:"sunIntensityIndex"`
 }
 
 // handleGetTrackForecast returns a weather forecast time series along a track.
@@ -187,6 +188,14 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	midLon := (bbox.MinLon + bbox.MaxLon) / 2
 	sunEvents := computeSunEvents(startTime, endTime, midLat, midLon, totalDist)
 
+	var sunIntensityIndex *float64
+	if status != "none" {
+		idx := forecast.ComputeSunIntensityIndex(h, pts, startTime, speedMs)
+		if !math.IsNaN(idx) {
+			sunIntensityIndex = &idx
+		}
+	}
+
 	resp := forecastResponse{
 		ForecastStatus: status,
 		Units: forecastUnits{
@@ -196,8 +205,9 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 			WindDirectionDeg:         "deg",
 			RelativeWindDirectionDeg: "deg",
 		},
-		Points:    result,
-		SunEvents: sunEvents,
+		Points:            result,
+		SunEvents:         sunEvents,
+		SunIntensityIndex: sunIntensityIndex,
 	}
 	if h != nil {
 		resp.Attribution = attributionResponse{Text: h.Attribution, Href: h.AttributionHref}
