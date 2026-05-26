@@ -478,6 +478,85 @@ export default function ForecastChart({
 
   return (
     <div className="mt-4 space-y-2">
+      {hasSolar && (
+        <div>
+          <p className="mb-1 text-xs font-medium text-text-muted">
+            Solar radiation ({units.solarRadiationWm2})
+          </p>
+          <div className="relative">
+            <ResponsiveContainer width="100%" height={120}>
+              <ComposedChart data={data} margin={CHART_MARGIN}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--color-border)"
+                />
+                <XAxis
+                  dataKey="dKm"
+                  type="number"
+                  domain={["dataMin", "dataMax"]}
+                  tickFormatter={xTickFormatter}
+                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+                  stroke="var(--color-border)"
+                  label={{
+                    value: "km",
+                    position: "insideBottomRight",
+                    offset: -5,
+                    style: { fontSize: 10, fill: "var(--color-text-muted)" },
+                  }}
+                />
+                <YAxis
+                  domain={[0, solarMax]}
+                  ticks={solarTicks}
+                  allowDataOverflow
+                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+                  stroke="var(--color-border)"
+                  width={Y_AXIS_WIDTH}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="solarRadiationWm2"
+                  fill="#f59e0b"
+                  fillOpacity={0.4}
+                  stroke="#f59e0b"
+                  strokeWidth={1.5}
+                  dot={false}
+                  activeDot={false}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                />
+                {sunEventMarkers.map((m, i) => (
+                  <ReferenceLine
+                    key={i}
+                    x={m.dKm}
+                    stroke={m.color}
+                    strokeWidth={1}
+                    strokeDasharray={m.dash}
+                  />
+                ))}
+              </ComposedChart>
+            </ResponsiveContainer>
+            <div
+              className="absolute inset-0 cursor-crosshair touch-pan-y"
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              onPointerLeave={handlePointerLeave}
+            />
+            <div
+              ref={solarLineRef}
+              className="pointer-events-none absolute top-0 bottom-0 w-px bg-text-muted"
+              style={{ display: "none" }}
+            />
+            <div
+              ref={solarLabelRef}
+              className="pointer-events-none absolute bottom-2 left-12 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
+              style={{ display: "none" }}
+            />
+          </div>
+        </div>
+      )}
+
       <div>
         <p className="mb-1 text-xs font-medium text-text-muted">
           Temperature ({units.temperatureC})
@@ -792,85 +871,6 @@ export default function ForecastChart({
             />
             <div
               ref={windLabelRef}
-              className="pointer-events-none absolute bottom-2 left-12 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
-              style={{ display: "none" }}
-            />
-          </div>
-        </div>
-      )}
-
-      {hasSolar && (
-        <div>
-          <p className="mb-1 text-xs font-medium text-text-muted">
-            Solar radiation ({units.solarRadiationWm2})
-          </p>
-          <div className="relative">
-            <ResponsiveContainer width="100%" height={120}>
-              <ComposedChart data={data} margin={CHART_MARGIN}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--color-border)"
-                />
-                <XAxis
-                  dataKey="dKm"
-                  type="number"
-                  domain={["dataMin", "dataMax"]}
-                  tickFormatter={xTickFormatter}
-                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
-                  stroke="var(--color-border)"
-                  label={{
-                    value: "km",
-                    position: "insideBottomRight",
-                    offset: -5,
-                    style: { fontSize: 10, fill: "var(--color-text-muted)" },
-                  }}
-                />
-                <YAxis
-                  domain={[0, solarMax]}
-                  ticks={solarTicks}
-                  allowDataOverflow
-                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
-                  stroke="var(--color-border)"
-                  width={Y_AXIS_WIDTH}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="solarRadiationWm2"
-                  fill="#f59e0b"
-                  fillOpacity={0.4}
-                  stroke="#f59e0b"
-                  strokeWidth={1.5}
-                  dot={false}
-                  activeDot={false}
-                  isAnimationActive={false}
-                  connectNulls={false}
-                />
-                {sunEventMarkers.map((m, i) => (
-                  <ReferenceLine
-                    key={i}
-                    x={m.dKm}
-                    stroke={m.color}
-                    strokeWidth={1}
-                    strokeDasharray={m.dash}
-                  />
-                ))}
-              </ComposedChart>
-            </ResponsiveContainer>
-            <div
-              className="absolute inset-0 cursor-crosshair touch-pan-y"
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
-              onPointerLeave={handlePointerLeave}
-            />
-            <div
-              ref={solarLineRef}
-              className="pointer-events-none absolute top-0 bottom-0 w-px bg-text-muted"
-              style={{ display: "none" }}
-            />
-            <div
-              ref={solarLabelRef}
               className="pointer-events-none absolute bottom-2 left-12 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
               style={{ display: "none" }}
             />
