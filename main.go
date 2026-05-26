@@ -381,7 +381,7 @@ func main() {
 	}
 
 	jobs.MustRegisterJob(w, session.NewCleaner(d))
-	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), time.Minute, false)
+	jobs.Periodic(ctxJobs, w.Submitter(), c.GetCleanerArgs(), 15*time.Minute, false)
 
 	jobs.MustRegisterJob(w, mail.NewMailer(c.MailerConfig))
 	jobs.MustRegisterJob(w, users.NewEmailVerificationCleaner(d))

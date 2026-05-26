@@ -47,9 +47,9 @@ type JobsConfig struct {
 	MaxParallel uint `arg:"--jobs-max-parallel,env:JOBS_MAX_PARALLEL" default:"0" help:"Maximum number of parallel jobs, max(1, runtime.NumCPU()/2) if zero" placeholder:"N"`
 	// AutoCleanupPeriod is the period at which old jobs will be cleared from the database.
 	// Disabled if set to 0.
-	AutoCleanupPeriod time.Duration `arg:"--jobs-auto-cleanup-period,env:JOBS_AUTO_CLEANUP_PERIOD" default:"1m" help:"Period at which old jobs will be cleared from the database" placeholder:"DUR"`
+	AutoCleanupPeriod time.Duration `arg:"--jobs-auto-cleanup-period,env:JOBS_AUTO_CLEANUP_PERIOD" default:"15m" help:"Period at which old jobs will be cleared from the database" placeholder:"DUR"`
 	// AutoCleanupMinAge is the time to wait until jobs are cleared from the database.
-	AutoCleanupMinAge time.Duration `arg:"--jobs-auto-cleanup-min-age,env:JOBS_AUTO_CLEANUP_MIN_AGE" default:"5m" help:"Time to wait after a job has finished to clear it from the database" placeholder:"DUR"`
+	AutoCleanupMinAge time.Duration `arg:"--jobs-auto-cleanup-min-age,env:JOBS_AUTO_CLEANUP_MIN_AGE" default:"1h" help:"Time to wait after a job has finished to clear it from the database" placeholder:"DUR"`
 }
 
 // Validate checks for basic configuration errors.
