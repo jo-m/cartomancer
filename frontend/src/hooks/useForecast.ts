@@ -15,6 +15,7 @@ const DEFAULT_FORECAST_UNITS: ForecastUnits = {
   windSpeedMs: "m/s",
   windDirectionDeg: "deg",
   relativeWindDirectionDeg: "deg",
+  solarRadiationWm2: "W/m²",
 }
 
 export interface UseForecastResult {

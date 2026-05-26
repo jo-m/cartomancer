@@ -23,6 +23,7 @@ type forecastPointResponse struct {
 	WindSpeedMs              *float64 `json:"windSpeedMs"`
 	WindDirectionDeg         *float64 `json:"windDirectionDeg"`
 	RelativeWindDirectionDeg *float64 `json:"relativeWindDirectionDeg"`
+	SolarRadiationWm2        *float64 `json:"solarRadiationWm2"`
 }
 
 // forecastUnits describes the display units for each time series field.
@@ -32,6 +33,7 @@ type forecastUnits struct {
 	WindSpeedMs              string `json:"windSpeedMs"`
 	WindDirectionDeg         string `json:"windDirectionDeg"`
 	RelativeWindDirectionDeg string `json:"relativeWindDirectionDeg"`
+	SolarRadiationWm2        string `json:"solarRadiationWm2"`
 }
 
 type sunEventResponse struct {
@@ -179,6 +181,14 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 				rel = math.Mod(rel+360, 360)
 				rp.RelativeWindDirectionDeg = &rel
 			}
+
+			// Downward shortwave irradiance at the surface: direct + diffuse.
+			directSW := h.Sample(vars.VarAswdirS.Name, pointTime, i)
+			diffuseSW := h.Sample(vars.VarAswdifdS.Name, pointTime, i)
+			if !math.IsNaN(float64(directSW)) && !math.IsNaN(float64(diffuseSW)) {
+				v := float64(directSW) + float64(diffuseSW)
+				rp.SolarRadiationWm2 = &v
+			}
 		}
 
 		result[i] = rp
@@ -204,6 +214,7 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 			WindSpeedMs:              "m/s",
 			WindDirectionDeg:         "deg",
 			RelativeWindDirectionDeg: "deg",
+			SolarRadiationWm2:        "W/m\u00b2",
 		},
 		Points:            result,
 		SunEvents:         sunEvents,

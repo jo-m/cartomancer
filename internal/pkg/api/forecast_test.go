@@ -158,4 +158,5 @@ func TestGetTrackForecast_Success(t *testing.T) {
 	assert.NotEmpty(t, first["time"])
 	assert.Contains(t, first, "temperatureC")
 	assert.Contains(t, first, "precipitationRate")
+	assert.Contains(t, first, "solarRadiationWm2")
 }
