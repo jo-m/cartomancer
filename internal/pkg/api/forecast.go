@@ -182,7 +182,8 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 				rp.RelativeWindDirectionDeg = &rel
 			}
 
-			// Downward shortwave irradiance at the surface: direct + diffuse.
+			// Downward shortwave irradiance at the surface: direct +
+			// diffuse, per forecast step (de-averaged at load).
 			directSW := h.Sample(vars.VarAswdirS.Name, pointTime, i)
 			diffuseSW := h.Sample(vars.VarAswdifdS.Name, pointTime, i)
 			if !math.IsNaN(float64(directSW)) && !math.IsNaN(float64(diffuseSW)) {

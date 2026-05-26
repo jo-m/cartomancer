@@ -68,12 +68,26 @@ func TestParseTotPr(t *testing.T) {
 	m := msgs[0]
 	// At 0h horizon the valid time equals the reference time.
 	require.Equal(t, m.ReferenceTime, m.ValidTime)
+	// PDT 1 (instantaneous) messages must expose a zero-length statistical
+	// interval so downstream code can rely on IntervalStart == ValidTime.
+	require.Equal(t, m.ValidTime, m.IntervalStart)
 	require.Len(t, m.Values, 1_147_980)
 
 	// Accumulated precipitation must be non-negative.
 	for _, v := range m.Values {
 		require.GreaterOrEqual(t, v, float32(0), "TOT_PR cannot be negative")
 	}
+}
+
+// TestParseT2mIntervalStart verifies that an instantaneous (PDT 1) T_2M message
+// reports a zero-length statistical interval.
+func TestParseT2mIntervalStart(t *testing.T) {
+	msgs := parseFile(t, "t_2m_0h.grib2")
+	require.NotEmpty(t, msgs)
+
+	m := msgs[0]
+	require.Equal(t, m.ValidTime, m.IntervalStart,
+		"PDT 1 messages must have IntervalStart == ValidTime")
 }
 
 // TestVisualizeFields renders each test forecast field to a JPEG image and

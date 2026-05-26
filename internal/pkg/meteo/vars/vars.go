@@ -37,6 +37,38 @@ type Variable struct {
 	AggregationStart string
 }
 
+// IsRunningMeanFromReferenceTime reports whether each stored value is a
+// running mean over the interval [referenceTime, validTime] rather than a
+// per-step mean. ICON-CH1-EPS publishes radiation fields like ASWDIR_S in
+// this form: every file at lead k carries the average over the full
+// [referenceTime, referenceTime + k*1h] window. Callers must de-average
+// against the same-run predecessor before treating these values as per-step
+// hourly means.
+func (v Variable) IsRunningMeanFromReferenceTime() bool {
+	return v.TemporalAggregation == "Average" && v.AggregationStart == "Reference Time"
+}
+
+// IsRunningAccumulationFromReferenceTime reports whether each stored value is
+// a running total accumulated over the interval [referenceTime, validTime]
+// rather than a per-step total. ICON-CH1-EPS publishes precipitation fields
+// in this form. Callers must subtract the same-run predecessor before
+// treating these values as per-step totals.
+func (v Variable) IsRunningAccumulationFromReferenceTime() bool {
+	return v.TemporalAggregation == "Accumulation" && v.AggregationStart == "Reference Time"
+}
+
+// ByName returns the [Variable] with the given short parameter code (e.g.
+// "T_2M"). The boolean is false when no variable in [Variables] has a
+// matching Name.
+func ByName(name string) (Variable, bool) {
+	for _, v := range Variables {
+		if v.Name == name {
+			return v, true
+		}
+	}
+	return Variable{}, false
+}
+
 // FetchVariables downloads and parses the parameter CSV from the STAC collection,
 // returning the list of available forecast variables with their metadata.
 //

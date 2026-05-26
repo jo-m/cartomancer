@@ -13,10 +13,13 @@ import (
 // The intensity index integrates the broadband downward shortwave components
 // ASWDIR_S (direct) and ASWDIFD_S (diffuse downward) along the track in time,
 // using the assumed constant speed to convert distance steps into segment
-// durations. Sampled irradiances below [sunIntensityThresholdWm2] contribute
-// zero to the integral; the resulting dose is multiplied by
-// [sunIntensityScale] and clamped to [[sunIntensityMin], [sunIntensityMax]] so
-// the output is a dimensionless 1..10 index suitable for display.
+// durations. Both inputs are per-step means in W/m^2: [forecast.Load]
+// de-averages the running-mean form that ICON-CH1-EPS publishes for
+// [vars.VarAswdirS] and [vars.VarAswdifdS] before they reach this function.
+// Sampled irradiances below [sunIntensityThresholdWm2] contribute zero to
+// the integral; the resulting dose is multiplied by [sunIntensityScale] and
+// clamped to [[sunIntensityMin], [sunIntensityMax]] so the output is a
+// dimensionless 1..10 index suitable for display.
 
 // TODO: calibrate sunIntensityThresholdWm2 and sunIntensityScale against
 // real-world rides; the current values are placeholders. The threshold is
