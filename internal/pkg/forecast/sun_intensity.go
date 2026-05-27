@@ -19,14 +19,14 @@ import (
 // Sampled irradiances below [sunIntensityThresholdWm2] contribute zero to
 // the integral; the resulting dose is multiplied by [sunIntensityScale] and
 // clamped to [[sunIntensityMin], [sunIntensityMax]] so the output is a
-// dimensionless 1..10 index suitable for display.
+// dimensionless 0..12 index suitable for display.
 //
 // The scale is calibrated against erythemal-UV dose biology. ICON emits
 // broadband downward shortwave (~285-2800 nm), of which only a small fraction
 // is the erythemally-weighted UV that drives sunburn (McKinlay-Diffey /
 // CIE S 007 action spectrum, peaking near 297 nm). The CIE Standard Erythemal
 // Dose (SED) is 100 J/m^2 of erythemally-weighted UV; one MED for fair-skinned
-// skin type II is roughly 2-3 SED. Index 10 corresponds to
+// skin type II is roughly 2-3 SED. Index [sunIntensityMax] corresponds to
 // [sunIntensityMaxDoseSED] SED of accumulated exposure, well past the
 // unprotected-fair-skin sunburn threshold for a multi-hour summer ride.
 
@@ -49,32 +49,27 @@ const (
 	sunIntensityMaxDoseSED = 25.0
 
 	// sunIntensityThresholdWm2 is the broadband irradiance below which a
-	// sampled point contributes zero to the integrated sun dose. Kept low
-	// because UV penetrates overcast skies relatively well (the UV/SW ratio
-	// rises under clouds); the threshold's only job is to gate out night
-	// and deep-twilight noise. In W/m^2.
-	sunIntensityThresholdWm2 = 50.0
+	// sampled point contributes zero to the integrated sun dose.
+	sunIntensityThresholdWm2 = 200.0
 
 	// sunIntensityScale converts the integrated broadband dose (J/m^2) into
 	// the dimensionless intensity index. Derivation:
 	//
 	//	1 SED in broadband SW = 100 J/m^2 erythemal / uvErythemalFractionOfSW
 	//	                      = 4e5 J/m^2 broadband
-	//	dose at index 10      = sunIntensityMaxDoseSED * (above)
-	//	                      = 1e7 J/m^2 broadband
-	//	scale                 = sunIntensityMax / 1e7 = 1e-6 m^2/J
+	//	dose at sunIntensityMax = sunIntensityMaxDoseSED * (above)
+	//	                        = 1e7 J/m^2 broadband
+	//	scale                   = sunIntensityMax / 1e7
 	//
 	// Equivalently, the unclamped index equals dose_SED * sunIntensityMax /
 	// sunIntensityMaxDoseSED.
 	sunIntensityScale = sunIntensityMax / (sunIntensityMaxDoseSED * (100.0 / uvErythemalFractionOfSW))
 
-	// sunIntensityMin is the lower bound of the displayed index. The integral
-	// never goes negative, but clamping to >= 1 keeps the visualization
-	// well-defined even on fully overcast rides.
-	sunIntensityMin = 1.0
+	// sunIntensityMin is the lower bound of the displayed index.
+	sunIntensityMin = 0.0
 
 	// sunIntensityMax is the upper bound of the displayed index.
-	sunIntensityMax = 10.0
+	sunIntensityMax = 12.0
 )
 
 // ComputeSunIntensityIndex integrates downward shortwave irradiance along the

@@ -55,8 +55,10 @@ func TestComputeSunIntensityIndex_ClearSky(t *testing.T) {
 	h := constHandle(800, 200, start, time.Hour, len(pts))
 	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
 	require.False(t, math.IsNaN(got))
-	// 1000 W/m^2 * ~488 s = ~4.88e5 J/m^2; scale 1e-6 -> ~0.49 -> clamped to 1.
-	require.Equal(t, sunIntensityMin, got)
+	// 1000 W/m^2 * ~488 s = ~4.88e5 J/m^2; scale 1.2e-6 -> ~0.59. A short ride
+	// under clear sky should yield a small but nonzero index.
+	require.Greater(t, got, sunIntensityMin)
+	require.Less(t, got, 1.0)
 }
 
 func TestComputeSunIntensityIndex_LongClearSkyRide(t *testing.T) {
@@ -68,7 +70,7 @@ func TestComputeSunIntensityIndex_LongClearSkyRide(t *testing.T) {
 	h := constHandle(800, 200, start, 12*time.Hour, len(pts))
 	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
 	require.False(t, math.IsNaN(got))
-	// 1000 W/m^2 * (199000/7.78) s = ~2.56e7 J/m^2, scale 1e-6 -> ~25.6 -> clamped to 10.
+	// 1000 W/m^2 * (199000/7.78) s = ~2.56e7 J/m^2, scale 1.2e-6 -> ~30.7 -> clamped to max.
 	require.Equal(t, sunIntensityMax, got)
 }
 
