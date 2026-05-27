@@ -32,6 +32,7 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/memstats"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
+	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/ag"
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/astra"
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/sg"
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/sz"
@@ -414,6 +415,9 @@ func main() {
 
 	jobs.MustRegisterJob(w, sz.NewDownloader(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), sz.DownloaderArgs{}, sz.MinRefreshAge+time.Hour, true)
+
+	jobs.MustRegisterJob(w, ag.NewDownloader(d))
+	jobs.Periodic(ctxJobs, w.Submitter(), ag.DownloaderArgs{}, ag.MinRefreshAge+time.Hour, true)
 
 	mapsDir := filepath.Join(dataDir, "maps")
 	jobs.MustRegisterJob(w, maps.NewDownloader(d, c.MapsConfig, mapsDir))

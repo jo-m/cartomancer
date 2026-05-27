@@ -24,6 +24,7 @@ All sources share the same structure: `Fetch(ctx)` client + `Downloader` job wit
 - `zh/` - Canton Zurich WFS (`maps.zh.ch/wfs/TbaBaustellenZHWFS`, layer `ms:baustellen-detailansicht`). Filtered to `aktiv*`/`zukünftig*` (`status_baustelle`). `Type` hardcoded `closed_way`.
 - `sz/` - Canton Schwyz WFS (`map.geo.sz.ch/mapserv_proxy`, layer `ms:ch.sz.a083a.baustellen`). No status filter. German display-string dates parsed best-effort by `date.go`, NULL on failure. No `gml:id`, so `sourceID()` derives a SHA-1 fingerprint from feature text + first geometry vertex. `Type` hardcoded `closed_way`.
 - `sg/` - Canton St. Gallen WFS (`stgallen.opendatasoft.com`, dataset `baustellenkoordination`). No status filter. `Type` derived from lowercased title (`bew`) + description (`adresse`): contains "sperrung"/"gesperrt" -> `closed_way`, else `detour`.
+- `ag/` - Canton Aargau ArcGIS REST MapServer (`arcgis.geo.ag.ch/.../ATB/Baustellen_online/MapServer/0`). GeoJSON output (`f=geojson`, `outSR=4326`); server-side filter `tDate >= CURRENT_TIMESTAMP` keeps the payload to currently or future-active sites. `SourceID` is `ag-<OBJECTID>`. Dates decode either as ISO-8601 strings or epoch-ms numbers via the `apiDate` custom unmarshaller. `Type` derived from `Bezeichnung` + `Behinderung_Karte`/`Behinderung_Tabelle` with the same "sperrung"/"gesperrt" heuristic as `sg/`.
 
 ### Adding a new source
 

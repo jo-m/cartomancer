@@ -170,7 +170,7 @@
   - [x] SG: https://data.geo.sg.ch/s/RMgBWPofwkaCawf?dir=/Geodaten/3%20-%20Bev%C3%B6lkerung%20und%20Wirtschaft/P%20-%20Verkehr/Strassenbaustellen
   - [x] SZ: https://www.geocat.ch/geonetwork/srv/ger/catalog.search#/metadata/7dfb53d9-9639-4b4a-a677-b00780dd1558
   - [ ] ~~TG: https://map.geo.tg.ch/apps/mf-geoadmin3/?lang=de&topic=ech&layers_opacity=0.9&layers=baustellen-baustelle&bgLayer=basemap_farbig&E=2708163.70&N=1268316.77&zoom=5~~
-  - [ ] AG?
+  - [x] AG?
 - [ ] Download country shapes, and issue a warning if a track includes a border crossing
 - [x] Map view, showing all tracks and their starting points
 - [ ] Social link sharing preview
