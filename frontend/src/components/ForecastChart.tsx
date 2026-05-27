@@ -18,7 +18,12 @@ import {
   relWindLabel,
   windDirLabel,
 } from "../lib/forecast"
-import type { ForecastPoint, ForecastUnits, SunEvent } from "../types/forecast"
+import type {
+  ForecastPoint,
+  ForecastUnits,
+  SunEvent,
+  SunIntensity as SunIntensityValue,
+} from "../types/forecast"
 import { findNearestIndex } from "../lib/nearest"
 import WindRose from "./WindRose"
 import SunIntensity from "./SunIntensity"
@@ -42,7 +47,7 @@ interface Props {
   trackDistancesM?: number[]
   attribution?: { text: string; href: string }
   sunEvents?: SunEvent[]
-  sunIntensityIndex?: number | null
+  sunIntensity?: SunIntensityValue | null
 }
 
 const Y_AXIS_WIDTH = 44
@@ -153,7 +158,7 @@ export default function ForecastChart({
   trackDistancesM,
   attribution,
   sunEvents,
-  sunIntensityIndex,
+  sunIntensity,
 }: Props) {
   const tempLineRef = useRef<HTMLDivElement>(null)
   const tempLabelRef = useRef<HTMLDivElement>(null)
@@ -878,7 +883,7 @@ export default function ForecastChart({
         </div>
       )}
 
-      {(hasRelativeWind || sunIntensityIndex != null) && (
+      {(hasRelativeWind || sunIntensity != null) && (
         <div className="flex flex-wrap gap-6">
           {hasRelativeWind && (
             <>
@@ -902,8 +907,11 @@ export default function ForecastChart({
               />
             </>
           )}
-          {sunIntensityIndex != null && (
-            <SunIntensity value={sunIntensityIndex} />
+          {sunIntensity != null && (
+            <SunIntensity
+              value={sunIntensity.index}
+              doseJm2={sunIntensity.doseJm2}
+            />
           )}
         </div>
       )}

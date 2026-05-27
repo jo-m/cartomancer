@@ -1,14 +1,17 @@
-const SUN_SECTORS = 10
-const SUN_PAD = 30
-const SUN_MAX_R = 50
+const SUN_RAYS = 12
+const SUN_MAX_R = 60
+const SUN_PAD = 6
 const SUN_SIZE = (SUN_MAX_R + SUN_PAD) * 2
 const SUN_CX = SUN_SIZE / 2
 const SUN_CY = SUN_SIZE / 2
-const DISC_R = 20
-const RAY_INNER_R = 24
-const RAY_OUTER_MIN_R = 30
-const RAY_OUTER_MAX_R = SUN_MAX_R
-const HALF_RAY_DEG = 360 / SUN_SECTORS / 2 - 3
+const DISC_R = 22
+const RAY_INNER_R = 25
+const RAY_OUTER_LIT_R = SUN_MAX_R
+const RAY_OUTER_UNLIT_R = 33
+const RAY_BASE_HALF_W = 5
+
+const SUN_INTENSITY_MIN = 0
+const SUN_INTENSITY_MAX = SUN_RAYS
 
 /** Interpolates linearly between two RGB color stops. */
 function lerpRgb(
@@ -22,118 +25,171 @@ function lerpRgb(
   return `rgb(${r}, ${g}, ${bb})`
 }
 
-/** Returns the ray color for sector index i, going from cool to hot. */
+/**
+ * Returns the warm fill color for a lit ray at sector index i, ramping from a
+ * pale medieval gold through amber to deep crimson as i grows.
+ */
 function rayColor(i: number): string {
-  // Pale yellow -> amber -> deep red across the ten sectors.
-  const t = i / (SUN_SECTORS - 1)
+  const t = i / (SUN_RAYS - 1)
   if (t < 0.5) {
-    return lerpRgb(t / 0.5, [253, 224, 71], [245, 158, 11])
+    return lerpRgb(t / 0.5, [240, 198, 110], [212, 140, 36])
   }
-  return lerpRgb((t - 0.5) / 0.5, [245, 158, 11], [185, 28, 28])
-}
-
-interface Props {
-  /** The sun intensity index in [1, 10]. */
-  value: number
+  return lerpRgb((t - 0.5) / 0.5, [212, 140, 36], [139, 32, 28])
 }
 
 /**
- * SunIntensity renders a dimensionless 1..10 sun intensity index as a
- * sunburst gauge: ten rays around a central disc light up progressively
- * with the value, and the value is shown numerically in the centre.
+ * Returns the SVG path for a single curly tapered ray pointing along -Y in
+ * the local frame, with the given outer radius. The ray has an asymmetric
+ * S-curve so that all rays appear to swirl in the same rotational sense.
  */
-export default function SunIntensity({ value }: Props) {
-  const clamped = Math.max(1, Math.min(10, value))
+function curlyRayPath(outerR: number): string {
+  const w = RAY_BASE_HALF_W
+  const innerR = RAY_INNER_R
+  const len = outerR - innerR
+  // Base sits at y = -innerR (just outside the central disc); tip is curled
+  // slightly toward +X for a clockwise swirl.
+  const tipX = 0.35 * w
+  const tipY = -outerR
+  const baseL = `${-w},${-innerR}`
+  const baseR = `${w},${-innerR}`
+  // Left edge: bulges outward near the base, then sweeps in toward the tip.
+  const cp1 = `${-1.4 * w},${-(innerR + 0.3 * len)}`
+  const cp2 = `${-0.15 * w},${-(innerR + 0.78 * len)}`
+  // Right edge: curves back from the curled tip, then bulges outward.
+  const cp3 = `${0.55 * w},${-(innerR + 0.85 * len)}`
+  const cp4 = `${1.25 * w},${-(innerR + 0.4 * len)}`
+  return [
+    `M${baseL}`,
+    `C${cp1} ${cp2} ${tipX},${tipY}`,
+    `C${cp3} ${cp4} ${baseR}`,
+    "Z",
+  ].join(" ")
+}
+
+/**
+ * Formats a broadband shortwave dose in J/m^2 for compact display. Uses MJ/m^2
+ * for typical ride exposures, falling back to kJ/m^2 or J/m^2 for very small
+ * values.
+ */
+function formatDose(doseJm2: number): string {
+  if (doseJm2 >= 1e6) {
+    return `${(doseJm2 / 1e6).toFixed(1)} MJ/m²`
+  }
+  if (doseJm2 >= 1e3) {
+    return `${(doseJm2 / 1e3).toFixed(0)} kJ/m²`
+  }
+  return `${doseJm2.toFixed(0)} J/m²`
+}
+
+interface Props {
+  /** The sun intensity index in [0, 12]. */
+  value: number
+  /** Integrated broadband shortwave dose along the track in J/m^2. */
+  doseJm2?: number
+}
+
+/**
+ * SunIntensity renders a dimensionless sun intensity index in [0, 12] as a
+ * medieval sun-in-splendour gauge: twelve curly tapered rays around a central
+ * disc light up progressively with the value, the value is shown numerically
+ * in the centre, and the integrated broadband shortwave dose is displayed
+ * below the gauge.
+ */
+export default function SunIntensity({ value, doseJm2 }: Props) {
+  const clamped = Math.max(
+    SUN_INTENSITY_MIN,
+    Math.min(SUN_INTENSITY_MAX, value)
+  )
   const rounded = Math.round(clamped)
 
-  // Build the rays. Each sector is a wedge; lit sectors grow outward and warm
-  // up in colour, while unlit sectors remain short and muted.
-  const rays = Array.from({ length: SUN_SECTORS }, (_, i) => {
+  // Build twelve curly rays evenly spaced around the disc. Lit rays grow
+  // outward and warm up in colour; unlit rays remain short stubs in a muted
+  // border tone.
+  const rays = Array.from({ length: SUN_RAYS }, (_, i) => {
     const lit = i < rounded
-    const angleDeg = (i * 360) / SUN_SECTORS - 90
-    const outerR = lit ? RAY_OUTER_MAX_R : RAY_OUTER_MIN_R
-    const a1 = ((angleDeg - HALF_RAY_DEG) * Math.PI) / 180
-    const a2 = ((angleDeg + HALF_RAY_DEG) * Math.PI) / 180
-    const x1 = SUN_CX + RAY_INNER_R * Math.cos(a1)
-    const y1 = SUN_CY + RAY_INNER_R * Math.sin(a1)
-    const x2 = SUN_CX + outerR * Math.cos(a1)
-    const y2 = SUN_CY + outerR * Math.sin(a1)
-    const x3 = SUN_CX + outerR * Math.cos(a2)
-    const y3 = SUN_CY + outerR * Math.sin(a2)
-    const x4 = SUN_CX + RAY_INNER_R * Math.cos(a2)
-    const y4 = SUN_CY + RAY_INNER_R * Math.sin(a2)
+    const outerR = lit ? RAY_OUTER_LIT_R : RAY_OUTER_UNLIT_R
     const fill = lit ? rayColor(i) : "var(--color-border)"
+    const stroke = lit ? rayColor(i) : "var(--color-border)"
     return (
-      <path
+      <g
         key={i}
-        d={`M${x1},${y1} L${x2},${y2} L${x3},${y3} L${x4},${y4} Z`}
-        fill={fill}
-        fillOpacity={lit ? 0.85 : 0.4}
-        stroke={fill}
-        strokeWidth={1}
-      />
+        transform={`translate(${SUN_CX},${SUN_CY}) rotate(${(i * 360) / SUN_RAYS})`}
+      >
+        <path
+          d={curlyRayPath(outerR)}
+          fill={fill}
+          fillOpacity={lit ? 0.92 : 0.45}
+          stroke={stroke}
+          strokeOpacity={lit ? 1 : 0.6}
+          strokeWidth={0.6}
+          strokeLinejoin="round"
+        />
+      </g>
     )
   })
 
-  // The central disc colour follows the overall intensity.
-  const discFill = rayColor(rounded - 1)
+  // The central disc colour follows the overall intensity. At zero the disc
+  // takes the muted border colour to match the unlit rays.
+  const discFill = rounded > 0 ? rayColor(rounded - 1) : "var(--color-border)"
+  const discStroke =
+    rounded > 0
+      ? rayColor(Math.min(rounded, SUN_RAYS - 1))
+      : "var(--color-border)"
 
   return (
     <div
       className="flex items-center gap-3"
       role="img"
-      aria-label={`Sun intensity ${rounded} out of 10`}
+      aria-label={`Sun intensity ${rounded} out of ${SUN_INTENSITY_MAX}`}
     >
       <p className="text-xs font-medium text-text-muted [writing-mode:vertical-lr] rotate-180">
         Sun intensity
       </p>
-      <svg
-        width={SUN_SIZE}
-        height={SUN_SIZE}
-        viewBox={`0 0 ${SUN_SIZE} ${SUN_SIZE}`}
-      >
-        {/* Outer guide ring. */}
-        <circle
-          cx={SUN_CX}
-          cy={SUN_CY}
-          r={SUN_MAX_R}
-          fill="none"
-          stroke="var(--color-border)"
-          strokeWidth={0.5}
-        />
-        {rays}
-        {/* Central disc. */}
-        <circle
-          cx={SUN_CX}
-          cy={SUN_CY}
-          r={DISC_R}
-          fill={discFill}
-          fillOpacity={0.9}
-          stroke={discFill}
-          strokeWidth={1}
-        />
-        <text
-          x={SUN_CX}
-          y={SUN_CY}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize={18}
-          fontWeight={700}
-          fill="#ffffff"
+      <div className="flex flex-col items-center gap-1">
+        <svg
+          width={SUN_SIZE}
+          height={SUN_SIZE}
+          viewBox={`0 0 ${SUN_SIZE} ${SUN_SIZE}`}
         >
-          {rounded}
-        </text>
-        <text
-          x={SUN_CX}
-          y={SUN_CY + DISC_R + 12}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize={9}
-          fill="var(--color-text-muted)"
-        >
-          / 10
-        </text>
-      </svg>
+          {rays}
+          <circle
+            cx={SUN_CX}
+            cy={SUN_CY}
+            r={DISC_R}
+            fill={discFill}
+            fillOpacity={0.95}
+            stroke={discStroke}
+            strokeWidth={1.2}
+          />
+          <text
+            x={SUN_CX}
+            y={SUN_CY - 2}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={20}
+            fontWeight={700}
+            fill="#faf6ef"
+          >
+            {rounded}
+          </text>
+          <text
+            x={SUN_CX}
+            y={SUN_CY + 11}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={9}
+            fill="#faf6ef"
+            fillOpacity={0.85}
+          >
+            / {SUN_INTENSITY_MAX}
+          </text>
+        </svg>
+        {doseJm2 != null && Number.isFinite(doseJm2) && (
+          <p className="text-[10px] text-text-muted">
+            Dose: {formatDose(doseJm2)}
+          </p>
+        )}
+      </div>
     </div>
   )
 }
