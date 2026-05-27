@@ -42,13 +42,22 @@ type sunEventResponse struct {
 	DistanceM float64 `json:"distanceM"`
 }
 
+// sunIntensityResponse describes the aggregated sun exposure along the track.
+type sunIntensityResponse struct {
+	// Index is the dimensionless sun intensity index in [0, 12].
+	Index float64 `json:"index"`
+	// DoseJm2 is the integrated broadband downward shortwave dose along the
+	// track in J/m^2.
+	DoseJm2 float64 `json:"doseJm2"`
+}
+
 type forecastResponse struct {
-	ForecastStatus    string                  `json:"forecastStatus"`
-	Attribution       attributionResponse     `json:"attribution"`
-	Units             forecastUnits           `json:"units"`
-	Points            []forecastPointResponse `json:"points"`
-	SunEvents         []sunEventResponse      `json:"sunEvents"`
-	SunIntensityIndex *float64                `json:"sunIntensityIndex"`
+	ForecastStatus string                  `json:"forecastStatus"`
+	Attribution    attributionResponse     `json:"attribution"`
+	Units          forecastUnits           `json:"units"`
+	Points         []forecastPointResponse `json:"points"`
+	SunEvents      []sunEventResponse      `json:"sunEvents"`
+	SunIntensity   *sunIntensityResponse   `json:"sunIntensity"`
 }
 
 // handleGetTrackForecast returns a weather forecast time series along a track.
@@ -199,11 +208,11 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	midLon := (bbox.MinLon + bbox.MaxLon) / 2
 	sunEvents := computeSunEvents(startTime, endTime, midLat, midLon, totalDist)
 
-	var sunIntensityIndex *float64
+	var sunIntensity *sunIntensityResponse
 	if status != "none" {
-		idx := forecast.ComputeSunIntensityIndex(h, pts, startTime, speedMs)
-		if !math.IsNaN(idx) {
-			sunIntensityIndex = &idx
+		si := forecast.ComputeSunIntensity(h, pts, startTime, speedMs)
+		if !math.IsNaN(si.Index) && !math.IsNaN(si.DoseJm2) {
+			sunIntensity = &sunIntensityResponse{Index: si.Index, DoseJm2: si.DoseJm2}
 		}
 	}
 
@@ -217,9 +226,9 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 			RelativeWindDirectionDeg: "deg",
 			SolarRadiationWm2:        "W/m\u00b2",
 		},
-		Points:            result,
-		SunEvents:         sunEvents,
-		SunIntensityIndex: sunIntensityIndex,
+		Points:       result,
+		SunEvents:    sunEvents,
+		SunIntensity: sunIntensity,
 	}
 	if h != nil {
 		resp.Attribution = attributionResponse{Text: h.Attribution, Href: h.AttributionHref}

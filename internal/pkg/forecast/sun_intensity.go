@@ -72,10 +72,23 @@ const (
 	sunIntensityMax = 12.0
 )
 
-// ComputeSunIntensityIndex integrates downward shortwave irradiance along the
-// track in time and returns a dimensionless intensity index in
-// [[sunIntensityMin], [sunIntensityMax]]. Returns NaN if no point yields a
-// valid irradiance sample (e.g. when no forecast data is available).
+// SunIntensity bundles the integrated broadband shortwave dose along a track
+// with the dimensionless intensity index derived from it.
+type SunIntensity struct {
+	// Index is the dimensionless intensity index in
+	// [[sunIntensityMin], [sunIntensityMax]]. It is clamped, while [DoseJm2]
+	// is not.
+	Index float64
+	// DoseJm2 is the integrated broadband downward shortwave dose along the
+	// track in J/m^2. Samples below [sunIntensityThresholdWm2] contribute zero.
+	DoseJm2 float64
+}
+
+// ComputeSunIntensity integrates downward shortwave irradiance along the track
+// in time and returns the broadband dose in J/m^2 together with the
+// dimensionless intensity index in [[sunIntensityMin], [sunIntensityMax]].
+// Both fields are NaN if no point yields a valid irradiance sample (e.g. when
+// no forecast data is available).
 //
 // Parameters:
 //   - h: forecast handle with samples for [vars.VarAswdirS] and [vars.VarAswdifdS].
@@ -83,9 +96,10 @@ const (
 //     on [track.Point.Distance].
 //   - startTime: assumed start time at the first point.
 //   - speedMs: assumed constant speed in m/s; must be positive.
-func ComputeSunIntensityIndex(h *Handle, pts track.Points, startTime time.Time, speedMs float64) float64 {
+func ComputeSunIntensity(h *Handle, pts track.Points, startTime time.Time, speedMs float64) SunIntensity {
+	nanResult := SunIntensity{Index: math.NaN(), DoseJm2: math.NaN()}
 	if h == nil || len(pts) < 2 || speedMs <= 0 {
-		return math.NaN()
+		return nanResult
 	}
 
 	var (
@@ -118,7 +132,7 @@ func ComputeSunIntensityIndex(h *Handle, pts track.Points, startTime time.Time, 
 	}
 
 	if validSamples == 0 || segmentsTaken == 0 {
-		return math.NaN()
+		return nanResult
 	}
 
 	index := dose * sunIntensityScale
@@ -128,5 +142,5 @@ func ComputeSunIntensityIndex(h *Handle, pts track.Points, startTime time.Time, 
 	if index > sunIntensityMax {
 		index = sunIntensityMax
 	}
-	return index
+	return SunIntensity{Index: index, DoseJm2: dose}
 }

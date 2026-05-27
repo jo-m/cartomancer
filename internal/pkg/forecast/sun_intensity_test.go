@@ -47,76 +47,92 @@ func linePoints(n int, stepM float64) track.Points {
 	return pts
 }
 
-func TestComputeSunIntensityIndex_ClearSky(t *testing.T) {
+func TestComputeSunIntensity_ClearSky(t *testing.T) {
 	start := fixedTime()
 	pts := linePoints(20, 200) // 20 points, 200 m apart -> ~3.8 km total
 	speedMs := 7.78            // ~28 km/h, full ride ~488 s
 
 	h := constHandle(800, 200, start, time.Hour, len(pts))
-	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
-	require.False(t, math.IsNaN(got))
+	got := ComputeSunIntensity(h, pts, start, speedMs)
+	require.False(t, math.IsNaN(got.Index))
+	require.False(t, math.IsNaN(got.DoseJm2))
 	// 1000 W/m^2 * ~488 s = ~4.88e5 J/m^2; scale 1.2e-6 -> ~0.59. A short ride
 	// under clear sky should yield a small but nonzero index.
-	require.Greater(t, got, sunIntensityMin)
-	require.Less(t, got, 1.0)
+	require.Greater(t, got.Index, sunIntensityMin)
+	require.Less(t, got.Index, 1.0)
+	require.Greater(t, got.DoseJm2, 0.0)
+	require.InEpsilon(t, got.DoseJm2*sunIntensityScale, got.Index, 1e-9)
 }
 
-func TestComputeSunIntensityIndex_LongClearSkyRide(t *testing.T) {
+func TestComputeSunIntensity_LongClearSkyRide(t *testing.T) {
 	start := fixedTime()
 	// 200 points 1 km apart -> 199 km, at 28 km/h -> ~7.1 h.
 	pts := linePoints(200, 1000)
 	speedMs := 7.78
 
 	h := constHandle(800, 200, start, 12*time.Hour, len(pts))
-	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
-	require.False(t, math.IsNaN(got))
+	got := ComputeSunIntensity(h, pts, start, speedMs)
+	require.False(t, math.IsNaN(got.Index))
+	require.False(t, math.IsNaN(got.DoseJm2))
 	// 1000 W/m^2 * (199000/7.78) s = ~2.56e7 J/m^2, scale 1.2e-6 -> ~30.7 -> clamped to max.
-	require.Equal(t, sunIntensityMax, got)
+	require.Equal(t, sunIntensityMax, got.Index)
+	// Dose is unclamped, so it should exceed the dose corresponding to the max
+	// index ([sunIntensityMaxDoseSED] SED of broadband-equivalent).
+	require.Greater(t, got.DoseJm2, sunIntensityMax/sunIntensityScale)
 }
 
-func TestComputeSunIntensityIndex_BelowThreshold(t *testing.T) {
+func TestComputeSunIntensity_BelowThreshold(t *testing.T) {
 	start := fixedTime()
 	pts := linePoints(20, 1000)
 	speedMs := 7.78
 
 	// Total SW = 20 + 20 = 40 W/m^2 < threshold (50). Contributes 0 to dose.
 	h := constHandle(20, 20, start, time.Hour, len(pts))
-	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
-	require.False(t, math.IsNaN(got))
-	require.Equal(t, sunIntensityMin, got, "below-threshold samples should yield the floor")
+	got := ComputeSunIntensity(h, pts, start, speedMs)
+	require.False(t, math.IsNaN(got.Index))
+	require.Equal(t, sunIntensityMin, got.Index, "below-threshold samples should yield the floor")
+	require.Equal(t, 0.0, got.DoseJm2, "below-threshold samples should yield zero dose")
 }
 
-func TestComputeSunIntensityIndex_NoData(t *testing.T) {
+func TestComputeSunIntensity_NoData(t *testing.T) {
 	start := fixedTime()
 	pts := linePoints(10, 500)
 	speedMs := 7.78
 
 	h := &Handle{values: map[string][]timedValues{}}
-	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
-	require.True(t, math.IsNaN(got), "expected NaN when no irradiance data is available")
+	got := ComputeSunIntensity(h, pts, start, speedMs)
+	require.True(t, math.IsNaN(got.Index), "expected NaN index when no irradiance data is available")
+	require.True(t, math.IsNaN(got.DoseJm2), "expected NaN dose when no irradiance data is available")
 }
 
-func TestComputeSunIntensityIndex_GuardsInvalidInputs(t *testing.T) {
+func TestComputeSunIntensity_GuardsInvalidInputs(t *testing.T) {
 	start := fixedTime()
 	pts := linePoints(10, 500)
 	h := constHandle(800, 200, start, time.Hour, len(pts))
 
-	require.True(t, math.IsNaN(ComputeSunIntensityIndex(nil, pts, start, 7.78)))
-	require.True(t, math.IsNaN(ComputeSunIntensityIndex(h, pts[:1], start, 7.78)))
-	require.True(t, math.IsNaN(ComputeSunIntensityIndex(h, pts, start, 0)))
-	require.True(t, math.IsNaN(ComputeSunIntensityIndex(h, pts, start, -1)))
+	for _, got := range []SunIntensity{
+		ComputeSunIntensity(nil, pts, start, 7.78),
+		ComputeSunIntensity(h, pts[:1], start, 7.78),
+		ComputeSunIntensity(h, pts, start, 0),
+		ComputeSunIntensity(h, pts, start, -1),
+	} {
+		require.True(t, math.IsNaN(got.Index))
+		require.True(t, math.IsNaN(got.DoseJm2))
+	}
 }
 
-func TestComputeSunIntensityIndex_AlwaysWithinBounds(t *testing.T) {
+func TestComputeSunIntensity_AlwaysWithinBounds(t *testing.T) {
 	start := fixedTime()
 	speedMs := 7.78
 
 	for _, sw := range []float32{0, 100, 200, 500, 1000, 1500} {
 		pts := linePoints(50, 1000)
 		h := constHandle(sw*0.8, sw*0.2, start, 12*time.Hour, len(pts))
-		got := ComputeSunIntensityIndex(h, pts, start, speedMs)
-		require.False(t, math.IsNaN(got))
-		require.GreaterOrEqual(t, got, sunIntensityMin)
-		require.LessOrEqual(t, got, sunIntensityMax)
+		got := ComputeSunIntensity(h, pts, start, speedMs)
+		require.False(t, math.IsNaN(got.Index))
+		require.False(t, math.IsNaN(got.DoseJm2))
+		require.GreaterOrEqual(t, got.Index, sunIntensityMin)
+		require.LessOrEqual(t, got.Index, sunIntensityMax)
+		require.GreaterOrEqual(t, got.DoseJm2, 0.0)
 	}
 }
