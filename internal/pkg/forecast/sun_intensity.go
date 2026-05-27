@@ -20,21 +20,53 @@ import (
 // the integral; the resulting dose is multiplied by [sunIntensityScale] and
 // clamped to [[sunIntensityMin], [sunIntensityMax]] so the output is a
 // dimensionless 1..10 index suitable for display.
+//
+// The scale is calibrated against erythemal-UV dose biology. ICON emits
+// broadband downward shortwave (~285-2800 nm), of which only a small fraction
+// is the erythemally-weighted UV that drives sunburn (McKinlay-Diffey /
+// CIE S 007 action spectrum, peaking near 297 nm). The CIE Standard Erythemal
+// Dose (SED) is 100 J/m^2 of erythemally-weighted UV; one MED for fair-skinned
+// skin type II is roughly 2-3 SED. Index 10 corresponds to
+// [sunIntensityMaxDoseSED] SED of accumulated exposure, well past the
+// unprotected-fair-skin sunburn threshold for a multi-hour summer ride.
 
-// TODO: calibrate sunIntensityThresholdWm2 and sunIntensityScale against
-// real-world rides; the current values are placeholders. The threshold is
-// meant to approximate the irradiance below which solar load does not
-// meaningfully tax the rider; the scale is meant to map a typical sunny
-// multi-hour ride dose to ~10 and a fully shaded/overcast ride to ~1.
 const (
-	// sunIntensityThresholdWm2 is the irradiance below which a sampled point
-	// contributes zero to the integrated sun dose. In W/m^2.
-	sunIntensityThresholdWm2 = 150.0
+	// uvErythemalFractionOfSW is the typical fraction of erythemally-weighted
+	// UV in broadband downward shortwave at the surface. Real-world values
+	// span ~1.5e-4 (high solar zenith angle, winter) to ~3e-4 (summer noon
+	// clear sky), and may exceed that under thick clouds since UV is less
+	// attenuated than visible light. The midrange value used here integrates
+	// reasonably over a multi-hour ride under mixed conditions.
+	//
+	// Refs: Foyo-Moreno et al. 2003 (Atmos. Res.); WMO/GAW No. 211;
+	// ISO 17166:2019 / CIE S 007.
+	uvErythemalFractionOfSW = 2.5e-4
 
-	// sunIntensityScale converts the integrated dose (J/m^2) into the
-	// dimensionless intensity index. Tuned so a clear-sky multi-hour ride
-	// approaches [sunIntensityMax].
-	sunIntensityScale = 1.0 / 1.5e6
+	// sunIntensityMaxDoseSED is the erythemal UV dose (in Standard Erythemal
+	// Doses, 100 J/m^2 each) at which the index reaches [sunIntensityMax].
+	// 25 SED is roughly 10 MED for skin type II, i.e. the severe-burn
+	// threshold for unprotected fair skin after a long clear-sky ride.
+	sunIntensityMaxDoseSED = 25.0
+
+	// sunIntensityThresholdWm2 is the broadband irradiance below which a
+	// sampled point contributes zero to the integrated sun dose. Kept low
+	// because UV penetrates overcast skies relatively well (the UV/SW ratio
+	// rises under clouds); the threshold's only job is to gate out night
+	// and deep-twilight noise. In W/m^2.
+	sunIntensityThresholdWm2 = 50.0
+
+	// sunIntensityScale converts the integrated broadband dose (J/m^2) into
+	// the dimensionless intensity index. Derivation:
+	//
+	//	1 SED in broadband SW = 100 J/m^2 erythemal / uvErythemalFractionOfSW
+	//	                      = 4e5 J/m^2 broadband
+	//	dose at index 10      = sunIntensityMaxDoseSED * (above)
+	//	                      = 1e7 J/m^2 broadband
+	//	scale                 = sunIntensityMax / 1e7 = 1e-6 m^2/J
+	//
+	// Equivalently, the unclamped index equals dose_SED * sunIntensityMax /
+	// sunIntensityMaxDoseSED.
+	sunIntensityScale = sunIntensityMax / (sunIntensityMaxDoseSED * (100.0 / uvErythemalFractionOfSW))
 
 	// sunIntensityMin is the lower bound of the displayed index. The integral
 	// never goes negative, but clamping to >= 1 keeps the visualization

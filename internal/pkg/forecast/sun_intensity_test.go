@@ -55,7 +55,7 @@ func TestComputeSunIntensityIndex_ClearSky(t *testing.T) {
 	h := constHandle(800, 200, start, time.Hour, len(pts))
 	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
 	require.False(t, math.IsNaN(got))
-	// 1000 W/m^2 * ~488 s = ~488000 J/m^2; scale 1/1.5e6 -> ~0.325 -> clamped to 1.
+	// 1000 W/m^2 * ~488 s = ~4.88e5 J/m^2; scale 1e-6 -> ~0.49 -> clamped to 1.
 	require.Equal(t, sunIntensityMin, got)
 }
 
@@ -68,7 +68,7 @@ func TestComputeSunIntensityIndex_LongClearSkyRide(t *testing.T) {
 	h := constHandle(800, 200, start, 12*time.Hour, len(pts))
 	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
 	require.False(t, math.IsNaN(got))
-	// 1000 W/m^2 * (199000/7.78) s = ~2.56e7 J/m^2, scale gives ~17 -> clamped to 10.
+	// 1000 W/m^2 * (199000/7.78) s = ~2.56e7 J/m^2, scale 1e-6 -> ~25.6 -> clamped to 10.
 	require.Equal(t, sunIntensityMax, got)
 }
 
@@ -77,8 +77,8 @@ func TestComputeSunIntensityIndex_BelowThreshold(t *testing.T) {
 	pts := linePoints(20, 1000)
 	speedMs := 7.78
 
-	// Total SW = 50 + 50 = 100 W/m^2 < threshold (150). Contributes 0 to dose.
-	h := constHandle(50, 50, start, time.Hour, len(pts))
+	// Total SW = 20 + 20 = 40 W/m^2 < threshold (50). Contributes 0 to dose.
+	h := constHandle(20, 20, start, time.Hour, len(pts))
 	got := ComputeSunIntensityIndex(h, pts, start, speedMs)
 	require.False(t, math.IsNaN(got))
 	require.Equal(t, sunIntensityMin, got, "below-threshold samples should yield the floor")
