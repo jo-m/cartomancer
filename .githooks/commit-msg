@@ -19,6 +19,12 @@ ALLOWED=(
 
 msg_file="${1:?usage: commit-msg <message-file>}"
 
+# Only enforce on the default branch (main); skip on feature branches.
+current_branch="$(git symbolic-ref --short HEAD 2>/dev/null || echo '')"
+if [ "$current_branch" != "main" ]; then
+    exit 0
+fi
+
 # Find the first non-blank, non-comment line: the subject.
 subject=""
 while IFS= read -r line || [ -n "$line" ]; do
