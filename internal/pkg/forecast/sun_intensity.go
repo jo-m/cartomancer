@@ -19,14 +19,14 @@ import (
 // Sampled irradiances below [sunIntensityThresholdWm2] contribute zero to
 // the integral; the resulting dose is multiplied by [sunIntensityScale] and
 // clamped to [[sunIntensityMin], [sunIntensityMax]] so the output is a
-// dimensionless 0..12 index suitable for display.
+// dimensionless 0..1 index suitable for display.
 //
 // The scale is calibrated against erythemal-UV dose biology. ICON emits
 // broadband downward shortwave (~285-2800 nm), of which only a small fraction
 // is the erythemally-weighted UV that drives sunburn (McKinlay-Diffey /
 // CIE S 007 action spectrum, peaking near 297 nm). The CIE Standard Erythemal
 // Dose (SED) is 100 J/m^2 of erythemally-weighted UV; one MED for fair-skinned
-// skin type II is roughly 2-3 SED. Index [sunIntensityMax] corresponds to
+// skin type II is roughly 2-3 SED. Index 1.0 ([sunIntensityMax]) corresponds to
 // [sunIntensityMaxDoseSED] SED of accumulated exposure, well past the
 // unprotected-fair-skin sunburn threshold for a multi-hour summer ride.
 
@@ -59,25 +59,23 @@ const (
 	//	                      = 4e5 J/m^2 broadband
 	//	dose at sunIntensityMax = sunIntensityMaxDoseSED * (above)
 	//	                        = 1e7 J/m^2 broadband
-	//	scale                   = sunIntensityMax / 1e7
+	//	scale                   = sunIntensityMax / 1e7 = 1e-7
 	//
-	// Equivalently, the unclamped index equals dose_SED * sunIntensityMax /
-	// sunIntensityMaxDoseSED.
+	// Equivalently, the unclamped index equals dose_SED / sunIntensityMaxDoseSED.
 	sunIntensityScale = sunIntensityMax / (sunIntensityMaxDoseSED * (100.0 / uvErythemalFractionOfSW))
 
-	// sunIntensityMin is the lower bound of the displayed index.
+	// sunIntensityMin is the lower bound of the output index.
 	sunIntensityMin = 0.0
 
-	// sunIntensityMax is the upper bound of the displayed index.
-	sunIntensityMax = 12.0
+	// sunIntensityMax is the upper bound of the output index.
+	sunIntensityMax = 1.0
 )
 
 // SunIntensity bundles the integrated broadband shortwave dose along a track
 // with the dimensionless intensity index derived from it.
 type SunIntensity struct {
-	// Index is the dimensionless intensity index in
-	// [[sunIntensityMin], [sunIntensityMax]]. It is clamped, while [DoseJm2]
-	// is not.
+	// Index is the dimensionless intensity index in [0, 1]. It is clamped,
+	// while [DoseJm2] is not.
 	Index float64
 	// DoseJm2 is the integrated broadband downward shortwave dose along the
 	// track in J/m^2. Samples below [sunIntensityThresholdWm2] contribute zero.

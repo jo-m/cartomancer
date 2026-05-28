@@ -33,9 +33,6 @@ const SUN_CX = SUN_SIZE / 2
 const SUN_CY = SUN_SIZE / 2
 const DISC_R = 22
 
-const SUN_INTENSITY_MIN = 0
-const SUN_INTENSITY_MAX = 12
-
 /** Interpolates linearly between two RGB color stops. */
 function lerpRgb(
   t: number,
@@ -75,40 +72,36 @@ function formatDose(doseJm2: number): string {
 }
 
 interface Props {
-  /** The sun intensity index in [0, 12]. */
+  /** The sun intensity index in [0, 1]. */
   value: number
   /** Integrated broadband shortwave dose along the track in J/m^2. */
   doseJm2?: number
 }
 
 /**
- * SunIntensity renders a dimensionless sun intensity index in [0, 12] as a
+ * SunIntensity renders a dimensionless sun intensity index in [0, 1] as a
  * medieval sun-in-splendour gauge. The 16-ray heraldic sun from sun.svg is
- * drawn at 0.3x scale; rays light up progressively (proportionally mapped from
- * the 12-step index to 16 visual rays), the numeric value is shown in the
- * central disc, and the integrated broadband shortwave dose is shown below.
+ * drawn at 0.3x scale; rays light up progressively (value scaled to 0-16),
+ * the numeric ray count is shown in the central disc, and the integrated
+ * broadband shortwave dose is shown below.
  */
 export default function SunIntensity({ value, doseJm2 }: Props) {
-  const clamped = Math.max(
-    SUN_INTENSITY_MIN,
-    Math.min(SUN_INTENSITY_MAX, value)
-  )
-  const rounded = Math.round(clamped)
-
-  // Proportionally map the 12-step UV index to the 16 available ray paths.
-  const litRays = Math.round((rounded * RAY_COUNT) / SUN_INTENSITY_MAX)
+  const clamped = Math.max(0, Math.min(1, value))
+  const litRays = Math.round(clamped * RAY_COUNT)
 
   // Disc colour follows the current intensity.
-  const discT = rounded > 0 ? (rounded - 1) / (SUN_INTENSITY_MAX - 1) : 0
-  const discFill = rounded > 0 ? rayColor(discT) : "var(--color-border)"
+  const discFill =
+    litRays > 0
+      ? rayColor((litRays - 1) / (RAY_COUNT - 1))
+      : "var(--color-border)"
   const discStroke =
-    rounded > 0 ? rayColor(rounded / SUN_INTENSITY_MAX) : "var(--color-border)"
+    litRays > 0 ? rayColor(litRays / RAY_COUNT) : "var(--color-border)"
 
   return (
     <div
       className="flex items-center gap-3"
       role="img"
-      aria-label={`Sun intensity ${rounded} out of ${SUN_INTENSITY_MAX}`}
+      aria-label={`Sun intensity ${litRays} out of ${RAY_COUNT}`}
     >
       <p className="text-xs font-medium text-text-muted [writing-mode:vertical-lr] rotate-180">
         Sun intensity
@@ -165,7 +158,7 @@ export default function SunIntensity({ value, doseJm2 }: Props) {
             fontWeight={700}
             fill="#faf6ef"
           >
-            {rounded}
+            {litRays}
           </text>
           <text
             x={SUN_CX}
@@ -176,7 +169,7 @@ export default function SunIntensity({ value, doseJm2 }: Props) {
             fill="#faf6ef"
             fillOpacity={0.85}
           >
-            / {SUN_INTENSITY_MAX}
+            / {RAY_COUNT}
           </text>
         </svg>
         {doseJm2 != null && Number.isFinite(doseJm2) && (

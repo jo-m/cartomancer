@@ -44,7 +44,7 @@ type sunEventResponse struct {
 
 // sunIntensityResponse describes the aggregated sun exposure along the track.
 type sunIntensityResponse struct {
-	// Index is the dimensionless sun intensity index in [0, 12].
+	// Index is the dimensionless sun intensity index in [0, 1].
 	Index float64 `json:"index"`
 	// DoseJm2 is the integrated broadband downward shortwave dose along the
 	// track in J/m^2.

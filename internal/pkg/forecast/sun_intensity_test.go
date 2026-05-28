@@ -56,7 +56,7 @@ func TestComputeSunIntensity_ClearSky(t *testing.T) {
 	got := ComputeSunIntensity(h, pts, start, speedMs)
 	require.False(t, math.IsNaN(got.Index))
 	require.False(t, math.IsNaN(got.DoseJm2))
-	// 1000 W/m^2 * ~488 s = ~4.88e5 J/m^2; scale 1.2e-6 -> ~0.59. A short ride
+	// 1000 W/m^2 * ~488 s = ~4.88e5 J/m^2; scale 1e-7 -> ~0.049. A short ride
 	// under clear sky should yield a small but nonzero index.
 	require.Greater(t, got.Index, sunIntensityMin)
 	require.Less(t, got.Index, 1.0)
@@ -74,7 +74,7 @@ func TestComputeSunIntensity_LongClearSkyRide(t *testing.T) {
 	got := ComputeSunIntensity(h, pts, start, speedMs)
 	require.False(t, math.IsNaN(got.Index))
 	require.False(t, math.IsNaN(got.DoseJm2))
-	// 1000 W/m^2 * (199000/7.78) s = ~2.56e7 J/m^2, scale 1.2e-6 -> ~30.7 -> clamped to max.
+	// 1000 W/m^2 * (199000/7.78) s = ~2.56e7 J/m^2, scale 1e-7 -> ~2.56 -> clamped to max.
 	require.Equal(t, sunIntensityMax, got.Index)
 	// Dose is unclamped, so it should exceed the dose corresponding to the max
 	// index ([sunIntensityMaxDoseSED] SED of broadband-equivalent).

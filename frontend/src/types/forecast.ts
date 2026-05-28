@@ -19,7 +19,7 @@ export interface SunEvent {
 
 /**
  * Aggregated sun exposure along the track: a dimensionless intensity index in
- * [0, 12] together with the integrated broadband shortwave dose in J/m^2.
+ * [0, 1] together with the integrated broadband shortwave dose in J/m^2.
  */
 export interface SunIntensity {
   index: number

@@ -1712,8 +1712,8 @@ paths:
                       index:
                         type: number
                         minimum: 0
-                        maximum: 12
-                        description: Dimensionless sun intensity index in [0, 12].
+                        maximum: 1
+                        description: Dimensionless sun intensity index in [0, 1].
                       doseJm2:
                         type: number
                         minimum: 0
