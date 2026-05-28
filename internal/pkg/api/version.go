@@ -8,7 +8,9 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/geonames"
 	"jo-m.ch/go/cartomancer/internal/pkg/maps"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo"
+	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/ag"
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/astra"
+	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/sg"
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/sz"
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/zh"
 )
@@ -53,8 +55,10 @@ func (sv *server) handleGetVersion(w http.ResponseWriter, _ *http.Request) {
 			meteo.DataAttribution,
 			geonames.DataAttribution,
 			astra.DataAttribution,
-			zh.DataAttribution,
+			ag.DataAttribution,
+			sg.DataAttribution,
 			sz.DataAttribution,
+			zh.DataAttribution,
 			maps.DataAttribution,
 		},
 	}

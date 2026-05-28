@@ -33,6 +33,7 @@ All sources share the same structure: `Fetch(ctx)` client + `Downloader` job wit
 3. `Downloader` implementing `jobs.Job[DownloaderArgs]`; in `Run`, gate on `MinRefreshAge`, then do delete-then-insert in one `WithTx`.
 4. Per-feature: build `roadclosures.ClosureInsert{Type: "detour"|"closed_way", ...}` and call `roadclosures.Insert`. Use `roadclosures.NullString` for optional text.
 5. Register in `main.go` (`MustRegisterJob` + `jobs.Periodic`).
+6. Add `<src>.DataAttribution` to the `Attributions` slice in `internal/pkg/api/version.go` so the source appears on the /about page.
 
 ### Tests
 
