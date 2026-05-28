@@ -22,7 +22,7 @@ var ErrNilGeometry = errors.New("roadclosures: nil geometry")
 
 // ClosureInsert is the per-source data needed to record a road closure.
 // It is the shared shape produced by each source-specific downloader
-// (e.g. astra, zh) and consumed by [Insert].
+// (e.g. ASTRA, ZH) and consumed by [Insert].
 type ClosureInsert struct {
 	// SourceID is the identifier from the upstream data source.
 	SourceID string

@@ -65,19 +65,19 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		return fmt.Errorf("check last run: %w", err)
 	}
 	if err == nil && time.Since(lastCreated) < MinRefreshAge {
-		logg.Info(ctx, "zh road closures data is recent, skipping download", "lastRun", lastCreated)
+		logg.Info(ctx, "ZH road closures data is recent, skipping download", "lastRun", lastCreated)
 		return nil
 	}
 
-	logg.Info(ctx, "fetching zh road closures")
+	logg.Info(ctx, "fetching ZH road closures")
 	features, err := Fetch(ctx)
 	if err != nil {
 		return fmt.Errorf("fetch road closures: %w", err)
 	}
-	logg.Info(ctx, "fetched zh road closures", "count", len(features))
+	logg.Info(ctx, "fetched ZH road closures", "count", len(features))
 
 	kept := filterActive(features)
-	logg.Info(ctx, "kept active zh road closures", "count", len(kept), "dropped", len(features)-len(kept))
+	logg.Info(ctx, "kept active ZH road closures", "count", len(kept), "dropped", len(features)-len(kept))
 
 	now := time.Now()
 
@@ -86,7 +86,7 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		if err != nil {
 			return fmt.Errorf("delete old road closures: %w", err)
 		}
-		logg.Info(ctx, "deleted old zh road closures", "count", deleted)
+		logg.Info(ctx, "deleted old ZH road closures", "count", deleted)
 
 		var inserted, skipped int
 		for _, f := range kept {
@@ -100,7 +100,7 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 			inserted++
 		}
 
-		logg.Info(ctx, "inserted zh road closures", "count", inserted, "skippedNoGeometry", skipped)
+		logg.Info(ctx, "inserted ZH road closures", "count", inserted, "skippedNoGeometry", skipped)
 		return nil
 	})
 }

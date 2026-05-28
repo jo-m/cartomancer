@@ -70,16 +70,16 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		return fmt.Errorf("check last run: %w", err)
 	}
 	if err == nil && time.Since(lastCreated) < MinRefreshAge {
-		logg.Info(ctx, "ag road closures data is recent, skipping download", "lastRun", lastCreated)
+		logg.Info(ctx, "AG road closures data is recent, skipping download", "lastRun", lastCreated)
 		return nil
 	}
 
-	logg.Info(ctx, "fetching ag road closures")
+	logg.Info(ctx, "fetching AG road closures")
 	resp, err := Fetch(ctx)
 	if err != nil {
 		return fmt.Errorf("fetch road closures: %w", err)
 	}
-	logg.Info(ctx, "fetched ag road closures", "count", len(resp.Features))
+	logg.Info(ctx, "fetched AG road closures", "count", len(resp.Features))
 
 	now := time.Now()
 
@@ -88,7 +88,7 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 		if err != nil {
 			return fmt.Errorf("delete old road closures: %w", err)
 		}
-		logg.Info(ctx, "deleted old ag road closures", "count", deleted)
+		logg.Info(ctx, "deleted old AG road closures", "count", deleted)
 
 		var inserted, skipped int
 		for _, f := range resp.Features {
@@ -102,7 +102,7 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 			inserted++
 		}
 
-		logg.Info(ctx, "inserted ag road closures", "count", inserted, "skippedNoGeometry", skipped)
+		logg.Info(ctx, "inserted AG road closures", "count", inserted, "skippedNoGeometry", skipped)
 		return nil
 	})
 }
