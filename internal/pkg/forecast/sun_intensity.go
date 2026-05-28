@@ -31,43 +31,15 @@ import (
 // unprotected-fair-skin sunburn threshold for a multi-hour summer ride.
 
 const (
-	// uvErythemalFractionOfSW is the typical fraction of erythemally-weighted
-	// UV in broadband downward shortwave at the surface. Real-world values
-	// span ~1.5e-4 (high solar zenith angle, winter) to ~3e-4 (summer noon
-	// clear sky), and may exceed that under thick clouds since UV is less
-	// attenuated than visible light. The midrange value used here integrates
-	// reasonably over a multi-hour ride under mixed conditions.
-	//
-	// Refs: Foyo-Moreno et al. 2003 (Atmos. Res.); WMO/GAW No. 211;
-	// ISO 17166:2019 / CIE S 007.
-	uvErythemalFractionOfSW = 2.5e-4
-
-	// sunIntensityMaxDoseSED is the erythemal UV dose (in Standard Erythemal
-	// Doses, 100 J/m^2 each) at which the index reaches [sunIntensityMax].
-	// 25 SED is roughly 10 MED for skin type II, i.e. the severe-burn
-	// threshold for unprotected fair skin after a long clear-sky ride.
-	sunIntensityMaxDoseSED = 25.0
-
 	// sunIntensityThresholdWm2 is the broadband irradiance below which a
 	// sampled point contributes zero to the integrated sun dose.
 	sunIntensityThresholdWm2 = 200.0
 
-	// sunIntensityScale converts the integrated broadband dose (J/m^2) into
-	// the dimensionless intensity index. Derivation:
-	//
-	//	1 SED in broadband SW = 100 J/m^2 erythemal / uvErythemalFractionOfSW
-	//	                      = 4e5 J/m^2 broadband
-	//	dose at sunIntensityMax = sunIntensityMaxDoseSED * (above)
-	//	                        = 1e7 J/m^2 broadband
-	//	scale                   = sunIntensityMax / 1e7 = 1e-7
-	//
-	// Equivalently, the unclamped index equals dose_SED / sunIntensityMaxDoseSED.
-	sunIntensityScale = sunIntensityMax / (sunIntensityMaxDoseSED * (100.0 / uvErythemalFractionOfSW))
+	// This approximates a 5h ride at full sun (900W/m^2).
+	sunIntensityScale = 1. / (900 * 3600 * 5)
 
-	// sunIntensityMin is the lower bound of the output index.
+	// sunIntensityMin and sunIntensityMax are the bounds of the output index.
 	sunIntensityMin = 0.0
-
-	// sunIntensityMax is the upper bound of the output index.
 	sunIntensityMax = 1.0
 )
 
