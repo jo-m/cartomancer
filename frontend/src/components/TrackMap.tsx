@@ -506,14 +506,13 @@ export default memo(function TrackMap({
       featureProjection: layer.type === "swisstopo" ? "EPSG:2056" : "EPSG:3857",
     })
     for (const c of closures) {
+      if (c.type === "detour") continue
       try {
         const geom = fmt.readGeometry(JSON.parse(c.geometry))
         const feature = new Feature({ geometry: geom })
         feature.set("closure", c, true)
         feature.setStyle(
-          c.type === "detour" || c.type === "obstruction"
-            ? detourStyle
-            : closureStyle
+          c.type === "obstruction" ? detourStyle : closureStyle
         )
         source.addFeature(feature)
       } catch (err) {
@@ -540,9 +539,7 @@ export default memo(function TrackMap({
           | RoadClosure
           | undefined
         highlightedFeature.setStyle(
-          prev?.type === "detour" || prev?.type === "obstruction"
-            ? detourStyle
-            : closureStyle
+          prev?.type === "obstruction" ? detourStyle : closureStyle
         )
         highlightedFeature = null
       }
@@ -556,9 +553,7 @@ export default memo(function TrackMap({
           found = true
           const feat = f as Feature
           feat.setStyle(
-            c.type === "detour" || c.type === "obstruction"
-              ? detourStyleHover
-              : closureStyleHover
+            c.type === "obstruction" ? detourStyleHover : closureStyleHover
           )
           highlightedFeature = feat
           overlay.setPosition(map.getCoordinateFromPixel(pixel)!)
@@ -597,9 +592,7 @@ export default memo(function TrackMap({
           | RoadClosure
           | undefined
         highlightedFeature.setStyle(
-          prev?.type === "detour" || prev?.type === "obstruction"
-            ? detourStyle
-            : closureStyle
+          prev?.type === "obstruction" ? detourStyle : closureStyle
         )
         highlightedFeature = null
       }
