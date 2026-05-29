@@ -58,7 +58,7 @@ var _ jobs.Job[DownloaderArgs] = (*Downloader)(nil)
 // The SG feed has no status field, so all features returned by the WFS are
 // inserted; the shared DB query filters by ends_at when serving the API.
 // Type is derived from the feature text: features containing "sperrung" or
-// "gesperrt" are classified as closed_way; all others as detour.
+// "gesperrt" are classified as closed_way; all others as obstruction.
 func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, jobTimeout)
 	defer cancel()
@@ -131,13 +131,13 @@ func insertFeature(ctx context.Context, tx *db.Queries, f Feature, now time.Time
 // closureTypeFromText derives the closure type from the combined title and
 // description text. If the lowercased concatenation contains "sperrung" or
 // "gesperrt", the feature is classified as [roadclosures.ClosedWay]; otherwise
-// [roadclosures.Detour].
+// [roadclosures.Obstruction].
 func closureTypeFromText(title, description string) roadclosures.ClosureType {
 	combined := strings.ToLower(title + " " + description)
 	if strings.Contains(combined, "sperrung") || strings.Contains(combined, "gesperrt") {
 		return roadclosures.ClosedWay
 	}
-	return roadclosures.Detour
+	return roadclosures.Obstruction
 }
 
 // nullTime wraps a time.Time as sql.NullTime, treating the zero time as NULL.

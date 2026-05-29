@@ -1605,7 +1605,7 @@ paths:
                           type: string
                         type:
                           type: string
-                          description: Closure kind (e.g. "detour", "closed_way")
+                          description: Closure kind (e.g. "closed_way", "detour", "obstruction")
                         startsAt:
                           type: string
                           format: date

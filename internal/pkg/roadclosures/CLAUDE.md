@@ -23,8 +23,8 @@ All sources share the same structure: `Fetch(ctx)` client + `Downloader` job wit
 - `astra/` - geo.admin.ch MapServer `find`, layer `ch.astra.veloland-sperrungen_umleitungen`. JSON. `Type` from `sperrungen_type` (`detour`/`closed_way`).
 - `zh/` - Canton Zurich WFS (`maps.zh.ch/wfs/TbaBaustellenZHWFS`, layer `ms:baustellen-detailansicht`). Filtered to `aktiv*`/`zukünftig*` (`status_baustelle`). `Type` hardcoded `closed_way`.
 - `sz/` - Canton Schwyz WFS (`map.geo.sz.ch/mapserv_proxy`, layer `ms:ch.sz.a083a.baustellen`). No status filter. German display-string dates parsed best-effort by `date.go`, NULL on failure. No `gml:id`, so `sourceID()` derives a SHA-1 fingerprint from feature text + first geometry vertex. `Type` hardcoded `closed_way`.
-- `sg/` - Canton St. Gallen WFS (`stgallen.opendatasoft.com`, dataset `baustellenkoordination`). No status filter. `Type` derived from lowercased title (`bew`) + description (`adresse`): contains "sperrung"/"gesperrt" -> `closed_way`, else `detour`.
-- `ag/` - Canton Aargau ArcGIS REST MapServer (`arcgis.geo.ag.ch/.../ATB/Baustellen_online/MapServer/0`). GeoJSON output (`f=geojson`, `outSR=4326`); server-side filter `tDate >= CURRENT_TIMESTAMP` keeps the payload to currently or future-active sites. `SourceID` is `ag-<OBJECTID>`. Dates decode either as ISO-8601 strings or epoch-ms numbers via the `apiDate` custom unmarshaller. `Type` derived from `Bezeichnung` + `Behinderung_Karte`/`Behinderung_Tabelle` with the same "sperrung"/"gesperrt" heuristic as `sg/`.
+- `sg/` - Canton St. Gallen WFS (`stgallen.opendatasoft.com`, dataset `baustellenkoordination`). No status filter. `Type` derived from lowercased title (`bew`) + description (`adresse`): contains "sperrung"/"gesperrt" -> `closed_way`, else `obstruction`.
+- `ag/` - Canton Aargau ArcGIS REST MapServer (`arcgis.geo.ag.ch/.../ATB/Baustellen_online/MapServer/0`). GeoJSON output (`f=geojson`, `outSR=4326`); server-side filter `tDate >= CURRENT_TIMESTAMP` keeps the payload to currently or future-active sites. `SourceID` is `ag-<OBJECTID>`. Dates decode either as ISO-8601 strings or epoch-ms numbers via the `apiDate` custom unmarshaller. `Type` derived from `Bezeichnung` + `Behinderung_Karte`/`Behinderung_Tabelle`: contains "sperrung"/"gesperrt"/"einbahn" -> `closed_way`, else `obstruction`.
 - `tg/` - Canton Thurgau ThurGIS chsdi3 identify endpoint (`map.geo.tg.ch/services/geofy_chsdi3/rest/services/all/MapServer/identify`, layer `all:baustellen-baustelle`). GeoJSON output, but coordinates come back in LV95 (EPSG:2056) and are reprojected to WGS84 via `internal/pkg/lv95` inside `Fetch`. Query envelope covers the canton bbox with `tolerance=0` to return every feature. `SourceID` is `tg-<objectid>`. `terminvon`/`terminbis` are parsed as `YYYY-MM-DD`. `Type` hardcoded `closed_way` (the upstream schema has no detour/closure distinction; revisit when a usable signal appears).
 
 ### Adding a new source
@@ -32,7 +32,7 @@ All sources share the same structure: `Fetch(ctx)` client + `Downloader` job wit
 1. New subpackage `internal/pkg/roadclosures/<src>/`.
 2. Client `Fetch(ctx)` returning normalized features. Provide `DataAttribution attribute.Attribution`.
 3. `Downloader` implementing `jobs.Job[DownloaderArgs]`; in `Run`, gate on `MinRefreshAge`, then do delete-then-insert in one `WithTx`.
-4. Per-feature: build `roadclosures.ClosureInsert{Type: "detour"|"closed_way", ...}` and call `roadclosures.Insert`. Use `roadclosures.NullString` for optional text.
+4. Per-feature: build `roadclosures.ClosureInsert{Type: roadclosures.ClosedWay|roadclosures.Detour|roadclosures.Obstruction, ...}` and call `roadclosures.Insert`. Use `roadclosures.NullString` for optional text.
 5. Register in `main.go` (`MustRegisterJob` + `jobs.Periodic`).
 6. Add `<src>.DataAttribution` to the `Attributions` slice in `internal/pkg/api/version.go` so the source appears on the /about page.
 

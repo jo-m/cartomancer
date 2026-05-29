@@ -510,7 +510,11 @@ export default memo(function TrackMap({
         const geom = fmt.readGeometry(JSON.parse(c.geometry))
         const feature = new Feature({ geometry: geom })
         feature.set("closure", c, true)
-        feature.setStyle(c.type === "detour" ? detourStyle : closureStyle)
+        feature.setStyle(
+          c.type === "detour" || c.type === "obstruction"
+            ? detourStyle
+            : closureStyle
+        )
         source.addFeature(feature)
       } catch (err) {
         console.error(`Failed to parse closure geometry (${c.uuid}):`, err)
@@ -536,7 +540,9 @@ export default memo(function TrackMap({
           | RoadClosure
           | undefined
         highlightedFeature.setStyle(
-          prev?.type === "detour" ? detourStyle : closureStyle
+          prev?.type === "detour" || prev?.type === "obstruction"
+            ? detourStyle
+            : closureStyle
         )
         highlightedFeature = null
       }
@@ -550,7 +556,9 @@ export default memo(function TrackMap({
           found = true
           const feat = f as Feature
           feat.setStyle(
-            c.type === "detour" ? detourStyleHover : closureStyleHover
+            c.type === "detour" || c.type === "obstruction"
+              ? detourStyleHover
+              : closureStyleHover
           )
           highlightedFeature = feat
           overlay.setPosition(map.getCoordinateFromPixel(pixel)!)
@@ -589,7 +597,9 @@ export default memo(function TrackMap({
           | RoadClosure
           | undefined
         highlightedFeature.setStyle(
-          prev?.type === "detour" ? detourStyle : closureStyle
+          prev?.type === "detour" || prev?.type === "obstruction"
+            ? detourStyle
+            : closureStyle
         )
         highlightedFeature = null
       }

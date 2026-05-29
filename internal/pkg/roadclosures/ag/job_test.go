@@ -39,8 +39,8 @@ func TestClosureTypeFromText(t *testing.T) {
 		{"vollsperrung_title", []string{"Vollsperrung Hauptstrasse", "", ""}, roadclosures.ClosedWay},
 		{"gesperrt_lowercase", []string{"Baustelle", "strasse gesperrt", ""}, roadclosures.ClosedWay},
 		{"sperrung_mixed_case", []string{"SPERRUNG", "", ""}, roadclosures.ClosedWay},
-		{"detour_default", []string{"Umleitung Kantonsstrasse", "", ""}, roadclosures.Detour},
-		{"all_empty", []string{"", "", ""}, roadclosures.Detour},
+		{"obstruction_default", []string{"Umleitung Kantonsstrasse", "", ""}, roadclosures.Obstruction},
+		{"all_empty", []string{"", "", ""}, roadclosures.Obstruction},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

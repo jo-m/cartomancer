@@ -57,10 +57,10 @@ var _ jobs.Job[DownloaderArgs] = (*Downloader)(nil)
 // skips if the most recent insert is within [MinRefreshAge], fetches all
 // features, and atomically replaces this job's rows.
 //
-// The AG feed does not distinguish detours from closures. The closure type
-// is derived from the project description and impairment text: features
-// containing "sperrung" or "gesperrt" are classified as closed_way; all
-// others as detour.
+// The AG feed does not distinguish obstruction from full closures. The closure
+// type is derived from the project description and impairment text: features
+// containing "sperrung", "gesperrt", or "einbahn" are classified as
+// closed_way; all others as obstruction.
 func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 	ctx, cancel := context.WithTimeout(ctx, jobTimeout)
 	defer cancel()
@@ -146,13 +146,13 @@ func featureDescription(p Properties) string {
 // closureTypeFromText derives the closure type from the combined feature
 // texts. If the lowercased concatenation contains "sperrung", "gesperrt", or
 // "einbahn", the feature is classified as [roadclosures.ClosedWay]; otherwise
-// [roadclosures.Detour].
+// [roadclosures.Obstruction].
 func closureTypeFromText(parts ...string) roadclosures.ClosureType {
 	combined := strings.ToLower(strings.Join(parts, " "))
 	if strings.Contains(combined, "sperrung") || strings.Contains(combined, "gesperrt") || strings.Contains(combined, "einbahn") {
 		return roadclosures.ClosedWay
 	}
-	return roadclosures.Detour
+	return roadclosures.Obstruction
 }
 
 // nullTime wraps a time.Time as sql.NullTime, treating the zero time as NULL.

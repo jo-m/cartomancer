@@ -22,6 +22,10 @@ const (
 	ClosedWay ClosureType = iota + 1
 	// Detour indicates a detour route around a closed section.
 	Detour
+	// Obstruction indicates a construction site or other obstacle that
+	// impedes traffic without fully closing the road or providing a
+	// dedicated detour route.
+	Obstruction
 )
 
 // String returns the canonical string representation of the closure type,
@@ -32,6 +36,8 @@ func (t ClosureType) String() string {
 		return "closed_way"
 	case Detour:
 		return "detour"
+	case Obstruction:
+		return "obstruction"
 	default:
 		return "unknown"
 	}
