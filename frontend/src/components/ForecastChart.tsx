@@ -16,6 +16,7 @@ import {
   headwindComponent,
   relativeSectorColor,
   relWindLabel,
+  symmetricHeadwindAxis,
   windDirLabel,
 } from "../lib/forecast"
 import type {
@@ -332,23 +333,15 @@ export default function ForecastChart({
     return ticks
   }, [minTemp, maxTemp])
 
-  const headwindDomain = useMemo(() => {
-    const vals = data
-      .map((d) => d.headwindMs)
-      .filter((v): v is number => v != null && isFinite(v))
-    if (vals.length === 0) return [-5, 5]
-    const lo = Math.floor(Math.min(...vals)) - 1
-    const hi = Math.ceil(Math.max(...vals)) + 1
-    return [Math.min(lo, -1), Math.max(hi, 1)]
-  }, [data])
-
-  // Gradient offset for the headwind area chart: fraction from top where y=0 sits.
-  const headwindGradientOffset = useMemo(() => {
-    const [lo, hi] = headwindDomain
-    if (hi <= 0) return 1
-    if (lo >= 0) return 0
-    return hi / (hi - lo)
-  }, [headwindDomain])
+  const [headwindDomain, headwindTicks] = useMemo(
+    () =>
+      symmetricHeadwindAxis(
+        data
+          .map((d) => d.headwindMs)
+          .filter((v): v is number => v != null && isFinite(v))
+      ),
+    [data]
+  )
 
   const xTickFormatter = (v: number) => `${v}`
 
@@ -611,16 +604,8 @@ export default function ForecastChart({
                 <defs>
                   <linearGradient id="headwindGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset={0} stopColor="#ef4444" stopOpacity={0.4} />
-                    <stop
-                      offset={headwindGradientOffset}
-                      stopColor="#ef4444"
-                      stopOpacity={0.2}
-                    />
-                    <stop
-                      offset={headwindGradientOffset}
-                      stopColor="#10b981"
-                      stopOpacity={0.2}
-                    />
+                    <stop offset={0.5} stopColor="#ef4444" stopOpacity={0.2} />
+                    <stop offset={0.5} stopColor="#10b981" stopOpacity={0.2} />
                     <stop offset={1} stopColor="#10b981" stopOpacity={0.4} />
                   </linearGradient>
                 </defs>
@@ -644,6 +629,8 @@ export default function ForecastChart({
                 />
                 <YAxis
                   domain={headwindDomain}
+                  ticks={headwindTicks}
+                  allowDataOverflow
                   tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
                   stroke="var(--color-border)"
                   width={Y_AXIS_WIDTH}

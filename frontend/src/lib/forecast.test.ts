@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest"
-import { windDirLabel, relWindLabel, headwindComponent } from "./forecast"
+import {
+  windDirLabel,
+  relWindLabel,
+  headwindComponent,
+  symmetricHeadwindAxis,
+} from "./forecast"
 
 describe("windDirLabel", () => {
   it("maps each octant to its cardinal label", () => {
@@ -57,5 +62,48 @@ describe("headwindComponent", () => {
   it("scales with the cosine of the relative angle", () => {
     expect(headwindComponent(10, 60)).toBeCloseTo(5)
     expect(headwindComponent(10, 120)).toBeCloseTo(-5)
+  })
+})
+
+describe("symmetricHeadwindAxis", () => {
+  it("returns a sensible default for empty input", () => {
+    const [[lo, hi], ticks] = symmetricHeadwindAxis([])
+    expect(lo).toBe(-hi)
+    expect(hi).toBeGreaterThan(0)
+    expect(ticks).toContain(0)
+  })
+
+  it("is always symmetric around 0", () => {
+    const cases = [
+      [3, 1, -0.5],
+      [-7, -2, -0.1],
+      [0.3, -0.2],
+      [12, -8],
+    ]
+    for (const vals of cases) {
+      const [[lo, hi], ticks] = symmetricHeadwindAxis(vals)
+      expect(lo).toBe(-hi)
+      expect(ticks).toContain(0)
+      expect(hi).toBeGreaterThanOrEqual(Math.max(...vals.map(Math.abs)))
+    }
+  })
+
+  it("always includes 0 in the tick list", () => {
+    const [, ticks] = symmetricHeadwindAxis([2.3, -1.1, 4.7])
+    expect(ticks).toContain(0)
+  })
+
+  it("ignores non-finite values and falls back to defaults", () => {
+    const [[lo, hi], ticks] = symmetricHeadwindAxis([Infinity, -Infinity, NaN])
+    expect(lo).toBe(-hi)
+    expect(hi).toBeGreaterThan(0)
+    expect(ticks).toContain(0)
+  })
+
+  it("snaps to nice step sizes", () => {
+    const [, smallTicks] = symmetricHeadwindAxis([1.2, -0.8])
+    expect(smallTicks).toEqual([-1.5, -1, -0.5, 0, 0.5, 1, 1.5])
+    const [, midTicks] = symmetricHeadwindAxis([5, -3])
+    expect(midTicks).toEqual([-6, -4, -2, 0, 2, 4, 6])
   })
 })
