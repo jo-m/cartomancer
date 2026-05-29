@@ -37,7 +37,6 @@ interface ChartDatum {
   windDirectionDeg: number | null
   relativeWindDirectionDeg: number | null
   headwindMs: number | null
-  solarRadiationWm2: number | null
 }
 
 interface Props {
@@ -166,8 +165,6 @@ export default function ForecastChart({
   const precipLabelRef = useRef<HTMLDivElement>(null)
   const windLineRef = useRef<HTMLDivElement>(null)
   const windLabelRef = useRef<HTMLDivElement>(null)
-  const solarLineRef = useRef<HTMLDivElement>(null)
-  const solarLabelRef = useRef<HTMLDivElement>(null)
 
   const data: ChartDatum[] = useMemo(
     () =>
@@ -199,10 +196,6 @@ export default function ForecastChart({
               ? Math.round(p.relativeWindDirectionDeg)
               : null,
           headwindMs: hw,
-          solarRadiationWm2:
-            p.solarRadiationWm2 != null
-              ? Math.round(p.solarRadiationWm2)
-              : null,
         }
       }),
     [points]
@@ -372,25 +365,6 @@ export default function ForecastChart({
 
   const hasRelativeWind = data.some((d) => d.headwindMs != null)
 
-  const hasSolar = data.some((d) => d.solarRadiationWm2 != null)
-
-  const solarMax = useMemo(() => {
-    const vals = data
-      .map((d) => d.solarRadiationWm2)
-      .filter((v): v is number => v != null && isFinite(v))
-    if (vals.length === 0) return 1000
-    const hi = Math.max(...vals)
-    // Round up to next 200 W/m² boundary, with a 1000 W/m² floor so the
-    // y-axis stays comparable across rides.
-    return Math.max(1000, Math.ceil(hi / 200) * 200)
-  }, [data])
-
-  const solarTicks = useMemo(() => {
-    const ticks: number[] = []
-    for (let v = 0; v <= solarMax; v += 200) ticks.push(v)
-    return ticks
-  }, [solarMax])
-
   // Imperatively update all hover lines and labels from store changes.
   useEffect(() => {
     const setLine = (
@@ -428,7 +402,6 @@ export default function ForecastChart({
       setLine(tempLineRef, x)
       setLine(precipLineRef, x)
       setLine(windLineRef, x)
-      setLine(solarLineRef, x)
 
       // Temperature label.
       setLabel(
@@ -471,97 +444,11 @@ export default function ForecastChart({
         setLabel(windLabelRef, null)
       }
 
-      // Solar radiation label.
-      setLabel(
-        solarLabelRef,
-        nearest?.solarRadiationWm2 != null
-          ? `${nearest.dKm} km · ${nearest.solarRadiationWm2} ${units.solarRadiationWm2}`
-          : null
-      )
     })
   }, [hoverStore, data, units, hasRelativeWind, findNearestDatum, dKmToX])
 
   return (
     <div className="mt-4 space-y-2">
-      {hasSolar && (
-        <div>
-          <p className="mb-1 text-xs font-medium text-text-muted">
-            Solar radiation ({units.solarRadiationWm2})
-          </p>
-          <div className="relative">
-            <ResponsiveContainer width="100%" height={120}>
-              <ComposedChart data={data} margin={CHART_MARGIN}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--color-border)"
-                />
-                <XAxis
-                  dataKey="dKm"
-                  type="number"
-                  domain={["dataMin", "dataMax"]}
-                  tickFormatter={xTickFormatter}
-                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
-                  stroke="var(--color-border)"
-                  label={{
-                    value: "km",
-                    position: "insideBottomRight",
-                    offset: -5,
-                    style: { fontSize: 10, fill: "var(--color-text-muted)" },
-                  }}
-                />
-                <YAxis
-                  domain={[0, solarMax]}
-                  ticks={solarTicks}
-                  allowDataOverflow
-                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
-                  stroke="var(--color-border)"
-                  width={Y_AXIS_WIDTH}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="solarRadiationWm2"
-                  fill="#f59e0b"
-                  fillOpacity={0.4}
-                  stroke="#f59e0b"
-                  strokeWidth={1.5}
-                  dot={false}
-                  activeDot={false}
-                  isAnimationActive={false}
-                  connectNulls={false}
-                />
-                {sunEventMarkers.map((m, i) => (
-                  <ReferenceLine
-                    key={i}
-                    x={m.dKm}
-                    stroke={m.color}
-                    strokeWidth={1}
-                    strokeDasharray={m.dash}
-                  />
-                ))}
-              </ComposedChart>
-            </ResponsiveContainer>
-            <div
-              className="absolute inset-0 cursor-crosshair touch-pan-y"
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
-              onPointerLeave={handlePointerLeave}
-            />
-            <div
-              ref={solarLineRef}
-              className="pointer-events-none absolute top-0 bottom-0 w-px bg-text-muted"
-              style={{ display: "none" }}
-            />
-            <div
-              ref={solarLabelRef}
-              className="pointer-events-none absolute bottom-2 left-12 rounded bg-panel/90 px-2 py-1 text-xs text-text-secondary shadow-sm"
-              style={{ display: "none" }}
-            />
-          </div>
-        </div>
-      )}
-
       <div>
         <p className="mb-1 text-xs font-medium text-text-muted">
           Temperature ({units.temperatureC})

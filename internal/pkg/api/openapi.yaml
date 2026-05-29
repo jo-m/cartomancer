@@ -1722,7 +1722,7 @@ paths:
                           J/m^2. Samples below the low-irradiance threshold contribute zero.
                   units:
                     type: object
-                    required: [temperatureC, precipitationRate, windSpeedMs, windDirectionDeg, relativeWindDirectionDeg, solarRadiationWm2]
+                    required: [temperatureC, precipitationRate, windSpeedMs, windDirectionDeg, relativeWindDirectionDeg]
                     description: Display units for each time series field.
                     properties:
                       temperatureC:
@@ -1740,9 +1740,6 @@ paths:
                       relativeWindDirectionDeg:
                         type: string
                         description: Unit for the relativeWindDirectionDeg field (e.g. "deg").
-                      solarRadiationWm2:
-                        type: string
-                        description: Unit for the solarRadiationWm2 field (e.g. "W/m\u00b2").
                   sunEvents:
                     type: array
                     description: Sunrise, sunset, dawn, and dusk events that fall within the ride window.
@@ -1794,10 +1791,6 @@ paths:
                           type: number
                           nullable: true
                           description: Wind direction relative to direction of travel in degrees (0=headwind, 180=tailwind, 90=crosswind from right), or null if unavailable.
-                        solarRadiationWm2:
-                          type: number
-                          nullable: true
-                          description: Downward shortwave irradiance at the surface (direct + diffuse) in W/m², or null if unavailable.
         "400":
           description: Invalid query parameter
           content:

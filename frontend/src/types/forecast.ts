@@ -7,7 +7,6 @@ export interface ForecastPoint {
   windSpeedMs: number | null
   windDirectionDeg: number | null
   relativeWindDirectionDeg: number | null
-  solarRadiationWm2: number | null
 }
 
 /** A sun-related event (dawn, sunrise, sunset, dusk) located along the track. */
@@ -33,5 +32,4 @@ export interface ForecastUnits {
   windSpeedMs: string
   windDirectionDeg: string
   relativeWindDirectionDeg: string
-  solarRadiationWm2: string
 }
