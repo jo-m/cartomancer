@@ -60,10 +60,20 @@ ORDER BY mf.variable, mf.valid_time;
 
 -- name: ListForecastFileIDsForWindow :many
 -- Returns only the id, variable, and time metadata of forecast_files for a
--- time/bbox window, without loading the (large) GRIB2 blob.
+-- time/bbox window, without loading the (large) GRIB2 blob. For each
+-- (variable, valid_time) pair the file from the newest forecast run that has
+-- it is preferred, falling back to older runs to fill gaps.
+--
+-- In addition to files whose validity extends past `start`, the immediate
+-- predecessor (the file with the largest valid_until_time <= start, per
+-- variable, in the same run) is also returned. This lets the loader
+-- de-average ICON-CH1-EPS running-mean and running-accumulation variables
+-- whose first in-window entry would otherwise lack the same-run predecessor
+-- required to recover a per-step value. The predecessor adds at most one
+-- extra file per variable; for instantaneous variables it is harmless dead
+-- weight because no Sample lookup falls inside its validity window.
 SELECT mf.id, mf.valid_time, mf.valid_until_time, mf.variable FROM forecast_files mf
-WHERE datetime(mf.valid_until_time) > datetime(sqlc.arg(start))
-  AND datetime(mf.valid_time) <= datetime(sqlc.arg(end))
+WHERE datetime(mf.valid_time) <= datetime(sqlc.arg(end))
   AND mf.forecast_id = (
     SELECT mf2.forecast_id FROM forecast_files mf2
     JOIN forecasts f2 ON mf2.forecast_id = f2.id
@@ -75,6 +85,15 @@ WHERE datetime(mf.valid_until_time) > datetime(sqlc.arg(start))
       AND (f2.bounds_max_lon IS NULL OR f2.bounds_max_lon >= sqlc.arg(min_lon))
     ORDER BY f2.reference_time DESC
     LIMIT 1
+  )
+  AND (
+    datetime(mf.valid_until_time) > datetime(sqlc.arg(start))
+    OR mf.valid_time = (
+      SELECT MAX(mf3.valid_time) FROM forecast_files mf3
+      WHERE mf3.variable = mf.variable
+        AND mf3.forecast_id = mf.forecast_id
+        AND datetime(mf3.valid_until_time) <= datetime(sqlc.arg(start))
+    )
   )
 ORDER BY mf.variable, mf.valid_time;
 

@@ -16,6 +16,15 @@ export interface SunEvent {
   distanceM: number
 }
 
+/**
+ * Aggregated sun exposure along the track: a dimensionless intensity index in
+ * [0, 1] together with the integrated broadband shortwave dose in J/m^2.
+ */
+export interface SunIntensity {
+  index: number
+  doseJm2: number
+}
+
 /** Unit strings used to label forecast values for display. */
 export interface ForecastUnits {
   temperatureC: string

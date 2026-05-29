@@ -60,6 +60,11 @@ type Message struct {
 	// For accumulated or maximum fields (PDT 11) it is the end of the statistical
 	// time interval.
 	ValidTime time.Time
+	// IntervalStart is the start of the statistical time interval for fields
+	// summarised over a time range (PDT 11). For instantaneous fields (PDT 1)
+	// it equals ValidTime so that the interval has zero length, which keeps
+	// downstream code that inspects [IntervalStart, ValidTime] uniform.
+	IntervalStart time.Time
 	// Discipline is the GRIB2 discipline code (0 = meteorology).
 	Discipline uint8
 	// Category is the GRIB2 parameter category within the discipline.
@@ -251,6 +256,9 @@ func parseSection4(sec []byte, msg *Message) error {
 	switch pdt {
 	case 1: // Ensemble, instantaneous.
 		msg.ValidTime = msg.ReferenceTime.Add(leadDuration(timeUnit, fcstTime))
+		// An instantaneous field has a zero-length statistical interval, so
+		// the interval start coincides with the valid time.
+		msg.IntervalStart = msg.ValidTime
 	case 11: // Ensemble, statistical time interval.
 		// The end of the overall time interval is the valid time.
 		// It is stored starting at section octet 38 (sec[37:44]).
@@ -265,6 +273,9 @@ func parseSection4(sec []byte, msg *Message) error {
 		endSec := int(sec[43])
 		msg.ValidTime = time.Date(endYear, time.Month(endMonth), endDay,
 			endHour, endMin, endSec, 0, time.UTC)
+		// The start of the statistical time interval is the reference time
+		// plus the lead duration encoded in Section 4 (timeUnit, fcstTime).
+		msg.IntervalStart = msg.ReferenceTime.Add(leadDuration(timeUnit, fcstTime))
 	default:
 		return fmt.Errorf("unsupported product definition template %d (only 1 and 11 supported)", pdt)
 	}

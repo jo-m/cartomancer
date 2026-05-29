@@ -357,6 +357,7 @@ export default function Track() {
           trackDistancesM={trackDistancesM}
           attribution={forecast.forecastAttribution}
           sunEvents={forecast.sunEvents}
+          sunIntensity={forecast.sunIntensity}
         />
       )}
 

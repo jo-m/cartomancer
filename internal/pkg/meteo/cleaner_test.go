@@ -60,7 +60,8 @@ func TestCleaner_DeletesPastFiles(t *testing.T) {
 	ctx := logg.WithTestLogger(t.Context(), t)
 	now := time.Now()
 
-	past := now.Add(-2 * time.Hour)
+	// Far enough in the past to fall outside the predecessor retention window.
+	past := now.Add(-(pastFileRetention + time.Hour))
 	future := now.Add(2 * time.Hour)
 
 	insertForecastFileWithValidTime(t, d, past)
@@ -74,6 +75,37 @@ func TestCleaner_DeletesPastFiles(t *testing.T) {
 	latest, err := d.QueryRO().GetLatestForecastReferenceTime(ctx)
 	require.NoError(t, err)
 	require.Equal(t, future.Add(-time.Hour).UTC().Truncate(time.Second), latest.UTC().Truncate(time.Second))
+}
+
+// TestCleaner_KeepsRecentPredecessor verifies that files whose valid_time
+// fell less than [pastFileRetention] in the past are kept so that
+// [forecast.Load] still finds the same-run predecessor it needs to
+// de-average running-mean and running-accumulation variables for queries
+// near the current hour.
+func TestCleaner_KeepsRecentPredecessor(t *testing.T) {
+	d := forecastdb.GetTestDB(t)
+	defer d.Close()
+
+	ctx := logg.WithTestLogger(t.Context(), t)
+	now := time.Now()
+
+	// Just inside the retention window: must survive.
+	recent := now.Add(-(pastFileRetention - time.Hour))
+	insertForecastFileWithValidTime(t, d, recent)
+
+	cleaner := NewCleaner(d)
+	require.NoError(t, cleaner.Run(ctx, cleanerArgs{}))
+
+	rows, err := d.QueryRO().ListForecastFilesForWindow(ctx, forecastdb.ListForecastFilesForWindowParams{
+		Start:  now.Add(-24 * time.Hour),
+		End:    now.Add(24 * time.Hour),
+		MaxLat: sql.NullFloat64{},
+		MinLat: sql.NullFloat64{},
+		MaxLon: sql.NullFloat64{},
+		MinLon: sql.NullFloat64{},
+	})
+	require.NoError(t, err)
+	require.Len(t, rows, 1, "recent predecessor file must be kept")
 }
 
 func TestCleaner_EmptyTable(t *testing.T) {
@@ -153,8 +185,10 @@ func TestCleaner_AllPastFiles(t *testing.T) {
 	ctx := logg.WithTestLogger(t.Context(), t)
 	now := time.Now()
 
-	insertForecastFileWithValidTime(t, d, now.Add(-3*time.Hour))
-	insertForecastFileWithValidTime(t, d, now.Add(-1*time.Hour))
+	// Both files fall outside the predecessor retention window and must be
+	// deleted.
+	insertForecastFileWithValidTime(t, d, now.Add(-(pastFileRetention + 2*time.Hour)))
+	insertForecastFileWithValidTime(t, d, now.Add(-(pastFileRetention + time.Hour)))
 
 	cleaner := NewCleaner(d)
 	err := cleaner.Run(ctx, cleanerArgs{})

@@ -1689,7 +1689,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [forecastStatus, attribution, units, points, sunEvents]
+                required: [forecastStatus, attribution, units, points, sunEvents, sunIntensity]
                 properties:
                   attribution:
                     $ref: "#/components/schemas/SourceAttribution"
@@ -1700,6 +1700,26 @@ paths:
                       Indicates weather data availability: "full" means all points have
                       weather data, "partial" means some points may have gaps, "none" means
                       no weather data is available (time/distance fields are still populated).
+                  sunIntensity:
+                    type: object
+                    nullable: true
+                    required: [index, doseJm2]
+                    description: >
+                      Aggregated sun exposure along the track, integrated using downward
+                      shortwave irradiance and the assumed constant speed. Null when no
+                      forecast data is available.
+                    properties:
+                      index:
+                        type: number
+                        minimum: 0
+                        maximum: 1
+                        description: Dimensionless sun intensity index in [0, 1].
+                      doseJm2:
+                        type: number
+                        minimum: 0
+                        description: >
+                          Integrated broadband downward shortwave dose along the track in
+                          J/m^2. Samples below the low-irradiance threshold contribute zero.
                   units:
                     type: object
                     required: [temperatureC, precipitationRate, windSpeedMs, windDirectionDeg, relativeWindDirectionDeg]

@@ -511,9 +511,7 @@ export default memo(function TrackMap({
         const geom = fmt.readGeometry(JSON.parse(c.geometry))
         const feature = new Feature({ geometry: geom })
         feature.set("closure", c, true)
-        feature.setStyle(
-          c.type === "obstruction" ? detourStyle : closureStyle
-        )
+        feature.setStyle(c.type === "obstruction" ? detourStyle : closureStyle)
         source.addFeature(feature)
       } catch (err) {
         console.error(`Failed to parse closure geometry (${c.uuid}):`, err)

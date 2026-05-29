@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { fetchClient } from "../api/client"
-import type { ForecastPoint, ForecastUnits, SunEvent } from "../types/forecast"
+import type {
+  ForecastPoint,
+  ForecastUnits,
+  SunEvent,
+  SunIntensity,
+} from "../types/forecast"
 import { buildForecastTimes } from "../lib/time"
 
 function getStartTime(hoursOffset: number): Date {
@@ -15,11 +20,13 @@ const DEFAULT_FORECAST_UNITS: ForecastUnits = {
   windSpeedMs: "m/s",
   windDirectionDeg: "deg",
   relativeWindDirectionDeg: "deg",
+  solarRadiationWm2: "W/m²",
 }
 
 export interface UseForecastResult {
   forecastPoints: ForecastPoint[] | null
   sunEvents: SunEvent[]
+  sunIntensity: SunIntensity | null
   forecastLoading: boolean
   forecastStatus: string | null
   forecastAttribution: { text: string; href: string } | undefined
@@ -46,6 +53,7 @@ export function useForecast(
     null
   )
   const [sunEvents, setSunEvents] = useState<SunEvent[]>([])
+  const [sunIntensity, setSunIntensity] = useState<SunIntensity | null>(null)
   const [forecastLoading, setForecastLoading] = useState(false)
   const [forecastStatus, setForecastStatus] = useState<string | null>(null)
   const [forecastAttribution, setForecastAttribution] = useState<
@@ -104,6 +112,7 @@ export function useForecast(
         }
         setForecastPoints(result.points as ForecastPoint[])
         setSunEvents((result.sunEvents as SunEvent[]) ?? [])
+        setSunIntensity((result.sunIntensity as SunIntensity | null) ?? null)
       } catch (err) {
         onError((err as Error).message)
       } finally {
@@ -123,6 +132,7 @@ export function useForecast(
   return {
     forecastPoints,
     sunEvents,
+    sunIntensity,
     forecastLoading,
     forecastStatus,
     forecastAttribution,

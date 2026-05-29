@@ -172,7 +172,7 @@ func TestIsForecastComplete(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Only two of four expected variables.
+	// Only two of the expected variables.
 	for _, v := range []string{vars.VarU10m.Name, vars.VarV10m.Name} {
 		_, err = d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 			ValidTime:      refTime.Add(time.Hour),
@@ -186,10 +186,10 @@ func TestIsForecastComplete(t *testing.T) {
 
 	complete, err := dl.isForecastComplete(ctx, refTime)
 	require.NoError(t, err)
-	require.False(t, complete, "forecast with 2/4 variables should be incomplete")
+	require.False(t, complete, "forecast with 2/%d variables should be incomplete", len(DownloadVariables))
 
 	// Add remaining variables.
-	for _, v := range []string{vars.VarTotPr.Name, vars.VarT2m.Name} {
+	for _, v := range []string{vars.VarTotPr.Name, vars.VarT2m.Name, vars.VarAswdirS.Name, vars.VarAswdifdS.Name} {
 		_, err = d.QueryRW().CreateForecastFile(ctx, forecastdb.CreateForecastFileParams{
 			ValidTime:      refTime.Add(time.Hour),
 			ValidUntilTime: refTime.Add(2 * time.Hour),
@@ -202,7 +202,7 @@ func TestIsForecastComplete(t *testing.T) {
 
 	complete, err = dl.isForecastComplete(ctx, refTime)
 	require.NoError(t, err)
-	require.True(t, complete, "forecast with 4/4 variables should be complete")
+	require.True(t, complete, "forecast with %d/%d variables should be complete", len(DownloadVariables), len(DownloadVariables))
 }
 
 func TestListForecastFileKeys(t *testing.T) {

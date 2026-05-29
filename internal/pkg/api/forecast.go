@@ -40,12 +40,22 @@ type sunEventResponse struct {
 	DistanceM float64 `json:"distanceM"`
 }
 
+// sunIntensityResponse describes the aggregated sun exposure along the track.
+type sunIntensityResponse struct {
+	// Index is the dimensionless sun intensity index in [0, 1].
+	Index float64 `json:"index"`
+	// DoseJm2 is the integrated broadband downward shortwave dose along the
+	// track in J/m^2.
+	DoseJm2 float64 `json:"doseJm2"`
+}
+
 type forecastResponse struct {
 	ForecastStatus string                  `json:"forecastStatus"`
 	Attribution    attributionResponse     `json:"attribution"`
 	Units          forecastUnits           `json:"units"`
 	Points         []forecastPointResponse `json:"points"`
 	SunEvents      []sunEventResponse      `json:"sunEvents"`
+	SunIntensity   *sunIntensityResponse   `json:"sunIntensity"`
 }
 
 // handleGetTrackForecast returns a weather forecast time series along a track.
@@ -178,6 +188,7 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 				rel = math.Mod(rel+360, 360)
 				rp.RelativeWindDirectionDeg = &rel
 			}
+
 		}
 
 		result[i] = rp
@@ -186,6 +197,14 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	midLat := (bbox.MinLat + bbox.MaxLat) / 2
 	midLon := (bbox.MinLon + bbox.MaxLon) / 2
 	sunEvents := computeSunEvents(startTime, endTime, midLat, midLon, totalDist)
+
+	var sunIntensity *sunIntensityResponse
+	if status != "none" {
+		si := forecast.ComputeSunIntensity(h, pts, startTime, speedMs)
+		if !math.IsNaN(si.Index) && !math.IsNaN(si.DoseJm2) {
+			sunIntensity = &sunIntensityResponse{Index: si.Index, DoseJm2: si.DoseJm2}
+		}
+	}
 
 	resp := forecastResponse{
 		ForecastStatus: status,
@@ -196,8 +215,9 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 			WindDirectionDeg:         "deg",
 			RelativeWindDirectionDeg: "deg",
 		},
-		Points:    result,
-		SunEvents: sunEvents,
+		Points:       result,
+		SunEvents:    sunEvents,
+		SunIntensity: sunIntensity,
 	}
 	if h != nil {
 		resp.Attribution = attributionResponse{Text: h.Attribution, Href: h.AttributionHref}
