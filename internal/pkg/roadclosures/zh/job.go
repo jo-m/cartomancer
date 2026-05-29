@@ -135,7 +135,7 @@ func insertFeature(ctx context.Context, tx *db.Queries, f Feature, now time.Time
 	c := roadclosures.ClosureInsert{
 		SourceID:        f.GMLID,
 		InsertedBy:      jobKind,
-		Type:            "closed_way",
+		Type:            roadclosures.ClosedWay,
 		StartsAt:        nullTime(f.DatumBaubeginn),
 		EndsAt:          nullTime(f.DatumBauende),
 		Reason:          roadclosures.NullString(f.Beschreibung),

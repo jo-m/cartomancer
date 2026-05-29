@@ -12,3 +12,27 @@ const CellResolution = 7
 // FineResolution is the H3 resolution used for fine-grained intersection
 // checks between a closure and the points of a track.
 const FineResolution = 12
+
+// ClosureType identifies the kind of road closure.
+// The integer values are stored in the database.
+type ClosureType int
+
+const (
+	// ClosedWay indicates a road or path that is physically closed.
+	ClosedWay ClosureType = iota + 1
+	// Detour indicates a detour route around a closed section.
+	Detour
+)
+
+// String returns the canonical string representation of the closure type,
+// used in API responses.
+func (t ClosureType) String() string {
+	switch t {
+	case ClosedWay:
+		return "closed_way"
+	case Detour:
+		return "detour"
+	default:
+		return "unknown"
+	}
+}

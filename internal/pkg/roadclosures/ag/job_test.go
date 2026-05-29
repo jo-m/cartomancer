@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures"
 )
 
 func TestSourceID(t *testing.T) {
@@ -32,13 +34,13 @@ func TestClosureTypeFromText(t *testing.T) {
 	cases := []struct {
 		name string
 		in   []string
-		want string
+		want roadclosures.ClosureType
 	}{
-		{"vollsperrung_title", []string{"Vollsperrung Hauptstrasse", "", ""}, "closed_way"},
-		{"gesperrt_lowercase", []string{"Baustelle", "strasse gesperrt", ""}, "closed_way"},
-		{"sperrung_mixed_case", []string{"SPERRUNG", "", ""}, "closed_way"},
-		{"detour_default", []string{"Umleitung Kantonsstrasse", "", ""}, "detour"},
-		{"all_empty", []string{"", "", ""}, "detour"},
+		{"vollsperrung_title", []string{"Vollsperrung Hauptstrasse", "", ""}, roadclosures.ClosedWay},
+		{"gesperrt_lowercase", []string{"Baustelle", "strasse gesperrt", ""}, roadclosures.ClosedWay},
+		{"sperrung_mixed_case", []string{"SPERRUNG", "", ""}, roadclosures.ClosedWay},
+		{"detour_default", []string{"Umleitung Kantonsstrasse", "", ""}, roadclosures.Detour},
+		{"all_empty", []string{"", "", ""}, roadclosures.Detour},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

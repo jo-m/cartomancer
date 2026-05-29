@@ -144,14 +144,15 @@ func featureDescription(p Properties) string {
 }
 
 // closureTypeFromText derives the closure type from the combined feature
-// texts. If the lowercased concatenation contains "sperrung" or "gesperrt",
-// the feature is classified as closed_way; otherwise detour.
-func closureTypeFromText(parts ...string) string {
+// texts. If the lowercased concatenation contains "sperrung", "gesperrt", or
+// "einbahn", the feature is classified as [roadclosures.ClosedWay]; otherwise
+// [roadclosures.Detour].
+func closureTypeFromText(parts ...string) roadclosures.ClosureType {
 	combined := strings.ToLower(strings.Join(parts, " "))
 	if strings.Contains(combined, "sperrung") || strings.Contains(combined, "gesperrt") || strings.Contains(combined, "einbahn") {
-		return "closed_way"
+		return roadclosures.ClosedWay
 	}
-	return "detour"
+	return roadclosures.Detour
 }
 
 // nullTime wraps a time.Time as sql.NullTime, treating the zero time as NULL.

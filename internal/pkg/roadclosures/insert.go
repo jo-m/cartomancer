@@ -31,9 +31,9 @@ type ClosureInsert struct {
 	// Used to scope deletes during refresh cycles.
 	InsertedBy string
 
-	// Type is the closure kind, normalised to one of "detour" or
-	// "closed_way" so that the API can be source-agnostic.
-	Type string
+	// Type is the closure kind, normalised to [ClosedWay] or [Detour]
+	// so that the API can be source-agnostic.
+	Type ClosureType
 
 	StartsAt sql.NullTime
 	EndsAt   sql.NullTime
@@ -78,7 +78,7 @@ func Insert(ctx context.Context, tx *db.Queries, c ClosureInsert, now time.Time)
 		SourceID:        c.SourceID,
 		InsertedBy:      c.InsertedBy,
 		CreatedAt:       now,
-		Type:            c.Type,
+		Type:            int64(c.Type),
 		StartsAt:        c.StartsAt,
 		EndsAt:          c.EndsAt,
 		Reason:          c.Reason,

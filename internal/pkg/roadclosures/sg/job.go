@@ -130,13 +130,14 @@ func insertFeature(ctx context.Context, tx *db.Queries, f Feature, now time.Time
 
 // closureTypeFromText derives the closure type from the combined title and
 // description text. If the lowercased concatenation contains "sperrung" or
-// "gesperrt", the feature is classified as closed_way; otherwise detour.
-func closureTypeFromText(title, description string) string {
+// "gesperrt", the feature is classified as [roadclosures.ClosedWay]; otherwise
+// [roadclosures.Detour].
+func closureTypeFromText(title, description string) roadclosures.ClosureType {
 	combined := strings.ToLower(title + " " + description)
 	if strings.Contains(combined, "sperrung") || strings.Contains(combined, "gesperrt") {
-		return "closed_way"
+		return roadclosures.ClosedWay
 	}
-	return "detour"
+	return roadclosures.Detour
 }
 
 // nullTime wraps a time.Time as sql.NullTime, treating the zero time as NULL.

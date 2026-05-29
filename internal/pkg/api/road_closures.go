@@ -96,7 +96,7 @@ func (sv *server) handleGetTrackRoadClosures(w http.ResponseWriter, r *http.Requ
 		}
 		result = append(result, roadClosureResponse{
 			UUID:            rc.Uuid,
-			Type:            rc.Type,
+			Type:            roadclosures.ClosureType(rc.Type).String(),
 			StartsAt:        nullTimeStr(rc.StartsAt),
 			EndsAt:          nullTimeStr(rc.EndsAt),
 			Title:           rc.Title,

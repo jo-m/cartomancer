@@ -109,7 +109,7 @@ func insertFeature(ctx context.Context, tx *db.Queries, f Feature, now time.Time
 	c := roadclosures.ClosureInsert{
 		SourceID:        strconv.Itoa(f.FeatureID),
 		InsertedBy:      jobKind,
-		Type:            f.Properties.SperrungenType,
+		Type:            parseSperrungenType(f.Properties.SperrungenType),
 		StartsAt:        startsAt,
 		EndsAt:          endsAt,
 		Reason:          roadclosures.NullString(f.Properties.ReasonEn),
@@ -120,6 +120,15 @@ func insertFeature(ctx context.Context, tx *db.Queries, f Feature, now time.Time
 		Attribution:     DataAttribution,
 	}
 	return roadclosures.Insert(ctx, tx, c, now)
+}
+
+// parseSperrungenType maps the raw sperrungen_type string from the ASTRA API
+// to a [roadclosures.ClosureType]. Unknown values default to [roadclosures.ClosedWay].
+func parseSperrungenType(s string) roadclosures.ClosureType {
+	if s == "detour" {
+		return roadclosures.Detour
+	}
+	return roadclosures.ClosedWay
 }
 
 // parseDurationRange extracts start and end dates from a duration string.

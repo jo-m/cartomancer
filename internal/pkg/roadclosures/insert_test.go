@@ -25,7 +25,7 @@ func TestInsert_NilGeometryRejected(t *testing.T) {
 		return roadclosures.Insert(ctx, tx, roadclosures.ClosureInsert{
 			SourceID:    "no-geom",
 			InsertedBy:  "test",
-			Type:        "closed_way",
+			Type:        roadclosures.ClosedWay,
 			Title:       "no geometry",
 			Attribution: attribute.Attribution{Author: "x", Source: "y"},
 		}, now)
@@ -51,7 +51,7 @@ func TestInsert_WithGeometryWritesRowAndCells(t *testing.T) {
 		return roadclosures.Insert(ctx, tx, roadclosures.ClosureInsert{
 			SourceID:    "with-geom",
 			InsertedBy:  "test",
-			Type:        "closed_way",
+			Type:        roadclosures.ClosedWay,
 			Title:       "has geometry",
 			Geometry:    geom,
 			Attribution: attribute.Attribution{Author: "x", Source: "y"},

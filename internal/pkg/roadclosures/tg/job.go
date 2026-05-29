@@ -30,11 +30,6 @@ const (
 	// dateLayout matches the YYYY-MM-DD strings used by the ThurGIS feed
 	// for terminvon and terminbis.
 	dateLayout = "2006-01-02"
-
-	// closureType is the road_closures.type assigned to every TG feature.
-	// The ThurGIS schema has no field distinguishing detours from closures,
-	// so we default to closed_way until upstream provides a usable signal.
-	closureType = "closed_way"
 )
 
 // DownloaderArgs are the arguments for the Thurgau road closures downloader job.
@@ -114,9 +109,10 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 // and delegates to the shared insert helper.
 func insertFeature(ctx context.Context, tx *db.Queries, f Feature, now time.Time) error {
 	c := roadclosures.ClosureInsert{
-		SourceID:        sourceID(f.Properties.ObjectID),
-		InsertedBy:      jobKind,
-		Type:            closureType,
+		SourceID:   sourceID(f.Properties.ObjectID),
+		InsertedBy: jobKind,
+		// The ThurGIS schema has no field distinguishing detours from closures.
+		Type:            roadclosures.ClosedWay,
 		StartsAt:        parseDate(f.Properties.TerminVon),
 		EndsAt:          parseDate(f.Properties.TerminBis),
 		Title:           featureTitle(f.Properties),
