@@ -50,9 +50,9 @@ Global options:
   --app-rate-limit-max-ips N
                          Max distinct keys tracked per rate limiter (fail-closed when exceeded) [default: 100000, env: APP_RATE_LIMIT_MAX_IPS]
   --session-idle-timeout DUR
-                         Session idle timeout [default: 24h, env: SESSION_IDLE_TIMEOUT]
+                         Session idle timeout [default: 48h, env: SESSION_IDLE_TIMEOUT]
   --session-abs-timeout DUR
-                         Session absolute timeout [default: 72h, env: SESSION_ABS_TIMEOUT]
+                         Session absolute timeout [default: 168h, env: SESSION_ABS_TIMEOUT]
   --session-jwt-secret SECRET
                          Base64-encoded secret (min 512 bits) to sign JWT, generated on startup if not set [env: SESSION_JWT_SECRET]
   --session-cookie-name NAME

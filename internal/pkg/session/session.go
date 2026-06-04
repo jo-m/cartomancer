@@ -23,8 +23,8 @@ import (
 //
 //revive:disable:exported Naming necessary for struct embedding.
 type SessionConfig struct {
-	IdleTimeout     time.Duration `arg:"--session-idle-timeout,env:SESSION_IDLE_TIMEOUT" default:"24h" help:"Session idle timeout" placeholder:"DUR"`
-	AbsoluteTimeout time.Duration `arg:"--session-abs-timeout,env:SESSION_ABS_TIMEOUT" default:"72h" help:"Session absolute timeout" placeholder:"DUR"`
+	IdleTimeout     time.Duration `arg:"--session-idle-timeout,env:SESSION_IDLE_TIMEOUT" default:"48h" help:"Session idle timeout" placeholder:"DUR"`
+	AbsoluteTimeout time.Duration `arg:"--session-abs-timeout,env:SESSION_ABS_TIMEOUT" default:"168h" help:"Session absolute timeout" placeholder:"DUR"`
 
 	// REQUIRED for production deployments.
 	JWTSecret string `arg:"--session-jwt-secret,env:SESSION_JWT_SECRET" help:"Base64-encoded secret (min 512 bits) to sign JWT, generated on startup if not set" placeholder:"SECRET"`
