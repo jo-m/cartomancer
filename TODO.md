@@ -3,7 +3,12 @@
 **This file is ONLY FOR HUMANS. AI agents MUST IGNORE IT.**
 
 ## Short term
-- [x] Upgrade to Go 1.26.3 and enable govulncheck again
+
+- [ ] Upgrade to Go 1.26.4 and enable govulncheck again
+- [ ] Test rate limiting in prod (trace logging)
+- [ ] Set GOAMD64=vX https://lemire.me/blog/2026/06/06/how-much-do-amd64-microarchitecture-levels-help-in-go/
+- [ ] Experimentally remove all formatting and CSS from the frontend
+- [ ] Cartomancer monitoring for failed jobs
 - [x] Rename
 - [x] Track/forecast view
   - [x] Hide data from the forecast charts if no forecast data available.
@@ -176,6 +181,8 @@
 - [ ] Social link sharing preview
 - [x] Potentially cache track blob -> track.Track{} for performance.
 - [ ] Go through the periodic TODOs
+- [ ] To make email verification simpler: trigger code sending immediately when email is entered, and then let user paste code to form field.
+- [ ] Forecast cleanup - delete entire forecast if there is a newer one
 
 ## Periodic
 
