@@ -128,9 +128,10 @@
     mkCartomancer = crossPkgs: mkCartomancerWith crossPkgs frontend;
     mkCartomancerDev = crossPkgs: mkCartomancerWith crossPkgs devStatic;
 
-    # Minimal container image with only the binary and CA certificates.
+    # Minimal container image. The binary is statically linked against musl
+    # (pkgsStatic), so glibc is not part of the runtime closure.
     mkDockerImage = crossPkgs: let
-      cartomancer = mkCartomancer crossPkgs;
+      cartomancer = mkCartomancerWith crossPkgs.pkgsStatic frontend;
     in
       crossPkgs.dockerTools.buildImage {
         name = "cartomancer";
