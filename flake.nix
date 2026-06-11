@@ -94,6 +94,7 @@
         subPackages = ["."];
 
         env.CGO_ENABLED = "1";
+        env.GOAMD64 = "v3";
 
         preBuild = ''
           mkdir -p static
