@@ -20,15 +20,6 @@ import (
 // the integral; the resulting dose is multiplied by [sunIntensityScale] and
 // clamped to [[sunIntensityMin], [sunIntensityMax]] so the output is a
 // dimensionless 0..1 index suitable for display.
-//
-// The scale is calibrated against erythemal-UV dose biology. ICON emits
-// broadband downward shortwave (~285-2800 nm), of which only a small fraction
-// is the erythemally-weighted UV that drives sunburn (McKinlay-Diffey /
-// CIE S 007 action spectrum, peaking near 297 nm). The CIE Standard Erythemal
-// Dose (SED) is 100 J/m^2 of erythemally-weighted UV; one MED for fair-skinned
-// skin type II is roughly 2-3 SED. Index 1.0 ([sunIntensityMax]) corresponds to
-// [sunIntensityMaxDoseSED] SED of accumulated exposure, well past the
-// unprotected-fair-skin sunburn threshold for a multi-hour summer ride.
 
 const (
 	// sunIntensityThresholdWm2 is the broadband irradiance below which a
