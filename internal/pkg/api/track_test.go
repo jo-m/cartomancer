@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
@@ -702,4 +703,65 @@ func TestUploadTrack_PreviewPolylineFailureFails(t *testing.T) {
 	_, _ = e.do(client, http.MethodGet, "/tracks", nil, &listResp)
 	tracks, _ := listResp["tracks"].([]any)
 	assert.Empty(t, tracks)
+}
+
+func TestGetTrack_SimilarTracks_PrivacyFiltering(t *testing.T) {
+	e := newTestEnv(t)
+	aliceUserID := e.createUser("alice@example.com", "Alice", "secret11", false)
+	e.createUser("bob@example.com", "Bob", "secret22", false)
+
+	alice := e.newClient()
+	e.login(alice, "alice@example.com", "secret11")
+
+	// Upload two tracks for Alice. One public, one private.
+	status, uploaded1 := e.doUpload(alice, testGPXFile)
+	require.Equal(t, http.StatusCreated, status)
+	trackPubUUID := uploaded1["uuid"].(string)
+	e.makeTrackPublic(alice, trackPubUUID, uploaded1["name"].(string))
+
+	status, uploaded2 := e.doUpload(alice, testGPXFile2)
+	require.Equal(t, http.StatusCreated, status)
+	trackPrivUUID := uploaded2["uuid"].(string)
+	// trackPrivUUID stays private.
+
+	// Put both tracks in the same group.
+	groupUUID, err := uuid.NewV7()
+	require.NoError(t, err)
+	err = e.d.QueryRW().CreateTrackGroup(t.Context(), db.CreateTrackGroupParams{
+		Uuid:      groupUUID.String(),
+		CreatedAt: time.Now().UTC(),
+		UserID:    aliceUserID,
+	})
+	require.NoError(t, err)
+	for _, trackID := range []string{trackPubUUID, trackPrivUUID} {
+		err = e.d.QueryRW().CreateTrackGroupMember(t.Context(), db.CreateTrackGroupMemberParams{
+			GroupID: groupUUID.String(),
+			TrackID: trackID,
+		})
+		require.NoError(t, err)
+	}
+
+	// Owner (Alice) sees the private track in similarTracks.
+	// Test Alice first before any anonymous requests, to avoid test session issues.
+	var trackOwner map[string]any
+	status, _ = e.do(alice, http.MethodGet, "/tracks/"+trackPubUUID, nil, &trackOwner)
+	require.Equal(t, http.StatusOK, status)
+	similarOwner := trackOwner["similarTracks"].([]any)
+	require.Len(t, similarOwner, 1)
+	assert.Equal(t, trackPrivUUID, similarOwner[0].(map[string]any)["uuid"])
+
+	// Anonymous user does NOT see the private similar track.
+	anon := e.newClient()
+	var trackAnon map[string]any
+	status, _ = e.do(anon, http.MethodGet, "/tracks/"+trackPubUUID, nil, &trackAnon)
+	require.Equal(t, http.StatusOK, status)
+	assert.Empty(t, trackAnon["similarTracks"])
+
+	// Bob (authenticated, not owner) does NOT see the private similar track.
+	bob := e.newClient()
+	e.login(bob, "bob@example.com", "secret22")
+	var trackBob map[string]any
+	status, _ = e.do(bob, http.MethodGet, "/tracks/"+trackPubUUID, nil, &trackBob)
+	require.Equal(t, http.StatusOK, status)
+	assert.Empty(t, trackBob["similarTracks"])
 }

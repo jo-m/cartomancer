@@ -265,7 +265,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	similar, err := sv.d.QueryRO().GetSimilarTracks(ctx, trackUUID)
+	similar, err := sv.d.QueryRO().GetSimilarTracks(ctx, db.GetSimilarTracksParams{TrackID: trackUUID, UserID: viewerID})
 	if err != nil {
 		logg.Error(ctx, "failed to get similar tracks", "err", err)
 		writeStatusError(w, http.StatusInternalServerError)

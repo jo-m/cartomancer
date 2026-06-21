@@ -29,7 +29,7 @@ SELECT t.uuid, t.name, t.total_distance_m
 FROM track_group_members tgm1
 JOIN track_group_members tgm2 ON tgm2.group_id = tgm1.group_id AND tgm2.track_id != tgm1.track_id
 JOIN tracks t ON t.uuid = tgm2.track_id
-WHERE tgm1.track_id = ?
+WHERE tgm1.track_id = ? AND (t.public = 1 OR t.user_id = ?)
 ORDER BY t.name;
 
 -- name: ListTrackGroupsWithCountByUser :many
