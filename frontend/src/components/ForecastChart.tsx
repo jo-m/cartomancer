@@ -38,6 +38,8 @@ interface ChartDatum {
   windDirectionDeg: number | null
   relativeWindDirectionDeg: number | null
   headwindMs: number | null
+  headwindPositive: number | null
+  headwindNegative: number | null
 }
 
 interface Props {
@@ -197,6 +199,10 @@ export default function ForecastChart({
               ? Math.round(p.relativeWindDirectionDeg)
               : null,
           headwindMs: hw,
+          headwindPositive:
+            hw != null && hw >= 0 ? Math.round(hw * 10) / 10 : 0,
+          headwindNegative:
+            hw != null && hw <= 0 ? Math.round(hw * 10) / 10 : 0,
         }
       }),
     [points]
@@ -601,14 +607,6 @@ export default function ForecastChart({
           <div className="relative">
             <ResponsiveContainer width="100%" height={140}>
               <ComposedChart data={data} margin={CHART_MARGIN}>
-                <defs>
-                  <linearGradient id="headwindGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset={0} stopColor="#ef4444" stopOpacity={0.4} />
-                    <stop offset={0.5} stopColor="#ef4444" stopOpacity={0.2} />
-                    <stop offset={0.5} stopColor="#10b981" stopOpacity={0.2} />
-                    <stop offset={1} stopColor="#10b981" stopOpacity={0.4} />
-                  </linearGradient>
-                </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="var(--color-border)"
@@ -637,9 +635,19 @@ export default function ForecastChart({
                 />
                 <Area
                   type="monotone"
-                  dataKey="headwindMs"
+                  dataKey="headwindPositive"
                   stroke="none"
-                  fill="url(#headwindGrad)"
+                  fill="#ef4444"
+                  fillOpacity={0.4}
+                  baseValue={0}
+                  isAnimationActive={false}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="headwindNegative"
+                  stroke="none"
+                  fill="#10b981"
+                  fillOpacity={0.4}
                   baseValue={0}
                   isAnimationActive={false}
                 />
