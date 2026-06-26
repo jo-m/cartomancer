@@ -4,11 +4,11 @@
 
 ## Short term
 
-- [ ] Upgrade to Go 1.26.4 and enable govulncheck again
+- [x] Upgrade to Go 1.26.4 and enable govulncheck again
 - [ ] Test rate limiting in prod (trace logging)
 - [x] Set GOAMD64=vX https://lemire.me/blog/2026/06/06/how-much-do-amd64-microarchitecture-levels-help-in-go/
 - [x] Experimentally remove all formatting and CSS from the frontend
-- [ ] Cartomancer monitoring for failed jobs
+- [ ] Monitoring for failed jobs
 - [x] Rename
 - [x] Track/forecast view
   - [x] Hide data from the forecast charts if no forecast data available.
