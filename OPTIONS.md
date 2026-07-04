@@ -49,6 +49,8 @@ Global options:
                          IPv6 prefix length for grouping addresses into one rate limit bucket (1-128) [default: 64, env: APP_RATE_LIMIT_IPV6_PREFIX_LEN]
   --app-rate-limit-max-ips N
                          Max distinct keys tracked per rate limiter (fail-closed when exceeded) [default: 100000, env: APP_RATE_LIMIT_MAX_IPS]
+  --app-contact-email EMAIL
+                         Email address shown on the contact page for user feedback [default: cartomancer.666@outlook.com, env: APP_CONTACT_EMAIL]
   --session-idle-timeout DUR
                          Session idle timeout [default: 48h, env: SESSION_IDLE_TIMEOUT]
   --session-abs-timeout DUR

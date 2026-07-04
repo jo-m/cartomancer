@@ -26,6 +26,7 @@ import AdminJobs from "./pages/AdminJobs"
 import AdminForecasts from "./pages/AdminForecasts"
 import AdminMaps from "./pages/AdminMaps"
 import About from "./pages/About"
+import Contact from "./pages/Contact"
 import Help from "./pages/Help"
 import Leaving from "./pages/Leaving"
 import NotFound from "./pages/NotFound"
@@ -133,6 +134,7 @@ export default function App() {
                 }
               />
               <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="/help" element={<Help />} />
               <Route path="/leaving" element={<Leaving />} />
               <Route

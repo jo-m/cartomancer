@@ -3134,6 +3134,7 @@ components:
         - instanceName
         - registrationEnabled
         - demoMode
+        - contactEmail
       properties:
         externalBaseUrl:
           type: string
@@ -3150,6 +3151,9 @@ components:
         demoPassword:
           type: string
           description: Demo login password (only present when demoMode is true).
+        contactEmail:
+          type: string
+          description: Email address shown on the contact page for user feedback.
 
     RegisterRequest:
       type: object

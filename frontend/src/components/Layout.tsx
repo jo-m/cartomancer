@@ -416,6 +416,12 @@ export default function Layout() {
               About
             </Link>
             <Link
+              to="/contact"
+              className="hover:text-text-secondary transition-colors"
+            >
+              Contact
+            </Link>
+            <Link
               to="/help"
               className="hover:text-text-secondary transition-colors"
             >

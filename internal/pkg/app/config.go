@@ -82,6 +82,8 @@ type AppConfig struct {
 	// evicts idle entries. Sized to be large enough to comfortably hold legitimate
 	// traffic so that legitimate users are not turned away.
 	RateLimitMaxIPs int `arg:"--app-rate-limit-max-ips,env:APP_RATE_LIMIT_MAX_IPS" default:"100000" help:"Max distinct keys tracked per rate limiter (fail-closed when exceeded)" placeholder:"N"`
+	// ContactEmail is the email address displayed on the contact page for user feedback.
+	ContactEmail string `arg:"--app-contact-email,env:APP_CONTACT_EMAIL" default:"cartomancer.666@outlook.com" help:"Email address shown on the contact page for user feedback" placeholder:"EMAIL"`
 }
 
 // Validate checks for basic configuration errors.
