@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router"
 import { keepPreviousData } from "@tanstack/react-query"
 import OlMap from "ol/Map"
 import OlView from "ol/View"

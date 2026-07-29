@@ -19,9 +19,7 @@ export const SWISSTOPO_BBOX: Bbox = {
 
 /** A resolved tile layer selection for display in the track map. */
 export type MapLayer =
-  | { type: "swisstopo" }
-  | { type: "pmtiles"; url: string }
-  | { type: "none" }
+  { type: "swisstopo" } | { type: "pmtiles"; url: string } | { type: "none" }
 
 /** Subset of the /api/maps response items needed for layer selection. */
 interface MapBuildInfo {

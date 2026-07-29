@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom"
+import { Link, useParams } from "react-router"
 import { $api } from "../api/client"
 import useDocumentTitle from "../hooks/useDocumentTitle"
 import TrackCard from "../components/TrackCard"

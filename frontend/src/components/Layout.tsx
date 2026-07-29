@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react"
-import { Link, Outlet, useNavigate } from "react-router-dom"
+import { Link, Outlet, useNavigate } from "react-router"
 import { ChevronDownIcon } from "@heroicons/react/20/solid"
 import { useSession } from "../context/SessionContext"
 import { useAppConfig } from "../api/client"

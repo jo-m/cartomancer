@@ -534,8 +534,7 @@ export default memo(function TrackMap({
       // Restore previous highlight.
       if (highlightedFeature) {
         const prev = highlightedFeature.get("closure") as
-          | RoadClosure
-          | undefined
+          RoadClosure | undefined
         highlightedFeature.setStyle(
           prev?.type === "obstruction" ? detourStyle : closureStyle
         )
@@ -587,8 +586,7 @@ export default memo(function TrackMap({
       if (evt.pointerType && evt.pointerType !== "mouse") return
       if (highlightedFeature) {
         const prev = highlightedFeature.get("closure") as
-          | RoadClosure
-          | undefined
+          RoadClosure | undefined
         highlightedFeature.setStyle(
           prev?.type === "obstruction" ? detourStyle : closureStyle
         )

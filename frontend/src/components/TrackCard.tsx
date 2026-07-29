@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import { Link } from "react-router"
 import { LockClosedIcon } from "@heroicons/react/24/solid"
 import SvgPreview from "./SvgPreview"
 import StarIcon from "../assets/StarIcon"

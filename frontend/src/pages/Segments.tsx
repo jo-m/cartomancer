@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router"
 import { $api } from "../api/client"
 import useDocumentTitle from "../hooks/useDocumentTitle"
 import OlMap from "ol/Map"

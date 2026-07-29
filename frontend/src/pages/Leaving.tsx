@@ -1,4 +1,4 @@
-import { useSearchParams, Link, useNavigate } from "react-router-dom"
+import { useSearchParams, Link, useNavigate } from "react-router"
 import { useAppConfig } from "../api/client"
 import useDocumentTitle from "../hooks/useDocumentTitle"
 import Button from "../components/ui/Button"

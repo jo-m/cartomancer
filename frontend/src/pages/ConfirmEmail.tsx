@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useSearchParams } from "react-router-dom"
+import { useSearchParams } from "react-router"
 import { useSession } from "../context/SessionContext"
 import { fetchClient } from "../api/client"
 import useDocumentTitle from "../hooks/useDocumentTitle"

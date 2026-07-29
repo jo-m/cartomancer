@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react"
-import { useSearchParams } from "react-router-dom"
+import { useSearchParams } from "react-router"
 
 /**
  * Defines how a single URL search parameter is parsed and serialized.

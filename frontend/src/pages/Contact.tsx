@@ -26,8 +26,8 @@ export default function Contact() {
           {appConfig.contactEmail}
         </a>
         <p className="mt-3 text-sm text-text-secondary">
-          Questions, suggestions, or bug reports - write anytime.
-          A real human will read your message.
+          Questions, suggestions, or bug reports - write anytime. A real human
+          will read your message.
         </p>
       </div>
     </PageContainer>

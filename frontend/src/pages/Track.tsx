@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { useParams } from "react-router-dom"
+import { useParams } from "react-router"
 import { ArrowsPointingOutIcon } from "@heroicons/react/24/outline"
 import { $api } from "../api/client"
 import { getTrackColor } from "../lib/trackColor"
@@ -51,8 +51,7 @@ export default function Track() {
   })
 
   const trackPoints = pointsData?.points as
-    | { lat: number; lon: number; ele: number; d: number }[]
-    | undefined
+    { lat: number; lon: number; ele: number; d: number }[] | undefined
 
   const trackDistancesM = useMemo(
     () => trackPoints?.map((p) => p.d),
