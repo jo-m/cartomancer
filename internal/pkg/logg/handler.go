@@ -30,7 +30,7 @@ func (c *LoggConfig) Validate() error {
 // NewHandler creates a new slog handler from the given config and writer.
 func NewHandler(c LoggConfig, w io.Writer) slog.Handler {
 	if c.LogPretty {
-		return tint.NewHandler(w, &tint.Options{
+		return tint.NewTextHandler(w, &tint.Options{
 			AddSource:  true,
 			Level:      c.LogLevel,
 			TimeFormat: time.TimeOnly,
