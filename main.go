@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"net/http/pprof"
@@ -102,17 +103,12 @@ func (c *config) validate() error {
 	return nil
 }
 
-func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, jobSubmitter *jobs.Submitter, maxConcurrentReqs, maxConcurrentBacklog int, mapsDir string) http.Handler {
+func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, staticFS fs.FS, jobSubmitter *jobs.Submitter, maxConcurrentReqs, maxConcurrentBacklog int, mapsDir string) http.Handler {
 	logger := logg.GetLogger(ctx).With("mod", "svc")
 
 	sess, err := session.NewStore(d, sessConfig, appConfig)
 	if err != nil {
 		logg.Panic(ctx, "Failed to create session store", "err", err)
-	}
-
-	staticFS, err := getStaticFS(appConfig.DevelopmentMode)
-	if err != nil {
-		logg.Panic(ctx, "Failed to get static files", "err", err)
 	}
 
 	mux := chi.NewRouter()
@@ -475,9 +471,14 @@ func main() {
 		}()
 	}
 
+	staticFS, err := getStaticFS(c.AppConfig.DevelopmentMode)
+	if err != nil {
+		logg.Panic(ctx, "Failed to get static files", "err", err)
+	}
+
 	s := &http.Server{
 		Addr:              c.HTTPListenAddr,
-		Handler:           newHandler(ctx, d, gd, fd, c.SessionConfig, c.AppConfig, w.Submitter(), c.MaxConcurrentReqs, c.MaxConcurrentBacklog, mapsDir),
+		Handler:           newHandler(ctx, d, gd, fd, c.SessionConfig, c.AppConfig, staticFS, w.Submitter(), c.MaxConcurrentReqs, c.MaxConcurrentBacklog, mapsDir),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       20 * time.Second,
 		WriteTimeout:      20 * time.Second,

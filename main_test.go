@@ -7,6 +7,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/google/uuid"
@@ -88,12 +89,18 @@ func TestNonAPIRoutesIgnoreSessions(t *testing.T) {
 	workers, err := jobs.NewWorkers(ctx, d, jobs.JobsConfig{MaxParallel: 1})
 	require.NoError(t, err)
 
+	// Minimal stand-in for the frontend build output, so the test does not require
+	// a populated static/ directory.
+	staticFS := fstest.MapFS{
+		"index.html": &fstest.MapFile{Data: []byte("<!doctype html><title>test</title>")},
+	}
+
 	h := newHandler(ctx, d, gd, fd, session.SessionConfig{
 		IdleTimeout:     time.Hour,
 		AbsoluteTimeout: time.Hour,
 		CookieName:      "sid",
 		CookiePath:      "/",
-	}, app.AppConfig{InstanceName: "test"}, workers.Submitter(), 0, 0, t.TempDir())
+	}, app.AppConfig{InstanceName: "test"}, staticFS, workers.Submitter(), 0, 0, t.TempDir())
 	ts := httptest.NewTLSServer(h)
 	defer ts.Close()
 
