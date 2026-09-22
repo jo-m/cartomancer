@@ -1,6 +1,7 @@
 package logg
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -36,8 +37,40 @@ func levelFor(statusCode int) slog.Level {
 	return slog.LevelInfo
 }
 
+// logFormatter creates the [middleware.LogEntry] attached to each request by
+// [RequestLogger]. It implements [middleware.LogFormatter].
+type logFormatter struct{}
+
+// NewLogEntry implements [middleware.LogFormatter].
+func (logFormatter) NewLogEntry(r *http.Request) middleware.LogEntry {
+	return &logEntry{ctx: r.Context()}
+}
+
+// logEntry implements [middleware.LogEntry], through which chi's
+// [middleware.Recoverer] reports panics recovered from handlers. It logs via
+// the logger attached by [AttachLogger], so panic reports carry the request ID.
+type logEntry struct {
+	ctx context.Context
+}
+
+// Write implements [middleware.LogEntry]. It is never called: access logging is
+// done by [RequestLogger] directly, as chi's own request logger is not used.
+func (e *logEntry) Write(_ int, _ int, _ http.Header, _ time.Duration, _ any) {
+}
+
+// Panic implements [middleware.LogEntry]. It is called by chi's
+// [middleware.Recoverer] with the value recovered from the panicking handler
+// and the stack of the goroutine it panicked in.
+func (e *logEntry) Panic(v any, stack []byte) {
+	Error(e.ctx, "recovered panic in request handler", "panic", v, "stack", string(stack))
+}
+
 // RequestLogger is a net/http middleware which logs each request.
 // It expects the [AttachLogger] middleware above in the stack.
+//
+// It also attaches a [middleware.LogEntry] to the request context, through
+// which a [middleware.Recoverer] further down the stack reports recovered
+// panics.
 func RequestLogger(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
@@ -53,7 +86,7 @@ func RequestLogger(next http.Handler) http.Handler {
 			Log(r.Context(), levelFor(ww.Status()), msg, "url", r.URL, "method", r.Method, "status", ww.Status(), "duration", time.Since(t0))
 		}()
 
-		next.ServeHTTP(ww, r)
+		next.ServeHTTP(ww, middleware.WithLogEntry(r, logFormatter{}.NewLogEntry(r)))
 	}
 	return http.HandlerFunc(fn)
 }

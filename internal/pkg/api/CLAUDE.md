@@ -10,7 +10,8 @@ On all routes:
 - `logg.RequestLogger` - logs each request with duration/status
 - `chi.middleware.RequestSize(5MB)`
 - `chi.middleware.Compress(5)`
-- `chi.middleware.Recoverer`
+- `chi.middleware.Recoverer` - recovers handler panics, reported through the
+  context logger (see `logg.logEntry.Panic`)
 
 On `/api` only. The SPA and `/robots.txt` are served without session context, since
 they never read it and loading a session costs a database round-trip:
