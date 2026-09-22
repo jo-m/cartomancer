@@ -197,6 +197,83 @@ func TestSessionMiddleware(t *testing.T) {
 	assert.Equal(t, "", cookies[0].Value)
 }
 
+// TestMiddlewareSkipsDBForUnusableCookie asserts that a request which cannot
+// resolve to a session never reaches the database: both connection pools are
+// closed, so any request that tries to use them fails with a 500 instead.
+func TestMiddlewareSkipsDBForUnusableCookie(t *testing.T) {
+	d := db.GetTestDB(t)
+	defer d.Close()
+	createUser(t, d)
+
+	conf := SessionConfig{
+		IdleTimeout:             time.Second * 10,
+		AbsoluteTimeout:         time.Second * 10,
+		CookieName:              cookieName,
+		insecureUseOnlyForTests: true,
+	}
+	store, err := NewStore(d, conf, app.AppConfig{InstanceName: "testapp"})
+	require.NoError(t, err)
+
+	// Used by the control case below.
+	validCookie := createSession(t, d, store)
+
+	// Correctly signed, but expired a second after it was issued.
+	expiredClaims := claimsForSession(
+		"01932b7a-0000-7000-8000-000000000000",
+		time.Now().Add(-time.Hour), time.Second, "testapp",
+	)
+	expiredCookie, err := jwtSign(expiredClaims, store.jwtSecret)
+	require.NoError(t, err)
+
+	// Correctly shaped, but signed by somebody else.
+	forgedClaims := claimsForSession(
+		"01932b7a-0000-7000-8000-000000000000",
+		time.Now(), time.Hour, "testapp",
+	)
+	forgedCookie, err := jwtSign(forgedClaims, password.GenRandBytes(utl.JWTSecretMinBytes))
+	require.NoError(t, err)
+
+	// No database access is possible from here on.
+	require.NoError(t, d.Close())
+
+	mux := http.NewServeMux()
+	mux.Handle("/session", http.HandlerFunc(sessionHandler))
+	ts := httptest.NewServer(store.Middleware(mux))
+	defer ts.Close()
+
+	for _, tc := range []struct {
+		name   string
+		cookie string
+		status int
+		body   string
+	}{
+		{"no cookie", "", http.StatusOK, "session nil"},
+		{"garbage cookie", "not-a-jwt", http.StatusOK, "session nil"},
+		{"expired cookie", expiredCookie, http.StatusOK, "session nil"},
+		{"forged cookie", forgedCookie, http.StatusOK, "session nil"},
+		// Control: a valid cookie is expected to need the database, which is
+		// closed, so it must fail.
+		{"valid cookie", validCookie, http.StatusInternalServerError, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodGet, ts.URL+"/session", nil)
+			require.NoError(t, err)
+			if tc.cookie != "" {
+				req.AddCookie(&http.Cookie{Name: cookieName, Value: tc.cookie})
+			}
+
+			resp, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tc.status, resp.StatusCode)
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			assert.Equal(t, tc.body, string(body))
+		})
+	}
+}
+
 func createSession(t *testing.T, d *db.DB, store *Store) string {
 	t.Helper()
 
@@ -228,7 +305,14 @@ func pokeSession(t *testing.T, d *db.DB, store *Store, cookieVal string) error {
 		Value: cookieVal,
 		Name:  cookieName,
 	})
-	_, err = store.get(r, tx)
+
+	now := time.Now()
+	claims, err := store.claimsFromCookie(r, now)
+	if err != nil {
+		return err
+	}
+
+	_, err = store.get(t.Context(), claims, tx, now)
 	txErr := tx.Commit()
 	require.NoError(t, txErr)
 

@@ -110,13 +110,19 @@ var (
 	ErrSessionExpiredAbsolute = errors.New("session expired (absolute)")
 )
 
-func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
+// claimsFromCookie reads the session cookie of r and verifies its JWT, returning
+// the claims it was signed with. It performs no database access.
+// now is the time the JWT is validated against, and should be reused for the
+// expiry checks of the same request.
+//
+// It returns [ErrSessionExpiredAbsolute] for an expired JWT, and an error wrapping
+// the reason for any other verification failure.
+func (s *Store) claimsFromCookie(r *http.Request, now time.Time) (*jwtClaims, error) {
 	cookie, err := r.Cookie(s.c.CookieName)
 	if err != nil {
 		return nil, fmt.Errorf("missing session id: %w", err)
 	}
 
-	now := time.Now()
 	claims, err := jwtParseAndVerify(cookie.Value, now, s.jwtSecret, s.ac.InstanceName)
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
@@ -126,7 +132,17 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 		return nil, fmt.Errorf("invalid JWT: %w", err)
 	}
 
-	sess, err := tx.GetSession(r.Context(), claims.ID)
+	return claims, nil
+}
+
+// get loads the session referenced by claims from the database and updates the
+// last-active timestamps of the session and of its user. now must be the time the
+// claims were verified with, so that a request uses a single timestamp throughout.
+//
+// It returns [ErrNoSuchSession] if the session does not exist, and
+// [ErrSessionExpiredAbsolute] or [ErrSessionExpiredIdle] if it has expired.
+func (s *Store) get(ctx context.Context, claims *jwtClaims, tx *db.Queries, now time.Time) (*db.Session, error) {
+	sess, err := tx.GetSession(ctx, claims.ID)
 	if err != nil {
 		return nil, ErrNoSuchSession
 	}
@@ -139,7 +155,7 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 		return nil, ErrSessionExpiredIdle
 	}
 
-	err = db.EnsureOneRowChanged(tx.UpdateSessionLastActive(r.Context(), db.UpdateSessionLastActiveParams{
+	err = db.EnsureOneRowChanged(tx.UpdateSessionLastActive(ctx, db.UpdateSessionLastActiveParams{
 		Uuid:         sess.Uuid,
 		LastActiveAt: now,
 	}))
@@ -148,7 +164,7 @@ func (s *Store) get(r *http.Request, tx *db.Queries) (*db.Session, error) {
 	}
 
 	if sess.UserID.Valid {
-		err := db.EnsureOneRowChanged(tx.UpdateUserLastActive(r.Context(), db.UpdateUserLastActiveParams{
+		err := db.EnsureOneRowChanged(tx.UpdateUserLastActive(ctx, db.UpdateUserLastActiveParams{
 			Uuid:         sess.UserID.String,
 			LastActiveAt: sql.NullTime{Valid: true, Time: now},
 		}))
@@ -283,6 +299,16 @@ func (s *Store) Middleware(next http.Handler) http.Handler {
 		// Always attach request context so Create/Delete work from handlers.
 		ctx = withRequest(ctx, requestCtx{w: w, r: r, s: s})
 
+		// Reading the cookie and verifying its JWT are pure CPU work: bail out
+		// before opening a transaction if either of them fails.
+		now := time.Now()
+		claims, err := s.claimsFromCookie(r, now)
+		if err != nil {
+			logg.Debug(ctx, "no valid session cookie", "err", err)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
+		}
+
 		tx, err := s.d.BeginTX(ctx)
 		if err != nil {
 			logg.Error(ctx, "failed to begin transaction", "err", err)
@@ -291,7 +317,7 @@ func (s *Store) Middleware(next http.Handler) http.Handler {
 		}
 		defer tx.Rollback()
 
-		sess, err := s.get(r, tx)
+		sess, err := s.get(ctx, claims, tx, now)
 		if err != nil {
 			logg.Debug(ctx, "no session found", "err", err)
 		}
