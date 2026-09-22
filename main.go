@@ -124,14 +124,14 @@ func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb
 	mux.Use(logg.RequestLogger)
 	mux.Use(middleware.RequestSize(5 * 1024 * 1024))
 	mux.Use(middleware.Compress(5))
-	mux.Use(sess.Middleware)
 	mux.Use(middleware.Recoverer)
 
 	apiHandler, err := api.New(d, gd, fd, sess, jobSubmitter, appConfig, mapsDir)
 	if err != nil {
 		logg.Panic(ctx, "Failed to create API handler", "err", err)
 	}
-	mux.Mount("/api", apiHandler)
+	// Sessions are only used by the API.
+	mux.Mount("/api", sess.Middleware(apiHandler))
 	mux.Get("/robots.txt", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		_, _ = w.Write([]byte("User-agent: *\nDisallow: /\nAllow: /$\n"))

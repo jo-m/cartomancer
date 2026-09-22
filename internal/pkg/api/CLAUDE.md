@@ -2,14 +2,20 @@
 
 ### Middleware stack (applied in order in main.go)
 
+On all routes:
+
 - `chi.middleware.RequestID`
 - `chi.middleware.ThrottleBacklog` - limits concurrent requests (if configured)
 - `logg.AttachLogger` - attaches logger with request ID to context
 - `logg.RequestLogger` - logs each request with duration/status
 - `chi.middleware.RequestSize(5MB)`
 - `chi.middleware.Compress(5)`
-- `sess.Middleware` - auto-creates/loads session for every request
 - `chi.middleware.Recoverer`
+
+On `/api` only. The SPA and `/robots.txt` are served without session context, since
+they never read it and loading a session costs a database round-trip:
+
+- `sess.Middleware` - loads the session of the request, if there is one
 
 Per-route:
 - `rateLimitByIP(rps, ...)` (api.go): per-IP token-bucket limit (429 on overflow, no-op if rps<=0) on `/sessions/login`, `/confirm-email`, and `/register`. IPv6 addresses are grouped by prefix. New IPs beyond `maxEntries` are rejected (fail-closed) until the cleanup goroutine evicts idle entries. Client IP from `X-Forwarded-For` when `trustedProxies > 0`.
@@ -20,6 +26,6 @@ Per-route:
 ```
 logg.Debug(ctx, "msg", "key", val)        // logger from context
 logg.Error(ctx, "msg", "err", err)
-session.MustGet(ctx)                      // current session (always set)
+session.MustGet(ctx)                      // current session (panics if anonymous)
 session.GetUser(ctx)                      // *db.User, nil if anonymous
 ```

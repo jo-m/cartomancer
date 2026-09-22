@@ -1,11 +1,24 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/cookiejar"
+	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+	"jo-m.ch/go/cartomancer/internal/pkg/app"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/forecastdb"
+	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
+	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
+	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
 func TestEnsureInitialAdmin_CreatesUser(t *testing.T) {
@@ -59,4 +72,81 @@ func TestEnsureInitialAdmin_Idempotent(t *testing.T) {
 	user, err := d.QueryRO().GetUserByEmail(ctx, "admin@example.com")
 	require.NoError(t, err)
 	require.True(t, password.Check(pass1, user.PasswordHash))
+}
+
+// TestNonAPIRoutesIgnoreSessions asserts that the session middleware only runs on
+// API routes. Once both connection pools are closed, a request carrying a valid
+// session cookie still succeeds for the SPA and for /robots.txt, while the same
+// cookie on an API route makes the request fail, as there the session must be
+// resolved against the database.
+func TestNonAPIRoutesIgnoreSessions(t *testing.T) {
+	d := db.GetTestDB(t)
+	gd := geonamesdb.GetTestDB(t)
+	fd := forecastdb.GetTestDB(t)
+
+	ctx := logg.WithTestLogger(t.Context(), t)
+	workers, err := jobs.NewWorkers(ctx, d, jobs.JobsConfig{MaxParallel: 1})
+	require.NoError(t, err)
+
+	h := newHandler(ctx, d, gd, fd, session.SessionConfig{
+		IdleTimeout:     time.Hour,
+		AbsoluteTimeout: time.Hour,
+		CookieName:      "sid",
+		CookiePath:      "/",
+	}, app.AppConfig{InstanceName: "test"}, workers.Submitter(), 0, 0, t.TempDir())
+	ts := httptest.NewTLSServer(h)
+	defer ts.Close()
+
+	// Log in over the API to get a valid session cookie into the jar.
+	userID, err := uuid.NewV7()
+	require.NoError(t, err)
+	hash, err := password.Hash("password")
+	require.NoError(t, err)
+	now := time.Now().UTC()
+	_, err = d.QueryRW().CreateUser(ctx, db.CreateUserParams{
+		Uuid:           userID.String(),
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		Email:          "user@example.com",
+		Name:           "User",
+		PasswordHash:   hash,
+		EmailConfirmed: 1,
+	})
+	require.NoError(t, err)
+
+	jar, err := cookiejar.New(nil)
+	require.NoError(t, err)
+	client := ts.Client()
+	client.Jar = jar
+
+	loginBody, err := json.Marshal(map[string]string{"email": "user@example.com", "password": "password"})
+	require.NoError(t, err)
+	req, err := http.NewRequest(http.MethodPost, ts.URL+"/api/sessions/login", bytes.NewReader(loginBody))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Requested-With", "cartomancer")
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	require.NoError(t, resp.Body.Close())
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// No database access is possible from here on.
+	require.NoError(t, d.Close())
+
+	for _, path := range []string{"/robots.txt", "/", "/index.html"} {
+		t.Run(path, func(t *testing.T) {
+			resp, err := client.Get(ts.URL + path)
+			require.NoError(t, err)
+			require.NoError(t, resp.Body.Close())
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+		})
+	}
+
+	// Control: on an API route the same client does resolve its session, which the
+	// closed database turns into an internal server error. This also shows that the
+	// requests above really carried the cookie.
+	resp, err = client.Get(ts.URL + "/api/sessions")
+	require.NoError(t, err)
+	require.NoError(t, resp.Body.Close())
+	require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 }
