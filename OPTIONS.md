@@ -52,9 +52,9 @@ Global options:
   --app-contact-email EMAIL
                          Email address shown on the contact page for user feedback [default: cartomancer.666@outlook.com, env: APP_CONTACT_EMAIL]
   --session-idle-timeout DUR
-                         Session idle timeout [default: 48h, env: SESSION_IDLE_TIMEOUT]
+                         Session idle timeout [default: 168h, env: SESSION_IDLE_TIMEOUT]
   --session-abs-timeout DUR
-                         Session absolute timeout [default: 168h, env: SESSION_ABS_TIMEOUT]
+                         Session absolute timeout [default: 720h, env: SESSION_ABS_TIMEOUT]
   --session-jwt-secret SECRET
                          Base64-encoded secret (min 512 bits) to sign JWT, generated on startup if not set [env: SESSION_JWT_SECRET]
   --session-cookie-name NAME
