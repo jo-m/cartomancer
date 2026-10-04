@@ -1,45 +1,28 @@
 ## Streetlights
 
-Ingests public street lighting (lamp points) from multiple upstream sources.
+Ingests public street lighting (lamp points) from upstream WFS sources.
 
 ### Pipeline
 
-1. Per-source downloader job (subpackages, see below) fetches features and converts each to a `streetlights.StreetlightInsert`.
-2. `streetlights.Insert(ctx, tx, s, now)` writes one `streetlights` row with its H3 res-9 cell inline. Same-cycle rows share `now`. Nil geometry -> `ErrNilGeometry`; non-point geometries -> `ErrNonPointGeometry`. Geometry is validated before any writes, so a rejected feature leaves no partial rows. The job loop catches both sentinels and skips the feature with a debug log, counting it into the final "skipped" tally.
-3. Each cycle is one tx: `DeleteStreetlightsByInsertedBy(jobKind)` then insert. `inserted_by == jobKind` scopes deletes per source.
-4. The data source credit (`attribution`, `attribution_href`) is normalized into the `streetlight_attributions` lookup table; `Insert` upserts it and stores the id as an FK on the row. There is no per-lamp properties column: only position, identity and provenance are kept.
-
-### H3 resolution (`constants.go`)
-
-- `CellResolution = 9` - stored in the `streetlights.cell` column, which has an index for spatial lookups. Finer than roadclosures' resolution 7 because lamps are dense point features: one res-7 cell can contain well over a thousand lamps in the city of Zurich.
+- Each source subpackage has a downloader job that fetches features and calls `streetlights.Insert(ctx, tx, s, now)` per lamp, sharing one timestamp per cycle. `Insert` rejects nil/non-point geometries before any writes ([ErrNilGeometry], [ErrNonPointGeometry]); jobs skip those features.
+- Each cycle is one tx: `DeleteStreetlightsByInsertedBy(jobKind)` then insert; `inserted_by` scopes deletes per source.
+- A row keeps position (indexed H3 res-9 `cell` plus GeoJSON geometry), source id, and an FK to `streetlight_attributions`, the normalized (attribution, attribution_href) lookup. No properties column.
 
 ### Track coverage (`coverage.go`)
 
-`ComputeTrackCoverage(ctx, d, t)` reports how much of a track path is lit (within `LitRadiusM = 20 m` of a lamp) and where:
-
-- Sampling: the dp5m polyline (`PolylineDp5mVarint`, +/-5 m deviation budget; dp50m would be too coarse for a 20 m test) is interpolated at `SampleStepM = 5 m` cumulative-distance steps.
-- Candidate lookup: sample cells (res 9, via `h3.LatLngToCell`, never `track.Point.Cell` which panics) are expanded with `h3.GridDisk(cell, 1)`; the res-9 edge length (~200 m) guarantees the k-ring is a superset of lamps within 20 m. Pentagon fallback: `{cell}` on GridDisk error or empty result.
-- Distance test: an equirectangular box pre-filter (25 percent margin) rejects far pairs before the cgo `h3.GreatCircleDistanceM` call; without it a long urban track costs seconds.
-- Stretch boundaries: midpoints between the last lit and first unlit sample (clipped at track ends), so boundaries are quantized by at most 2.5 m and a fully lit track reports `LitDistanceM == TotalDistanceM`. Effective accuracy is 20 m +/- 7.5 m worst case (dp5m plus quantization).
-- Attributions: only sources of lamps that lit at least one sample, deduplicated by (text, href), sorted.
+`ComputeTrackCoverage(ctx, d, t)` samples the dp5m polyline every `SampleStepM = 5 m`; a sample is lit when a lamp is within `LitRadiusM = 20 m`. Candidate lamps come from `h3.GridDisk(cell, 1)` of the res-9 sample cell (superset: edge ~200 m; `{cell}` fallback for pentagons), pre-filtered by an equirectangular box before the exact distance. Boundaries land on midpoints between the last lit and first unlit sample (+/-2.5 m). Attributions list only sources of lamps that lit something, deduped and sorted.
 
 ### Sources (subpackages)
 
-All sources share the same structure: `Fetch(ctx)` client + `Downloader` job with a `MinRefreshAge = 30d` early-return guard on `GetLatestStreetlightCreatedAt(jobKind)`, registered as a daily periodic job in `main.go` (the gate throttles refresh to monthly; the daily tick lets a transient failure self-heal). Both sources fetch through `wfs.GetFeatureGeoJSON`.
+- `ktzh/` (Canton Zurich, `maps.zh.ch/wfs/OGDZHWFS`, layer `ms:ogd-0124_giszhpub_tba_str_beleuchtung_p`): WFS 2.0.0 via `wfs.NewClient`; `srsName` as EPSG URN; no feature ids, so `SourceID` is `ktzh-<geodb_oid>`.
+- `stadtzh/` (City of Zurich, `www.ogd.stadt-zuerich.ch/wfs/geoportal/Oeffentliche_Beleuchtung_der_Stadt_Zuerich`, layer `ewz_brennstelle_p`): WFS 1.1.0 only via `wfs.NewClientV11`; `srsName` `EPSG:4326`; `SourceID` is `stadtzh-<feature id>` with `objectid` fallback.
 
-- `ktzh/` - Canton Zurich OGD WFS (`maps.zh.ch/wfs/OGDZHWFS`, layer `ms:ogd-0124_giszhpub_tba_str_beleuchtung_p`), WFS 2.0.0 via `wfs.NewClient`. Features have no id, so `SourceID` is `ktzh-<geodb_oid>`. `srsName` must use the EPSG URN form.
-- `stadtzh/` - City of Zurich WFS (`www.ogd.stadt-zuerich.ch/wfs/geoportal/Oeffentliche_Beleuchtung_der_Stadt_Zuerich`, layer `ewz_brennstelle_p`), WFS 1.1.0 only, via `wfs.NewClientV11` (2.0.0 requests fail). `SourceID` is `stadtzh-<feature id>`, falling back to `objectid`. `srsName` must use the short `EPSG:4326` form.
+Both are daily periodic jobs with a `MinRefreshAge = 30d` gate on `GetLatestStreetlightCreatedAt(jobKind)`: the daily tick lets transient failures self-heal, the gate throttles refreshes to monthly.
 
-### Adding a new source
+### Adding a source
 
-1. New subpackage `internal/pkg/streetlights/<src>/`.
-2. Client `Fetch(ctx)` returning normalized features. Provide `DataAttribution attribute.Attribution`.
-3. `Downloader` implementing `jobs.Job[DownloaderArgs]`; in `Run`, gate on `MinRefreshAge`, then do delete-then-insert in one `WithTx`.
-4. Per-feature: build `streetlights.StreetlightInsert{...}` (with the source's `DataAttribution`) and call `streetlights.Insert`. Skip features rejected with `ErrNilGeometry`/`ErrNonPointGeometry`, staying consistent with the existing sources.
-5. Register in `main.go` (`MustRegisterJob` + `jobs.Periodic`).
-6. Add `<src>.DataAttribution` to the `Attributions` slice in `internal/pkg/api/version.go` so the source appears on the /about page.
+Subpackage with `Fetch(ctx)` and a `DataAttribution`, plus a downloader job that does delete-then-insert in one `WithTx` via `Insert`; register in `main.go` (`MustRegisterJob` + `jobs.Periodic`); add `DataAttribution` to `Attributions` in `internal/pkg/api/version.go`.
 
 ### Tests
 
-- `*_online_test.go` hits live upstream endpoints; gated behind the `online` build tag.
-- Unit tests cover feature decoding, source id derivation, and the insert path (cell, provider/attribution dedup, rejected geometries).
+Unit tests cover decoding, source ids and the insert path. `*_online_test.go` hits live endpoints behind the `online` build tag.

@@ -1656,14 +1656,11 @@ paths:
       tags: [Tracks]
       description: >
         Returns how much of the track path is lit by streetlights, and where.
-        The path is sampled every 5 m along the 5 m preview polyline and a
-        sample counts as lit when a streetlight is within 20 m. Lit sections
-        are reported as cumulative-distance ranges with boundaries at the
-        midpoints between the last lit and the first unlit sample, quantized
-        by at most 2.5 m; together with the 5 m polyline deviation the
-        effective boundary is 20 m +/- 7.5 m worst case. Clients can slice the
-        track points (GET /tracks/{uuid}/points) by these distance ranges to
-        draw the lit sections. Public tracks are accessible without
+        A section of the path counts as lit when it passes within litRadiusM
+        of a streetlight; the reported boundaries are approximate. Lit
+        sections are given as cumulative-distance ranges from the track start,
+        suitable for slicing the track points (GET /tracks/{uuid}/points)
+        into a lit overlay. Public tracks are accessible without
         authentication; private tracks require the owner's session.
       parameters:
         - name: uuid
