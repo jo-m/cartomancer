@@ -107,6 +107,7 @@ func New(d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessions *session.Store
 	mux.Get("/tracks/{uuid}/profile.svg", sv.handleDownloadTrackProfileSVG)
 	mux.Get("/tracks/{uuid}/points", sv.handleGetTrackPoints)
 	mux.Get("/tracks/{uuid}/road-closures", sv.handleGetTrackRoadClosures)
+	mux.Get("/tracks/{uuid}/streetlights", sv.handleGetTrackStreetlights)
 	mux.Get("/tracks/{uuid}/forecast", sv.handleGetTrackForecast)
 	mux.Get("/tracks/{uuid}/comments", sv.handleListTrackComments)
 	mux.Get("/tags", sv.handleSuggestTags)
