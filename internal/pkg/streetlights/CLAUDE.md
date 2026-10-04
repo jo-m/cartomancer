@@ -13,6 +13,16 @@ Ingests public street lighting (lamp points) from multiple upstream sources.
 
 - `CellResolution = 9` - stored in the `streetlights.cell` column, which has an index for spatial lookups. Finer than roadclosures' resolution 7 because lamps are dense point features: one res-7 cell can contain well over a thousand lamps in the city of Zurich.
 
+### Track coverage (`coverage.go`)
+
+`ComputeTrackCoverage(ctx, d, t)` reports how much of a track path is lit (within `LitRadiusM = 20 m` of a lamp) and where:
+
+- Sampling: the dp5m polyline (`PolylineDp5mVarint`, +/-5 m deviation budget; dp50m would be too coarse for a 20 m test) is interpolated at `SampleStepM = 5 m` cumulative-distance steps.
+- Candidate lookup: sample cells (res 9, via `h3.LatLngToCell`, never `track.Point.Cell` which panics) are expanded with `h3.GridDisk(cell, 1)`; the res-9 edge length (~200 m) guarantees the k-ring is a superset of lamps within 20 m. Pentagon fallback: `{cell}` on GridDisk error or empty result.
+- Distance test: an equirectangular box pre-filter (25 percent margin) rejects far pairs before the cgo `h3.GreatCircleDistanceM` call; without it a long urban track costs seconds.
+- Stretch boundaries: midpoints between the last lit and first unlit sample (clipped at track ends), so boundaries are quantized by at most 2.5 m and a fully lit track reports `LitDistanceM == TotalDistanceM`. Effective accuracy is 20 m +/- 7.5 m worst case (dp5m plus quantization).
+- Attributions: only sources of lamps that lit at least one sample, deduplicated by (text, href), sorted.
+
 ### Sources (subpackages)
 
 All sources share the same structure: `Fetch(ctx)` client + `Downloader` job with a `MinRefreshAge = 30d` early-return guard on `GetLatestStreetlightCreatedAt(jobKind)`, registered as a daily periodic job in `main.go` (the gate throttles refresh to monthly; the daily tick lets a transient failure self-heal). Both sources fetch through `wfs.GetFeatureGeoJSON`.

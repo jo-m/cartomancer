@@ -13,7 +13,7 @@ import ForecastChart from "../components/ForecastChart"
 import Toast from "../components/Toast"
 import useToast from "../hooks/useToast"
 import TrackMap from "../components/TrackMap"
-import type { RoadClosure } from "../types/map"
+import type { LitStretch, RoadClosure } from "../types/map"
 import MapHoverOverlay from "../components/MapHoverOverlay"
 import FullscreenMapDialog from "../components/FullscreenMapDialog"
 import ForecastControls from "../components/ForecastControls"
@@ -65,6 +65,14 @@ export default function Track() {
   )
 
   const closures = closuresData?.closures as RoadClosure[] | undefined
+
+  const { data: streetlightsData } = $api.useQuery(
+    "get",
+    "/tracks/{uuid}/streetlights",
+    { params: { path: { uuid: uuid! } } }
+  )
+
+  const litStretches = streetlightsData?.stretches as LitStretch[] | undefined
 
   const { data: mapsData } = $api.useQuery("get", "/maps")
 
@@ -255,6 +263,7 @@ export default function Track() {
 
       <TrackDetails
         track={data}
+        lit={streetlightsData}
         onError={(msg) => showToast(msg)}
         onSuccess={(msg) => showToast(msg, "success")}
       />
@@ -267,6 +276,7 @@ export default function Track() {
               hoverStore={hoverStore}
               color={trackColor}
               closures={closures}
+              litStretches={litStretches}
               layer={mapLayer}
               className="relative h-[400px] w-full border-y border-border lg:rounded-lg lg:border"
             />
@@ -291,6 +301,7 @@ export default function Track() {
               hoverStore={hoverStore}
               color={trackColor}
               closures={closures}
+              litStretches={litStretches}
               forecastTimes={forecast.forecastTimes}
               layer={mapLayer}
             />

@@ -30,7 +30,8 @@ import {
   buildEndStyleCanvas,
 } from "../lib/mapArrows"
 import type { HoverStore } from "../hooks/useHoverSync"
-import type { RoadClosure } from "../types/map"
+import type { LitStretch, RoadClosure } from "../types/map"
+import { slicePolylineByDistance } from "../lib/litStretch"
 import { fmtDate } from "../lib/time"
 import MapAttribution from "./MapAttribution"
 
@@ -126,6 +127,15 @@ const closureStyleHover = [
   }),
 ]
 
+/** Style for the lit track sections overlaid on the track line. */
+const litStretchStyle = new Style({
+  stroke: new Stroke({
+    color: "rgba(250, 204, 21, 0.6)",
+    width: 8,
+    lineCap: "round",
+  }),
+})
+
 /** Props for the TrackMap component. */
 interface TrackMapProps {
   /** Array of track point objects in WGS84. */
@@ -138,6 +148,8 @@ interface TrackMapProps {
   className?: string
   /** Optional road closures to render on the map. */
   closures?: RoadClosure[]
+  /** Optional lit track sections to overlay on the track line. */
+  litStretches?: LitStretch[]
   /** Resolved tile layer to display as the map background. */
   layer: MapLayer
 }
@@ -153,6 +165,7 @@ export default memo(function TrackMap({
   color,
   className,
   closures,
+  litStretches,
   layer,
 }: TrackMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
@@ -162,6 +175,7 @@ export default memo(function TrackMap({
   const markerFeature = useRef<Feature | null>(null)
   const markerSource = useRef<VectorSource | null>(null)
   const closureLayerRef = useRef<VectorLayer | null>(null)
+  const litLayerRef = useRef<VectorLayer | null>(null)
   const overlayRef = useRef<Overlay | null>(null)
   const [tooltip, setTooltip] = useState<RoadClosure | null>(null)
   const [tileErrorUrl, setTileErrorUrl] = useState<string | null>(null)
@@ -269,6 +283,10 @@ export default memo(function TrackMap({
     const closureLayer = new VectorLayer({ source: closureSource })
     closureLayerRef.current = closureLayer
 
+    const litSource = new VectorSource()
+    const litLayer = new VectorLayer({ source: litSource })
+    litLayerRef.current = litLayer
+
     // Render chevron sprites at device pixel resolution and shrink them back
     // via Icon `scale: 1/dpr` so they're as crisp as the OL-drawn track line.
     const dpr = window.devicePixelRatio || 1
@@ -288,11 +306,13 @@ export default memo(function TrackMap({
 
     // Layer order: all white halos first (track + chevrons) so they compose
     // into one silhouette, then all colored inners on top, then closures and
-    // endpoint markers above the line, hover marker on top.
+    // endpoint markers above the line, hover marker on top. The lit overlay
+    // sits between the track inner and the chevrons so both stay visible.
     mapLayers.push(
       new VectorLayer({ source: trackHaloSource }),
       new VectorLayer({ source: arrowHaloSource }),
       new VectorLayer({ source: trackInnerSource }),
+      litLayer,
       new VectorLayer({ source: arrowInnerSource }),
       closureLayer,
       new VectorLayer({ source: endpointSource }),
@@ -400,6 +420,7 @@ export default memo(function TrackMap({
       markerFeature.current = null
       markerSource.current = null
       closureLayerRef.current = null
+      litLayerRef.current = null
       overlayRef.current = null
     }
   }, [points, color, markerVisibleStyle, layer, darkMode])
@@ -518,6 +539,33 @@ export default memo(function TrackMap({
       }
     }
   }, [closures, layer, points])
+
+  // Render lit track sections as an overlay on the track line. `points` is in
+  // deps because the main map-setup effect rebuilds the lit layer when points
+  // change; we must re-add the features into that fresh layer.
+  useEffect(() => {
+    const litLayer = litLayerRef.current
+    if (!litLayer) return
+    const source = litLayer.getSource()!
+    source.clear()
+
+    if (!litStretches || litStretches.length === 0) return
+
+    for (const s of litStretches) {
+      const sliced = slicePolylineByDistance(
+        points,
+        s.startDistanceM,
+        s.endDistanceM
+      )
+      if (sliced.length < 2) continue
+      const coords = sliced.map(([lon, lat]) =>
+        projectPoint(lon, lat, layer.type)
+      )
+      const feature = new Feature({ geometry: new LineString(coords) })
+      feature.setStyle(litStretchStyle)
+      source.addFeature(feature)
+    }
+  }, [litStretches, layer, points])
 
   // Closure hover: show tooltip and highlight on pointer move over closure features.
   useEffect(() => {

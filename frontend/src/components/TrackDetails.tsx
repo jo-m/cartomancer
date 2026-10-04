@@ -57,8 +57,17 @@ interface TrackDetailData {
   similarTracks: SimilarTrack[]
 }
 
+/** Streetlight coverage of the track, as returned by the streetlights endpoint. */
+export interface TrackStreetlightCoverage {
+  litDistanceM: number
+  litFraction: number
+  attributions: { text: string; href: string }[]
+}
+
 export interface TrackDetailsProps {
   track: TrackDetailData
+  /** Optional streetlight coverage to display as a lit-share stat. */
+  lit?: TrackStreetlightCoverage
   onError?: (msg: string) => void
   onSuccess?: (msg: string) => void
 }
@@ -68,6 +77,7 @@ type EditField = "sport" | "subSport" | "trackType" | "tags" | null
 /** Displays track metadata with inline editing for track owners. */
 export default function TrackDetails({
   track,
+  lit,
   onError,
   onSuccess,
 }: TrackDetailsProps) {
@@ -159,6 +169,36 @@ export default function TrackDetails({
             {formatAscent(track.totalAscentM)}
           </dd>
         </div>
+
+        {lit && (
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">
+              Lit
+            </dt>
+            <dd className="mt-0.5 text-sm text-text">
+              {formatDistance(lit.litDistanceM)} (
+              {Math.round(lit.litFraction * 100)}%)
+              {lit.attributions.length > 0 && (
+                <span className="block text-xs text-text-muted">
+                  Lighting data:{" "}
+                  {lit.attributions.map((a, i) => (
+                    <span key={a.href}>
+                      {i > 0 && ", "}
+                      <a
+                        href={externalUrl(a.href)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-text-secondary transition-colors"
+                      >
+                        {a.text}
+                      </a>
+                    </span>
+                  ))}
+                </span>
+              )}
+            </dd>
+          </div>
+        )}
 
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-text-muted">

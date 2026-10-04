@@ -1649,6 +1649,92 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tracks/{uuid}/streetlights:
+    get:
+      summary: Get streetlight coverage of a track
+      operationId: getTrackStreetlights
+      tags: [Tracks]
+      description: >
+        Returns how much of the track path is lit by streetlights, and where.
+        The path is sampled every 5 m along the 5 m preview polyline and a
+        sample counts as lit when a streetlight is within 20 m. Lit sections
+        are reported as cumulative-distance ranges with boundaries at the
+        midpoints between the last lit and the first unlit sample, quantized
+        by at most 2.5 m; together with the 5 m polyline deviation the
+        effective boundary is 20 m +/- 7.5 m worst case. Clients can slice the
+        track points (GET /tracks/{uuid}/points) by these distance ranges to
+        draw the lit sections. Public tracks are accessible without
+        authentication; private tracks require the owner's session.
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Streetlight coverage of the track
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  [
+                    totalDistanceM,
+                    litDistanceM,
+                    litFraction,
+                    sampleStepM,
+                    litRadiusM,
+                    stretches,
+                    attributions,
+                  ]
+                properties:
+                  totalDistanceM:
+                    type: number
+                    description: Distance covered by the sampled path in meters
+                  litDistanceM:
+                    type: number
+                    description: Sum of all lit stretch lengths in meters
+                  litFraction:
+                    type: number
+                    description: litDistanceM divided by totalDistanceM (0 when the track has no length)
+                  sampleStepM:
+                    type: number
+                    description: Sampling step along the path in meters
+                  litRadiusM:
+                    type: number
+                    description: Distance to a streetlight within which the path counts as lit, in meters
+                  stretches:
+                    type: array
+                    description: Lit sections in ascending distance order
+                    items:
+                      type: object
+                      required: [startDistanceM, endDistanceM]
+                      properties:
+                        startDistanceM:
+                          type: number
+                        endDistanceM:
+                          type: number
+                  attributions:
+                    type: array
+                    description: Credits of the data sources that lit the track
+                    items:
+                      $ref: "#/components/schemas/SourceAttribution"
+        "304":
+          description: Not modified
+        "404":
+          description: Track not found or not accessible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /tracks/{uuid}/forecast:
     get:
       summary: Get weather forecast along a track
