@@ -18,12 +18,8 @@ type Feature struct {
 	// back to the objectid attribute.
 	SourceID string
 
-	// Properties holds the source feature's attributes verbatim as a JSON
-	// object.
-	Properties json.RawMessage
-
 	// Geometry is the lamp location in WGS84 (GeoJSON axis order: lon, lat).
-	// It is nil for source features without a geometry; callers should skip
+	// It is nil for source features without a geometry; the downloader drops
 	// such features.
 	Geometry *geojson.Geometry
 }
@@ -54,8 +50,7 @@ func decodeFeature(raw wfs.GeoJSONFeature) (Feature, error) {
 	}
 
 	return Feature{
-		SourceID:   "stadtzh-" + sourceID,
-		Properties: raw.Properties,
-		Geometry:   raw.Geometry,
+		SourceID: "stadtzh-" + sourceID,
+		Geometry: raw.Geometry,
 	}, nil
 }

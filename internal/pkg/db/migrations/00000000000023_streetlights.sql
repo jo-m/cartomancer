@@ -1,5 +1,17 @@
 -- +goose Up
 -- +goose StatementBegin
+CREATE TABLE streetlight_attributions (
+    id INTEGER PRIMARY KEY,
+
+    -- attribution is the human-readable data source credit.
+    attribution TEXT NOT NULL,
+
+    -- attribution_href is the URL for the data source.
+    attribution_href TEXT NOT NULL,
+
+    UNIQUE(attribution, attribution_href)
+);
+
 CREATE TABLE streetlights (
     uuid TEXT PRIMARY KEY,
 
@@ -13,40 +25,23 @@ CREATE TABLE streetlights (
 
     created_at DATETIME NOT NULL,
 
-    -- content_provider names the organization that operates the lights.
-    content_provider TEXT,
+    -- attribution_id references the data source credit.
+    attribution_id INTEGER NOT NULL REFERENCES streetlight_attributions(id),
 
-    -- properties holds the source's feature attributes verbatim as a JSON
-    -- object; the shape depends on the source.
-    properties TEXT NOT NULL DEFAULT '{}',
+    -- cell is the H3 cell index at resolution 9 covering the lamp position.
+    cell INTEGER NOT NULL,
 
     -- geometry is the GeoJSON Point in WGS84, stored as a JSON text string.
-    geometry TEXT NOT NULL,
-
-    -- attribution is the human-readable data source credit.
-    attribution TEXT NOT NULL DEFAULT '',
-
-    -- attribution_href is the URL for the data source.
-    attribution_href TEXT NOT NULL DEFAULT ''
+    geometry TEXT NOT NULL
 );
 
 CREATE INDEX idx_streetlights_inserted_by ON streetlights (inserted_by);
 
-CREATE TABLE streetlight_cells_res9 (
-    id INTEGER PRIMARY KEY,
-    streetlight_id TEXT NOT NULL REFERENCES streetlights(uuid) ON DELETE CASCADE,
-
-    -- cell is the H3 cell index at resolution 9.
-    cell INTEGER NOT NULL,
-
-    UNIQUE(streetlight_id, cell)
-);
-
-CREATE INDEX idx_streetlight_cells_res9_cell ON streetlight_cells_res9 (cell);
+CREATE INDEX idx_streetlights_cell ON streetlights (cell);
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS streetlight_cells_res9;
 DROP TABLE IF EXISTS streetlights;
+DROP TABLE IF EXISTS streetlight_attributions;
 -- +goose StatementEnd

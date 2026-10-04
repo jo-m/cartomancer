@@ -17,12 +17,8 @@ type Feature struct {
 	// id, so it is derived from the geodb_oid attribute.
 	SourceID string
 
-	// Properties holds the source feature's attributes verbatim as a JSON
-	// object.
-	Properties json.RawMessage
-
 	// Geometry is the lamp location in WGS84 (GeoJSON axis order: lon, lat).
-	// It is nil for source features without a geometry; callers should skip
+	// It is nil for source features without a geometry; the downloader drops
 	// such features.
 	Geometry *geojson.Geometry
 }
@@ -48,8 +44,7 @@ func decodeFeature(raw wfs.GeoJSONFeature) (Feature, error) {
 	}
 
 	return Feature{
-		SourceID:   fmt.Sprintf("ktzh-%d", props.GeodbOID),
-		Properties: raw.Properties,
-		Geometry:   raw.Geometry,
+		SourceID: fmt.Sprintf("ktzh-%d", props.GeodbOID),
+		Geometry: raw.Geometry,
 	}, nil
 }

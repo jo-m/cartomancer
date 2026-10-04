@@ -26,7 +26,6 @@ func TestOnlineFetch(t *testing.T) {
 	withGeom := 0
 	for _, f := range features {
 		require.True(t, strings.HasPrefix(f.SourceID, "stadtzh-"), "source id %q", f.SourceID)
-		require.NotEmpty(t, f.Properties)
 		if f.Geometry == nil {
 			continue
 		}

@@ -1,9 +1,7 @@
 package streetlights
 
 import (
-	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,8 +22,9 @@ import (
 // upstream.
 var ErrNilGeometry = errors.New("streetlights: nil geometry")
 
-// ErrNonPointGeometry is returned by [Insert] for non-point geometries.
-// Every streetlight data source models lamps as points.
+// ErrNonPointGeometry is returned by [Insert] for geometries that are not a
+// single point. Every streetlight row stores exactly one H3 cell, so only
+// single points can be recorded; callers should drop such features upstream.
 var ErrNonPointGeometry = errors.New("streetlights: non-point geometry")
 
 // StreetlightInsert is the per-source data needed to record a streetlight.
@@ -39,15 +38,7 @@ type StreetlightInsert struct {
 	// Used to scope deletes during refresh cycles.
 	InsertedBy string
 
-	// ContentProvider names the organization that operates the lights.
-	ContentProvider sql.NullString
-
-	// Properties holds the source's feature attributes verbatim as a JSON
-	// object. Empty, missing and JSON null values are stored as an empty
-	// object.
-	Properties json.RawMessage
-
-	// Geometry is the lamp location in WGS84. Must be a point or multi-point;
+	// Geometry is the lamp location in WGS84. Must be a single point;
 	// [Insert] returns [ErrNilGeometry] or [ErrNonPointGeometry] otherwise.
 	Geometry *geojson.Geometry
 
@@ -55,22 +46,30 @@ type StreetlightInsert struct {
 	Attribution attribute.Attribution
 }
 
-// Insert writes one streetlight row and its res-9 H3 cells. Caller supplies
-// the transaction and the current time so that an entire refresh cycle shares
-// the same created_at value.
+// Insert writes one streetlight row. The geometry is validated before any
+// writes, so a rejected feature leaves no partial rows behind. The
+// attribution is deduplicated into its own table.
 //
 // Returns [ErrNilGeometry] or [ErrNonPointGeometry] if the geometry is not a
-// point; the row is not written in those cases. Otherwise returns any error
-// from marshalling the geometry or from the underlying DB inserts.
+// single point; otherwise returns any error from marshalling the geometry or
+// from the underlying DB inserts.
 func Insert(ctx context.Context, tx *db.Queries, s StreetlightInsert, now time.Time) error {
-	pts, err := points(s.Geometry)
+	pt, err := point(s.Geometry)
 	if err != nil {
 		return err
 	}
 
-	props, err := propertiesJSON(s.Properties)
+	attributionID, err := tx.UpsertStreetlightAttribution(ctx, db.UpsertStreetlightAttributionParams{
+		Attribution:     s.Attribution.Author,
+		AttributionHref: s.Attribution.Source,
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("upsert attribution: %w", err)
+	}
+
+	cell, err := h3.LatLngToCell(h3.LatLng{Lat: pt.Lat(), Lng: pt.Lon()}, CellResolution)
+	if err != nil {
+		return fmt.Errorf("compute cell: %w", err)
 	}
 
 	id, err := uuid.NewV7()
@@ -84,71 +83,31 @@ func Insert(ctx context.Context, tx *db.Queries, s StreetlightInsert, now time.T
 	}
 
 	err = tx.InsertStreetlight(ctx, db.InsertStreetlightParams{
-		Uuid:            id.String(),
-		SourceID:        s.SourceID,
-		InsertedBy:      s.InsertedBy,
-		CreatedAt:       now,
-		ContentProvider: s.ContentProvider,
-		Properties:      props,
-		Geometry:        string(geomJSON),
-		Attribution:     s.Attribution.Author,
-		AttributionHref: s.Attribution.Source,
+		Uuid:          id.String(),
+		SourceID:      s.SourceID,
+		InsertedBy:    s.InsertedBy,
+		CreatedAt:     now,
+		AttributionID: attributionID,
+		Cell:          int64(cell),
+		Geometry:      string(geomJSON),
 	})
 	if err != nil {
 		return fmt.Errorf("insert streetlight: %w", err)
 	}
 
-	for _, pt := range pts {
-		cell, err := h3.LatLngToCell(h3.LatLng{Lat: pt.Lat(), Lng: pt.Lon()}, CellResolution)
-		if err != nil {
-			return fmt.Errorf("compute cell: %w", err)
-		}
-		err = tx.InsertStreetlightCellRes9(ctx, db.InsertStreetlightCellRes9Params{
-			StreetlightID: id.String(),
-			Cell:          int64(cell),
-		})
-		if err != nil {
-			return fmt.Errorf("insert cell: %w", err)
-		}
-	}
-
 	return nil
 }
 
-// points extracts the point coordinates of a streetlight geometry, rejecting
-// nil and non-point geometries.
-func points(geom *geojson.Geometry) ([]orb.Point, error) {
+// point extracts the coordinate of a streetlight geometry, rejecting nil and
+// non-point geometries.
+func point(geom *geojson.Geometry) (orb.Point, error) {
 	if geom == nil {
-		return nil, ErrNilGeometry
+		return orb.Point{}, ErrNilGeometry
 	}
 	switch g := geom.Geometry().(type) {
 	case orb.Point:
-		return []orb.Point{g}, nil
-	case orb.MultiPoint:
-		return []orb.Point(g), nil
+		return g, nil
 	default:
-		return nil, fmt.Errorf("%w: %T", ErrNonPointGeometry, g)
+		return orb.Point{}, fmt.Errorf("%w: %T", ErrNonPointGeometry, g)
 	}
-}
-
-// propertiesJSON normalises raw properties for storage. Empty, missing and
-// JSON null values become an empty object; anything that is not a JSON object
-// is rejected.
-func propertiesJSON(raw json.RawMessage) (string, error) {
-	trimmed := bytes.TrimSpace(raw)
-	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
-		return "{}", nil
-	}
-	if trimmed[0] != '{' || !json.Valid(trimmed) {
-		return "", fmt.Errorf("streetlights: properties is not a valid JSON object")
-	}
-	return string(trimmed), nil
-}
-
-// NullString returns a sql.NullString that is valid only when s is non-empty.
-func NullString(s string) sql.NullString {
-	if s == "" {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: s, Valid: true}
 }

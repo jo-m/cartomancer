@@ -1,184 +1,151 @@
 package streetlights_test
 
 import (
-	"encoding/json"
-	"errors"
 	"testing"
 	"time"
 
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
 	"github.com/stretchr/testify/require"
+	"github.com/uber/h3-go/v4"
 
 	"jo-m.ch/go/cartomancer/internal/pkg/attribute"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
 	"jo-m.ch/go/cartomancer/internal/pkg/streetlights"
 )
 
+// testAttribution is the data source credit used across the tests.
+var testAttribution = attribute.Attribution{Author: "Tiefbauamt", Source: "https://example.com/data"}
+
+// pointInsert builds a minimal streetlight insert for a single point.
+func pointInsert(sourceID string, ll orb.Point) streetlights.StreetlightInsert {
+	return streetlights.StreetlightInsert{
+		SourceID:    sourceID,
+		InsertedBy:  "test",
+		Geometry:    geojson.NewGeometry(ll),
+		Attribution: testAttribution,
+	}
+}
+
+// count returns the number of rows in a table.
+func count(t *testing.T, d *db.DB, table string) int64 {
+	t.Helper()
+	var n int64
+	require.NoError(t, d.RO().QueryRowContext(t.Context(), "SELECT COUNT(*) FROM "+table).Scan(&n))
+	return n
+}
+
+func TestInsert_PointWritesRowCellAndSource(t *testing.T) {
+	d := db.GetTestDB(t)
+	t.Cleanup(func() { d.Close() })
+	ctx := t.Context()
+
+	ll := orb.Point{8.5, 47.3}
+	err := d.WithTx(ctx, func(tx *db.Queries) error {
+		return streetlights.Insert(ctx, tx, pointInsert("ktzh-1", ll), time.Now())
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), count(t, d, "streetlights"))
+
+	// The stored cell must be the res-9 cell of the lamp position, and the
+	// attribution must resolve through its lookup table.
+	want, err := h3.LatLngToCell(h3.LatLng{Lat: ll.Lat(), Lng: ll.Lon()}, streetlights.CellResolution)
+	require.NoError(t, err)
+
+	var cell int64
+	var geom string
+	var attr, href string
+	err = d.RO().QueryRowContext(ctx, `
+		SELECT s.cell, s.geometry, a.attribution, a.attribution_href
+		FROM streetlights s
+		JOIN streetlight_attributions a ON a.id = s.attribution_id`).
+		Scan(&cell, &geom, &attr, &href)
+	require.NoError(t, err)
+	require.Equal(t, int64(want), cell)
+	require.JSONEq(t, `{"type":"Point","coordinates":[8.5,47.3]}`, geom)
+	require.Equal(t, "Tiefbauamt", attr)
+	require.Equal(t, "https://example.com/data", href)
+}
+
+func TestInsert_AttributionDeduped(t *testing.T) {
+	d := db.GetTestDB(t)
+	t.Cleanup(func() { d.Close() })
+	ctx := t.Context()
+
+	insert := func(s streetlights.StreetlightInsert) {
+		t.Helper()
+		err := d.WithTx(ctx, func(tx *db.Queries) error {
+			return streetlights.Insert(ctx, tx, s, time.Now())
+		})
+		require.NoError(t, err)
+	}
+
+	insert(pointInsert("a", orb.Point{8.5, 47.3}))
+	insert(pointInsert("b", orb.Point{8.6, 47.3}))
+
+	other := pointInsert("c", orb.Point{8.7, 47.3})
+	other.Attribution = attribute.Attribution{Author: "ewz", Source: "https://example.com/other"}
+	insert(other)
+
+	require.Equal(t, int64(3), count(t, d, "streetlights"))
+	require.Equal(t, int64(2), count(t, d, "streetlight_attributions"))
+}
+
 func TestInsert_NilGeometryRejected(t *testing.T) {
 	d := db.GetTestDB(t)
 	t.Cleanup(func() { d.Close() })
-
 	ctx := t.Context()
 
+	s := pointInsert("no-geom", orb.Point{})
+	s.Geometry = nil
 	err := d.WithTx(ctx, func(tx *db.Queries) error {
-		return streetlights.Insert(ctx, tx, streetlights.StreetlightInsert{
-			SourceID:    "no-geom",
-			InsertedBy:  "test",
-			Attribution: attribute.Attribution{Author: "x", Source: "y"},
-		}, time.Now())
+		return streetlights.Insert(ctx, tx, s, time.Now())
 	})
-	require.True(t, errors.Is(err, streetlights.ErrNilGeometry))
+	require.ErrorIs(t, err, streetlights.ErrNilGeometry)
 
-	// No row should have been written for the failing call.
-	count, err := d.QueryRO().CountStreetlights(ctx)
-	require.NoError(t, err)
-	require.Zero(t, count)
+	// The geometry is validated before any writes, so nothing was written.
+	require.Zero(t, count(t, d, "streetlights"))
+	require.Zero(t, count(t, d, "streetlight_attributions"))
 }
 
 func TestInsert_NonPointGeometryRejected(t *testing.T) {
 	d := db.GetTestDB(t)
 	t.Cleanup(func() { d.Close() })
-
 	ctx := t.Context()
-	geom := geojson.NewGeometry(orb.LineString{{8.5, 47.3}, {8.52, 47.32}})
 
-	err := d.WithTx(ctx, func(tx *db.Queries) error {
-		return streetlights.Insert(ctx, tx, streetlights.StreetlightInsert{
-			SourceID:    "line",
-			InsertedBy:  "test",
-			Geometry:    geom,
-			Attribution: attribute.Attribution{Author: "x", Source: "y"},
-		}, time.Now())
-	})
-	require.True(t, errors.Is(err, streetlights.ErrNonPointGeometry))
-
-	count, err := d.QueryRO().CountStreetlights(ctx)
-	require.NoError(t, err)
-	require.Zero(t, count)
-}
-
-func TestInsert_InvalidPropertiesRejected(t *testing.T) {
-	d := db.GetTestDB(t)
-	t.Cleanup(func() { d.Close() })
-
-	ctx := t.Context()
-	geom := geojson.NewGeometry(orb.Point{8.5, 47.3})
-
-	for _, props := range []json.RawMessage{json.RawMessage("[1,2]"), json.RawMessage("not json")} {
+	geoms := []orb.Geometry{
+		orb.LineString{{8.5, 47.3}, {8.52, 47.32}},
+		orb.MultiPoint{{8.5, 47.3}, {8.6, 47.4}},
+	}
+	for _, geom := range geoms {
+		s := pointInsert("non-point", orb.Point{})
+		s.Geometry = geojson.NewGeometry(geom)
 		err := d.WithTx(ctx, func(tx *db.Queries) error {
-			return streetlights.Insert(ctx, tx, streetlights.StreetlightInsert{
-				SourceID:    "bad-props",
-				InsertedBy:  "test",
-				Properties:  props,
-				Geometry:    geom,
-				Attribution: attribute.Attribution{Author: "x", Source: "y"},
-			}, time.Now())
+			return streetlights.Insert(ctx, tx, s, time.Now())
 		})
-		require.ErrorContains(t, err, "not a valid JSON object", "props=%q", props)
+		require.ErrorIs(t, err, streetlights.ErrNonPointGeometry, "geometry=%T", geom)
 	}
 
-	count, err := d.QueryRO().CountStreetlights(ctx)
-	require.NoError(t, err)
-	require.Zero(t, count)
+	// The geometry is validated before any writes, so nothing was written.
+	require.Zero(t, count(t, d, "streetlights"))
+	require.Zero(t, count(t, d, "streetlight_attributions"))
 }
 
-func TestInsert_PointWritesRowAndCell(t *testing.T) {
+// TestInsert_RejectionDoesNotAbortTx mirrors the downloader loop, which
+// continues after a rejected feature within the same transaction.
+func TestInsert_RejectionDoesNotAbortTx(t *testing.T) {
 	d := db.GetTestDB(t)
 	t.Cleanup(func() { d.Close() })
-
 	ctx := t.Context()
-	geom := geojson.NewGeometry(orb.Point{8.5, 47.3})
 
 	err := d.WithTx(ctx, func(tx *db.Queries) error {
-		return streetlights.Insert(ctx, tx, streetlights.StreetlightInsert{
-			SourceID:        "ktzh-1",
-			InsertedBy:      "test",
-			ContentProvider: streetlights.NullString("Tiefbauamt"),
-			Properties:      json.RawMessage(`{"nummer":"504"}`),
-			Geometry:        geom,
-			Attribution:     attribute.Attribution{Author: "x", Source: "y"},
-		}, time.Now())
+		bad := pointInsert("bad", orb.Point{})
+		bad.Geometry = geojson.NewGeometry(orb.MultiPoint{{8.5, 47.3}})
+		if err := streetlights.Insert(ctx, tx, bad, time.Now()); err == nil {
+			t.Fatal("expected non-point geometry to be rejected")
+		}
+		return streetlights.Insert(ctx, tx, pointInsert("good", orb.Point{8.5, 47.3}), time.Now())
 	})
 	require.NoError(t, err)
-
-	rows, err := d.QueryRO().CountStreetlights(ctx)
-	require.NoError(t, err)
-	require.Equal(t, int64(1), rows)
-
-	cells, err := d.QueryRO().CountStreetlightCellsRes9(ctx)
-	require.NoError(t, err)
-	require.Equal(t, int64(1), cells, "a point should map to exactly one cell")
-
-	// Properties and provider must round-trip unchanged.
-	var props string
-	var provider string
-	err = d.RO().QueryRowContext(ctx, "SELECT properties, content_provider FROM streetlights").Scan(&props, &provider)
-	require.NoError(t, err)
-	require.JSONEq(t, `{"nummer":"504"}`, props)
-	require.Equal(t, "Tiefbauamt", provider)
-}
-
-func TestInsert_MultiPointWritesOneCellPerPoint(t *testing.T) {
-	d := db.GetTestDB(t)
-	t.Cleanup(func() { d.Close() })
-
-	ctx := t.Context()
-	geom := geojson.NewGeometry(orb.MultiPoint{{8.5, 47.3}, {9.0, 46.5}})
-
-	err := d.WithTx(ctx, func(tx *db.Queries) error {
-		return streetlights.Insert(ctx, tx, streetlights.StreetlightInsert{
-			SourceID:    "multi",
-			InsertedBy:  "test",
-			Geometry:    geom,
-			Attribution: attribute.Attribution{Author: "x", Source: "y"},
-		}, time.Now())
-	})
-	require.NoError(t, err)
-
-	cells, err := d.QueryRO().CountStreetlightCellsRes9(ctx)
-	require.NoError(t, err)
-	require.Equal(t, int64(2), cells)
-}
-
-func TestInsert_EmptyPropertiesStoredAsEmptyObject(t *testing.T) {
-	d := db.GetTestDB(t)
-	t.Cleanup(func() { d.Close() })
-
-	ctx := t.Context()
-	geom := geojson.NewGeometry(orb.Point{8.5, 47.3})
-
-	props := []json.RawMessage{nil, json.RawMessage("null"), json.RawMessage("  ")}
-	srcIDs := []string{"a", "b", "c"}
-	for i, p := range props {
-		err := d.WithTx(ctx, func(tx *db.Queries) error {
-			return streetlights.Insert(ctx, tx, streetlights.StreetlightInsert{
-				SourceID:    srcIDs[i],
-				InsertedBy:  "test",
-				Properties:  p,
-				Geometry:    geom,
-				Attribution: attribute.Attribution{Author: "x", Source: "y"},
-			}, time.Now())
-		})
-		require.NoError(t, err)
-	}
-
-	rows, err := d.RO().QueryContext(ctx, "SELECT properties FROM streetlights ORDER BY source_id")
-	require.NoError(t, err)
-	defer rows.Close()
-	var n int
-	for rows.Next() {
-		var got string
-		require.NoError(t, rows.Scan(&got))
-		require.Equal(t, "{}", got)
-		n++
-	}
-	require.NoError(t, rows.Err())
-	require.Equal(t, 3, n)
-}
-
-func TestNullString(t *testing.T) {
-	require.False(t, streetlights.NullString("").Valid)
-	require.True(t, streetlights.NullString("x").Valid)
-	require.Equal(t, "x", streetlights.NullString("x").String)
+	require.Equal(t, int64(1), count(t, d, "streetlights"))
 }

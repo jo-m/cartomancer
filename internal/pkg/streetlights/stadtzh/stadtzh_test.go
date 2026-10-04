@@ -31,7 +31,6 @@ func TestDecodeFeature(t *testing.T) {
 	f, err := decodeFeature(sampleFeature(t))
 	require.NoError(t, err)
 	require.Equal(t, "stadtzh-ewz_brennstelle_p.101", f.SourceID)
-	require.JSONEq(t, sampleProps, string(f.Properties))
 
 	p, ok := f.Geometry.Geometry().(orb.Point)
 	require.True(t, ok)

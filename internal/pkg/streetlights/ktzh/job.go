@@ -25,9 +25,6 @@ const (
 	// Street lighting changes slowly, so monthly is enough. The job returns
 	// early if the most recent insert is younger than this.
 	MinRefreshAge = 30 * 24 * time.Hour
-
-	// contentProvider labels the data source in streetlights.content_provider.
-	contentProvider = "Tiefbauamt Kanton Zürich"
 )
 
 // DownloaderArgs are the arguments for the canton street lighting downloader
@@ -88,17 +85,19 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 
 		var inserted, skipped int
 		for _, f := range features {
-			if f.Geometry == nil {
+			err := insertFeature(ctx, tx, f, now)
+			if errors.Is(err, streetlights.ErrNilGeometry) || errors.Is(err, streetlights.ErrNonPointGeometry) {
+				logg.Debug(ctx, "skipping streetlight without point geometry", "sourceId", f.SourceID, "err", err)
 				skipped++
 				continue
 			}
-			if err := insertFeature(ctx, tx, f, now); err != nil {
+			if err != nil {
 				return fmt.Errorf("insert feature %s: %w", f.SourceID, err)
 			}
 			inserted++
 		}
 
-		logg.Info(ctx, "inserted ktzh streetlights", "count", inserted, "skippedNoGeometry", skipped)
+		logg.Info(ctx, "inserted ktzh streetlights", "count", inserted, "skipped", skipped)
 		return nil
 	})
 }
@@ -107,12 +106,10 @@ func (dl *Downloader) Run(ctx context.Context, _ DownloaderArgs) error {
 // [streetlights.StreetlightInsert] and delegates to the shared insert helper.
 func insertFeature(ctx context.Context, tx *db.Queries, f Feature, now time.Time) error {
 	s := streetlights.StreetlightInsert{
-		SourceID:        f.SourceID,
-		InsertedBy:      jobKind,
-		ContentProvider: streetlights.NullString(contentProvider),
-		Properties:      f.Properties,
-		Geometry:        f.Geometry,
-		Attribution:     DataAttribution,
+		SourceID:    f.SourceID,
+		InsertedBy:  jobKind,
+		Geometry:    f.Geometry,
+		Attribution: DataAttribution,
 	}
 	return streetlights.Insert(ctx, tx, s, now)
 }
