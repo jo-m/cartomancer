@@ -14,6 +14,8 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/sz"
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/tg"
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/zh"
+	"jo-m.ch/go/cartomancer/internal/pkg/streetlights/ktzh"
+	"jo-m.ch/go/cartomancer/internal/pkg/streetlights/stadtzh"
 )
 
 // buildVersion overrides the version reported by the /version endpoint.
@@ -61,6 +63,8 @@ func (sv *server) handleGetVersion(w http.ResponseWriter, _ *http.Request) {
 			sz.DataAttribution,
 			tg.DataAttribution,
 			zh.DataAttribution,
+			ktzh.DataAttribution,
+			stadtzh.DataAttribution,
 			maps.DataAttribution,
 		},
 	}

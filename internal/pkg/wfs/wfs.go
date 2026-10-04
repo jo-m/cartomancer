@@ -1,7 +1,16 @@
-// Package wfs is a minimal client for OGC Web Feature Service (WFS) 2.0
-// endpoints. It supports only the GetCapabilities and GetFeature operations
-// and is intended for use cases where the full feature list of a single
-// layer is downloaded in one go.
+// Package wfs is a minimal client for OGC Web Feature Service (WFS)
+// endpoints. It supports the GetCapabilities and GetFeature operations and is
+// intended for use cases where the full feature list of a single layer is
+// downloaded in one go.
+//
+// Two GetFeature flavours are available:
+//
+//   - [Client.GetFeature] speaks WFS 2.0 for GML responses. Each feature is
+//     kept as raw XML in [Feature.InnerXML]; callers decode the
+//     schema-specific payload themselves with encoding/xml.
+//   - [Client.GetFeatureGeoJSON] speaks WFS 2.0 or 1.1 for GeoJSON responses.
+//     Each feature's properties are kept as raw JSON; callers decode them
+//     with encoding/json.
 //
 // Usage:
 //
@@ -12,10 +21,6 @@
 //	    TypeNames: "ms:baustellen-uebersicht",
 //	    Count:     500,
 //	})
-//
-// The features returned by GetFeature are kept as raw XML in
-// [Feature.InnerXML]; callers are expected to decode the schema-specific
-// payload themselves with encoding/xml.
 package wfs
 
 import (
@@ -33,27 +38,50 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/client"
 )
 
-// Version is the WFS protocol version this client speaks.
-const Version = "2.0.0"
+// WFS protocol versions supported by [Client].
+const (
+	// Version2 is WFS 2.0.0, spoken by clients from [NewClient].
+	Version2 = "2.0.0"
+	// Version11 is WFS 1.1.0, spoken by clients from [NewClientV11].
+	// Only the GeoJSON GetFeature path supports it.
+	Version11 = "1.1.0"
+)
 
-// Client is a WFS 2.0 client bound to a single service endpoint.
+// userAgent identifies this client to upstream servers. Some deployments
+// (e.g. the City of Zurich's WFS) reject Go's default "Go-http-client" user
+// agent with a 403.
+const userAgent = "cartomancer (+https://github.com/jo-m/cartomancer)"
+
+// Client is a WFS client bound to a single service endpoint.
 type Client struct {
 	baseURL string
+	version string
 }
 
-// NewClient creates a new Client for the given service endpoint URL.
-// The URL should be the bare service path without query parameters
-// (e.g. "https://maps.zh.ch/wfs/TbaBaustellenZHWFS"); any trailing '?'
-// or '/' is trimmed.
+// NewClient creates a new Client for the given service endpoint URL, speaking
+// WFS [Version2]. The URL should be the bare service path without query
+// parameters (e.g. "https://maps.zh.ch/wfs/TbaBaustellenZHWFS"); any trailing
+// '?' or '/' is trimmed.
 func NewClient(baseURL string) Client {
-	return Client{baseURL: strings.TrimRight(baseURL, "/?")}
+	return newClientVersion(baseURL, Version2)
+}
+
+// NewClientV11 creates a new Client speaking WFS [Version11]. Only the
+// GeoJSON GetFeature path ([Client.GetFeatureGeoJSON]) supports that version.
+func NewClientV11(baseURL string) Client {
+	return newClientVersion(baseURL, Version11)
+}
+
+// newClientVersion creates a Client speaking the given WFS version.
+func newClientVersion(baseURL, version string) Client {
+	return Client{baseURL: strings.TrimRight(baseURL, "/?"), version: version}
 }
 
 // requestURL builds a service URL with the given query parameters merged in
-// alongside the standard service=WFS and version=2.0.0 pair.
+// alongside the standard service=WFS and version pair.
 func (c *Client) requestURL(q url.Values) string {
 	q.Set("service", "WFS")
-	q.Set("version", Version)
+	q.Set("version", c.version)
 	return c.baseURL + "?" + q.Encode()
 }
 
@@ -66,6 +94,7 @@ func fetchXML(ctx context.Context, reqURL string, out any) error {
 		return fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Accept", "application/xml,text/xml")
+	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := client.New().Do(req)
 	if err != nil {
@@ -111,7 +140,11 @@ func parseException(body []byte) *ExceptionReport {
 }
 
 // GetCapabilities fetches and parses the service's capabilities document.
+// Only WFS 2.0 servers are supported.
 func (c *Client) GetCapabilities(ctx context.Context) (*Capabilities, error) {
+	if c.version != Version2 {
+		return nil, fmt.Errorf("wfs: GetCapabilities requires WFS %s, client speaks %s", Version2, c.version)
+	}
 	u := c.requestURL(url.Values{"request": []string{"GetCapabilities"}})
 	var caps Capabilities
 	if err := fetchXML(ctx, u, &caps); err != nil {
@@ -120,24 +153,34 @@ func (c *Client) GetCapabilities(ctx context.Context) (*Capabilities, error) {
 	return &caps, nil
 }
 
-// GetFeatureParams holds parameters for [Client.GetFeature].
+// GetFeatureParams holds parameters for [Client.GetFeature] and
+// [Client.GetFeatureGeoJSON].
 type GetFeatureParams struct {
 	// TypeNames identifies the layer to query, in the form advertised by
-	// GetCapabilities (e.g. "ms:baustellen-uebersicht"). Required.
+	// GetCapabilities (e.g. "ms:baustellen-uebersicht"). Required. It is
+	// rendered as the "typeNames" (WFS 2.0) or "typeName" (WFS 1.1) query
+	// parameter, depending on the client's version.
 	TypeNames string
 	// Count is the page size used while paginating through results.
-	// When zero, the server's default is used.
+	// When zero, the server's default is used; [Client.GetFeatureGeoJSON]
+	// requires a positive value.
 	Count int
-	// SRSName overrides the response CRS in URN form
-	// (e.g. "urn:ogc:def:crs:EPSG::4326"). When empty, the layer's
-	// DefaultCRS is used.
+	// SRSName overrides the response CRS. When empty, the layer's
+	// DefaultCRS is used. Must be given in the form expected by the
+	// service's WFS version (for example the URN form
+	// "urn:ogc:def:crs:EPSG::4326" for WFS 2.0, or the short form
+	// "EPSG:4326" for WFS 1.1).
 	SRSName string
 }
 
-// GetFeature fetches every feature of a layer, transparently following the
-// paginated 'next' link until the server returns no more features. The
-// returned slice preserves server order.
+// GetFeature fetches every feature of a layer as GML, transparently following
+// the paginated 'next' link until the server returns no more features. The
+// returned slice preserves server order. Only WFS 2.0 servers are supported;
+// use [Client.GetFeatureGeoJSON] for GeoJSON responses.
 func (c *Client) GetFeature(ctx context.Context, params GetFeatureParams) ([]Member, error) {
+	if c.version != Version2 {
+		return nil, fmt.Errorf("wfs: GetFeature requires WFS %s, client speaks %s", Version2, c.version)
+	}
 	if params.TypeNames == "" {
 		return nil, errors.New("wfs: GetFeature requires TypeNames")
 	}

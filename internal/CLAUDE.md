@@ -25,6 +25,7 @@ internal/pkg/...
 - roadclosures   Fetches road closures and detours
 - segment        Extracts shared road segments via H3 cell clustering
 - session        JWT+cookie session management, middleware
+- streetlights   Fetches public street lighting points
 - track          Track types, enums, metadata calculations
 - trackgroup     Groups similar tracks by comparing H3 cell paths
 - users          OTP (TOTP/HOTP) support
