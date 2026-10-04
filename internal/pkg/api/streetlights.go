@@ -32,8 +32,9 @@ type trackStreetlightsResponse struct {
 // handleGetTrackStreetlights returns how much of a track path is lit by
 // streetlights, and where. The lit sections are reported as distance ranges
 // into the track's dp5m polyline, which the client already downloads from the
-// points endpoint. The etag combines the track and the streetlight corpus
-// fingerprints, so it invalidates both on track edits and on lamp refreshes.
+// points endpoint. The etag covers the track's update timestamp only: the
+// lamp corpus is refreshed at most monthly, so the one hour cache lifetime
+// bounds the staleness after a refresh without a lamp change fingerprint.
 func (sv *server) handleGetTrackStreetlights(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	trackUUID := chi.URLParam(r, "uuid")
@@ -43,14 +44,7 @@ func (sv *server) handleGetTrackStreetlights(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	lampCount, lampsUpdatedAtMs, err := sv.d.GetStreetlightDataFingerprint(ctx)
-	if err != nil {
-		logg.Error(ctx, "failed to get streetlight data fingerprint", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
-		return
-	}
-
-	eTag := fmt.Sprintf(`"%d-%d-%d-v1"`, t.UpdatedAt.UnixMilli(), lampsUpdatedAtMs, lampCount)
+	eTag := fmt.Sprintf(`"%d-v1"`, t.UpdatedAt.UnixMilli())
 	if r.Header.Get(headerIfNoneMatch) == eTag {
 		w.WriteHeader(http.StatusNotModified)
 		return

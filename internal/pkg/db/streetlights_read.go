@@ -87,20 +87,3 @@ func (d *DB) queryStreetlightsByCells(ctx context.Context, query string, args []
 	}
 	return nil
 }
-
-// GetStreetlightDataFingerprint returns a change fingerprint of the
-// streetlight corpus for cache validators: the row count and the most recent
-// insert time in unix milliseconds (0 when the table is empty). SQLite drops
-// column affinity on aggregates, so the timestamp is converted to an integer
-// in SQL instead of scanning into a time.
-func (d *DB) GetStreetlightDataFingerprint(ctx context.Context) (count int64, latestMs int64, err error) {
-	row := d.ro.QueryRowContext(ctx, `
-		SELECT
-			COUNT(*),
-			COALESCE(CAST(unixepoch(MAX(created_at), 'subsec') * 1000 AS INTEGER), 0)
-		FROM streetlights`)
-	if err := row.Scan(&count, &latestMs); err != nil {
-		return 0, 0, fmt.Errorf("get streetlight data fingerprint: %w", err)
-	}
-	return count, latestMs, nil
-}

@@ -97,26 +97,3 @@ func TestGetStreetlightsByCells_Chunking(t *testing.T) {
 	require.Len(t, out, 1)
 	require.Equal(t, int64(lampCell), out[0].Cell)
 }
-
-func TestGetStreetlightDataFingerprint(t *testing.T) {
-	d := db.GetTestDB(t)
-	t.Cleanup(func() { d.Close() })
-	ctx := t.Context()
-
-	count, latestMs, err := d.GetStreetlightDataFingerprint(ctx)
-	require.NoError(t, err)
-	require.Zero(t, count)
-	require.Zero(t, latestMs)
-
-	seedStreetlight(t, d, 10, `{"type":"Point","coordinates":[8.5,47.3]}`, "Source", "https://example.com")
-	count, latestMs, err = d.GetStreetlightDataFingerprint(ctx)
-	require.NoError(t, err)
-	require.Equal(t, int64(1), count)
-	require.Positive(t, latestMs)
-
-	seedStreetlight(t, d, 20, `{"type":"Point","coordinates":[8.6,47.3]}`, "Source", "https://example.com")
-	count, latestMs2, err := d.GetStreetlightDataFingerprint(ctx)
-	require.NoError(t, err)
-	require.Equal(t, int64(2), count)
-	require.GreaterOrEqual(t, latestMs2, latestMs)
-}

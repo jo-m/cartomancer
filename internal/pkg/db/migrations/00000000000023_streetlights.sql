@@ -38,10 +38,6 @@ CREATE TABLE streetlights (
 CREATE INDEX idx_streetlights_inserted_by ON streetlights (inserted_by);
 
 CREATE INDEX idx_streetlights_cell ON streetlights (cell);
-
--- created_at is indexed for the cache-validator fingerprint query, which
--- reads count and max(created_at) on every coverage request.
-CREATE INDEX idx_streetlights_created_at ON streetlights (created_at);
 -- +goose StatementEnd
 
 -- +goose Down

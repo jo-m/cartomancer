@@ -164,13 +164,15 @@ func TestGetTrackStreetlights_ETag(t *testing.T) {
 	require.Equal(t, http.StatusOK, status)
 	require.NotEmpty(t, eTag)
 
-	// The same track and lamp corpus must validate to 304.
+	// The same track must validate to 304.
 	status, _, _ = getTrackStreetlights(t, e, alice, trackUUID, eTag)
 	assert.Equal(t, http.StatusNotModified, status)
 
-	// Inserting a lamp must change the validator.
+	// Lamp insertions are deliberately not part of the validator: the lamp
+	// corpus changes at most monthly, and the one hour cache lifetime bounds
+	// the staleness after a refresh.
 	insertTrackLamp(t, e.d, trackUUID, 0.5)
 	status, newETag, _ := getTrackStreetlights(t, e, alice, trackUUID, eTag)
-	assert.Equal(t, http.StatusOK, status)
-	assert.NotEqual(t, eTag, newETag)
+	assert.Equal(t, http.StatusNotModified, status)
+	assert.Equal(t, eTag, newETag)
 }
