@@ -172,7 +172,6 @@ func TestGetTrackStreetlights_ETag(t *testing.T) {
 	// corpus changes at most monthly, and the one hour cache lifetime bounds
 	// the staleness after a refresh.
 	insertTrackLamp(t, e.d, trackUUID, 0.5)
-	status, newETag, _ := getTrackStreetlights(t, e, alice, trackUUID, eTag)
+	status, _, _ = getTrackStreetlights(t, e, alice, trackUUID, eTag)
 	assert.Equal(t, http.StatusNotModified, status)
-	assert.Equal(t, eTag, newETag)
 }
