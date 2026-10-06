@@ -8,6 +8,8 @@ import {
 } from "@heroicons/react/24/outline"
 import { $api } from "../api/client"
 import { getTrackColor } from "../lib/trackColor"
+import { formatDistance } from "../lib/format"
+import { externalUrl } from "../lib/externalUrl"
 import SvgPreview from "../components/SvgPreview"
 import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
@@ -73,14 +75,15 @@ export default function Track() {
   const { data: streetlightsData } = $api.useQuery(
     "get",
     "/tracks/{uuid}/streetlights",
-    { params: { path: { uuid: uuid! } } },
-    { enabled: showStreetlights }
+    { params: { path: { uuid: uuid! } } }
   )
 
-  // The streetlight display is opt-in. Gating here also hides cached data
-  // right away when the toggle is switched off.
-  const lit = showStreetlights ? streetlightsData : undefined
-  const litStretches = lit?.stretches as LitStretch[] | undefined
+  // The lit-share stat is always shown below the map; the light button only
+  // toggles the lit stretch overlay drawn on it.
+  const lit = streetlightsData
+  const litStretches = showStreetlights
+    ? (streetlightsData?.stretches as LitStretch[] | undefined)
+    : undefined
 
   const { data: mapsData } = $api.useQuery("get", "/maps")
 
@@ -271,7 +274,6 @@ export default function Track() {
 
       <TrackDetails
         track={data}
-        lit={lit}
         onError={(msg) => showToast(msg)}
         onSuccess={(msg) => showToast(msg, "success")}
       />
@@ -295,26 +297,28 @@ export default function Track() {
             />
             <button
               type="button"
-              onClick={() => setShowStreetlights((v) => !v)}
-              aria-pressed={showStreetlights}
-              className={`absolute top-2 left-2 z-10 cursor-pointer rounded bg-panel/90 p-1.5 shadow-sm hover:bg-panel transition-colors ${
-                showStreetlights
-                  ? "text-star"
-                  : "text-text-secondary hover:text-text"
-              }`}
-              aria-label={
-                showStreetlights ? "Hide streetlights" : "Show streetlights"
-              }
-            >
-              <LightBulbIcon className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
               onClick={() => setMapFullscreen(true)}
               className="absolute top-2 right-2 z-10 cursor-pointer rounded bg-panel/90 p-1.5 text-text-secondary shadow-sm hover:bg-panel hover:text-text transition-colors"
               aria-label="Fullscreen map"
             >
               <ArrowsPointingOutIcon className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStreetlights((v) => !v)}
+              aria-pressed={showStreetlights}
+              className={`absolute top-12 right-2 z-10 cursor-pointer rounded bg-panel/90 p-1.5 shadow-sm hover:bg-panel transition-colors ${
+                showStreetlights
+                  ? "text-star"
+                  : "text-text-secondary hover:text-text"
+              }`}
+              aria-label={
+                showStreetlights
+                  ? "Hide lit sections on map"
+                  : "Show lit sections on map"
+              }
+            >
+              <LightBulbIcon className="h-5 w-5" />
             </button>
 
             <FullscreenMapDialog
@@ -339,6 +343,34 @@ export default function Track() {
           </div>
         )}
       </div>
+
+      {lit && (
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
+          <span className="flex items-center gap-1.5 text-text">
+            <LightBulbIcon className="h-4 w-4 text-star" aria-hidden="true" />
+            Lit {formatDistance(lit.litDistanceM)} (
+            {Math.round(lit.litFraction * 100)}%)
+          </span>
+          {lit.attributions.length > 0 && (
+            <span className="text-xs text-text-muted">
+              Lighting data:{" "}
+              {lit.attributions.map((a, i) => (
+                <span key={a.href}>
+                  {i > 0 && ", "}
+                  <a
+                    href={externalUrl(a.href)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-text-secondary transition-colors"
+                  >
+                    {a.text}
+                  </a>
+                </span>
+              ))}
+            </span>
+          )}
+        </div>
+      )}
 
       {closures && closures.length > 0 && (
         <Alert variant="warning" className="mt-3">
