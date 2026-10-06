@@ -190,6 +190,10 @@
 /* Tarot card styles for track cards */
 .tarot-card {
   position: relative;
+  /* Column flex so the inner container fills the card when grid rows stretch
+     cards to match taller neighbors (e.g. wrapped titles). */
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--color-border);
   border-radius: 0.75rem;
   background: linear-gradient(
@@ -215,6 +219,8 @@
   border: 1px solid var(--color-card-inner);
   border-radius: 0.5rem;
   overflow: hidden;
+  /* Grow to fill .tarot-card when the grid stretches it. */
+  flex: 1;
 }
 
 .tarot-corner {

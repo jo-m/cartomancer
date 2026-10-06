@@ -1,3 +1,4 @@
+import { useLayoutEffect, useState } from "react"
 import { Link } from "react-router"
 import { LockClosedIcon } from "@heroicons/react/24/solid"
 import SvgPreview from "./SvgPreview"
@@ -46,6 +47,38 @@ export interface TrackCardProps {
   onSelect: (e: React.MouseEvent, uuid: string, index: number) => void
 }
 
+/**
+ * Tracks whether the given element's text overflows its box, i.e. is rendered truncated.
+ *
+ * Checks both axes: single-line truncation overflows horizontally, while
+ * `line-clamp` (multi-line) overflows vertically.
+ *
+ * Re-measures whenever the element is resized or web fonts finish loading, since
+ * those change the text metrics the overflow check is based on.
+ *
+ * @param el - Element to observe, or null until it mounts.
+ * @param text - Text rendered inside the element; used to re-measure on content changes.
+ * @returns True when the text overflows and is displayed with an ellipsis.
+ */
+function useIsTruncated(el: HTMLElement | null, text: string): boolean {
+  const [truncated, setTruncated] = useState(false)
+
+  useLayoutEffect(() => {
+    if (!el) return
+    const check = () =>
+      setTruncated(
+        el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight
+      )
+    check()
+    const observer = new ResizeObserver(check)
+    observer.observe(el)
+    void document.fonts.ready.then(check)
+    return () => observer.disconnect()
+  }, [el, text])
+
+  return truncated
+}
+
 /** Renders a single track card with preview, stats, forecast, and selection/star controls. */
 export default function TrackCard({
   track,
@@ -57,6 +90,9 @@ export default function TrackCard({
   onToggleStar,
   onSelect,
 }: TrackCardProps) {
+  const [nameEl, setNameEl] = useState<HTMLParagraphElement | null>(null)
+  const nameTruncated = useIsTruncated(nameEl, track.name)
+
   const cardContent = (
     <>
       <SvgIcon
@@ -143,7 +179,10 @@ export default function TrackCard({
               alt=""
               className="h-4 w-4 shrink-0 rounded-full"
             />
-            <p className="truncate font-[Fondamento] text-sm font-medium text-text">
+            <p
+              ref={setNameEl}
+              className="line-clamp-2 font-[Fondamento] text-sm font-medium text-text sm:line-clamp-1"
+            >
               {track.name}
             </p>
           </div>
@@ -195,6 +234,15 @@ export default function TrackCard({
           )}
         </div>
       </div>
+
+      {nameTruncated && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max max-w-full -translate-x-1/2 rounded-lg border border-border bg-panel px-2.5 py-1 text-center font-[Fondamento] text-sm font-medium text-text opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+        >
+          {track.name}
+        </span>
+      )}
     </>
   )
 
