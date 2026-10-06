@@ -353,7 +353,7 @@ export default function Track() {
           </span>
           {lit.attributions.length > 0 && (
             <span className="text-xs text-text-muted">
-              Lighting data:{" "}
+              Lighting data (may be <b>very</b> incomplete):{" "}
               {lit.attributions.map((a, i) => (
                 <span key={a.href}>
                   {i > 0 && ", "}
