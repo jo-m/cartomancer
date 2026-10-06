@@ -2,7 +2,10 @@ import { useState, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { useParams } from "react-router"
-import { ArrowsPointingOutIcon } from "@heroicons/react/24/outline"
+import {
+  ArrowsPointingOutIcon,
+  LightBulbIcon,
+} from "@heroicons/react/24/outline"
 import { $api } from "../api/client"
 import { getTrackColor } from "../lib/trackColor"
 import SvgPreview from "../components/SvgPreview"
@@ -34,6 +37,7 @@ export default function Track() {
 
   const { toast, showToast, dismissToast } = useToast()
   const [mapFullscreen, setMapFullscreen] = useState(false)
+  const [showStreetlights, setShowStreetlights] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState("")
   const hoverStore = useHoverStore()
@@ -69,10 +73,14 @@ export default function Track() {
   const { data: streetlightsData } = $api.useQuery(
     "get",
     "/tracks/{uuid}/streetlights",
-    { params: { path: { uuid: uuid! } } }
+    { params: { path: { uuid: uuid! } } },
+    { enabled: showStreetlights }
   )
 
-  const litStretches = streetlightsData?.stretches as LitStretch[] | undefined
+  // The streetlight display is opt-in. Gating here also hides cached data
+  // right away when the toggle is switched off.
+  const lit = showStreetlights ? streetlightsData : undefined
+  const litStretches = lit?.stretches as LitStretch[] | undefined
 
   const { data: mapsData } = $api.useQuery("get", "/maps")
 
@@ -263,7 +271,7 @@ export default function Track() {
 
       <TrackDetails
         track={data}
-        lit={streetlightsData}
+        lit={lit}
         onError={(msg) => showToast(msg)}
         onSuccess={(msg) => showToast(msg, "success")}
       />
@@ -285,6 +293,21 @@ export default function Track() {
               trackPoints={trackPoints}
               forecastTimes={forecast.forecastTimes}
             />
+            <button
+              type="button"
+              onClick={() => setShowStreetlights((v) => !v)}
+              aria-pressed={showStreetlights}
+              className={`absolute top-2 left-2 z-10 cursor-pointer rounded bg-panel/90 p-1.5 shadow-sm hover:bg-panel transition-colors ${
+                showStreetlights
+                  ? "text-star"
+                  : "text-text-secondary hover:text-text"
+              }`}
+              aria-label={
+                showStreetlights ? "Hide streetlights" : "Show streetlights"
+              }
+            >
+              <LightBulbIcon className="h-5 w-5" />
+            </button>
             <button
               type="button"
               onClick={() => setMapFullscreen(true)}
