@@ -77,6 +77,53 @@ export function fmtRelative(iso: string): string {
   return fmtDate(iso)
 }
 
+/** Milliseconds in a quarter hour, the step used for forecast start times. */
+const QUARTER_MS = 15 * 60 * 1000
+
+/**
+ * Conservative usable forecast horizon. Weather data reaches roughly 33
+ * hours past the model run time, so start times beyond this have little or
+ * no data.
+ */
+export const FORECAST_HORIZON_MS = 30 * 60 * 60 * 1000
+
+/** Rounds a timestamp to the nearest 15-minute mark. */
+export function snapToQuarter(ms: number): number {
+  return Math.round(ms / QUARTER_MS) * QUARTER_MS
+}
+
+/** Returns how many calendar days `ms` lies after `nowMs` (0 = same day). */
+export function dayOffsetOf(ms: number, nowMs: number): number {
+  const dayStart = (t: number) => {
+    const d = new Date(t)
+    d.setHours(0, 0, 0, 0)
+    return d.getTime()
+  }
+  return Math.round((dayStart(ms) - dayStart(nowMs)) / 86_400_000)
+}
+
+/** Earliest selectable forecast start: the quarter-hour nearest to now. */
+export function earliestForecastStart(nowMs: number): number {
+  return snapToQuarter(nowMs)
+}
+
+/** Latest selectable forecast start: now plus the horizon, snapped to a quarter-hour. */
+export function latestForecastStart(nowMs: number): number {
+  return snapToQuarter(nowMs + FORECAST_HORIZON_MS)
+}
+
+/**
+ * Normalizes a forecast start time: snaps it to a quarter-hour and clamps it
+ * into [earliestForecastStart, latestForecastStart] around `nowMs`.
+ */
+export function clampForecastStart(ms: number, nowMs: number): number {
+  const snapped = snapToQuarter(ms)
+  return Math.min(
+    Math.max(snapped, earliestForecastStart(nowMs)),
+    latestForecastStart(nowMs)
+  )
+}
+
 /**
  * Interpolates forecast timestamps onto every track point by cumulative
  * distance, so /points and /forecast can use independent point counts.

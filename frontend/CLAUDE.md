@@ -112,7 +112,7 @@ ALWAYS use these instead of repeating raw Tailwind classes. Interactive elements
 ### Track page components
 
 `pages/Track.tsx` delegates to:
-- ForecastControls - start time / speed selector buttons
+- ForecastControls - start time (quick presets + 30h slider) / speed selector buttons
 - TrackDetails - metadata (stats, tags, similar tracks, download)
 - TrackEditForm - edit form with delete confirmation
 - FullscreenMapDialog - fullscreen map modal
@@ -133,6 +133,7 @@ ALWAYS use these instead of repeating raw Tailwind classes. Interactive elements
 - useDocumentTitle - sets `document.title` to `"Title | Cartomancer"`. Pass `""` for base title, `undefined` to skip (dynamic pages while loading). Every page MUST call this; for dynamic pages pass `data?.name` so the title updates without flickering.
 - useToast - toast state with re-trigger via incrementing key. Returns `{ toast, showToast, dismissToast }`.
 - useForecast - forecast fetching/state for a single track.
+- useNowMs - current time in epoch ms, refreshed once per minute. Use for time-relative UI instead of calling `Date.now()` during render (`react-hooks/purity`).
 
 ### Shared lib modules (`src/lib/`)
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { fetchClient } from "../api/client"
 import type {
   ForecastPoint,
@@ -6,13 +6,15 @@ import type {
   SunEvent,
   SunIntensity,
 } from "../types/forecast"
-import { buildForecastTimes } from "../lib/time"
+import { buildForecastTimes, clampForecastStart } from "../lib/time"
 
-function getStartTime(hoursOffset: number): Date {
-  const startDate = new Date()
-  startDate.setHours(startDate.getHours() + hoursOffset)
-  return startDate
-}
+const HOUR_MS = 60 * 60 * 1000
+
+/** Default start offset from now, in hours, before the user picks a time. */
+const DEFAULT_START_AHEAD_H = 2
+
+/** Coalesces rapid start-time changes (slider drags) into one request. */
+const FETCH_DEBOUNCE_MS = 250
 
 const DEFAULT_FORECAST_UNITS: ForecastUnits = {
   temperatureC: "C",
@@ -32,14 +34,13 @@ export interface UseForecastResult {
   forecastAttribution: { text: string; href: string } | undefined
   forecastUnits: ForecastUnits
   forecastTimes: number[] | undefined
-  startHoursOffset: number
+  /** Selected forecast start time, snapped to a 15-minute mark. */
+  startTime: Date
   speedKmh: number
   estDurationH: number
-  /** Fetches forecast data from the API with the given parameters. */
-  fetchForecast: (hoursOffset: number, speed: number) => Promise<void>
-  setStartHoursOffset: (h: number) => void
+  /** Sets the start time, snapping and clamping it to the usable range. */
+  setStartTime: (t: Date) => void
   setSpeedKmh: (s: number) => void
-  getStartTime: (hoursOffset: number) => Date
 }
 
 /** Manages forecast state and fetching for a single track. */
@@ -62,7 +63,12 @@ export function useForecast(
   const [forecastUnits, setForecastUnits] = useState<ForecastUnits>(
     DEFAULT_FORECAST_UNITS
   )
-  const [startHoursOffset, setStartHoursOffset] = useState(2)
+  const [startTime, setStartTimeState] = useState<Date>(() => {
+    const nowMs = Date.now()
+    return new Date(
+      clampForecastStart(nowMs + DEFAULT_START_AHEAD_H * HOUR_MS, nowMs)
+    )
+  })
   const [speedKmh, setSpeedKmh] = useState(28)
 
   const forecastTimes = useMemo(() => {
@@ -75,10 +81,16 @@ export function useForecast(
   const estDurationH =
     totalDistanceM && speedKmh > 0 ? totalDistanceM / 1000 / speedKmh : 0
 
+  const setStartTime = useCallback((t: Date) => {
+    setStartTimeState(new Date(clampForecastStart(t.getTime(), Date.now())))
+  }, [])
+
+  const requestSeq = useRef(0)
+
   const fetchForecast = useCallback(
-    async (hoursOffset: number, speed: number) => {
+    async (start: Date, speed: number) => {
       if (!uuid) return
-      const startDate = getStartTime(hoursOffset)
+      const seq = ++requestSeq.current
 
       setForecastLoading(true)
       setForecastStatus(null)
@@ -89,7 +101,7 @@ export function useForecast(
             params: {
               path: { uuid },
               query: {
-                startTime: startDate.toISOString(),
+                startTime: start.toISOString(),
                 speedKmh: speed,
               },
             },
@@ -99,6 +111,10 @@ export function useForecast(
           throw new Error(
             (apiError as { msg?: string }).msg ?? "Forecast failed"
           )
+        }
+        // Drop the response if a newer request superseded it in flight.
+        if (seq !== requestSeq.current) {
+          return
         }
         if (!result?.points?.length) {
           return
@@ -114,20 +130,29 @@ export function useForecast(
         setSunEvents((result.sunEvents as SunEvent[]) ?? [])
         setSunIntensity((result.sunIntensity as SunIntensity | null) ?? null)
       } catch (err) {
+        if (seq !== requestSeq.current) {
+          return
+        }
         onError((err as Error).message)
       } finally {
-        setForecastLoading(false)
+        if (seq === requestSeq.current) {
+          setForecastLoading(false)
+        }
       }
     },
     [uuid, onError]
   )
 
+  const startMs = startTime.getTime()
   useEffect(() => {
-    if (uuid) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchForecast(startHoursOffset, speedKmh)
-    }
-  }, [uuid]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (!uuid) return
+    // Debounced so a slider drag issues a single request once it settles.
+    const timer = setTimeout(
+      () => fetchForecast(startTime, speedKmh),
+      FETCH_DEBOUNCE_MS
+    )
+    return () => clearTimeout(timer)
+  }, [uuid, startMs, speedKmh]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     forecastPoints,
@@ -138,12 +163,10 @@ export function useForecast(
     forecastAttribution,
     forecastUnits,
     forecastTimes,
-    startHoursOffset,
+    startTime,
     speedKmh,
     estDurationH,
-    fetchForecast,
-    setStartHoursOffset,
+    setStartTime,
     setSpeedKmh,
-    getStartTime,
   }
 }

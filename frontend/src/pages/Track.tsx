@@ -323,20 +323,13 @@ export default function Track() {
       )}
 
       <ForecastControls
-        startHoursOffset={forecast.startHoursOffset}
+        startTime={forecast.startTime}
         speedKmh={forecast.speedKmh}
         estDurationH={forecast.estDurationH}
         forecastLoading={forecast.forecastLoading}
         forecastStatus={forecast.forecastStatus}
-        getStartTime={forecast.getStartTime}
-        onChangeStart={(h) => {
-          forecast.setStartHoursOffset(h)
-          forecast.fetchForecast(h, forecast.speedKmh)
-        }}
-        onChangeSpeed={(s) => {
-          forecast.setSpeedKmh(s)
-          forecast.fetchForecast(forecast.startHoursOffset, s)
-        }}
+        onChangeStart={forecast.setStartTime}
+        onChangeSpeed={forecast.setSpeedKmh}
       />
 
       {trackPoints && trackPoints.length > 0 && (

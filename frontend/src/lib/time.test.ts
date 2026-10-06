@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest"
-import { fmtElapsed, buildForecastTimes } from "./time"
+import {
+  fmtElapsed,
+  buildForecastTimes,
+  snapToQuarter,
+  dayOffsetOf,
+  earliestForecastStart,
+  latestForecastStart,
+  clampForecastStart,
+} from "./time"
 
 describe("fmtElapsed", () => {
   it("renders sub-hour durations as minutes only", () => {
@@ -17,6 +25,81 @@ describe("fmtElapsed", () => {
   it("rounds milliseconds to the nearest minute", () => {
     expect(fmtElapsed(29_000)).toBe("0min")
     expect(fmtElapsed(31_000)).toBe("1min")
+  })
+})
+
+describe("snapToQuarter", () => {
+  const at = (h: number, m: number, s = 0) =>
+    new Date(2026, 0, 15, h, m, s).getTime()
+
+  it("returns timestamps already on a quarter-hour unchanged", () => {
+    expect(snapToQuarter(at(8, 0))).toBe(at(8, 0))
+    expect(snapToQuarter(at(8, 15))).toBe(at(8, 15))
+    expect(snapToQuarter(at(8, 45, 59))).toBe(at(8, 45))
+  })
+
+  it("rounds to the nearest quarter-hour", () => {
+    expect(snapToQuarter(at(8, 7))).toBe(at(8, 0))
+    expect(snapToQuarter(at(8, 8))).toBe(at(8, 15))
+    expect(snapToQuarter(at(8, 22))).toBe(at(8, 15))
+    expect(snapToQuarter(at(8, 23))).toBe(at(8, 30))
+    expect(snapToQuarter(at(14, 53))).toBe(at(15, 0))
+  })
+
+  it("rounds across day boundaries", () => {
+    expect(snapToQuarter(at(23, 53))).toBe(
+      new Date(2026, 0, 16, 0, 0).getTime()
+    )
+  })
+})
+
+describe("dayOffsetOf", () => {
+  it("returns 0 for the same calendar day regardless of clock time", () => {
+    const now = new Date(2026, 2, 10, 23, 30).getTime()
+    expect(dayOffsetOf(new Date(2026, 2, 10, 0, 30).getTime(), now)).toBe(0)
+    expect(dayOffsetOf(new Date(2026, 2, 10, 23, 45).getTime(), now)).toBe(0)
+  })
+
+  it("counts calendar day differences across midnight", () => {
+    const now = new Date(2026, 2, 10, 23, 30).getTime()
+    expect(dayOffsetOf(new Date(2026, 2, 11, 0, 15).getTime(), now)).toBe(1)
+    expect(dayOffsetOf(new Date(2026, 2, 9, 23, 45).getTime(), now)).toBe(-1)
+  })
+})
+
+describe("clampForecastStart", () => {
+  const now = new Date(2026, 2, 10, 14, 53).getTime()
+
+  it("snaps in-range times to the nearest quarter-hour", () => {
+    expect(
+      clampForecastStart(new Date(2026, 2, 10, 16, 37).getTime(), now)
+    ).toBe(new Date(2026, 2, 10, 16, 30).getTime())
+  })
+
+  it("clamps past times to the current quarter-hour", () => {
+    expect(earliestForecastStart(now)).toBe(
+      new Date(2026, 2, 10, 15, 0).getTime()
+    )
+    expect(clampForecastStart(new Date(2026, 2, 10, 6, 0).getTime(), now)).toBe(
+      new Date(2026, 2, 10, 15, 0).getTime()
+    )
+  })
+
+  it("clamps times beyond the horizon to now plus the horizon", () => {
+    const far = now + 5 * 24 * 60 * 60 * 1000
+    expect(latestForecastStart(now)).toBe(
+      new Date(2026, 2, 11, 21, 0).getTime()
+    )
+    expect(clampForecastStart(far, now)).toBe(latestForecastStart(now))
+  })
+
+  it("leaves boundary times unchanged", () => {
+    expect(clampForecastStart(earliestForecastStart(now), now)).toBe(
+      earliestForecastStart(now)
+    )
+    expect(clampForecastStart(latestForecastStart(now), now)).toBe(
+      latestForecastStart(now)
+    )
   })
 })
 
