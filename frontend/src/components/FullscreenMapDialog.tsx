@@ -7,7 +7,7 @@ import {
 } from "@headlessui/react"
 import { XMarkIcon } from "@heroicons/react/24/outline"
 import TrackMap from "./TrackMap"
-import type { RoadClosure } from "../types/map"
+import type { LitStretch, RoadClosure } from "../types/map"
 import { useHoverStore } from "../hooks/useHoverSync"
 import MapHoverOverlay from "./MapHoverOverlay"
 import type { MapLayer } from "../lib/mapLayer"
@@ -19,6 +19,7 @@ export interface FullscreenMapDialogProps {
   hoverStore: ReturnType<typeof useHoverStore>
   color: string
   closures?: RoadClosure[]
+  litStretches?: LitStretch[]
   forecastTimes?: number[]
   layer: MapLayer
 }
@@ -31,6 +32,7 @@ export default function FullscreenMapDialog({
   hoverStore,
   color,
   closures,
+  litStretches,
   forecastTimes,
   layer,
 }: FullscreenMapDialogProps) {
@@ -73,6 +75,7 @@ export default function FullscreenMapDialog({
                 color={color}
                 className="h-full w-full"
                 closures={closures}
+                litStretches={litStretches}
                 layer={layer}
               />
               <MapHoverOverlay

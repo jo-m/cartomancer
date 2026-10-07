@@ -41,6 +41,8 @@ import (
 	"jo-m.ch/go/cartomancer/internal/pkg/roadclosures/zh"
 	"jo-m.ch/go/cartomancer/internal/pkg/segment"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
+	"jo-m.ch/go/cartomancer/internal/pkg/streetlights/ktzh"
+	"jo-m.ch/go/cartomancer/internal/pkg/streetlights/stadtzh"
 	"jo-m.ch/go/cartomancer/internal/pkg/trackgroup"
 	"jo-m.ch/go/cartomancer/internal/pkg/users"
 	"jo-m.ch/go/cartomancer/internal/pkg/utl"
@@ -418,6 +420,14 @@ func main() {
 
 	jobs.MustRegisterJob(w, tg.NewDownloader(d))
 	jobs.Periodic(ctxJobs, w.Submitter(), tg.DownloaderArgs{}, tg.MinRefreshAge+time.Hour, true)
+
+	// Street lighting is refreshed at most monthly (MinRefreshAge gate); the
+	// daily tick lets a failed run self-heal instead of waiting another month.
+	jobs.MustRegisterJob(w, ktzh.NewDownloader(d))
+	jobs.Periodic(ctxJobs, w.Submitter(), ktzh.DownloaderArgs{}, 24*time.Hour, true)
+
+	jobs.MustRegisterJob(w, stadtzh.NewDownloader(d))
+	jobs.Periodic(ctxJobs, w.Submitter(), stadtzh.DownloaderArgs{}, 24*time.Hour, true)
 
 	mapsDir := filepath.Join(dataDir, "maps")
 	jobs.MustRegisterJob(w, maps.NewDownloader(d, c.MapsConfig, mapsDir))

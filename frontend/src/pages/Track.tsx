@@ -2,9 +2,14 @@ import { useState, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { useParams } from "react-router"
-import { ArrowsPointingOutIcon } from "@heroicons/react/24/outline"
+import {
+  ArrowsPointingOutIcon,
+  LightBulbIcon,
+} from "@heroicons/react/24/outline"
 import { $api } from "../api/client"
 import { getTrackColor } from "../lib/trackColor"
+import { formatDistance } from "../lib/format"
+import { externalUrl } from "../lib/externalUrl"
 import SvgPreview from "../components/SvgPreview"
 import { useSession } from "../context/SessionContext"
 import StarIcon from "../assets/StarIcon"
@@ -13,7 +18,7 @@ import ForecastChart from "../components/ForecastChart"
 import Toast from "../components/Toast"
 import useToast from "../hooks/useToast"
 import TrackMap from "../components/TrackMap"
-import type { RoadClosure } from "../types/map"
+import type { LitStretch, RoadClosure } from "../types/map"
 import MapHoverOverlay from "../components/MapHoverOverlay"
 import FullscreenMapDialog from "../components/FullscreenMapDialog"
 import ForecastControls from "../components/ForecastControls"
@@ -34,6 +39,7 @@ export default function Track() {
 
   const { toast, showToast, dismissToast } = useToast()
   const [mapFullscreen, setMapFullscreen] = useState(false)
+  const [showStreetlights, setShowStreetlights] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState("")
   const hoverStore = useHoverStore()
@@ -65,6 +71,19 @@ export default function Track() {
   )
 
   const closures = closuresData?.closures as RoadClosure[] | undefined
+
+  const { data: streetlightsData } = $api.useQuery(
+    "get",
+    "/tracks/{uuid}/streetlights",
+    { params: { path: { uuid: uuid! } } }
+  )
+
+  // The lit-share stat is always shown below the map; the light button only
+  // toggles the lit stretch overlay drawn on it.
+  const lit = streetlightsData
+  const litStretches = showStreetlights
+    ? (streetlightsData?.stretches as LitStretch[] | undefined)
+    : undefined
 
   const { data: mapsData } = $api.useQuery("get", "/maps")
 
@@ -267,6 +286,7 @@ export default function Track() {
               hoverStore={hoverStore}
               color={trackColor}
               closures={closures}
+              litStretches={litStretches}
               layer={mapLayer}
               className="relative h-[400px] w-full border-y border-border lg:rounded-lg lg:border"
             />
@@ -283,6 +303,23 @@ export default function Track() {
             >
               <ArrowsPointingOutIcon className="h-5 w-5" />
             </button>
+            <button
+              type="button"
+              onClick={() => setShowStreetlights((v) => !v)}
+              aria-pressed={showStreetlights}
+              className={`absolute top-12 right-2 z-10 cursor-pointer rounded bg-panel/90 p-1.5 shadow-sm hover:bg-panel transition-colors ${
+                showStreetlights
+                  ? "text-star"
+                  : "text-text-secondary hover:text-text"
+              }`}
+              aria-label={
+                showStreetlights
+                  ? "Hide lit sections on map"
+                  : "Show lit sections on map"
+              }
+            >
+              <LightBulbIcon className="h-5 w-5" />
+            </button>
 
             <FullscreenMapDialog
               open={mapFullscreen}
@@ -291,6 +328,7 @@ export default function Track() {
               hoverStore={hoverStore}
               color={trackColor}
               closures={closures}
+              litStretches={litStretches}
               forecastTimes={forecast.forecastTimes}
               layer={mapLayer}
             />
@@ -305,6 +343,34 @@ export default function Track() {
           </div>
         )}
       </div>
+
+      {lit && (
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
+          <span className="flex items-center gap-1.5 text-text">
+            <LightBulbIcon className="h-4 w-4 text-star" aria-hidden="true" />
+            Lit {formatDistance(lit.litDistanceM)} (
+            {Math.round(lit.litFraction * 100)}%)
+          </span>
+          {lit.attributions.length > 0 && (
+            <span className="text-xs text-text-muted">
+              Lighting data (may be <b>very</b> incomplete):{" "}
+              {lit.attributions.map((a, i) => (
+                <span key={a.href}>
+                  {i > 0 && ", "}
+                  <a
+                    href={externalUrl(a.href)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-text-secondary transition-colors"
+                  >
+                    {a.text}
+                  </a>
+                </span>
+              ))}
+            </span>
+          )}
+        </div>
+      )}
 
       {closures && closures.length > 0 && (
         <Alert variant="warning" className="mt-3">

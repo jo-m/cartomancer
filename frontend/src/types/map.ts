@@ -10,3 +10,9 @@ export interface RoadClosure {
   geometry: string
   attribution: { text: string; href: string }
 }
+
+/** A lit track section, as cumulative distances in meters from the start. */
+export interface LitStretch {
+  startDistanceM: number
+  endDistanceM: number
+}
