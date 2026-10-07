@@ -124,5 +124,10 @@ func Extract(ctx context.Context, params ExtractParams) error {
 
 // OutputPath returns the file path for a map build identified by its UUID.
 func OutputPath(mapsDir, uuid string) string {
-	return filepath.Join(mapsDir, uuid+".pmtiles")
+	return filepath.Join(mapsDir, OutputFilename(uuid))
+}
+
+// OutputFilename returns the file name (without directory) for a map build identified by its UUID.
+func OutputFilename(uuid string) string {
+	return uuid + ".pmtiles"
 }

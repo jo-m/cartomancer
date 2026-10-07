@@ -158,7 +158,22 @@ func (sv *server) handleGetMapFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := maps.OutputPath(sv.mapsDir, build.Uuid)
-	f, err := os.Open(path)
+	root, err := os.OpenRoot(sv.mapsDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			writeError(w, http.StatusNotFound, "map file not found")
+			return
+		}
+		logg.Error(ctx, "failed to open maps directory", "err", err, "dir", sv.mapsDir)
+		writeStatusError(w, http.StatusInternalServerError)
+		return
+	}
+	defer root.Close()
+
+	// root.Open() rejects any name that would escape sv.mapsDir, even via
+	// symlinks, protecting against path traversal if build.Uuid is ever
+	// malformed.
+	f, err := root.Open(maps.OutputFilename(build.Uuid))
 	if err != nil {
 		if os.IsNotExist(err) {
 			writeError(w, http.StatusNotFound, "map file not found")

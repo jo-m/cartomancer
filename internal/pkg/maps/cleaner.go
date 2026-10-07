@@ -58,9 +58,21 @@ func (c *Cleaner) Run(ctx context.Context, _ CleanerArgs) error {
 // Errors are logged but not propagated, so a single failure does not block the rest.
 func (c *Cleaner) deleteOne(ctx context.Context, b db.MapBuild) {
 	path := OutputPath(c.mapsDir, b.Uuid)
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-		logg.Error(ctx, "failed to remove map file marked for deletion", "uuid", b.Uuid, "path", path, "err", err)
-		return
+
+	root, err := os.OpenRoot(c.mapsDir)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			logg.Error(ctx, "failed to open maps directory", "uuid", b.Uuid, "dir", c.mapsDir, "err", err)
+			return
+		}
+	} else {
+		defer root.Close()
+		// root.Remove() rejects any name that would escape c.mapsDir, protecting
+		// against path traversal if b.Uuid is ever malformed.
+		if err := root.Remove(OutputFilename(b.Uuid)); err != nil && !os.IsNotExist(err) {
+			logg.Error(ctx, "failed to remove map file marked for deletion", "uuid", b.Uuid, "path", path, "err", err)
+			return
+		}
 	}
 
 	if _, err := c.d.QueryRW().DeleteMapBuild(ctx, b.Uuid); err != nil {
