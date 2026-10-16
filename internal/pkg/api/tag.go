@@ -12,7 +12,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/text/unicode/norm"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
-	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
@@ -104,8 +103,7 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to set track tags", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to set track tags", err)
 		return
 	}
 
@@ -113,8 +111,7 @@ func (sv *server) handleSetTrackTags(w http.ResponseWriter, r *http.Request) {
 	// because the current user owns the track and cannot have deleted it.
 	track, fetchErr := sv.d.GetTrackByUUIDForViewer(ctx, trackUUID, user.Uuid)
 	if fetchErr != nil {
-		logg.Error(ctx, "failed to fetch track after tag update", "err", fetchErr)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to fetch track after tag update", fetchErr)
 		return
 	}
 
@@ -154,8 +151,7 @@ func (sv *server) handleSuggestTags(w http.ResponseWriter, r *http.Request) {
 		Tag:    likePrefix(r.URL.Query().Get("prefix")),
 	})
 	if err != nil {
-		logg.Error(ctx, "failed to suggest tags", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to suggest tags", err)
 		return
 	}
 
@@ -176,8 +172,7 @@ func (sv *server) handleSuggestPublicTags(w http.ResponseWriter, r *http.Request
 
 	rows, err := sv.d.QueryRO().SuggestPublicTags(ctx, likePrefix(r.URL.Query().Get("prefix")))
 	if err != nil {
-		logg.Error(ctx, "failed to suggest public tags", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to suggest public tags", err)
 		return
 	}
 

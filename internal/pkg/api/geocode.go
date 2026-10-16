@@ -6,7 +6,6 @@ import (
 	"unicode/utf8"
 
 	"jo-m.ch/go/cartomancer/internal/pkg/db/geonamesdb"
-	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
 const (
@@ -48,8 +47,7 @@ func (sv *server) handleSearchGeocodeName(w http.ResponseWriter, r *http.Request
 		MaxResults: geonameSearchMaxResults,
 	})
 	if err != nil {
-		logg.Error(ctx, "failed to search geonames", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to search geonames", err)
 		return
 	}
 

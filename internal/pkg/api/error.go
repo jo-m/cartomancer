@@ -7,6 +7,8 @@ import (
 	"mime"
 	"net/http"
 	"strings"
+
+	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
 var errUnsupportedMediaType = errors.New("Content-Type must be application/json")
@@ -32,6 +34,22 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 
 func writeStatusError(w http.ResponseWriter, status int) {
 	writeError(w, status, strings.ToLower(http.StatusText(status)))
+}
+
+// writeServerError logs err as an error and writes a 500 response for a failed
+// request. If the client has already gone away (r.Context() canceled), the
+// failure is logged at debug level instead and no response is written, since
+// the request was aborted by the client and not caused by a server fault.
+// attrs are additional key-value pairs for the log entry.
+func writeServerError(w http.ResponseWriter, r *http.Request, msg string, err error, attrs ...any) {
+	logCtx := r.Context()
+	attrs = append(attrs, "err", err)
+	if logCtx.Err() != nil {
+		logg.Debug(logCtx, msg, attrs...)
+		return
+	}
+	logg.Error(logCtx, msg, attrs...)
+	writeStatusError(w, http.StatusInternalServerError)
 }
 
 func writeDecodeError(w http.ResponseWriter, err error) {

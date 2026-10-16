@@ -219,8 +219,7 @@ func (sv *server) getViewableTrack(w http.ResponseWriter, r *http.Request, track
 			writeError(w, http.StatusNotFound, "track not found")
 			return db.Track{}, false
 		}
-		logg.Error(ctx, "failed to get track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get track", err)
 		return db.Track{}, false
 	}
 
@@ -248,8 +247,7 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "track not found")
 			return
 		}
-		logg.Error(ctx, "failed to get track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get track", err)
 		return
 	}
 
@@ -260,15 +258,13 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 
 	tags, err := sv.d.QueryRO().GetTagsByTrackID(ctx, trackUUID)
 	if err != nil {
-		logg.Error(ctx, "failed to get track tags", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get track tags", err)
 		return
 	}
 
 	similar, err := sv.d.QueryRO().GetSimilarTracks(ctx, db.GetSimilarTracksParams{TrackID: trackUUID, UserID: viewerID})
 	if err != nil {
-		logg.Error(ctx, "failed to get similar tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get similar tracks", err)
 		return
 	}
 
@@ -276,7 +272,6 @@ func (sv *server) handleGetTrack(w http.ResponseWriter, r *http.Request) {
 }
 
 func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	trackUUID := chi.URLParam(r, "uuid")
 
 	t, ok := sv.getViewableTrack(w, r, trackUUID)
@@ -298,14 +293,12 @@ func (sv *server) handleDownloadTrackBlob(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := blob.Serve(w, r, sv.d.QueryRO(), t.BlobID, contentType, t.Name+ext); err != nil {
-		logg.Error(ctx, "failed to serve blob", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to serve blob", err)
 		return
 	}
 }
 
 func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	trackUUID := chi.URLParam(r, "uuid")
 
 	t, ok := sv.getViewableTrack(w, r, trackUUID)
@@ -326,8 +319,7 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 
 	pts, err := loadViewerPoints(t, db.PreviewPolyline50M)
 	if err != nil {
-		logg.Error(ctx, "failed to load preview points", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to load preview points", err)
 		return
 	}
 
@@ -351,7 +343,6 @@ func (sv *server) handleDownloadTrackSVG(w http.ResponseWriter, r *http.Request)
 }
 
 func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	trackUUID := chi.URLParam(r, "uuid")
 
 	t, ok := sv.getViewableTrack(w, r, trackUUID)
@@ -373,8 +364,7 @@ func (sv *server) handleDownloadTrackProfileSVG(w http.ResponseWriter, r *http.R
 
 	pts, err := loadViewerPoints(t, db.PreviewPolyline5M)
 	if err != nil {
-		logg.Error(ctx, "failed to load profile points", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to load profile points", err)
 		return
 	}
 
@@ -415,7 +405,6 @@ type trackPoint struct {
 // handleGetTrackPoints returns track points with elevation and cumulative distance.
 // Public tracks are accessible without authentication; private tracks require the owner.
 func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	trackUUID := chi.URLParam(r, "uuid")
 
 	t, ok := sv.getViewableTrack(w, r, trackUUID)
@@ -431,8 +420,7 @@ func (sv *server) handleGetTrackPoints(w http.ResponseWriter, r *http.Request) {
 
 	pts, err := loadViewerPoints(t, db.PreviewPolyline5M)
 	if err != nil {
-		logg.Error(ctx, "failed to load viewer points", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to load viewer points", err)
 		return
 	}
 
@@ -542,8 +530,7 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to update track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to update track", err)
 		return
 	}
 
@@ -552,8 +539,7 @@ func (sv *server) handleEditTrack(w http.ResponseWriter, r *http.Request) {
 		UserID:  user.Uuid,
 	})
 	if err != nil {
-		logg.Error(ctx, "failed to get starred status", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get starred status", err)
 		return
 	}
 
@@ -592,8 +578,7 @@ func (sv *server) handleDeleteTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to delete track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to delete track", err)
 		return
 	}
 
@@ -632,8 +617,7 @@ func (sv *server) handleBulkDeleteTracks(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to bulk delete tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to bulk delete tracks", err)
 		return
 	}
 
@@ -901,8 +885,7 @@ func (sv *server) handleListTracks(w http.ResponseWriter, r *http.Request) {
 
 	result, err := sv.d.ListTracks(ctx, params)
 	if err != nil {
-		logg.Error(ctx, "failed to list tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list tracks", err)
 		return
 	}
 
@@ -988,8 +971,7 @@ func (sv *server) handleListTrackPolylines(w http.ResponseWriter, r *http.Reques
 
 	result, err := sv.d.ListTracksWithPolylines(ctx, params, kind, trackPolylinesLimit)
 	if err != nil {
-		logg.Error(ctx, "failed to list track polylines", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list track polylines", err)
 		return
 	}
 
@@ -1105,8 +1087,7 @@ func (sv *server) handleBulkEditTracks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to bulk update tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to bulk update tracks", err)
 		return
 	}
 
@@ -1119,8 +1100,7 @@ func (sv *server) handleListTracksForEditing(w http.ResponseWriter, r *http.Requ
 
 	tracks, err := sv.d.ListTracksForEditingForViewer(ctx, user.Uuid)
 	if err != nil {
-		logg.Error(ctx, "failed to list tracks for editing", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list tracks for editing", err)
 		return
 	}
 
@@ -1130,8 +1110,7 @@ func (sv *server) handleListTracksForEditing(w http.ResponseWriter, r *http.Requ
 	}
 	tagsByTrack, err := sv.d.GetTagsForTracks(ctx, trackUUIDs)
 	if err != nil {
-		logg.Error(ctx, "failed to get tags for editing tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get tags for editing tracks", err)
 		return
 	}
 
@@ -1176,8 +1155,7 @@ func (sv *server) handleEditingComplete(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to complete editing", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to complete editing", err)
 		return
 	}
 
@@ -1212,8 +1190,7 @@ func (sv *server) handleTrackStatistics(w http.ResponseWriter, r *http.Request) 
 
 	result, err := sv.d.TrackStatistics(ctx, statsParams)
 	if err != nil {
-		logg.Error(ctx, "failed to get track statistics", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get track statistics", err)
 		return
 	}
 
@@ -1276,8 +1253,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 
 	content, err := io.ReadAll(file)
 	if err != nil {
-		logg.Error(ctx, "failed to read uploaded file", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to read uploaded file", err)
 		return
 	}
 
@@ -1357,8 +1333,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 
 	trackID, err := uuid.NewV7()
 	if err != nil {
-		logg.Error(ctx, "failed to generate track uuid", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to generate track uuid", err)
 		return
 	}
 
@@ -1452,8 +1427,7 @@ func (sv *server) handleUploadTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to store track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to store track", err)
 		return
 	}
 

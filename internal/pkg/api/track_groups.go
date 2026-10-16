@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
@@ -33,8 +32,7 @@ func (sv *server) handleListTrackGroups(w http.ResponseWriter, r *http.Request) 
 
 	groups, err := sv.d.QueryRO().ListTrackGroupsWithCountByUser(ctx, user.Uuid)
 	if err != nil {
-		logg.Error(ctx, "failed to list track groups", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list track groups", err)
 		return
 	}
 
@@ -62,8 +60,7 @@ func (sv *server) handleGetTrackGroup(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "group not found")
 			return
 		}
-		logg.Error(ctx, "failed to get track group", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get track group", err)
 		return
 	}
 
@@ -74,15 +71,13 @@ func (sv *server) handleGetTrackGroup(w http.ResponseWriter, r *http.Request) {
 
 	memberUUIDs, err := sv.d.QueryRO().ListTrackGroupMemberUUIDs(ctx, groupUUID)
 	if err != nil {
-		logg.Error(ctx, "failed to list group member uuids", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list group member uuids", err)
 		return
 	}
 
 	tracks, err := sv.d.GetTracksByUUIDs(ctx, memberUUIDs, user.Uuid)
 	if err != nil {
-		logg.Error(ctx, "failed to get group member tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get group member tracks", err)
 		return
 	}
 
@@ -92,8 +87,7 @@ func (sv *server) handleGetTrackGroup(w http.ResponseWriter, r *http.Request) {
 	}
 	tagsByTrack, err := sv.d.GetTagsForTracks(ctx, trackUUIDs)
 	if err != nil {
-		logg.Error(ctx, "failed to get tags for group tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get tags for group tracks", err)
 		return
 	}
 

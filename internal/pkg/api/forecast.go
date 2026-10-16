@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sixdouglas/suncalc"
 	"jo-m.ch/go/cartomancer/internal/pkg/forecast"
-	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/meteo/vars"
 )
 
@@ -95,8 +94,7 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 
 	pts, err := forecast.InterpolatedTrackPoints(t, forecast.LiveStepM)
 	if err != nil {
-		logg.Error(ctx, "failed to load interpolated track points", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to load interpolated track points", err)
 		return
 	}
 	if len(pts) < 2 {
@@ -146,8 +144,7 @@ func (sv *server) handleGetTrackForecast(w http.ResponseWriter, r *http.Request)
 	case errors.Is(err, forecast.ErrIncomplete):
 		status = "partial"
 	case err != nil:
-		logg.Error(ctx, "failed to load forecast", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to load forecast", err)
 		return
 	}
 

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
-	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
 // adminJobsListMaxLimit is the upper bound for the limit query parameter.
@@ -185,8 +184,7 @@ func (sv *server) handleAdminListJobs(w http.ResponseWriter, r *http.Request) {
 
 	rawPids, err := ro.GetJobRunnerPIDs(ctx)
 	if err != nil {
-		logg.Error(ctx, "failed to list job runner ids", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list job runner ids", err)
 		return
 	}
 	runnerIDs := make([]string, len(rawPids))
@@ -196,8 +194,7 @@ func (sv *server) handleAdminListJobs(w http.ResponseWriter, r *http.Request) {
 
 	statusRows, err := ro.AdminCountJobsByStatus(ctx)
 	if err != nil {
-		logg.Error(ctx, "failed to count jobs by status", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to count jobs by status", err)
 		return
 	}
 	statusCounts := make([]adminJobStatusCount, len(statusRows))
@@ -207,8 +204,7 @@ func (sv *server) handleAdminListJobs(w http.ResponseWriter, r *http.Request) {
 
 	kindRows, err := ro.AdminListJobKinds(ctx)
 	if err != nil {
-		logg.Error(ctx, "failed to list job kinds", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list job kinds", err)
 		return
 	}
 	byKind := make([]adminJobKindRow, len(kindRows))
@@ -231,8 +227,7 @@ func (sv *server) handleAdminListJobs(w http.ResponseWriter, r *http.Request) {
 		Limit:     limit,
 	})
 	if err != nil {
-		logg.Error(ctx, "failed to list jobs", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list jobs", err)
 		return
 	}
 	resp := make([]adminJobResponse, len(jobs))

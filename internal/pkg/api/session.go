@@ -71,8 +71,7 @@ func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
-		logg.Error(ctx, "failed to fetch user", "email", req.Email, "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to fetch user", err, "email", req.Email)
 		return
 	}
 
@@ -91,8 +90,7 @@ func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	oldSess := session.Get(ctx)
 	sess, err := session.Create(ctx, sql.NullString{Valid: true, String: user.Uuid}, oldSess)
 	if err != nil {
-		logg.Error(ctx, "creating session failed", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "creating session failed", err)
 		return
 	}
 	logg.Debug(ctx, "created new session", "id", sess.Uuid)
@@ -114,8 +112,7 @@ func (sv *server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 	err := session.Delete(ctx, sess)
 	if err != nil {
-		logg.Error(ctx, "logout failed", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "logout failed", err)
 		return
 	}
 	logg.Info(ctx, "logout succeeded", "session", sess.Uuid)

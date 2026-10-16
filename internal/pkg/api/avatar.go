@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"jo-m.ch/go/cartomancer/internal/pkg/avatar"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
-	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
@@ -30,8 +29,7 @@ func (sv *server) handleGetUserAvatar(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "user not found")
 			return
 		}
-		logg.Error(ctx, "failed to get user for avatar", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get user for avatar", err)
 		return
 	}
 
@@ -66,15 +64,13 @@ func (sv *server) handleRotateAvatar(w http.ResponseWriter, r *http.Request) {
 		Uuid:       user.Uuid,
 	})
 	if err != nil {
-		logg.Error(ctx, "failed to rotate avatar seed", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to rotate avatar seed", err)
 		return
 	}
 
 	u, err := sv.d.QueryRO().GetUser(ctx, user.Uuid)
 	if err != nil {
-		logg.Error(ctx, "failed to get user after avatar rotation", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get user after avatar rotation", err)
 		return
 	}
 

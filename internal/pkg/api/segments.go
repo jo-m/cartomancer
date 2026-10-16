@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
 type segmentEntry struct {
@@ -55,8 +54,7 @@ func (sv *server) handleListSegments(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := sv.d.QueryRO().ListAllSegments(ctx)
 	if err != nil {
-		logg.Error(ctx, "failed to list segments", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list segments", err)
 		return
 	}
 
@@ -91,15 +89,13 @@ func (sv *server) handleGetSegment(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "segment not found")
 			return
 		}
-		logg.Error(ctx, "failed to get segment", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get segment", err)
 		return
 	}
 
 	trackUUIDs, err := sv.d.QueryRO().ListSegmentTrackUUIDs(ctx, segUUID)
 	if err != nil {
-		logg.Error(ctx, "failed to list segment tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list segment tracks", err)
 		return
 	}
 	if trackUUIDs == nil {
@@ -135,8 +131,7 @@ func (sv *server) handleListSegmentJunctions(w http.ResponseWriter, r *http.Requ
 
 	rows, err := sv.d.QueryRO().ListAllSegmentJunctions(ctx)
 	if err != nil {
-		logg.Error(ctx, "failed to list junctions", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list junctions", err)
 		return
 	}
 

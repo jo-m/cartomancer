@@ -102,15 +102,13 @@ func (sv *server) handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to update account", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to update account", err)
 		return
 	}
 
 	u, err := sv.d.QueryRO().GetUser(ctx, user.Uuid)
 	if err != nil {
-		logg.Error(ctx, "failed to get updated user", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get updated user", err)
 		return
 	}
 
@@ -141,8 +139,7 @@ func (sv *server) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to delete user", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to delete user", err)
 		return
 	}
 
@@ -180,8 +177,7 @@ func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 	// write tx to avoid blocking the single-writer SQLite connection.
 	u, err := sv.d.QueryRO().GetUser(ctx, user.Uuid)
 	if err != nil {
-		logg.Error(ctx, "failed to get user", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get user", err)
 		return
 	}
 
@@ -214,8 +210,7 @@ func (sv *server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 		return txErr
 	})
 	if err != nil {
-		logg.Error(ctx, "failed to update password", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to update password", err)
 		return
 	}
 
@@ -252,8 +247,7 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 	// write tx to avoid blocking the single-writer SQLite connection.
 	u, err := sv.d.QueryRO().GetUser(ctx, user.Uuid)
 	if err != nil {
-		logg.Error(ctx, "failed to get user", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get user", err)
 		return
 	}
 
@@ -269,8 +263,7 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 
 	verID, err := uuid.NewV7()
 	if err != nil {
-		logg.Error(ctx, "failed to generate uuid", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to generate uuid", err)
 		return
 	}
 
@@ -306,15 +299,13 @@ func (sv *server) handleChangeEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to create email change verification", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to create email change verification", err)
 		return
 	}
 
 	token, err := signEmailToken(verID.String(), sv.appConfig.EmailVerificationExpiry, sv.emailJWTSecret, sv.appConfig.InstanceName)
 	if err != nil {
-		logg.Error(ctx, "failed to sign email verification token", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to sign email verification token", err)
 		return
 	}
 

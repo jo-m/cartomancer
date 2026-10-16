@@ -83,7 +83,13 @@ func RequestLogger(next http.Handler) http.Handler {
 			}
 			url := fmt.Sprintf("%s %s://%s%s", r.Proto, scheme, r.Host, r.RequestURI)
 			msg := fmt.Sprintf("%s %s %d", r.Method, url, ww.Status())
-			Log(r.Context(), levelFor(ww.Status()), msg, "url", r.URL, "method", r.Method, "status", ww.Status(), "duration", time.Since(t0))
+			level := levelFor(ww.Status())
+			// A canceled request context means the client disconnected before the
+			// request was handled completely, which is not a server fault.
+			if r.Context().Err() != nil {
+				level = slog.LevelDebug
+			}
+			Log(r.Context(), level, msg, "url", r.URL, "method", r.Method, "status", ww.Status(), "duration", time.Since(t0))
 		}()
 
 		next.ServeHTTP(ww, middleware.WithLogEntry(r, logFormatter{}.NewLogEntry(r)))

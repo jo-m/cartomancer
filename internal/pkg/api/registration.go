@@ -71,15 +71,13 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := uuid.NewV7()
 	if err != nil {
-		logg.Error(ctx, "failed to generate uuid", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to generate uuid", err)
 		return
 	}
 
 	verID, err := uuid.NewV7()
 	if err != nil {
-		logg.Error(ctx, "failed to generate uuid", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to generate uuid", err)
 		return
 	}
 
@@ -93,8 +91,7 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
-		logg.Error(ctx, "failed to check name availability", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to check name availability", err)
 		return
 	}
 
@@ -147,8 +144,7 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to register user", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to register user", err)
 		return
 	}
 
@@ -169,8 +165,7 @@ func (sv *server) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	token, err := signEmailToken(verID.String(), sv.appConfig.EmailVerificationExpiry, sv.emailJWTSecret, sv.appConfig.InstanceName)
 	if err != nil {
-		logg.Error(ctx, "failed to sign email verification token", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to sign email verification token", err)
 		return
 	}
 
@@ -266,8 +261,7 @@ func (sv *server) handleConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to confirm email", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to confirm email", err)
 		return
 	}
 

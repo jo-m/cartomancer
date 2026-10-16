@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
-	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/maps"
 )
 
@@ -86,8 +85,7 @@ func (sv *server) handleListMapBuilds(w http.ResponseWriter, r *http.Request) {
 
 	builds, err := sv.d.QueryRO().ListReadyMapBuilds(ctx)
 	if err != nil {
-		logg.Error(ctx, "failed to list map builds", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list map builds", err)
 		return
 	}
 
@@ -104,8 +102,7 @@ func (sv *server) handleAdminListMapBuilds(w http.ResponseWriter, r *http.Reques
 
 	builds, err := sv.d.QueryRO().ListMapBuilds(ctx)
 	if err != nil {
-		logg.Error(ctx, "failed to list map builds", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list map builds", err)
 		return
 	}
 
@@ -123,14 +120,12 @@ func (sv *server) handleAdminMarkMapForDeletion(w http.ResponseWriter, r *http.R
 
 	result, err := sv.d.QueryRW().SetMapBuildMarkedForDeletion(ctx, uuid)
 	if err != nil {
-		logg.Error(ctx, "failed to mark map build for deletion", "err", err, "uuid", uuid)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to mark map build for deletion", err, "uuid", uuid)
 		return
 	}
 	n, err := result.RowsAffected()
 	if err != nil {
-		logg.Error(ctx, "failed to check rows affected for mark deletion", "err", err, "uuid", uuid)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to check rows affected for mark deletion", err, "uuid", uuid)
 		return
 	}
 	if n == 0 {
@@ -152,8 +147,7 @@ func (sv *server) handleGetMapFile(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "map not found")
 			return
 		}
-		logg.Error(ctx, "failed to get map build", "err", err, "uuid", uuid)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get map build", err, "uuid", uuid)
 		return
 	}
 
@@ -164,8 +158,7 @@ func (sv *server) handleGetMapFile(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "map file not found")
 			return
 		}
-		logg.Error(ctx, "failed to open maps directory", "err", err, "dir", sv.mapsDir)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to open maps directory", err, "dir", sv.mapsDir)
 		return
 	}
 	defer root.Close()
@@ -179,16 +172,14 @@ func (sv *server) handleGetMapFile(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "map file not found")
 			return
 		}
-		logg.Error(ctx, "failed to open map file", "err", err, "path", path)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to open map file", err, "path", path)
 		return
 	}
 	defer f.Close()
 
 	stat, err := f.Stat()
 	if err != nil {
-		logg.Error(ctx, "failed to stat map file", "err", err, "path", path)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to stat map file", err, "path", path)
 		return
 	}
 

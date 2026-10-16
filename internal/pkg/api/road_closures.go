@@ -41,15 +41,13 @@ func (sv *server) handleGetTrackRoadClosures(w http.ResponseWriter, r *http.Requ
 
 	b, err := blob.Get(ctx, sv.d.QueryRO(), t.BlobID)
 	if err != nil {
-		logg.Error(ctx, "failed to get track blob", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get track blob", err)
 		return
 	}
 
 	src, err := load.Blob(t.OriginalFilename, bytes.NewReader(b.Content))
 	if err != nil {
-		logg.Error(ctx, "failed to parse track blob", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to parse track blob", err)
 		return
 	}
 
@@ -82,8 +80,7 @@ func (sv *server) handleGetTrackRoadClosures(w http.ResponseWriter, r *http.Requ
 	// Coarse DB lookup: closures sharing at least one res-7 cell with the track.
 	candidates, err := sv.d.GetActiveRoadClosuresByCells(ctx, cells)
 	if err != nil {
-		logg.Error(ctx, "failed to query road closures by cells", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to query road closures by cells", err)
 		return
 	}
 

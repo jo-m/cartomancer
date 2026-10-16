@@ -158,15 +158,13 @@ func (sv *server) handleExportData(w http.ResponseWriter, r *http.Request) {
 
 	u, err := sv.d.QueryRO().GetUser(ctx, user.Uuid)
 	if err != nil {
-		logg.Error(ctx, "export: failed to get user", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "export: failed to get user", err)
 		return
 	}
 
 	tracks, err := sv.d.QueryRO().ListTracksByUser(ctx, user.Uuid)
 	if err != nil {
-		logg.Error(ctx, "export: failed to list tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "export: failed to list tracks", err)
 		return
 	}
 
@@ -177,15 +175,13 @@ func (sv *server) handleExportData(w http.ResponseWriter, r *http.Request) {
 
 	tagsMap, err := sv.d.GetTagsForTracks(ctx, trackUUIDs)
 	if err != nil {
-		logg.Error(ctx, "export: failed to get tags", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "export: failed to get tags", err)
 		return
 	}
 
 	groupRows, err := sv.d.QueryRO().ListTrackGroupsByUser(ctx, user.Uuid)
 	if err != nil {
-		logg.Error(ctx, "export: failed to list track groups", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "export: failed to list track groups", err)
 		return
 	}
 

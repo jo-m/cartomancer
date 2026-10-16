@@ -3,8 +3,6 @@ package api
 import (
 	"net/http"
 	"time"
-
-	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 )
 
 type adminForecastFileResponse struct {
@@ -34,8 +32,7 @@ func (sv *server) handleAdminListForecasts(w http.ResponseWriter, r *http.Reques
 
 	rows, err := sv.fd.QueryRO().ListForecastsWithFiles(ctx)
 	if err != nil {
-		logg.Error(ctx, "failed to list forecasts", "err", err)
-		writeError(w, http.StatusInternalServerError, "failed to list forecasts")
+		writeServerError(w, r, "failed to list forecasts", err)
 		return
 	}
 

@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
 	"jo-m.ch/go/cartomancer/internal/pkg/jobs"
-	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/mail"
 	"jo-m.ch/go/cartomancer/internal/pkg/password"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
@@ -79,15 +78,13 @@ func (sv *server) handleAdminListUsers(w http.ResponseWriter, r *http.Request) {
 
 	users, err := ro.GetUsers(ctx)
 	if err != nil {
-		logg.Error(ctx, "failed to list users", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list users", err)
 		return
 	}
 
 	pendingIDs, err := ro.GetUserIDsWithPendingEmailVerification(ctx)
 	if err != nil {
-		logg.Error(ctx, "failed to get pending email verifications", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get pending email verifications", err)
 		return
 	}
 	pendingSet := make(map[string]struct{}, len(pendingIDs))
@@ -124,8 +121,7 @@ func (sv *server) handleAdminGetUser(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "user not found")
 			return
 		}
-		logg.Error(ctx, "failed to get user", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get user", err)
 		return
 	}
 
@@ -134,8 +130,7 @@ func (sv *server) handleAdminGetUser(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		resp.HasPendingEmailVerification = true
 	} else if !errors.Is(err, sql.ErrNoRows) {
-		logg.Error(ctx, "failed to check email verification", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to check email verification", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, resp)
@@ -177,8 +172,7 @@ func (sv *server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) 
 
 	id, err := uuid.NewV7()
 	if err != nil {
-		logg.Error(ctx, "failed to generate uuid", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to generate uuid", err)
 		return
 	}
 
@@ -235,8 +229,7 @@ func (sv *server) handleAdminCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to create user", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to create user", err)
 		return
 	}
 
@@ -356,15 +349,13 @@ func (sv *server) handleAdminUpdateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to update user", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to update user", err)
 		return
 	}
 
 	u, err := sv.d.QueryRO().GetUser(ctx, userUUID)
 	if err != nil {
-		logg.Error(ctx, "failed to get updated user", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get updated user", err)
 		return
 	}
 
@@ -408,8 +399,7 @@ func (sv *server) handleAdminDeleteUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to delete user", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to delete user", err)
 		return
 	}
 
@@ -443,8 +433,7 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 
 	hash, err := password.Hash(newPassword)
 	if err != nil {
-		logg.Error(ctx, "failed to hash password", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to hash password", err)
 		return
 	}
 
@@ -470,8 +459,7 @@ func (sv *server) handleAdminResetUserPassword(w http.ResponseWriter, r *http.Re
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to reset password", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to reset password", err)
 		return
 	}
 
@@ -554,8 +542,7 @@ func (sv *server) handleAdminConfirmEmail(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to confirm email", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to confirm email", err)
 		return
 	}
 
@@ -616,8 +603,7 @@ func (sv *server) handleAdminSendEmail(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "user not found")
 			return
 		}
-		logg.Error(ctx, "failed to get user", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get user", err)
 		return
 	}
 
@@ -627,8 +613,7 @@ func (sv *server) handleAdminSendEmail(w http.ResponseWriter, r *http.Request) {
 		Body:    req.Body,
 	}, jobs.Params{MaxRetries: 5, BackofFactorS: 60 * time.Second})
 	if err != nil {
-		logg.Error(ctx, "failed to submit admin email job", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to submit admin email job", err)
 		return
 	}
 

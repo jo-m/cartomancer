@@ -14,7 +14,6 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 	blackfriday "github.com/russross/blackfriday/v2"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
-	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
@@ -135,8 +134,7 @@ func (sv *server) handleListTrackComments(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to get track", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get track", err)
 		return
 	}
 
@@ -152,8 +150,7 @@ func (sv *server) handleListTrackComments(w http.ResponseWriter, r *http.Request
 
 	rows, err := sv.d.QueryRO().ListTrackComments(ctx, trackUUID)
 	if err != nil {
-		logg.Error(ctx, "failed to list comments", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to list comments", err)
 		return
 	}
 
@@ -220,8 +217,7 @@ func (sv *server) handleCreateTrackComment(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to create comment", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to create comment", err)
 		return
 	}
 
@@ -299,8 +295,7 @@ func (sv *server) handleEditTrackComment(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to edit comment", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to edit comment", err)
 		return
 	}
 
@@ -360,8 +355,7 @@ func (sv *server) handleDeleteTrackComment(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to delete comment", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to delete comment", err)
 		return
 	}
 

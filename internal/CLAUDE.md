@@ -38,6 +38,7 @@ internal/pkg/...
 - Follow REST conventions; use appropriate HTTP methods/status codes.
 - JSON fields are camelCase (e.g. `SessionID` -> `sessionId`).
 - Use helpers in `internal/pkg/api/error.go`. Log error details when returning errors from handlers.
+- Use `writeServerError()` for 500 responses. It also handles clients disconnecting mid-request: when the request context is already canceled, it logs at debug level and writes no response, since that is not a server fault.
 - Caching: endpoints that seldom change and are expensive must use etag + cache headers (see `handleDownloadTrackSVG()`).
 
 ## Job queue

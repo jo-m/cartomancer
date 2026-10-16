@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"jo-m.ch/go/cartomancer/internal/pkg/db"
-	"jo-m.ch/go/cartomancer/internal/pkg/logg"
 	"jo-m.ch/go/cartomancer/internal/pkg/session"
 )
 
@@ -41,8 +40,7 @@ func (sv *server) handleStarTrack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		logg.Error(ctx, "failed to create track star", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to create track star", err)
 		return
 	}
 
@@ -63,8 +61,7 @@ func (sv *server) handleUnstarTrack(w http.ResponseWriter, r *http.Request) {
 		UserID:  user.Uuid,
 	})
 	if err != nil {
-		logg.Error(ctx, "failed to delete track star", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to delete track star", err)
 		return
 	}
 
@@ -91,8 +88,7 @@ func (sv *server) handleGetUserStars(w http.ResponseWriter, r *http.Request) {
 
 	tracks, err := sv.d.GetStarredTracks(ctx, userUUID, viewerID)
 	if err != nil {
-		logg.Error(ctx, "failed to get starred tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get starred tracks", err)
 		return
 	}
 
@@ -103,8 +99,7 @@ func (sv *server) handleGetUserStars(w http.ResponseWriter, r *http.Request) {
 
 	tagsByTrack, err := sv.d.GetTagsForTracks(ctx, trackUUIDs)
 	if err != nil {
-		logg.Error(ctx, "failed to get tags for starred tracks", "err", err)
-		writeStatusError(w, http.StatusInternalServerError)
+		writeServerError(w, r, "failed to get tags for starred tracks", err)
 		return
 	}
 
