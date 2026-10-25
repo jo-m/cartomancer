@@ -41,7 +41,7 @@
       sourceRoot = "source/frontend";
 
       # To update: replace with pkgs.lib.fakeHash, run `nix build .#frontend`, copy the expected hash from the error message.
-      npmDepsHash = "sha256-ndx1E3Qj1zSPQ4U4tGkgbYYsnWmAko2zrm+uBlEB/K4=";
+      npmDepsHash = "sha256-2/l/iFP8KmholrHHttVMF96NEuPUB49dOrPOuIJv0vY=";
 
       # npm run build invokes `npm run gen` which reads
       # ../internal/pkg/api/openapi.yaml. vite writes output to
@@ -187,8 +187,8 @@
 
     devShells.${buildSystem}.default = buildPkgs.mkShell {
       packages = [
-        buildPkgs.go_1_26
-        buildPkgs.nodejs_22
+        buildPkgs.go
+        buildPkgs.nodejs
         buildPkgs.gcc
         buildPkgs.git
         buildPkgs.gnumake
