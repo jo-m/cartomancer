@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs.url = "nixpkgs/nixpkgs-unstable";
   };
 
   outputs = {
@@ -86,7 +86,7 @@
         src = ./.;
 
         # To update: replace with pkgs.lib.fakeHash, run `nix build`, copy the expected hash from the error message.
-        vendorHash = "sha256-lDl7C8UKOMO28K65xmf8mPRPgWYg7E8kX62ZEJda1Jo=";
+        vendorHash = "sha256-+OX+n5zkNNkyOPRHyLdnevLfwHYNp0kYePHA/tXsSpw=";
 
         # proxyVendor is required because `go generate` uses `go tool sqlc` which needs access to the full module graph, not just imported packages.
         proxyVendor = true;
