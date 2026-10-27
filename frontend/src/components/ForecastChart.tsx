@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react"
+import { memo, useCallback, useEffect, useMemo, useRef } from "react"
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -153,7 +153,7 @@ function SunEventIcon({
 }
 
 /** Renders temperature, precipitation, and wind as vertically stacked recharts. */
-export default function ForecastChart({
+export default memo(function ForecastChart({
   points,
   units,
   hoverStore,
@@ -816,4 +816,4 @@ export default function ForecastChart({
       )}
     </div>
   )
-}
+})

@@ -14,7 +14,7 @@ const HOUR_MS = 60 * 60 * 1000
 const DEFAULT_START_AHEAD_H = 2
 
 /** Coalesces rapid start-time changes (slider drags) into one request. */
-const FETCH_DEBOUNCE_MS = 250
+const FETCH_DEBOUNCE_MS = 350
 
 const DEFAULT_FORECAST_UNITS: ForecastUnits = {
   temperatureC: "C",
