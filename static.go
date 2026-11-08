@@ -40,8 +40,10 @@ func applyCacheControl(w http.ResponseWriter, path string) {
 	w.Header().Set("Cache-Control", cacheControlNoCache)
 }
 
-// spaHandler serves static files and falls back to index.html for unknown paths,
-// enabling client-side routing.
+// spaHandler serves static files and falls back to index.html for unknown
+// non-asset paths, enabling client-side routing. Missing files under assetsDir
+// return 404 so that stale asset references fail loudly instead of being served
+// the SPA shell with an HTML content type.
 func spaHandler(fsys fs.FS) http.Handler {
 	fileServer := http.FileServerFS(fsys)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +59,10 @@ func spaHandler(fsys fs.FS) http.Handler {
 					return
 				}
 			}
+		}
+		if strings.HasPrefix(path, assetsDir) {
+			http.NotFound(w, r)
+			return
 		}
 		applyCacheControl(w, "index.html")
 		http.ServeFileFS(w, r, fsys, "index.html")

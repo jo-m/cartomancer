@@ -19,32 +19,42 @@ func TestSPAHandlerCacheControl(t *testing.T) {
 	tests := []struct {
 		name         string
 		path         string
+		wantStatus   int
 		wantCache    string
 		wantContains string
 	}{
 		{
 			name:         "root serves index",
 			path:         "/",
+			wantStatus:   http.StatusOK,
 			wantCache:    cacheControlNoCache,
 			wantContains: "<!doctype html>",
 		},
 		{
 			name:         "client route falls back to index",
 			path:         "/tracks/abc",
+			wantStatus:   http.StatusOK,
 			wantCache:    cacheControlNoCache,
 			wantContains: "<!doctype html>",
 		},
 		{
 			name:         "unhashed static file is revalidated",
 			path:         "/favicon.svg",
+			wantStatus:   http.StatusOK,
 			wantCache:    cacheControlNoCache,
 			wantContains: "<svg/>",
 		},
 		{
 			name:         "hashed asset is immutable",
 			path:         "/assets/index-abc123.js",
+			wantStatus:   http.StatusOK,
 			wantCache:    cacheControlImmutable,
 			wantContains: "console.log(1)",
+		},
+		{
+			name:       "missing asset is a 404",
+			path:       "/assets/index-gone.js",
+			wantStatus: http.StatusNotFound,
 		},
 	}
 
@@ -55,9 +65,11 @@ func TestSPAHandlerCacheControl(t *testing.T) {
 
 			spaHandler(fsys).ServeHTTP(rec, req)
 
-			require.Equal(t, http.StatusOK, rec.Code)
+			require.Equal(t, tt.wantStatus, rec.Code)
 			require.Equal(t, tt.wantCache, rec.Header().Get("Cache-Control"))
-			require.Contains(t, rec.Body.String(), tt.wantContains)
+			if tt.wantContains != "" {
+				require.Contains(t, rec.Body.String(), tt.wantContains)
+			}
 		})
 	}
 }
