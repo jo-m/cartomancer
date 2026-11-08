@@ -104,15 +104,18 @@ export default function ForecastControls({
             </button>
           ))}
         </div>
-        {forecastLoading && (
-          <span className="text-xs text-text-muted">Loading...</span>
-        )}
-        {!forecastLoading && estDurationH > 0 && (
-          <span className="text-xs text-text-muted">
-            Est. {estDurationH.toFixed(1)}h,&ensp;{fmtClock(startMs)}-
-            {fmtClock(endMs)}
-          </span>
-        )}
+        {/* Fixed-width slot: swapping the loading indicator for the duration
+            estimate must not reflow the slider below. */}
+        <span className="w-44 shrink-0 truncate text-xs text-text-muted tabular-nums">
+          {forecastLoading
+            ? "Loading..."
+            : estDurationH > 0 && (
+                <>
+                  Est. {estDurationH.toFixed(1)}h,&ensp;{fmtClock(startMs)}-
+                  {fmtClock(endMs)}
+                </>
+              )}
+        </span>
       </div>
       <div className="mt-1 flex items-center gap-3">
         <input

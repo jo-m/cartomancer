@@ -314,14 +314,6 @@ export default function Track() {
         </Alert>
       )}
 
-      {forecast.sunEvents.length > 0 && (
-        <Alert variant="warning" className="mt-3">
-          <p className="font-medium">
-            Don't forget to bring lights when riding in the dark.
-          </p>
-        </Alert>
-      )}
-
       <ForecastControls
         startTime={forecast.startTime}
         speedKmh={forecast.speedKmh}
@@ -331,6 +323,16 @@ export default function Track() {
         onChangeStart={forecast.setStartTime}
         onChangeSpeed={forecast.setSpeedKmh}
       />
+
+      {/* Placed after the controls so warnings that come and go with the
+          selected time cannot reflow the slider while it is being dragged. */}
+      {forecast.sunEvents.length > 0 && (
+        <Alert variant="warning" className="mt-3">
+          <p className="font-medium">
+            Don't forget to bring lights when riding in the dark.
+          </p>
+        </Alert>
+      )}
 
       {trackPoints && trackPoints.length > 0 && (
         <ElevationProfile
