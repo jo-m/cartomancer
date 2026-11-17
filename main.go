@@ -103,6 +103,23 @@ func (c *config) validate() error {
 	return nil
 }
 
+// compressExceptRanges wraps a compression middleware and bypasses it for
+// requests with a Range header. Compressing a 206 response would make the
+// Content-Range boundaries refer to the unencoded body while sending encoded
+// bytes, and the middleware also drops Content-Length in that case.
+func compressExceptRanges(compress func(http.Handler) http.Handler) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		compressed := compress(next)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("Range") != "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			compressed.ServeHTTP(w, r)
+		})
+	}
+}
+
 func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb.DB, sessConfig session.SessionConfig, appConfig app.AppConfig, staticFS fs.FS, jobSubmitter *jobs.Submitter, maxConcurrentReqs, maxConcurrentBacklog int, mapsDir string) http.Handler {
 	logger := logg.GetLogger(ctx).With("mod", "svc")
 
@@ -119,7 +136,7 @@ func newHandler(ctx context.Context, d *db.DB, gd *geonamesdb.DB, fd *forecastdb
 	mux.Use(logg.AttachLogger(logger))
 	mux.Use(logg.RequestLogger)
 	mux.Use(middleware.RequestSize(5 * 1024 * 1024))
-	mux.Use(middleware.Compress(5))
+	mux.Use(compressExceptRanges(middleware.Compress(5)))
 	mux.Use(middleware.Recoverer)
 
 	apiHandler, err := api.New(d, gd, fd, sess, jobSubmitter, appConfig, mapsDir)
